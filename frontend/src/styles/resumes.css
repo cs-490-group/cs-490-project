@@ -1917,6 +1917,44 @@ h1, h2 {
 }
 
 /* Version Management */
+.version-management-page {
+  background: #f8f9fa;
+  min-height: 100vh;
+  padding-bottom: 3rem;
+}
+
+.version-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 8px;
+  border-bottom: 3px solid #007bff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.header-content h1 {
+  color: #1a1a1a;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+}
+
+.header-subtitle {
+  color: #666;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.version-management-header .btn {
+  white-space: nowrap;
+  padding: 0.6rem 1.2rem;
+}
+
 .version-management-layout {
   display: grid;
   grid-template-columns: 350px 1fr;
@@ -1931,6 +1969,7 @@ h1, h2 {
   border-radius: 8px;
   border: 1px solid #ddd;
   color: #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .versions-list h3,
@@ -1940,25 +1979,60 @@ h1, h2 {
 .versions-list h5,
 .version-comparison h5 {
   color: #1a1a1a !important;
+  margin-bottom: 1.25rem;
+}
+
+.versions-list h3,
+.version-comparison h3 {
+  font-weight: 700;
+  font-size: 1.15rem;
 }
 
 .versions-container {
-  max-height: 600px;
+  max-height: 700px;
   overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.versions-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.versions-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.versions-container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.versions-container::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
 }
 
 .version-item {
   border: 1px solid #ddd;
   border-radius: 6px;
   padding: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   display: flex;
   gap: 1rem;
+  background: #fafbfc;
+  transition: all 0.2s ease;
+}
+
+.version-item:hover {
+  border-color: #0066cc;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
 }
 
 .version-item.current {
-  background: rgba(40, 167, 69, 0.05);
+  background: rgba(40, 167, 69, 0.08);
   border-color: #28a745;
+  border-left: 4px solid #28a745;
 }
 
 .version-checkbox {
@@ -1975,40 +2049,54 @@ h1, h2 {
 
 .version-info {
   flex: 1;
+  min-width: 0;
 }
 
 .version-info h4 {
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.5rem 0;
   font-size: 0.95rem;
   color: #1a1a1a;
+  font-weight: 600;
+  word-break: break-word;
 }
 
 .version-description {
   margin: 0.25rem 0;
   font-size: 0.85rem;
   color: #666;
+  line-height: 1.3;
 }
 
 .version-date {
-  margin: 0.25rem 0;
+  margin: 0.5rem 0 0 0;
   font-size: 0.8rem;
   color: #999;
 }
 
 .version-job {
-  margin: 0.5rem 0;
+  margin: 0.5rem 0 0 0;
   font-size: 0.85rem;
+  display: inline-block;
+  background: #e3f2fd;
+  color: #0066cc;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-weight: 500;
 }
 
 .version-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  min-width: 90px;
 }
 
 .version-actions .btn {
   font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 /* Sharing & Feedback */
@@ -2638,6 +2726,50 @@ h1, h2 {
   .public-share-layout {
     grid-template-columns: 1fr;
   }
+
+  .version-management-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .version-management-header .btn {
+    width: 100%;
+  }
+
+  .version-management-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .version-item {
+    flex-direction: column;
+  }
+
+  .version-actions {
+    flex-direction: row;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .version-actions .btn {
+    flex: 1;
+  }
+
+  .comparison-header {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-row {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-controls {
+    flex-direction: column;
+  }
+
+  .comparison-controls .btn {
+    width: 100%;
+  }
 }
 
 /* ===== TEMPLATE-SPECIFIC STYLES - 5 DISTINCT DESIGNS ===== */
@@ -3253,4 +3385,229 @@ h1, h2 {
   .modal-content {
     margin: 0 1rem;
   }
+
+  .version-comparison-container {
+    flex-direction: column;
+  }
+
+  .comparison-header {
+    flex-direction: column;
+  }
+
+  .version-header-col {
+    width: 100%;
+  }
+
+  .comparison-sections {
+    width: 100%;
+  }
+}
+
+/* Enhanced Version Comparison Styles */
+.version-comparison-container {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.comparison-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.version-header-col {
+  background: white;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.version-header-col h5 {
+  margin: 0 0 0.5rem 0;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.version-header-col .text-muted {
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+
+.version-header-col .badge {
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+.comparison-sections {
+  margin-bottom: 1.5rem;
+}
+
+.comparison-sections h6 {
+  color: #1a1a1a;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.comparison-section {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.comparison-section.has-differences {
+  border-left: 4px solid #ffc107;
+  background: #fffbf0;
+}
+
+.comparison-section.no-differences {
+  border-left: 4px solid #28a745;
+  opacity: 0.9;
+}
+
+.section-header {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.section-header:hover {
+  background: #e9ecef;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-title h6 {
+  margin: 0;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.toggle-icon {
+  display: inline-block;
+  font-size: 0.8rem;
+  color: #666;
+  min-width: 15px;
+}
+
+.section-content {
+  padding: 1rem;
+}
+
+.comparison-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.comparison-cell {
+  background: #fafbfc;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid #e1e4e8;
+}
+
+.comparison-cell strong {
+  display: block;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.comparison-cell p {
+  margin: 0;
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.detailed-comparison {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.experience-comparison,
+.skills-comparison {
+  margin: 0;
+}
+
+.comparison-detail {
+  margin-bottom: 1rem;
+}
+
+.comparison-detail h6 {
+  font-size: 0.9rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+.comparison-detail ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style-position: inside;
+}
+
+.comparison-detail li {
+  margin-bottom: 0.25rem;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.skill-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.skill-badges .badge {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.comparison-summary {
+  background: #e7f3ff;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid #0066cc;
+}
+
+.comparison-summary h6 {
+  margin: 0 0 0.5rem 0;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.comparison-summary p {
+  margin: 0;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.comparison-controls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.comparison-controls .btn {
+  flex: 1;
+  min-width: 150px;
 }

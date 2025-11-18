@@ -414,12 +414,12 @@ async def delete_resume_version(resume_id: str, version_id: str, uuid: str = Dep
         return {"detail": "Successfully deleted version"}
 
 @resumes_router.put("/{resume_id}/versions/{version_id}/rename", tags = ["resumes"])
-async def rename_resume_version(resume_id: str, version_id: str, name: str, description: str = None, uuid: str = Depends(authorize)):
-    """Rename a resume version"""
+async def rename_resume_version(resume_id: str, version_id: str, name: str, description: str = None, job_linked: str = None, uuid: str = Depends(authorize)):
+    """Rename a resume version and optionally update description and job link"""
     try:
         if not name or not name.strip():
             raise HTTPException(400, "Version name is required")
-        updated = await resumes_dao.rename_resume_version(version_id, name.strip(), description)
+        updated = await resumes_dao.rename_resume_version(version_id, name.strip(), description, job_linked)
     except HTTPException as http:
         raise http
     except Exception as e:

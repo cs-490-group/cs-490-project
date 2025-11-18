@@ -94,10 +94,11 @@ export default function VersionManagementPage() {
     const newName = prompt('Enter name for new version:', `${version.name} (Copy)`);
     if (newName) {
       try {
+        const cleanedData = cleanResumeData(version.resume_data);
         await ResumesAPI.createVersion(id, {
           name: newName,
           description: `Copy of ${version.name}`,
-          resume_data: version.resume_data,
+          resume_data: cleanedData,
         });
         alert(`New version "${newName}" created!`);
         // Refresh versions list
@@ -109,24 +110,138 @@ export default function VersionManagementPage() {
     }
   };
 
+  const handleMergeVersions = async () => {
+    if (selectedVersions.length !== 2) {
+      alert('Please select exactly 2 versions to merge');
+      return;
+    }
+
+    const version1 = versions.find((v) => v._id === selectedVersions[0]);
+    const version2 = versions.find((v) => v._id === selectedVersions[1]);
+
+    const mergedName = prompt(
+      'Enter name for merged version:',
+      `${version1.name} + ${version2.name}`
+    );
+
+    if (!mergedName) return;
+
+    try {
+      // Merge: combine data from both versions (version2 takes precedence for conflicts)
+      // Also clean the merged data to avoid MongoDB field issues
+      const mergedData = cleanResumeData({
+        ...version1.resume_data,
+        ...version2.resume_data,
+      });
+
+      await ResumesAPI.createVersion(id, {
+        name: mergedName.trim(),
+        description: `Merged from "${version1.name}" and "${version2.name}"`,
+        resume_data: mergedData,
+      });
+
+      alert('Versions merged successfully!');
+      // Refresh versions list
+      const response = await ResumesAPI.getVersions(id);
+      setVersions(response.data || response);
+      setSelectedVersions([]);
+      setShowComparison(false);
+    } catch (err) {
+      alert('Failed to merge versions: ' + err.message);
+    }
+  };
+
+  const handleLinkJob = async (versionId) => {
+    const version = versions.find((v) => v._id === versionId);
+    const jobId = prompt('Enter job ID or posting URL to link to this version:', version.job_linked || '');
+
+    if (jobId !== null) {
+      try {
+        // Pass job_linked as the 4th parameter
+        await ResumesAPI.renameVersion(id, versionId, version.name, version.description, jobId.trim() || null);
+
+        // Update local state - update version with job_linked
+        setVersions(
+          versions.map((v) =>
+            v._id === versionId ? { ...v, job_linked: jobId.trim() || null } : v
+          )
+        );
+        alert('Job linked to version successfully!');
+      } catch (err) {
+        alert('Failed to link job: ' + err.message);
+      }
+    }
+  };
+
   if (loading) {
     return <div className="container mt-5"><h2>Loading versions...</h2></div>;
   }
 
+  const cleanResumeData = (resume) => {
+    // Create a copy without MongoDB's _id field to avoid conflicts
+    const cleaned = { ...resume };
+    delete cleaned._id;
+    delete cleaned.uuid;
+    delete cleaned.date_created;
+    delete cleaned.date_updated;
+    return cleaned;
+  };
+
+  const handleCreateInitialVersion = async () => {
+    // Get current resume to create first version
+    try {
+      const response = await ResumesAPI.get(id);
+      const resumeData = cleanResumeData(response.data || response);
+
+      const versionName = prompt('Enter name for this version:', 'Version 1 - Original');
+      if (!versionName) return;
+
+      await ResumesAPI.createVersion(id, {
+        name: versionName.trim(),
+        description: 'Initial version snapshot',
+        resume_data: resumeData,
+      });
+
+      alert('Version created successfully!');
+      // Refresh versions list
+      const versionsResponse = await ResumesAPI.getVersions(id);
+      setVersions(versionsResponse.data || versionsResponse);
+    } catch (err) {
+      alert('Failed to create version: ' + err.message);
+      console.error('Error creating initial version:', err);
+    }
+  };
+
   return (
-    <div className="container mt-5">
-      {error && <div className="alert alert-danger mb-4">{error}</div>}
+    <div className="version-management-page">
+      <div className="container mt-5">
+        {error && <div className="alert alert-danger mb-4">{error}</div>}
 
-      <div className="version-management-header">
-        <h1>Version Management</h1>
-        <button onClick={() => navigate(`/resumes/edit/${id}`)} className="btn btn-secondary">
-          Back to Resume
-        </button>
-      </div>
+        <div className="version-management-header">
+          <div className="header-content">
+            <h1>Resume Version Management</h1>
+            <p className="header-subtitle">
+              Create, compare, and manage multiple resume versions for different job applications
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button onClick={handleCreateInitialVersion} className="btn btn-primary">
+              💾 Save Version
+            </button>
+            <button onClick={() => navigate(`/resumes/edit/${id}`)} className="btn btn-outline-secondary">
+              ← Back to Editor
+            </button>
+          </div>
+        </div>
 
-      <div className="version-management-layout">
+        <div className="version-management-layout">
         <div className="versions-list">
-          <h3>Resume Versions</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0 }}>Resume Versions ({versions.length})</h3>
+            <button onClick={handleCreateInitialVersion} className="btn btn-sm btn-primary" title="Create a new version from current resume">
+              {versions.length === 0 ? '+ Create First Version' : '+ Save Current as Version'}
+            </button>
+          </div>
           <p className="text-muted">Select up to 2 versions to compare</p>
           <div className="versions-container">
             {versions.map((version) => (
@@ -176,6 +291,13 @@ export default function VersionManagementPage() {
                     Copy
                   </button>
                   <button
+                    onClick={() => handleLinkJob(version._id)}
+                    className="btn btn-sm btn-warning"
+                    title="Link this version to a job posting"
+                  >
+                    Link Job
+                  </button>
+                  <button
                     onClick={() => handleDelete(version._id)}
                     className="btn btn-sm btn-danger"
                     title="Delete this version"
@@ -200,12 +322,21 @@ export default function VersionManagementPage() {
             </div>
           ) : (
             <>
-              <button
-                onClick={() => setShowComparison(!showComparison)}
-                className="btn btn-primary mb-3"
-              >
-                {showComparison ? 'Hide' : 'Show'} Comparison
-              </button>
+              <div className="comparison-controls mb-3">
+                <button
+                  onClick={() => setShowComparison(!showComparison)}
+                  className="btn btn-primary"
+                >
+                  {showComparison ? 'Hide' : 'Show'} Comparison
+                </button>
+                <button
+                  onClick={handleMergeVersions}
+                  className="btn btn-info"
+                  title="Merge selected versions into a new version"
+                >
+                  Merge Versions
+                </button>
+              </div>
               {showComparison && (
                 <VersionComparison
                   version1={versions.find((v) => v._id === selectedVersions[0])}
@@ -214,6 +345,7 @@ export default function VersionManagementPage() {
               )}
             </>
           )}
+        </div>
         </div>
       </div>
     </div>
