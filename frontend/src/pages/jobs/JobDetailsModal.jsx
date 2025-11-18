@@ -26,7 +26,7 @@ export default function JobDetailsModal({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 1000,
+        zIndex: 1050,
         padding: "20px",
       }}
       onClick={() => setSelectedJob(null)}
