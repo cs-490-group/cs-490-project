@@ -4,10 +4,11 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import JobForm from "./JobForm";
 import JobPipeline from "./JobPipeline";
 import JobCard from "./JobCard";
-import { DeadlineWidget, DeadlineCalendar, DeadlineReminderModal } from "./DeadlineComponents";
+import { DeadlineCalendar, DeadlineReminderModal } from "./DeadlineComponents";
 import { MaterialsModal, MaterialsAnalytics } from "./MaterialsTracking";
 import JobStatistics from "./JobStatistics";
 import PerformanceDashboard from "./PerformanceDashboard";
+import FloatingDeadlineWidget from "./FloatingDeadlineWidget";
 import JobsAPI from "../../api/jobs";
 import ProfilesAPI from "../../api/profiles";
 import { Container, Spinner } from 'react-bootstrap';
@@ -37,6 +38,9 @@ export default function JobList() {
   const [autoArchiveDays, setAutoArchiveDays] = useState(parseInt(localStorage.getItem('autoArchiveDays')) || 90);
   const [autoArchiveEnabled, setAutoArchiveEnabled] = useState(localStorage.getItem('autoArchiveEnabled') === 'true');
   const [undoStack, setUndoStack] = useState([]);
+  const [showFloatingWidget, setShowFloatingWidget] = useState(
+    localStorage.getItem('showDeadlineWidget') !== 'false'
+  );
 
   const sensors = useSensors(useSensor(PointerSensor));
   const stages = ["Interested", "Applied", "Screening", "Interview", "Offer", "Rejected"];
@@ -213,6 +217,12 @@ export default function JobList() {
     alert('✅ Auto-archive settings saved');
   };
 
+  const toggleFloatingWidget = () => {
+    const newValue = !showFloatingWidget;
+    setShowFloatingWidget(newValue);
+    localStorage.setItem('showDeadlineWidget', String(newValue));
+  };
+
   const activeJob = jobs.find((j) => j.id === activeId);
 
   if (loading) {
@@ -242,6 +252,8 @@ export default function JobList() {
         setShowSettings={setShowSettings}
         showStatistics={showStatistics}
         setShowStatistics={setShowStatistics}
+        showFloatingWidget={showFloatingWidget}
+        toggleFloatingWidget={toggleFloatingWidget}
       />
 
       <SettingsModal
@@ -259,9 +271,9 @@ export default function JobList() {
         <PerformanceDashboard jobs={jobs} />
       )}
 
-      {view === "pipeline" && !showArchived && (
+      {/* Pipeline View with Calendar and Statistics */}
+      {view === "pipeline" && (
         <>
-          {!showCalendar && !showStatistics && <DeadlineWidget jobs={jobs.filter(j => !j.archived)} onJobClick={(job) => setSelectedJob(job)} />}
           {showCalendar && <DeadlineCalendar jobs={jobs.filter(j => !j.archived)} />}
           {showStatistics && (
             <>
@@ -383,6 +395,9 @@ export default function JobList() {
           }}
         />
       )}
+      
+      {/* Floating Deadline Widget - appears on all job views */}
+      {showFloatingWidget && <FloatingDeadlineWidget jobs={jobs} onJobClick={(job) => setSelectedJob(job)} />}
     </div>
   );
 }

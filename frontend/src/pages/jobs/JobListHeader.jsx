@@ -10,7 +10,9 @@ export default function JobListHeader({
   setShowArchived, 
   setShowSettings,
   showStatistics,
-  setShowStatistics
+  setShowStatistics,
+  showFloatingWidget,
+  toggleFloatingWidget
 }) {
   return (
     <div style={{
@@ -75,7 +77,7 @@ export default function JobListHeader({
               }}
               style={{
                 padding: "12px 24px",
-                background: view === "pipeline" && !showStatistics && !showCalendar && !showArchived ? "#4caf50" : "#9c27b0",
+                background: view === "pipeline" && !showStatistics && !showCalendar && !showArchived ? "#4caf50" : "#673ab7",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
