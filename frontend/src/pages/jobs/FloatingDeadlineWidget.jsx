@@ -71,7 +71,6 @@ export default function FloatingDeadlineWidget({ jobs, onJobClick }) {
           justifyContent: "center",
           zIndex: 9999,
           transition: "transform 0.2s, box-shadow 0.2s",
-          animation: urgentCount > 0 ? "pulse 2s infinite" : "none"
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = "scale(1.1)";
