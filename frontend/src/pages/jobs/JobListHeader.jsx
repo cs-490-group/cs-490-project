@@ -42,18 +42,40 @@ export default function JobListHeader({
       </div>
       
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        {/* Main view buttons - always visible in pipeline view */}
-        {view === "pipeline" && (
+        {/* Main view buttons */}
+        {(view === "pipeline" || view === "dashboard") && (
           <>
             <button
               onClick={() => {
+                setView("dashboard");
                 setShowStatistics(false);
                 setShowCalendar(false);
                 setShowArchived(false);
               }}
               style={{
                 padding: "12px 24px",
-                background: !showStatistics && !showCalendar && !showArchived ? "#4caf50" : "#9c27b0",
+                background: view === "dashboard" ? "#4caf50" : "#9c27b0",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              📈 Dashboard
+            </button>
+            
+            <button
+              onClick={() => {
+                setView("pipeline");
+                setShowStatistics(false);
+                setShowCalendar(false);
+                setShowArchived(false);
+              }}
+              style={{
+                padding: "12px 24px",
+                background: view === "pipeline" && !showStatistics && !showCalendar && !showArchived ? "#4caf50" : "#9c27b0",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
@@ -67,6 +89,7 @@ export default function JobListHeader({
             
             <button
               onClick={() => {
+                setView("pipeline");
                 setShowStatistics(true);
                 setShowCalendar(false);
                 setShowArchived(false);
@@ -87,6 +110,7 @@ export default function JobListHeader({
             
             <button
               onClick={() => {
+                setView("pipeline");
                 setShowCalendar(true);
                 setShowStatistics(false);
                 setShowArchived(false);
@@ -107,6 +131,7 @@ export default function JobListHeader({
             
             <button
               onClick={() => {
+                setView("pipeline");
                 setShowArchived(!showArchived);
                 setShowStatistics(false);
                 setShowCalendar(false);
@@ -146,17 +171,17 @@ export default function JobListHeader({
         {/* Add/Back button */}
         <button
           onClick={() => {
-            if (view === "pipeline") {
+            if (view === "pipeline" || view === "dashboard") {
               setView("form");
               setEditingJob(null);
             } else {
-              setView("pipeline");
+              setView("dashboard");
               setEditingJob(null);
             }
           }}
           style={{
             padding: "12px 24px",
-            background: view === "pipeline" ? "#4f8ef7" : "#f44336",
+            background: (view === "pipeline" || view === "dashboard") ? "#4f8ef7" : "#f44336",
             color: "white",
             border: "none",
             borderRadius: "6px",
@@ -165,7 +190,7 @@ export default function JobListHeader({
             fontSize: "14px"
           }}
         >
-          {view === "pipeline" ? "+ Add New Job" : "← Back to Pipeline"}
+          {(view === "pipeline" || view === "dashboard") ? "+ Add New Job" : "← Back to Dashboard"}
         </button>
       </div>
     </div>

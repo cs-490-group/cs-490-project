@@ -7,6 +7,7 @@ import JobCard from "./JobCard";
 import { DeadlineWidget, DeadlineCalendar, DeadlineReminderModal } from "./DeadlineComponents";
 import { MaterialsModal, MaterialsAnalytics } from "./MaterialsTracking";
 import JobStatistics from "./JobStatistics";
+import PerformanceDashboard from "./PerformanceDashboard";
 import JobsAPI from "../../api/jobs";
 import ProfilesAPI from "../../api/profiles";
 import { Container, Spinner } from 'react-bootstrap';
@@ -20,13 +21,14 @@ import { useJobOperations } from "./hooks/useJobOperations";
 
 export default function JobList() {
   const [jobs, setJobs] = useState([]);
-  const [view, setView] = useState("pipeline");
+  const [view, setView] = useState("dashboard");
   const [editingJob, setEditingJob] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [activeId, setActiveId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [showStatistics, setShowStatistics] = useState(false); // ADD THIS LINE
+  const [showStatistics, setShowStatistics] = useState(false);
+  const [showPerformance, setShowPerformance] = useState(false);
   const [reminderJob, setReminderJob] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [userEmail, setUserEmail] = useState("");
@@ -252,6 +254,11 @@ export default function JobList() {
         saveAutoArchiveSettings={saveAutoArchiveSettings}
       />
 
+      {/* Performance Dashboard View */}
+      {view === "dashboard" && (
+        <PerformanceDashboard jobs={jobs} />
+      )}
+
       {view === "pipeline" && !showArchived && (
         <>
           {!showCalendar && !showStatistics && <DeadlineWidget jobs={jobs.filter(j => !j.archived)} onJobClick={(job) => setSelectedJob(job)} />}
@@ -303,7 +310,7 @@ export default function JobList() {
           addJob={addJob}
           editJob={editingJob ? { ...editingJob, submit: updateJob } : null}
           cancelEdit={() => {
-            setView("pipeline");
+            setView("dashboard");
             setEditingJob(null);
             window.location.reload();
           }}
