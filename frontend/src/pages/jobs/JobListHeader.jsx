@@ -11,6 +11,8 @@ export default function JobListHeader({
   setShowSettings,
   showStatistics,
   setShowStatistics,
+  showMaterials,
+  setShowMaterials,
   showFloatingWidget,
   toggleFloatingWidget
 }) {
@@ -53,6 +55,7 @@ export default function JobListHeader({
                 setShowStatistics(false);
                 setShowCalendar(false);
                 setShowArchived(false);
+                setShowMaterials(false);
               }}
               style={{
                 padding: "12px 24px",
@@ -74,10 +77,11 @@ export default function JobListHeader({
                 setShowStatistics(false);
                 setShowCalendar(false);
                 setShowArchived(false);
+                setShowMaterials(false);
               }}
               style={{
                 padding: "12px 24px",
-                background: view === "pipeline" && !showStatistics && !showCalendar && !showArchived ? "#4caf50" : "#673ab7",
+                background: view === "pipeline" && !showStatistics && !showCalendar && !showArchived && !showMaterials ? "#4caf50" : "#e91e63",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
@@ -95,10 +99,11 @@ export default function JobListHeader({
                 setShowStatistics(true);
                 setShowCalendar(false);
                 setShowArchived(false);
+                setShowMaterials(false);
               }}
               style={{
                 padding: "12px 24px",
-                background: showStatistics ? "#4caf50" : "#2196f3",
+                background: showStatistics ? "#4caf50" : "#213df3ff",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
@@ -113,13 +118,36 @@ export default function JobListHeader({
             <button
               onClick={() => {
                 setView("pipeline");
-                setShowCalendar(true);
+                setShowMaterials(true);
                 setShowStatistics(false);
+                setShowCalendar(false);
                 setShowArchived(false);
               }}
               style={{
                 padding: "12px 24px",
-                background: showCalendar ? "#4caf50" : "#ff9800",
+                background: showMaterials ? "#4caf50" : "#ff9800",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              📄 Materials
+            </button>
+            
+            <button
+              onClick={() => {
+                setView("pipeline");
+                setShowCalendar(true);
+                setShowStatistics(false);
+                setShowArchived(false);
+                setShowMaterials(false);
+              }}
+              style={{
+                padding: "12px 24px",
+                background: showCalendar ? "#4caf50" : "#03a9f4",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
@@ -137,6 +165,7 @@ export default function JobListHeader({
                 setShowArchived(!showArchived);
                 setShowStatistics(false);
                 setShowCalendar(false);
+                setShowMaterials(false);
               }}
               style={{
                 padding: "12px 24px",

@@ -29,6 +29,7 @@ export default function JobList() {
   const [loading, setLoading] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showStatistics, setShowStatistics] = useState(false);
+  const [showMaterials, setShowMaterials] = useState(false);
   const [showPerformance, setShowPerformance] = useState(false);
   const [reminderJob, setReminderJob] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -252,6 +253,8 @@ export default function JobList() {
         setShowSettings={setShowSettings}
         showStatistics={showStatistics}
         setShowStatistics={setShowStatistics}
+        showMaterials={showMaterials}
+        setShowMaterials={setShowMaterials}
         showFloatingWidget={showFloatingWidget}
         toggleFloatingWidget={toggleFloatingWidget}
       />
@@ -271,16 +274,12 @@ export default function JobList() {
         <PerformanceDashboard jobs={jobs} />
       )}
 
-      {/* Pipeline View with Calendar and Statistics */}
+      {/* Pipeline View with Calendar, Statistics, and Materials */}
       {view === "pipeline" && (
         <>
           {showCalendar && <DeadlineCalendar jobs={jobs.filter(j => !j.archived)} />}
-          {showStatistics && (
-            <>
-              <JobStatistics jobs={jobs} />
-              <MaterialsAnalytics />
-            </>
-          )}
+          {showStatistics && <JobStatistics jobs={jobs} />}
+          {showMaterials && <MaterialsAnalytics />}
         </>
       )}
 
@@ -293,7 +292,7 @@ export default function JobList() {
         clearSelection={clearSelection}
       />
 
-      {view === "pipeline" && !showCalendar && !showStatistics && (
+      {view === "pipeline" && !showCalendar && !showStatistics && !showMaterials && (
         <FilterBar
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -329,7 +328,7 @@ export default function JobList() {
         />
       )}
 
-      {view === "pipeline" && !showCalendar && !showStatistics && (
+      {view === "pipeline" && !showCalendar && !showStatistics && !showMaterials && (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}

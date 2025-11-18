@@ -11,6 +11,10 @@ export function MaterialsModal({ job, onClose, onSave }) {
   const [uploadType, setUploadType] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
+  const [compareVersions, setCompareVersions] = useState({ v1: null, v2: null });
+  const [materialsHistory, setMaterialsHistory] = useState(job?.materials_history || []);
 
   useEffect(() => {
     loadMaterials();
@@ -116,6 +120,31 @@ export function MaterialsModal({ job, onClose, onSave }) {
     }
   };
 
+  const handleView = async (material, type) => {
+    try {
+      let response;
+      if (type === 'resume') {
+        response = await ResumesAPI.get(material.resume_id || material.id);
+      } else {
+        response = await CoverLetterAPI.get(material.cover_letter_id || material.id);
+      }
+
+      if (response.data.file_url) {
+        window.open(response.data.file_url, '_blank');
+      } else if (response.data.file_content) {
+        const blob = new Blob([response.data.file_content], { type: material.file_type || 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else {
+        alert("Preview not available for this file");
+      }
+    } catch (error) {
+      console.error("Error viewing file:", error);
+      alert("Failed to view file. Please try again.");
+    }
+  };
+
   const handleDelete = async (id, type) => {
     if (!window.confirm("Are you sure you want to delete this document?")) return;
 
@@ -136,9 +165,43 @@ export function MaterialsModal({ job, onClose, onSave }) {
     }
   };
 
+  const handleSetDefault = async (id, type) => {
+    try {
+      if (type === 'resume') {
+        await ResumesAPI.setDefault(id);
+        setResumes(resumes.map(r => ({
+          ...r,
+          is_default: (r.resume_id || r.id) === id
+        })));
+      } else {
+        await CoverLetterAPI.setDefault(id);
+        setCoverLetters(coverLetters.map(c => ({
+          ...c,
+          is_default: (c.cover_letter_id || c.id) === id
+        })));
+      }
+      alert('✅ Default material set successfully!');
+    } catch (error) {
+      console.error("Error setting default:", error);
+      alert("Failed to set default. Please try again.");
+    }
+  };
+
   const handleSave = () => {
     const selectedResumeObj = resumes.find(r => (r.resume_id || r.id) === selectedResume);
     const selectedCoverLetterObj = coverLetters.find(c => (c.cover_letter_id || c.id) === selectedCoverLetter);
+
+    // Create history entry
+    const historyEntry = {
+      date: new Date().toISOString(),
+      resume_id: selectedResume || null,
+      resume_name: selectedResumeObj?.file_name || selectedResumeObj?.name || null,
+      resume_version: selectedResumeObj?.version_name || selectedResumeObj?.version || null,
+      cover_letter_id: selectedCoverLetter || null,
+      cover_letter_name: selectedCoverLetterObj?.file_name || selectedCoverLetterObj?.name || null,
+      cover_letter_version: selectedCoverLetterObj?.version_name || selectedCoverLetterObj?.version || null,
+      action: job?.materials ? 'updated' : 'added'
+    };
 
     const materials = {
       resume_id: selectedResume || null,
@@ -150,7 +213,13 @@ export function MaterialsModal({ job, onClose, onSave }) {
       linked_date: new Date().toISOString()
     };
 
-    onSave({ ...job, materials });
+    const updatedMaterialsHistory = [...materialsHistory, historyEntry];
+
+    onSave({ 
+      ...job, 
+      materials,
+      materials_history: updatedMaterialsHistory
+    });
     onClose();
   };
 
@@ -206,6 +275,23 @@ export function MaterialsModal({ job, onClose, onSave }) {
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                handleView(material, type);
+              }}
+              style={{
+                padding: "4px 8px",
+                background: "#2196f3",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "11px"
+              }}
+            >
+              👁 View
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
                 handleDownload(material, type);
               }}
               style={{
@@ -219,6 +305,44 @@ export function MaterialsModal({ job, onClose, onSave }) {
               }}
             >
               📥 Download
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSetDefault(materialId, type);
+              }}
+              style={{
+                padding: "4px 8px",
+                background: material.is_default ? "#9e9e9e" : "#4caf50",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "11px"
+              }}
+              disabled={material.is_default}
+            >
+              ⭐ {material.is_default ? 'Default' : 'Set Default'}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCompareVersions(prev => ({
+                  ...prev,
+                  [prev.v1 ? 'v2' : 'v1']: { material, type }
+                }));
+              }}
+              style={{
+                padding: "4px 8px",
+                background: "#ff9800",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "11px"
+              }}
+            >
+              🔄 Compare
             </button>
             <button
               onClick={(e) => {
@@ -290,7 +414,7 @@ export function MaterialsModal({ job, onClose, onSave }) {
         style={{
           background: "white",
           borderRadius: "8px",
-          maxWidth: "900px",
+          maxWidth: "1000px",
           width: "100%",
           maxHeight: "90vh",
           overflow: "auto",
@@ -303,6 +427,144 @@ export function MaterialsModal({ job, onClose, onSave }) {
         <p style={{ fontSize: "14px", color: "#666", marginBottom: "20px" }}>
           at {job.company}
         </p>
+
+        {/* Action Buttons */}
+        <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            style={{
+              padding: "6px 12px",
+              background: showHistory ? "#4f8ef7" : "#e0e0e0",
+              color: showHistory ? "white" : "#333",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "600"
+            }}
+          >
+            📜 {showHistory ? 'Hide' : 'Show'} History
+          </button>
+          <button
+            onClick={() => setShowComparison(!showComparison)}
+            style={{
+              padding: "6px 12px",
+              background: showComparison ? "#ff9800" : "#e0e0e0",
+              color: showComparison ? "white" : "#333",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "600"
+            }}
+          >
+            🔄 {showComparison ? 'Hide' : 'Show'} Comparison
+          </button>
+        </div>
+
+        {/* Materials History */}
+        {showHistory && materialsHistory.length > 0 && (
+          <div style={{ marginBottom: "20px", padding: "16px", background: "#f9f9f9", borderRadius: "6px" }}>
+            <h3 style={{ fontSize: "16px", marginTop: 0, color: "#333" }}>📜 Materials History</h3>
+            {materialsHistory.map((entry, idx) => (
+              <div key={idx} style={{ 
+                padding: "8px", 
+                borderLeft: "3px solid #4f8ef7", 
+                marginBottom: "8px",
+                paddingLeft: "12px"
+              }}>
+                <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
+                  {new Date(entry.date).toLocaleString()} - <strong>{entry.action}</strong>
+                </div>
+                <div style={{ fontSize: "11px", color: "#999" }}>
+                  Resume: {entry.resume_version || 'None'} | Cover Letter: {entry.cover_letter_version || 'None'}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Version Comparison */}
+        {showComparison && (
+          <div style={{ marginBottom: "20px", padding: "16px", background: "#fff3e0", borderRadius: "6px" }}>
+            <h3 style={{ fontSize: "16px", marginTop: 0, color: "#333" }}>🔄 Version Comparison</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Version 1</div>
+                {compareVersions.v1 ? (
+                  <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
+                    <div><strong>{compareVersions.v1.material.version_name || 'Unnamed'}</strong></div>
+                    <div style={{ color: "#666" }}>Type: {compareVersions.v1.type}</div>
+                    <div style={{ color: "#666" }}>Size: {(compareVersions.v1.material.file_size / 1024).toFixed(1)} KB</div>
+                    <button
+                      onClick={() => setCompareVersions(prev => ({ ...prev, v1: null }))}
+                      style={{
+                        marginTop: "4px",
+                        padding: "4px 8px",
+                        background: "#f44336",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "11px"
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ padding: "20px", background: "white", borderRadius: "4px", textAlign: "center", fontSize: "12px", color: "#999" }}>
+                    Click "Compare" on a material
+                  </div>
+                )}
+              </div>
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Version 2</div>
+                {compareVersions.v2 ? (
+                  <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
+                    <div><strong>{compareVersions.v2.material.version_name || 'Unnamed'}</strong></div>
+                    <div style={{ color: "#666" }}>Type: {compareVersions.v2.type}</div>
+                    <div style={{ color: "#666" }}>Size: {(compareVersions.v2.material.file_size / 1024).toFixed(1)} KB</div>
+                    <button
+                      onClick={() => setCompareVersions(prev => ({ ...prev, v2: null }))}
+                      style={{
+                        marginTop: "4px",
+                        padding: "4px 8px",
+                        background: "#f44336",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "11px"
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ padding: "20px", background: "white", borderRadius: "4px", textAlign: "center", fontSize: "12px", color: "#999" }}>
+                    Click "Compare" on another material
+                  </div>
+                )}
+              </div>
+            </div>
+            {compareVersions.v1 && compareVersions.v2 && (
+              <div style={{ marginTop: "12px", padding: "12px", background: "white", borderRadius: "4px" }}>
+                <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Comparison Summary:</div>
+                <div style={{ fontSize: "12px", color: "#666" }}>
+                  • Size difference: {Math.abs(
+                    (compareVersions.v1.material.file_size - compareVersions.v2.material.file_size) / 1024
+                  ).toFixed(1)} KB
+                </div>
+                <div style={{ fontSize: "12px", color: "#666" }}>
+                  • Date difference: {Math.abs(
+                    Math.floor((new Date(compareVersions.v1.material.created_at) - new Date(compareVersions.v2.material.created_at)) / (1000 * 60 * 60 * 24))
+                  )} days
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
           {/* Resumes Section */}
@@ -537,30 +799,96 @@ export function MaterialsAnalytics() {
     );
   }
 
+  const totalResumes = resumes.length;
+  const totalCoverLetters = coverLetters.length;
+  const totalUsage = resumes.reduce((sum, r) => sum + (r.usage_count || 0), 0) +
+                     coverLetters.reduce((sum, c) => sum + (c.usage_count || 0), 0);
+  const mostUsedResume = resumes.reduce((max, r) => 
+    (r.usage_count || 0) > (max.usage_count || 0) ? r : max, resumes[0] || {});
+  const mostUsedCoverLetter = coverLetters.reduce((max, c) => 
+    (c.usage_count || 0) > (max.usage_count || 0) ? c : max, coverLetters[0] || {});
+
   return (
     <div style={{ background: "white", padding: "20px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
       <h3 style={{ marginTop: 0, color: "#333" }}>📊 Materials Usage Analytics</h3>
       
+      {/* Summary Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
+        <div style={{ padding: "16px", background: "#e3f2fd", borderRadius: "6px", textAlign: "center" }}>
+          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#1976d2" }}>{totalResumes}</div>
+          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Resume Versions</div>
+        </div>
+        <div style={{ padding: "16px", background: "#f3e5f5", borderRadius: "6px", textAlign: "center" }}>
+          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#7b1fa2" }}>{totalCoverLetters}</div>
+          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Cover Letter Versions</div>
+        </div>
+        <div style={{ padding: "16px", background: "#e8f5e9", borderRadius: "6px", textAlign: "center" }}>
+          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#388e3c" }}>{totalUsage}</div>
+          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Total Applications</div>
+        </div>
+        <div style={{ padding: "16px", background: "#fff3e0", borderRadius: "6px", textAlign: "center" }}>
+          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#f57c00" }}>
+            {totalUsage > 0 ? ((totalUsage / (totalResumes + totalCoverLetters)) || 0).toFixed(1) : '0'}
+          </div>
+          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Avg Uses per Material</div>
+        </div>
+      </div>
+
+      {/* Most Used Materials */}
+      {(mostUsedResume.usage_count > 0 || mostUsedCoverLetter.usage_count > 0) && (
+        <div style={{ marginBottom: "24px", padding: "16px", background: "#fffbea", borderRadius: "6px" }}>
+          <h4 style={{ marginTop: 0, fontSize: "14px", color: "#333" }}>⭐ Most Used Materials</h4>
+          {mostUsedResume.usage_count > 0 && (
+            <div style={{ fontSize: "13px", color: "#666", marginBottom: "4px" }}>
+              📝 Resume: <strong>{mostUsedResume.version_name || 'Unnamed'}</strong> ({mostUsedResume.usage_count} uses)
+            </div>
+          )}
+          {mostUsedCoverLetter.usage_count > 0 && (
+            <div style={{ fontSize: "13px", color: "#666" }}>
+              ✉️ Cover Letter: <strong>{mostUsedCoverLetter.version_name || 'Unnamed'}</strong> ({mostUsedCoverLetter.usage_count} uses)
+            </div>
+          )}
+        </div>
+      )}
+      
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         <div>
           <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Resume Versions ({resumes.length})</h4>
-          {resumes.map(resume => {
-            const usageCount = resume.usage_count || 0;
-            return (
-              <div key={resume.resume_id || resume.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
-                <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                  {resume.version_name || resume.version || 'Unnamed Version'}
-                  {resume.is_default && <span style={{ marginLeft: "8px", fontSize: "12px", color: "#4caf50" }}>⭐ DEFAULT</span>}
+          <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+            {resumes.map(resume => {
+              const usageCount = resume.usage_count || 0;
+              const usagePercentage = totalUsage > 0 ? ((usageCount / totalUsage) * 100).toFixed(1) : 0;
+              return (
+                <div key={resume.resume_id || resume.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
+                  <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
+                    {resume.version_name || resume.version || 'Unnamed Version'}
+                    {resume.is_default && <span style={{ marginLeft: "8px", fontSize: "12px", color: "#4caf50" }}>⭐ DEFAULT</span>}
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#666" }}>
+                    Used for: {usageCount} application(s) ({usagePercentage}%)
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
+                    Created: {new Date(resume.created_at).toLocaleDateString()}
+                  </div>
+                  {/* Usage bar */}
+                  <div style={{ 
+                    marginTop: "8px", 
+                    height: "4px", 
+                    background: "#e0e0e0", 
+                    borderRadius: "2px",
+                    overflow: "hidden"
+                  }}>
+                    <div style={{ 
+                      height: "100%", 
+                      width: `${usagePercentage}%`, 
+                      background: "#4f8ef7",
+                      transition: "width 0.3s"
+                    }} />
+                  </div>
                 </div>
-                <div style={{ fontSize: "13px", color: "#666" }}>
-                  Used for: {usageCount} application(s)
-                </div>
-                <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
-                  Created: {new Date(resume.created_at).toLocaleDateString()}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
           {resumes.length === 0 && (
             <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px" }}>
               No resumes tracked yet
@@ -570,22 +898,41 @@ export function MaterialsAnalytics() {
 
         <div>
           <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Cover Letter Versions ({coverLetters.length})</h4>
-          {coverLetters.map(letter => {
-            const usageCount = letter.usage_count || 0;
-            return (
-              <div key={letter.cover_letter_id || letter.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
-                <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                  {letter.version_name || letter.version || 'Unnamed Version'}
+          <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+            {coverLetters.map(letter => {
+              const usageCount = letter.usage_count || 0;
+              const usagePercentage = totalUsage > 0 ? ((usageCount / totalUsage) * 100).toFixed(1) : 0;
+              return (
+                <div key={letter.cover_letter_id || letter.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
+                  <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
+                    {letter.version_name || letter.version || 'Unnamed Version'}
+                    {letter.is_default && <span style={{ marginLeft: "8px", fontSize: "12px", color: "#4caf50" }}>⭐ DEFAULT</span>}
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#666" }}>
+                    Used for: {usageCount} application(s) ({usagePercentage}%)
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
+                    Created: {new Date(letter.created_at).toLocaleDateString()}
+                  </div>
+                  {/* Usage bar */}
+                  <div style={{ 
+                    marginTop: "8px", 
+                    height: "4px", 
+                    background: "#e0e0e0", 
+                    borderRadius: "2px",
+                    overflow: "hidden"
+                  }}>
+                    <div style={{ 
+                      height: "100%", 
+                      width: `${usagePercentage}%`, 
+                      background: "#9c27b0",
+                      transition: "width 0.3s"
+                    }} />
+                  </div>
                 </div>
-                <div style={{ fontSize: "13px", color: "#666" }}>
-                  Used for: {usageCount} application(s)
-                </div>
-                <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
-                  Created: {new Date(letter.created_at).toLocaleDateString()}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
           {coverLetters.length === 0 && (
             <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px" }}>
               No cover letters tracked yet
@@ -599,6 +946,9 @@ export function MaterialsAnalytics() {
           <h4 style={{ marginTop: 0, fontSize: "14px", color: "#333" }}>📈 Usage Insights</h4>
           <div style={{ fontSize: "13px", color: "#666" }}>
             Total applications with materials: {usageStats.total_applications || 0}
+          </div>
+          <div style={{ fontSize: "13px", color: "#666", marginTop: "4px" }}>
+            Applications with both resume & cover letter: {usageStats.complete_applications || 0}
           </div>
         </div>
       )}
