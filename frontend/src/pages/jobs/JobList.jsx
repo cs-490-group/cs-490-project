@@ -5,6 +5,8 @@ import JobForm from "./JobForm";
 import JobPipeline from "./JobPipeline";
 import JobCard from "./JobCard";
 import { DeadlineWidget, DeadlineCalendar, DeadlineReminderModal } from "./DeadlineComponents";
+import { MaterialsModal, MaterialsAnalytics } from "./MaterialsTracking";
+import JobStatistics from "./JobStatistics";
 import JobsAPI from "../../api/jobs";
 import ProfilesAPI from "../../api/profiles";
 import { Container, Spinner } from 'react-bootstrap';
@@ -24,6 +26,7 @@ export default function JobList() {
   const [activeId, setActiveId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showStatistics, setShowStatistics] = useState(false); // ADD THIS LINE
   const [reminderJob, setReminderJob] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [userEmail, setUserEmail] = useState("");
@@ -235,6 +238,8 @@ export default function JobList() {
         showArchived={showArchived}
         setShowArchived={setShowArchived}
         setShowSettings={setShowSettings}
+        showStatistics={showStatistics}
+        setShowStatistics={setShowStatistics}
       />
 
       <SettingsModal
@@ -249,8 +254,14 @@ export default function JobList() {
 
       {view === "pipeline" && !showArchived && (
         <>
-          {!showCalendar && <DeadlineWidget jobs={jobs.filter(j => !j.archived)} onJobClick={(job) => setSelectedJob(job)} />}
+          {!showCalendar && !showStatistics && <DeadlineWidget jobs={jobs.filter(j => !j.archived)} onJobClick={(job) => setSelectedJob(job)} />}
           {showCalendar && <DeadlineCalendar jobs={jobs.filter(j => !j.archived)} />}
+          {showStatistics && (
+            <>
+              <JobStatistics jobs={jobs} />
+              <MaterialsAnalytics />
+            </>
+          )}
         </>
       )}
 
@@ -263,7 +274,7 @@ export default function JobList() {
         clearSelection={clearSelection}
       />
 
-      {view === "pipeline" && !showCalendar && (
+      {view === "pipeline" && !showCalendar && !showStatistics && (
         <FilterBar
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -299,7 +310,7 @@ export default function JobList() {
         />
       )}
 
-      {view === "pipeline" && !showCalendar && (
+      {view === "pipeline" && !showCalendar && !showStatistics && (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}

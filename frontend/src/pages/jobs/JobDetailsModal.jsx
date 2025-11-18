@@ -4,6 +4,7 @@ export default function JobDetailsModal({
   selectedJob,
   setSelectedJob,
   setReminderJob,
+  setMaterialsJob,
   updateJob,
   archiveJob,
   restoreJob,

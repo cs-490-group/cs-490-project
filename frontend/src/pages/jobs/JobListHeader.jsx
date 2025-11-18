@@ -8,7 +8,9 @@ export default function JobListHeader({
   setShowCalendar, 
   showArchived, 
   setShowArchived, 
-  setShowSettings 
+  setShowSettings,
+  showStatistics,
+  setShowStatistics
 }) {
   return (
     <div style={{
@@ -40,43 +42,89 @@ export default function JobListHeader({
       </div>
       
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        {view === "pipeline" && !showArchived && (
-          <button
-            onClick={() => setShowCalendar(!showCalendar)}
-            style={{
-              padding: "12px 24px",
-              background: showCalendar ? "#ff9800" : "#9c27b0",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "14px"
-            }}
-          >
-            {showCalendar ? "📋 Hide Calendar" : "📅 Show Calendar"}
-          </button>
-        )}
-        
+        {/* Main view buttons - always visible in pipeline view */}
         {view === "pipeline" && (
           <>
-            {!showCalendar && (
-              <button
-                onClick={() => setShowArchived(!showArchived)}
-                style={{
-                  padding: "12px 24px",
-                  background: showArchived ? "#ff5722" : "#607d8b",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "14px"
-                }}
-              >
-                {showArchived ? "📂 Show Active" : "🗄️ Show Archived"}
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setShowStatistics(false);
+                setShowCalendar(false);
+                setShowArchived(false);
+              }}
+              style={{
+                padding: "12px 24px",
+                background: !showStatistics && !showCalendar && !showArchived ? "#4caf50" : "#9c27b0",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              📋 Pipeline
+            </button>
+            
+            <button
+              onClick={() => {
+                setShowStatistics(true);
+                setShowCalendar(false);
+                setShowArchived(false);
+              }}
+              style={{
+                padding: "12px 24px",
+                background: showStatistics ? "#4caf50" : "#2196f3",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              📊 Statistics
+            </button>
+            
+            <button
+              onClick={() => {
+                setShowCalendar(true);
+                setShowStatistics(false);
+                setShowArchived(false);
+              }}
+              style={{
+                padding: "12px 24px",
+                background: showCalendar ? "#4caf50" : "#ff9800",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              📅 Calendar
+            </button>
+            
+            <button
+              onClick={() => {
+                setShowArchived(!showArchived);
+                setShowStatistics(false);
+                setShowCalendar(false);
+              }}
+              style={{
+                padding: "12px 24px",
+                background: showArchived ? "#4caf50" : "#607d8b",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              🗄️ Archive
+            </button>
+            
             <button
               onClick={() => setShowSettings(true)}
               style={{
@@ -95,14 +143,20 @@ export default function JobListHeader({
           </>
         )}
         
+        {/* Add/Back button */}
         <button
           onClick={() => {
-            setView(view === "pipeline" ? "form" : "pipeline");
-            setEditingJob(null);
+            if (view === "pipeline") {
+              setView("form");
+              setEditingJob(null);
+            } else {
+              setView("pipeline");
+              setEditingJob(null);
+            }
           }}
           style={{
             padding: "12px 24px",
-            background: "#4f8ef7",
+            background: view === "pipeline" ? "#4f8ef7" : "#f44336",
             color: "white",
             border: "none",
             borderRadius: "6px",
