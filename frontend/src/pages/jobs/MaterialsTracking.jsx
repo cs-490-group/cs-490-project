@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import ResumesAPI from "../../api/resumes";
+import CoverLetterAPI from "../../api/coverLetters";
 
 // Materials Management Modal
 export function MaterialsModal({ job, onClose, onSave }) {
@@ -8,20 +10,29 @@ export function MaterialsModal({ job, onClose, onSave }) {
   const [selectedCoverLetter, setSelectedCoverLetter] = useState(job?.materials?.cover_letter_id || "");
   const [uploadType, setUploadType] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadMaterials();
   }, []);
 
   const loadMaterials = async () => {
+    setLoading(true);
     try {
-      // Load from localStorage for now (can be replaced with API calls)
-      const savedResumes = JSON.parse(localStorage.getItem('resumes') || '[]');
-      const savedCoverLetters = JSON.parse(localStorage.getItem('coverLetters') || '[]');
-      setResumes(savedResumes);
-      setCoverLetters(savedCoverLetters);
+      // Load resumes from API
+      const resumesResponse = await ResumesAPI.getAll();
+      const resumesData = resumesResponse?.data || [];
+      setResumes(resumesData);
+
+      // Load cover letters from API
+      const coverLettersResponse = await CoverLetterAPI.getAll();
+      const coverLettersData = coverLettersResponse?.data || [];
+      setCoverLetters(coverLettersData);
     } catch (error) {
       console.error("Failed to load materials:", error);
+      alert("Failed to load materials. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -41,103 +52,101 @@ export function MaterialsModal({ job, onClose, onSave }) {
       return;
     }
 
+    const versionName = prompt("Enter version name (e.g., 'Tech Companies v2', 'General'):", "Version 1");
+    if (!versionName) return;
+
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64Data = event.target.result.split(',')[1];
-        const newMaterial = {
-          id: Date.now().toString(),
-          name: file.name,
-          version: prompt("Enter version name (e.g., 'Tech Companies v2', 'General'):", "Version 1"),
-          uploadDate: new Date().toISOString(),
-          fileData: base64Data,
-          fileType: file.type,
-          fileSize: file.size,
-          usedFor: []
-        };
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('version_name', versionName);
+      formData.append('description', `Uploaded for ${job.title} at ${job.company}`);
 
-        if (type === 'resume') {
-          const updated = [...resumes, newMaterial];
-          setResumes(updated);
-          localStorage.setItem('resumes', JSON.stringify(updated));
-          setSelectedResume(newMaterial.id);
-        } else {
-          const updated = [...coverLetters, newMaterial];
-          setCoverLetters(updated);
-          localStorage.setItem('coverLetters', JSON.stringify(updated));
-          setSelectedCoverLetter(newMaterial.id);
-        }
-        
-        setUploadType(null);
-      };
-      reader.readAsDataURL(file);
+      if (type === 'resume') {
+        const response = await ResumesAPI.add(formData);
+        const newResume = response.data;
+        setResumes([...resumes, newResume]);
+        setSelectedResume(newResume.resume_id || newResume.id);
+      } else {
+        const response = await CoverLetterAPI.upload(formData);
+        const newCoverLetter = response.data;
+        setCoverLetters([...coverLetters, newCoverLetter]);
+        setSelectedCoverLetter(newCoverLetter.cover_letter_id || newCoverLetter.id);
+      }
+      
+      setUploadType(null);
+      alert('✅ File uploaded successfully!');
     } catch (error) {
       console.error("Error uploading file:", error);
-      alert("Failed to upload file");
+      alert("Failed to upload file. Please try again.");
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDownload = (material) => {
+  const handleDownload = async (material, type) => {
     try {
-      const link = document.createElement('a');
-      link.href = `data:${material.fileType};base64,${material.fileData}`;
-      link.download = material.name;
-      link.click();
+      // Fetch the file content
+      let response;
+      if (type === 'resume') {
+        response = await ResumesAPI.get(material.resume_id || material.id);
+      } else {
+        response = await CoverLetterAPI.get(material.cover_letter_id || material.id);
+      }
+
+      // If the API returns a download URL or file content
+      if (response.data.file_url) {
+        // Open URL in new tab
+        window.open(response.data.file_url, '_blank');
+      } else if (response.data.file_content) {
+        // Create blob and download
+        const blob = new Blob([response.data.file_content], { type: material.file_type || 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = material.file_name || material.name || `document.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+      } else {
+        alert("Download not available for this file");
+      }
     } catch (error) {
       console.error("Error downloading file:", error);
-      alert("Failed to download file");
+      alert("Failed to download file. Please try again.");
     }
   };
 
-  const handleDelete = (id, type) => {
+  const handleDelete = async (id, type) => {
     if (!window.confirm("Are you sure you want to delete this document?")) return;
 
-    if (type === 'resume') {
-      const updated = resumes.filter(r => r.id !== id);
-      setResumes(updated);
-      localStorage.setItem('resumes', JSON.stringify(updated));
-      if (selectedResume === id) setSelectedResume("");
-    } else {
-      const updated = coverLetters.filter(c => c.id !== id);
-      setCoverLetters(updated);
-      localStorage.setItem('coverLetters', JSON.stringify(updated));
-      if (selectedCoverLetter === id) setSelectedCoverLetter("");
+    try {
+      if (type === 'resume') {
+        await ResumesAPI.delete(id);
+        setResumes(resumes.filter(r => (r.resume_id || r.id) !== id));
+        if (selectedResume === id) setSelectedResume("");
+      } else {
+        await CoverLetterAPI.delete(id);
+        setCoverLetters(coverLetters.filter(c => (c.cover_letter_id || c.id) !== id));
+        if (selectedCoverLetter === id) setSelectedCoverLetter("");
+      }
+      alert('✅ Document deleted successfully!');
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      alert("Failed to delete file. Please try again.");
     }
   };
 
   const handleSave = () => {
-    const selectedResumeObj = resumes.find(r => r.id === selectedResume);
-    const selectedCoverLetterObj = coverLetters.find(c => c.id === selectedCoverLetter);
-
-    // Update usage tracking
-    if (selectedResumeObj) {
-      selectedResumeObj.usedFor = [...(selectedResumeObj.usedFor || []), {
-        jobTitle: job.title,
-        company: job.company,
-        date: new Date().toISOString()
-      }];
-      localStorage.setItem('resumes', JSON.stringify(resumes));
-    }
-
-    if (selectedCoverLetterObj) {
-      selectedCoverLetterObj.usedFor = [...(selectedCoverLetterObj.usedFor || []), {
-        jobTitle: job.title,
-        company: job.company,
-        date: new Date().toISOString()
-      }];
-      localStorage.setItem('coverLetters', JSON.stringify(coverLetters));
-    }
+    const selectedResumeObj = resumes.find(r => (r.resume_id || r.id) === selectedResume);
+    const selectedCoverLetterObj = coverLetters.find(c => (c.cover_letter_id || c.id) === selectedCoverLetter);
 
     const materials = {
       resume_id: selectedResume || null,
-      resume_name: selectedResumeObj?.name || null,
-      resume_version: selectedResumeObj?.version || null,
+      resume_name: selectedResumeObj?.file_name || selectedResumeObj?.name || null,
+      resume_version: selectedResumeObj?.version_name || selectedResumeObj?.version || null,
       cover_letter_id: selectedCoverLetter || null,
-      cover_letter_name: selectedCoverLetterObj?.name || null,
-      cover_letter_version: selectedCoverLetterObj?.version || null,
+      cover_letter_name: selectedCoverLetterObj?.file_name || selectedCoverLetterObj?.name || null,
+      cover_letter_version: selectedCoverLetterObj?.version_name || selectedCoverLetterObj?.version || null,
       linked_date: new Date().toISOString()
     };
 
@@ -145,75 +154,119 @@ export function MaterialsModal({ job, onClose, onSave }) {
     onClose();
   };
 
-  const MaterialCard = ({ material, type, selected, onSelect }) => (
-    <div style={{
-      padding: "12px",
-      border: selected ? "2px solid #4f8ef7" : "1px solid #ddd",
-      borderRadius: "6px",
-      marginBottom: "8px",
-      background: selected ? "#e3f2fd" : "white",
-      cursor: "pointer"
-    }}
-    onClick={() => onSelect(material.id)}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-            {material.name}
-          </div>
-          <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
-            Version: {material.version}
-          </div>
-          <div style={{ fontSize: "11px", color: "#999" }}>
-            Uploaded: {new Date(material.uploadDate).toLocaleDateString()}
-          </div>
-          <div style={{ fontSize: "11px", color: "#999" }}>
-            Size: {(material.fileSize / 1024).toFixed(1)} KB
-          </div>
-          {material.usedFor && material.usedFor.length > 0 && (
-            <div style={{ fontSize: "11px", color: "#2196f3", marginTop: "4px" }}>
-              Used for {material.usedFor.length} application(s)
+  const MaterialCard = ({ material, type, selected, onSelect }) => {
+    const materialId = material.resume_id || material.cover_letter_id || material.id;
+    const fileName = material.file_name || material.name || 'Unnamed Document';
+    const versionName = material.version_name || material.version || 'Version 1';
+    const uploadDate = material.created_at || material.uploadDate || new Date().toISOString();
+    const fileSize = material.file_size || 0;
+    const usageCount = material.usage_count || material.usedFor?.length || 0;
+
+    return (
+      <div style={{
+        padding: "12px",
+        border: selected ? "2px solid #4f8ef7" : "1px solid #ddd",
+        borderRadius: "6px",
+        marginBottom: "8px",
+        background: selected ? "#e3f2fd" : "white",
+        cursor: "pointer"
+      }}
+      onClick={() => onSelect(materialId)}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
+              {fileName}
             </div>
-          )}
-        </div>
-        <div style={{ display: "flex", gap: "4px", flexDirection: "column" }}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDownload(material);
-            }}
-            style={{
-              padding: "4px 8px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "11px"
-            }}
-          >
-            📥 Download
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(material.id, type);
-            }}
-            style={{
-              padding: "4px 8px",
-              background: "#f44336",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "11px"
-            }}
-          >
-            🗑️ Delete
-          </button>
+            <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
+              Version: {versionName}
+            </div>
+            <div style={{ fontSize: "11px", color: "#999" }}>
+              Uploaded: {new Date(uploadDate).toLocaleDateString()}
+            </div>
+            <div style={{ fontSize: "11px", color: "#999" }}>
+              Size: {(fileSize / 1024).toFixed(1)} KB
+            </div>
+            {usageCount > 0 && (
+              <div style={{ fontSize: "11px", color: "#2196f3", marginTop: "4px" }}>
+                Used for {usageCount} application(s)
+              </div>
+            )}
+            {material.is_default && (
+              <div style={{ 
+                fontSize: "10px", 
+                color: "#4caf50", 
+                marginTop: "4px",
+                fontWeight: "600"
+              }}>
+                ⭐ DEFAULT
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "4px", flexDirection: "column" }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownload(material, type);
+              }}
+              style={{
+                padding: "4px 8px",
+                background: "#4f8ef7",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "11px"
+              }}
+            >
+              📥 Download
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(materialId, type);
+              }}
+              style={{
+                padding: "4px 8px",
+                background: "#f44336",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "11px"
+              }}
+            >
+              🗑️ Delete
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 2000
+        }}
+      >
+        <div style={{ background: "white", padding: "40px", borderRadius: "8px" }}>
+          <div style={{ fontSize: "18px", color: "#333", textAlign: "center" }}>
+            Loading materials...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -297,6 +350,7 @@ export function MaterialsModal({ job, onClose, onSave }) {
                 >
                   Cancel
                 </button>
+                {uploading && <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>Uploading...</div>}
               </div>
             )}
 
@@ -308,10 +362,10 @@ export function MaterialsModal({ job, onClose, onSave }) {
               ) : (
                 resumes.map(resume => (
                   <MaterialCard
-                    key={resume.id}
+                    key={resume.resume_id || resume.id}
                     material={resume}
                     type="resume"
-                    selected={selectedResume === resume.id}
+                    selected={selectedResume === (resume.resume_id || resume.id)}
                     onSelect={setSelectedResume}
                   />
                 ))
@@ -364,6 +418,7 @@ export function MaterialsModal({ job, onClose, onSave }) {
                 >
                   Cancel
                 </button>
+                {uploading && <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>Uploading...</div>}
               </div>
             )}
 
@@ -375,10 +430,10 @@ export function MaterialsModal({ job, onClose, onSave }) {
               ) : (
                 coverLetters.map(letter => (
                   <MaterialCard
-                    key={letter.id}
+                    key={letter.cover_letter_id || letter.id}
                     material={letter}
                     type="coverLetter"
-                    selected={selectedCoverLetter === letter.id}
+                    selected={selectedCoverLetter === (letter.cover_letter_id || letter.id)}
                     onSelect={setSelectedCoverLetter}
                   />
                 ))
@@ -392,10 +447,12 @@ export function MaterialsModal({ job, onClose, onSave }) {
             Selected Materials:
           </div>
           <div style={{ fontSize: "13px", color: "#666" }}>
-            Resume: {resumes.find(r => r.id === selectedResume)?.version || "None selected"}
+            Resume: {resumes.find(r => (r.resume_id || r.id) === selectedResume)?.version_name || 
+                     resumes.find(r => (r.resume_id || r.id) === selectedResume)?.version || "None selected"}
           </div>
           <div style={{ fontSize: "13px", color: "#666" }}>
-            Cover Letter: {coverLetters.find(c => c.id === selectedCoverLetter)?.version || "None selected"}
+            Cover Letter: {coverLetters.find(c => (c.cover_letter_id || c.id) === selectedCoverLetter)?.version_name || 
+                          coverLetters.find(c => (c.cover_letter_id || c.id) === selectedCoverLetter)?.version || "None selected"}
           </div>
         </div>
 
@@ -440,21 +497,45 @@ export function MaterialsModal({ job, onClose, onSave }) {
 export function MaterialsAnalytics() {
   const [resumes, setResumes] = useState([]);
   const [coverLetters, setCoverLetters] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [usageStats, setUsageStats] = useState(null);
 
   useEffect(() => {
     loadMaterials();
   }, []);
 
-  const loadMaterials = () => {
+  const loadMaterials = async () => {
+    setLoading(true);
     try {
-      const savedResumes = JSON.parse(localStorage.getItem('resumes') || '[]');
-      const savedCoverLetters = JSON.parse(localStorage.getItem('coverLetters') || '[]');
-      setResumes(savedResumes);
-      setCoverLetters(savedCoverLetters);
+      // Load resumes
+      const resumesResponse = await ResumesAPI.getAll();
+      setResumes(resumesResponse?.data || []);
+
+      // Load cover letters
+      const coverLettersResponse = await CoverLetterAPI.getAll();
+      setCoverLetters(coverLettersResponse?.data || []);
+
+      // Load usage stats
+      try {
+        const statsResponse = await CoverLetterAPI.getUsageByType();
+        setUsageStats(statsResponse?.data);
+      } catch (error) {
+        console.log("Usage stats not available");
+      }
     } catch (error) {
       console.error("Failed to load materials:", error);
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div style={{ background: "white", padding: "40px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", marginBottom: "20px", textAlign: "center" }}>
+        <div style={{ fontSize: "16px", color: "#666" }}>Loading materials analytics...</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: "white", padding: "20px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
@@ -462,31 +543,24 @@ export function MaterialsAnalytics() {
       
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         <div>
-          <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Resume Versions</h4>
-          {resumes.map(resume => (
-            <div key={resume.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
-              <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                {resume.version}
-              </div>
-              <div style={{ fontSize: "13px", color: "#666" }}>
-                Used for: {resume.usedFor?.length || 0} applications
-              </div>
-              {resume.usedFor && resume.usedFor.length > 0 && (
-                <div style={{ marginTop: "8px", fontSize: "12px" }}>
-                  {resume.usedFor.slice(0, 3).map((usage, idx) => (
-                    <div key={idx} style={{ color: "#555", marginBottom: "2px" }}>
-                      • {usage.jobTitle} at {usage.company}
-                    </div>
-                  ))}
-                  {resume.usedFor.length > 3 && (
-                    <div style={{ color: "#999", fontStyle: "italic" }}>
-                      + {resume.usedFor.length - 3} more...
-                    </div>
-                  )}
+          <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Resume Versions ({resumes.length})</h4>
+          {resumes.map(resume => {
+            const usageCount = resume.usage_count || 0;
+            return (
+              <div key={resume.resume_id || resume.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
+                <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
+                  {resume.version_name || resume.version || 'Unnamed Version'}
+                  {resume.is_default && <span style={{ marginLeft: "8px", fontSize: "12px", color: "#4caf50" }}>⭐ DEFAULT</span>}
                 </div>
-              )}
-            </div>
-          ))}
+                <div style={{ fontSize: "13px", color: "#666" }}>
+                  Used for: {usageCount} application(s)
+                </div>
+                <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
+                  Created: {new Date(resume.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            );
+          })}
           {resumes.length === 0 && (
             <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px" }}>
               No resumes tracked yet
@@ -495,31 +569,23 @@ export function MaterialsAnalytics() {
         </div>
 
         <div>
-          <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Cover Letter Versions</h4>
-          {coverLetters.map(letter => (
-            <div key={letter.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
-              <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                {letter.version}
-              </div>
-              <div style={{ fontSize: "13px", color: "#666" }}>
-                Used for: {letter.usedFor?.length || 0} applications
-              </div>
-              {letter.usedFor && letter.usedFor.length > 0 && (
-                <div style={{ marginTop: "8px", fontSize: "12px" }}>
-                  {letter.usedFor.slice(0, 3).map((usage, idx) => (
-                    <div key={idx} style={{ color: "#555", marginBottom: "2px" }}>
-                      • {usage.jobTitle} at {usage.company}
-                    </div>
-                  ))}
-                  {letter.usedFor.length > 3 && (
-                    <div style={{ color: "#999", fontStyle: "italic" }}>
-                      + {letter.usedFor.length - 3} more...
-                    </div>
-                  )}
+          <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Cover Letter Versions ({coverLetters.length})</h4>
+          {coverLetters.map(letter => {
+            const usageCount = letter.usage_count || 0;
+            return (
+              <div key={letter.cover_letter_id || letter.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
+                <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
+                  {letter.version_name || letter.version || 'Unnamed Version'}
                 </div>
-              )}
-            </div>
-          ))}
+                <div style={{ fontSize: "13px", color: "#666" }}>
+                  Used for: {usageCount} application(s)
+                </div>
+                <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
+                  Created: {new Date(letter.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            );
+          })}
           {coverLetters.length === 0 && (
             <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px" }}>
               No cover letters tracked yet
@@ -527,6 +593,15 @@ export function MaterialsAnalytics() {
           )}
         </div>
       </div>
+
+      {usageStats && (
+        <div style={{ marginTop: "20px", padding: "16px", background: "#e3f2fd", borderRadius: "6px" }}>
+          <h4 style={{ marginTop: 0, fontSize: "14px", color: "#333" }}>📈 Usage Insights</h4>
+          <div style={{ fontSize: "13px", color: "#666" }}>
+            Total applications with materials: {usageStats.total_applications || 0}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
