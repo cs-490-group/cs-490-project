@@ -9,6 +9,8 @@ from io import BytesIO
 
 from mongo.jobs_dao import jobs_dao
 from mongo.media_dao import media_dao
+from mongo.resumes_dao import resumes_dao
+from mongo.cover_letters_dao import cover_letters_dao
 from sessions.session_authorizer import authorize
 from schema.Job import Job, UrlBody
 from webscrape.job_from_url import job_from_url, URLScrapeError
@@ -205,6 +207,31 @@ async def get_job(job_id: str, uuid: str = Depends(authorize)):
     
     if result:
         result["_id"] = str(result["_id"])
+        
+        # Enrich with materials details if they exist
+        if result.get("materials"):
+            materials = result["materials"]
+            
+            # Fetch resume details if resume_id exists
+            if materials.get("resume_id"):
+                try:
+                    resume = await resumes_dao.get_resume(materials["resume_id"])
+                    if resume:
+                        materials["resume_name"] = resume.get("name", "Unnamed Resume")
+                        materials["resume_version"] = resume.get("version_name", "Version 1")
+                except:
+                    pass  # Continue even if resume fetch fails
+            
+            # Fetch cover letter details if cover_letter_id exists
+            if materials.get("cover_letter_id"):
+                try:
+                    cover_letter = await cover_letters_dao.get_cover_letter(materials["cover_letter_id"])
+                    if cover_letter:
+                        materials["cover_letter_name"] = cover_letter.get("title", "Unnamed Cover Letter")
+                        materials["cover_letter_version"] = cover_letter.get("version_name", "Version 1")
+                except:
+                    pass  # Continue even if cover letter fetch fails
+        
         return result
     else:
         raise HTTPException(400, "Job not found")
@@ -213,6 +240,32 @@ async def get_job(job_id: str, uuid: str = Depends(authorize)):
 async def get_all_jobs(uuid: str = Depends(authorize)):
     try:
         results = await jobs_dao.get_all_jobs(uuid)
+        
+        # Enrich each job with materials details
+        for job in results:
+            if job.get("materials"):
+                materials = job["materials"]
+                
+                # Fetch resume details
+                if materials.get("resume_id"):
+                    try:
+                        resume = await resumes_dao.get_resume(materials["resume_id"])
+                        if resume:
+                            materials["resume_name"] = resume.get("name", "Unnamed Resume")
+                            materials["resume_version"] = resume.get("version_name", "Version 1")
+                    except:
+                        pass
+                
+                # Fetch cover letter details
+                if materials.get("cover_letter_id"):
+                    try:
+                        cover_letter = await cover_letters_dao.get_cover_letter(materials["cover_letter_id"])
+                        if cover_letter:
+                            materials["cover_letter_name"] = cover_letter.get("title", "Unnamed Cover Letter")
+                            materials["cover_letter_version"] = cover_letter.get("version_name", "Version 1")
+                    except:
+                        pass
+        
     except Exception as e:
         raise HTTPException(500, str(e))
     
@@ -222,6 +275,11 @@ async def get_all_jobs(uuid: str = Depends(authorize)):
 async def update_job(job_id: str, job: Job, uuid: str = Depends(authorize)):    
     try:
         model = job.model_dump(exclude_unset = True)
+        
+        # Log materials update for debugging
+        if model.get("materials"):
+            print(f"Updating job {job_id} with materials: {model['materials']}")
+        
         updated = await jobs_dao.update_job(job_id, model)
     except Exception as e:
         raise HTTPException(500, str(e))
@@ -289,7 +347,6 @@ async def download_image(media_id: str, uuid: str = Depends(authorize)):
         }
     )
 
-# SIMPLE EMAIL REMINDER - Just sends immediately when you click "Send Test"
 @jobs_router.post("/send-deadline-reminder", tags=["jobs"])
 async def send_deadline_reminder(
     email: str = Body(...),
@@ -299,10 +356,7 @@ async def send_deadline_reminder(
     daysUntil: int = Body(...),
     uuid: str = Depends(authorize)
 ):
-    """
-    Send a deadline reminder email immediately
-    This is for the "Send Test Reminder" button
-    """
+    """Send a deadline reminder email immediately"""
     
     try:
         send_deadline_reminder_email(
@@ -320,3 +374,46 @@ async def send_deadline_reminder(
     except Exception as e:
         print(f"Error sending reminder: {e}")
         raise HTTPException(500, f"Failed to send reminder: {str(e)}")
+
+# NEW ENDPOINT: Get job materials with full details
+@jobs_router.get("/{job_id}/materials", tags=["jobs"])
+async def get_job_materials(job_id: str, uuid: str = Depends(authorize)):
+    """Get full materials details for a job including resume and cover letter data"""
+    try:
+        job = await jobs_dao.get_job(job_id)
+        if not job:
+            raise HTTPException(404, "Job not found")
+        
+        if not job.get("materials"):
+            return {"materials": None, "resume": None, "cover_letter": None}
+        
+        materials = job["materials"]
+        result = {"materials": materials, "resume": None, "cover_letter": None}
+        
+        # Fetch full resume data
+        if materials.get("resume_id"):
+            try:
+                resume = await resumes_dao.get_resume(materials["resume_id"])
+                if resume:
+                    resume["_id"] = str(resume["_id"])
+                    result["resume"] = resume
+            except Exception as e:
+                print(f"Error fetching resume: {e}")
+        
+        # Fetch full cover letter data
+        if materials.get("cover_letter_id"):
+            try:
+                cover_letter = await cover_letters_dao.get_cover_letter(materials["cover_letter_id"])
+                if cover_letter:
+                    cover_letter["_id"] = str(cover_letter["_id"])
+                    result["cover_letter"] = cover_letter
+            except Exception as e:
+                print(f"Error fetching cover letter: {e}")
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting job materials: {e}")
+        raise HTTPException(500, "Failed to fetch job materials")

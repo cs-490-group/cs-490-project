@@ -17,6 +17,9 @@ export default function JobDetailsModal({
 
   if (!selectedJob) return null;
 
+  // Check if materials are linked
+  const hasMaterials = selectedJob.materials?.resume_id || selectedJob.materials?.cover_letter_id;
+
   return (
     <div
       style={{
@@ -64,7 +67,7 @@ export default function JobDetailsModal({
           </button>
         </div>
 
-        {/* --- BASIC FIELDS (same as before) --- */}
+        {/* --- BASIC FIELDS --- */}
         <div style={{ marginBottom: "16px", color: "#000" }}>
           <strong>Company:</strong> {selectedJob.company}
         </div>
@@ -220,6 +223,107 @@ export default function JobDetailsModal({
           </div>
         )}
 
+        {/* --- APPLICATION MATERIALS SECTION --- */}
+        {selectedJob.materials && (
+          <div style={{ marginBottom: "16px", background: "#f3e5f5", padding: "16px", borderRadius: "6px", border: "1px solid #e1bee7" }}>
+            <h3 style={{ margin: "0 0 12px 0", color: "#7b1fa2", fontSize: "16px" }}>📄 Application Materials</h3>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              {/* Resume Section */}
+              <div style={{ padding: "12px", background: "white", borderRadius: "6px" }}>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "#333", marginBottom: "8px" }}>
+                  📝 Resume
+                </div>
+                {selectedJob.materials.resume_id ? (
+                  <>
+                    <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
+                      <strong>Version:</strong> {selectedJob.materials.resume_version || 'N/A'}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
+                      <strong>File:</strong> {selectedJob.materials.resume_name || 'Unnamed'}
+                    </div>
+                    {selectedJob.materials.linked_date && (
+                      <div style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>
+                        Linked: {new Date(selectedJob.materials.linked_date).toLocaleDateString()}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ fontSize: "12px", color: "#999", fontStyle: "italic" }}>
+                    No resume linked
+                  </div>
+                )}
+              </div>
+
+              {/* Cover Letter Section */}
+              <div style={{ padding: "12px", background: "white", borderRadius: "6px" }}>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "#333", marginBottom: "8px" }}>
+                  ✉️ Cover Letter
+                </div>
+                {selectedJob.materials.cover_letter_id ? (
+                  <>
+                    <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
+                      <strong>Version:</strong> {selectedJob.materials.cover_letter_version || 'N/A'}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
+                      <strong>File:</strong> {selectedJob.materials.cover_letter_name || 'Unnamed'}
+                    </div>
+                    {selectedJob.materials.linked_date && (
+                      <div style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>
+                        Linked: {new Date(selectedJob.materials.linked_date).toLocaleDateString()}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ fontSize: "12px", color: "#999", fontStyle: "italic" }}>
+                    No cover letter linked
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Materials History Section */}
+            {selectedJob.materials_history && selectedJob.materials_history.length > 0 && (
+              <div style={{ marginTop: "12px", padding: "12px", background: "white", borderRadius: "6px" }}>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "#333", marginBottom: "8px", cursor: "pointer" }}
+                     onClick={() => {
+                       const historyDiv = document.getElementById(`history-${selectedJob.id}`);
+                       if (historyDiv) {
+                         historyDiv.style.display = historyDiv.style.display === 'none' ? 'block' : 'none';
+                       }
+                     }}>
+                  📜 Materials History ({selectedJob.materials_history.length}) 
+                  <span style={{ fontSize: "11px", marginLeft: "8px", color: "#999" }}>▼ Click to expand</span>
+                </div>
+                <div id={`history-${selectedJob.id}`} style={{ display: 'none', marginTop: "8px" }}>
+                  {selectedJob.materials_history.slice(-5).reverse().map((entry, idx) => (
+                    <div key={idx} style={{ 
+                      padding: "8px", 
+                      borderLeft: "3px solid #9c27b0", 
+                      marginBottom: "6px",
+                      paddingLeft: "12px",
+                      background: "#fafafa",
+                      borderRadius: "4px"
+                    }}>
+                      <div style={{ fontSize: "11px", color: "#666", marginBottom: "4px" }}>
+                        {new Date(entry.date).toLocaleString()} - <strong style={{ color: "#7b1fa2" }}>{entry.action.toUpperCase()}</strong>
+                      </div>
+                      <div style={{ fontSize: "10px", color: "#999" }}>
+                        Resume: {entry.resume_version || 'None'} | Cover Letter: {entry.cover_letter_version || 'None'}
+                      </div>
+                    </div>
+                  ))}
+                  {selectedJob.materials_history.length > 5 && (
+                    <div style={{ fontSize: "11px", color: "#999", marginTop: "8px", textAlign: "center" }}>
+                      Showing latest 5 of {selectedJob.materials_history.length} entries
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* --- BUTTON ROW --- */}
         <div style={{ display: "flex", gap: "10px", marginTop: "24px", flexWrap: "wrap" }}>
 
@@ -244,24 +348,25 @@ export default function JobDetailsModal({
             ✏️ Edit Job
           </button>
 
-          {/* --- MATERIALS BUTTON NOW DIRECTLY AFTER EDIT JOB --- */}
+          {/* --- MATERIALS --- */}
           <button
             onClick={() => {
-              setMaterialsJob(selectedJob);
               setMaterialsOpen(true);
             }}
             style={{
               padding: "10px 20px",
-              background: "#9c27b0",
+              background: hasMaterials ? "#7b1fa2" : "#9c27b0",
               color: "white",
               border: "none",
               borderRadius: "4px",
               cursor: "pointer",
               fontSize: "14px",
-              fontWeight: "600"
+              fontWeight: "600",
+              position: "relative"
             }}
           >
-            📦 Set Materials
+            {hasMaterials ? "✓ " : ""}
+            📦 {hasMaterials ? "Update Materials" : "Set Materials"}
           </button>
 
           {/* --- ARCHIVE / RESTORE --- */}
@@ -329,7 +434,14 @@ export default function JobDetailsModal({
 
         {/* --- MATERIALS MODAL --- */}
         {materialsOpen && (
-          <MaterialsModal job={selectedJob} onClose={() => setMaterialsOpen(false)} />
+          <MaterialsModal 
+            job={selectedJob} 
+            onClose={() => setMaterialsOpen(false)}
+            onSave={(updatedJob) => {
+              updateJob(updatedJob);
+              setMaterialsOpen(false);
+            }}
+          />
         )}
 
       </div>

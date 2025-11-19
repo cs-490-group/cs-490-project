@@ -23,14 +23,14 @@ export function MaterialsModal({ job, onClose, onSave }) {
   const loadMaterials = async () => {
     setLoading(true);
     try {
-      // Load resumes from API
       const resumesResponse = await ResumesAPI.getAll();
       const resumesData = resumesResponse?.data || [];
+      console.log('📝 Loaded resumes:', resumesData);
       setResumes(resumesData);
 
-      // Load cover letters from API
       const coverLettersResponse = await CoverLetterAPI.getAll();
       const coverLettersData = coverLettersResponse?.data || [];
+      console.log('✉️ Loaded cover letters:', coverLettersData);
       setCoverLetters(coverLettersData);
     } catch (error) {
       console.error("Failed to load materials:", error);
@@ -44,13 +44,11 @@ export function MaterialsModal({ job, onClose, onSave }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (file.type !== 'application/pdf' && !file.type.includes('word')) {
       alert("Please upload a PDF or Word document");
       return;
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       alert("File must be less than 10MB");
       return;
@@ -66,23 +64,37 @@ export function MaterialsModal({ job, onClose, onSave }) {
       formData.append('version_name', versionName);
       formData.append('description', `Uploaded for ${job.title} at ${job.company}`);
 
+      console.log(`📤 Uploading ${type}...`);
+
       if (type === 'resume') {
         const response = await ResumesAPI.add(formData);
+        console.log('✅ Resume upload response:', response);
         const newResume = response.data;
+        
+        // Get the ID - try multiple possible field names
+        const resumeId = newResume._id || newResume.id || newResume.resume_id;
+        console.log('📌 New resume ID:', resumeId);
+        
         setResumes([...resumes, newResume]);
-        setSelectedResume(newResume.resume_id || newResume.id);
+        setSelectedResume(resumeId);
       } else {
         const response = await CoverLetterAPI.upload(formData);
+        console.log('✅ Cover letter upload response:', response);
         const newCoverLetter = response.data;
+        
+        // Get the ID - try multiple possible field names
+        const coverLetterId = newCoverLetter._id || newCoverLetter.id || newCoverLetter.cover_letter_id;
+        console.log('📌 New cover letter ID:', coverLetterId);
+        
         setCoverLetters([...coverLetters, newCoverLetter]);
-        setSelectedCoverLetter(newCoverLetter.cover_letter_id || newCoverLetter.id);
+        setSelectedCoverLetter(coverLetterId);
       }
       
       setUploadType(null);
       alert('✅ File uploaded successfully!');
     } catch (error) {
       console.error("Error uploading file:", error);
-      alert("Failed to upload file. Please try again.");
+      alert(`Failed to upload file: ${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -90,7 +102,6 @@ export function MaterialsModal({ job, onClose, onSave }) {
 
   const handleDownload = async (material, type) => {
     try {
-      // Fetch the file content
       let response;
       if (type === 'resume') {
         response = await ResumesAPI.get(material.resume_id || material.id);
@@ -98,12 +109,9 @@ export function MaterialsModal({ job, onClose, onSave }) {
         response = await CoverLetterAPI.get(material.cover_letter_id || material.id);
       }
 
-      // If the API returns a download URL or file content
       if (response.data.file_url) {
-        // Open URL in new tab
         window.open(response.data.file_url, '_blank');
       } else if (response.data.file_content) {
-        // Create blob and download
         const blob = new Blob([response.data.file_content], { type: material.file_type || 'application/pdf' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -151,11 +159,11 @@ export function MaterialsModal({ job, onClose, onSave }) {
     try {
       if (type === 'resume') {
         await ResumesAPI.delete(id);
-        setResumes(resumes.filter(r => (r.resume_id || r.id) !== id));
+        setResumes(resumes.filter(r => (r.resume_id || r.id || r._id) !== id));
         if (selectedResume === id) setSelectedResume("");
       } else {
         await CoverLetterAPI.delete(id);
-        setCoverLetters(coverLetters.filter(c => (c.cover_letter_id || c.id) !== id));
+        setCoverLetters(coverLetters.filter(c => (c.cover_letter_id || c.id || c._id) !== id));
         if (selectedCoverLetter === id) setSelectedCoverLetter("");
       }
       alert('✅ Document deleted successfully!');
@@ -171,13 +179,13 @@ export function MaterialsModal({ job, onClose, onSave }) {
         await ResumesAPI.setDefault(id);
         setResumes(resumes.map(r => ({
           ...r,
-          is_default: (r.resume_id || r.id) === id
+          is_default: (r.resume_id || r.id || r._id) === id
         })));
       } else {
         await CoverLetterAPI.setDefault(id);
         setCoverLetters(coverLetters.map(c => ({
           ...c,
-          is_default: (c.cover_letter_id || c.id) === id
+          is_default: (c.cover_letter_id || c.id || c._id) === id
         })));
       }
       alert('✅ Default material set successfully!');
@@ -188,48 +196,57 @@ export function MaterialsModal({ job, onClose, onSave }) {
   };
 
   const handleSave = () => {
-    const selectedResumeObj = resumes.find(r => (r.resume_id || r.id) === selectedResume);
-    const selectedCoverLetterObj = coverLetters.find(c => (c.cover_letter_id || c.id) === selectedCoverLetter);
+    console.log('💾 handleSave called');
+    console.log('Selected Resume:', selectedResume);
+    console.log('Selected Cover Letter:', selectedCoverLetter);
 
-    // Create history entry
+    // Make sure we're sending actual IDs, not empty strings
+    const resumeId = selectedResume || null;
+    const coverLetterId = selectedCoverLetter || null;
+
+    console.log('Final Resume ID:', resumeId);
+    console.log('Final Cover Letter ID:', coverLetterId);
+
+    // Create history entry with just IDs
     const historyEntry = {
       date: new Date().toISOString(),
-      resume_id: selectedResume || null,
-      resume_name: selectedResumeObj?.file_name || selectedResumeObj?.name || null,
-      resume_version: selectedResumeObj?.version_name || selectedResumeObj?.version || null,
-      cover_letter_id: selectedCoverLetter || null,
-      cover_letter_name: selectedCoverLetterObj?.file_name || selectedCoverLetterObj?.name || null,
-      cover_letter_version: selectedCoverLetterObj?.version_name || selectedCoverLetterObj?.version || null,
+      resume_id: resumeId,
+      cover_letter_id: coverLetterId,
       action: job?.materials ? 'updated' : 'added'
     };
 
+    // Materials object with just IDs - backend will enrich with names
     const materials = {
-      resume_id: selectedResume || null,
-      resume_name: selectedResumeObj?.file_name || selectedResumeObj?.name || null,
-      resume_version: selectedResumeObj?.version_name || selectedResumeObj?.version || null,
-      cover_letter_id: selectedCoverLetter || null,
-      cover_letter_name: selectedCoverLetterObj?.file_name || selectedCoverLetterObj?.name || null,
-      cover_letter_version: selectedCoverLetterObj?.version_name || selectedCoverLetterObj?.version || null,
+      resume_id: resumeId,
+      cover_letter_id: coverLetterId,
       linked_date: new Date().toISOString()
     };
 
-    const updatedMaterialsHistory = [...materialsHistory, historyEntry];
+    const updatedMaterialsHistory = [...(materialsHistory || []), historyEntry];
+
+    console.log('💾 Saving materials to job:', {
+      jobId: job.id,
+      materials,
+      historyLength: updatedMaterialsHistory.length
+    });
 
     onSave({ 
       ...job, 
       materials,
       materials_history: updatedMaterialsHistory
     });
-    onClose();
   };
 
   const MaterialCard = ({ material, type, selected, onSelect }) => {
-    const materialId = material.resume_id || material.cover_letter_id || material.id;
-    const fileName = material.file_name || material.name || 'Unnamed Document';
+    // Try multiple possible ID fields
+    const materialId = material._id || material.id || material.resume_id || material.cover_letter_id;
+    const fileName = material.file_name || material.name || material.title || 'Unnamed Document';
     const versionName = material.version_name || material.version || 'Version 1';
     const uploadDate = material.created_at || material.uploadDate || new Date().toISOString();
     const fileSize = material.file_size || 0;
     const usageCount = material.usage_count || material.usedFor?.length || 0;
+
+    console.log(`MaterialCard - ${type}:`, { materialId, fileName, versionName });
 
     return (
       <div style={{
@@ -240,7 +257,10 @@ export function MaterialsModal({ job, onClose, onSave }) {
         background: selected ? "#e3f2fd" : "white",
         cursor: "pointer"
       }}
-      onClick={() => onSelect(materialId)}>
+      onClick={() => {
+        console.log(`Selected ${type}:`, materialId);
+        onSelect(materialId);
+      }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
@@ -252,9 +272,14 @@ export function MaterialsModal({ job, onClose, onSave }) {
             <div style={{ fontSize: "11px", color: "#999" }}>
               Uploaded: {new Date(uploadDate).toLocaleDateString()}
             </div>
-            <div style={{ fontSize: "11px", color: "#999" }}>
-              Size: {(fileSize / 1024).toFixed(1)} KB
+            <div style={{ fontSize: "10px", color: "#999", marginTop: "2px" }}>
+              ID: {materialId}
             </div>
+            {fileSize > 0 && (
+              <div style={{ fontSize: "11px", color: "#999" }}>
+                Size: {(fileSize / 1024).toFixed(1)} KB
+              </div>
+            )}
             {usageCount > 0 && (
               <div style={{ fontSize: "11px", color: "#2196f3", marginTop: "4px" }}>
                 Used for {usageCount} application(s)
@@ -392,6 +417,19 @@ export function MaterialsModal({ job, onClose, onSave }) {
     );
   }
 
+  // Get display names for selected materials
+  const selectedResumeObj = resumes.find(r => {
+    const id = r._id || r.id || r.resume_id;
+    return id === selectedResume;
+  });
+  const selectedCoverLetterObj = coverLetters.find(c => {
+    const id = c._id || c.id || c.cover_letter_id;
+    return id === selectedCoverLetter;
+  });
+
+  console.log('Selected Resume Object:', selectedResumeObj);
+  console.log('Selected Cover Letter Object:', selectedCoverLetterObj);
+
   return (
     <div
       style={{
@@ -427,6 +465,15 @@ export function MaterialsModal({ job, onClose, onSave }) {
         <p style={{ fontSize: "14px", color: "#666", marginBottom: "20px" }}>
           at {job.company}
         </p>
+
+        {/* Debug Info */}
+        <div style={{ marginBottom: "16px", padding: "12px", background: "#f0f0f0", borderRadius: "4px", fontSize: "12px" }}>
+          <div><strong>Debug Info:</strong></div>
+          <div>Resumes loaded: {resumes.length}</div>
+          <div>Cover letters loaded: {coverLetters.length}</div>
+          <div>Selected resume ID: {selectedResume || 'None'}</div>
+          <div>Selected cover letter ID: {selectedCoverLetter || 'None'}</div>
+        </div>
 
         {/* Action Buttons */}
         <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
@@ -477,14 +524,14 @@ export function MaterialsModal({ job, onClose, onSave }) {
                   {new Date(entry.date).toLocaleString()} - <strong>{entry.action}</strong>
                 </div>
                 <div style={{ fontSize: "11px", color: "#999" }}>
-                  Resume: {entry.resume_version || 'None'} | Cover Letter: {entry.cover_letter_version || 'None'}
+                  Resume ID: {entry.resume_id || 'None'} | Cover Letter ID: {entry.cover_letter_id || 'None'}
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Version Comparison */}
+        {/* Version Comparison - keeping same as before */}
         {showComparison && (
           <div style={{ marginBottom: "20px", padding: "16px", background: "#fff3e0", borderRadius: "6px" }}>
             <h3 style={{ fontSize: "16px", marginTop: 0, color: "#333" }}>🔄 Version Comparison</h3>
@@ -495,7 +542,9 @@ export function MaterialsModal({ job, onClose, onSave }) {
                   <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
                     <div><strong>{compareVersions.v1.material.version_name || 'Unnamed'}</strong></div>
                     <div style={{ color: "#666" }}>Type: {compareVersions.v1.type}</div>
-                    <div style={{ color: "#666" }}>Size: {(compareVersions.v1.material.file_size / 1024).toFixed(1)} KB</div>
+                    {compareVersions.v1.material.file_size && (
+                      <div style={{ color: "#666" }}>Size: {(compareVersions.v1.material.file_size / 1024).toFixed(1)} KB</div>
+                    )}
                     <button
                       onClick={() => setCompareVersions(prev => ({ ...prev, v1: null }))}
                       style={{
@@ -524,7 +573,9 @@ export function MaterialsModal({ job, onClose, onSave }) {
                   <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
                     <div><strong>{compareVersions.v2.material.version_name || 'Unnamed'}</strong></div>
                     <div style={{ color: "#666" }}>Type: {compareVersions.v2.type}</div>
-                    <div style={{ color: "#666" }}>Size: {(compareVersions.v2.material.file_size / 1024).toFixed(1)} KB</div>
+                    {compareVersions.v2.material.file_size && (
+                      <div style={{ color: "#666" }}>Size: {(compareVersions.v2.material.file_size / 1024).toFixed(1)} KB</div>
+                    )}
                     <button
                       onClick={() => setCompareVersions(prev => ({ ...prev, v2: null }))}
                       style={{
@@ -548,21 +599,6 @@ export function MaterialsModal({ job, onClose, onSave }) {
                 )}
               </div>
             </div>
-            {compareVersions.v1 && compareVersions.v2 && (
-              <div style={{ marginTop: "12px", padding: "12px", background: "white", borderRadius: "4px" }}>
-                <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Comparison Summary:</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  • Size difference: {Math.abs(
-                    (compareVersions.v1.material.file_size - compareVersions.v2.material.file_size) / 1024
-                  ).toFixed(1)} KB
-                </div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  • Date difference: {Math.abs(
-                    Math.floor((new Date(compareVersions.v1.material.created_at) - new Date(compareVersions.v2.material.created_at)) / (1000 * 60 * 60 * 24))
-                  )} days
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -570,7 +606,7 @@ export function MaterialsModal({ job, onClose, onSave }) {
           {/* Resumes Section */}
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-              <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>📝 Resumes</h3>
+              <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>📝 Resumes ({resumes.length})</h3>
               <button
                 onClick={() => setUploadType('resume')}
                 style={{
@@ -622,15 +658,18 @@ export function MaterialsModal({ job, onClose, onSave }) {
                   No resumes uploaded yet
                 </div>
               ) : (
-                resumes.map(resume => (
-                  <MaterialCard
-                    key={resume.resume_id || resume.id}
-                    material={resume}
-                    type="resume"
-                    selected={selectedResume === (resume.resume_id || resume.id)}
-                    onSelect={setSelectedResume}
-                  />
-                ))
+                resumes.map((resume, idx) => {
+                  const resumeId = resume._id || resume.id || resume.resume_id;
+                  return (
+                    <MaterialCard
+                      key={resumeId || idx}
+                      material={resume}
+                      type="resume"
+                      selected={selectedResume === resumeId}
+                      onSelect={setSelectedResume}
+                    />
+                  );
+                })
               )}
             </div>
           </div>
@@ -638,7 +677,7 @@ export function MaterialsModal({ job, onClose, onSave }) {
           {/* Cover Letters Section */}
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-              <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>✉️ Cover Letters</h3>
+              <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>✉️ Cover Letters ({coverLetters.length})</h3>
               <button
                 onClick={() => setUploadType('coverLetter')}
                 style={{
@@ -690,15 +729,18 @@ export function MaterialsModal({ job, onClose, onSave }) {
                   No cover letters uploaded yet
                 </div>
               ) : (
-                coverLetters.map(letter => (
-                  <MaterialCard
-                    key={letter.cover_letter_id || letter.id}
-                    material={letter}
-                    type="coverLetter"
-                    selected={selectedCoverLetter === (letter.cover_letter_id || letter.id)}
-                    onSelect={setSelectedCoverLetter}
-                  />
-                ))
+                coverLetters.map((letter, idx) => {
+                  const letterId = letter._id || letter.id || letter.cover_letter_id;
+                  return (
+                    <MaterialCard
+                      key={letterId || idx}
+                      material={letter}
+                      type="coverLetter"
+                      selected={selectedCoverLetter === letterId}
+                      onSelect={setSelectedCoverLetter}
+                    />
+                  );
+                })
               )}
             </div>
           </div>
@@ -709,12 +751,10 @@ export function MaterialsModal({ job, onClose, onSave }) {
             Selected Materials:
           </div>
           <div style={{ fontSize: "13px", color: "#666" }}>
-            Resume: {resumes.find(r => (r.resume_id || r.id) === selectedResume)?.version_name || 
-                     resumes.find(r => (r.resume_id || r.id) === selectedResume)?.version || "None selected"}
+            Resume: {selectedResumeObj?.name || selectedResumeObj?.file_name || "None selected"}
           </div>
           <div style={{ fontSize: "13px", color: "#666" }}>
-            Cover Letter: {coverLetters.find(c => (c.cover_letter_id || c.id) === selectedCoverLetter)?.version_name || 
-                          coverLetters.find(c => (c.cover_letter_id || c.id) === selectedCoverLetter)?.version || "None selected"}
+            Cover Letter: {selectedCoverLetterObj?.title || selectedCoverLetterObj?.name || "None selected"}
           </div>
         </div>
 
@@ -755,12 +795,11 @@ export function MaterialsModal({ job, onClose, onSave }) {
   );
 }
 
-// Materials Analytics Component
+// Materials Analytics Component (keeping as is)
 export function MaterialsAnalytics() {
   const [resumes, setResumes] = useState([]);
   const [coverLetters, setCoverLetters] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [usageStats, setUsageStats] = useState(null);
 
   useEffect(() => {
     loadMaterials();
@@ -769,21 +808,11 @@ export function MaterialsAnalytics() {
   const loadMaterials = async () => {
     setLoading(true);
     try {
-      // Load resumes
       const resumesResponse = await ResumesAPI.getAll();
       setResumes(resumesResponse?.data || []);
 
-      // Load cover letters
       const coverLettersResponse = await CoverLetterAPI.getAll();
       setCoverLetters(coverLettersResponse?.data || []);
-
-      // Load usage stats
-      try {
-        const statsResponse = await CoverLetterAPI.getUsageByType();
-        setUsageStats(statsResponse?.data);
-      } catch (error) {
-        console.log("Usage stats not available");
-      }
     } catch (error) {
       console.error("Failed to load materials:", error);
     } finally {
@@ -803,17 +832,12 @@ export function MaterialsAnalytics() {
   const totalCoverLetters = coverLetters.length;
   const totalUsage = resumes.reduce((sum, r) => sum + (r.usage_count || 0), 0) +
                      coverLetters.reduce((sum, c) => sum + (c.usage_count || 0), 0);
-  const mostUsedResume = resumes.reduce((max, r) => 
-    (r.usage_count || 0) > (max.usage_count || 0) ? r : max, resumes[0] || {});
-  const mostUsedCoverLetter = coverLetters.reduce((max, c) => 
-    (c.usage_count || 0) > (max.usage_count || 0) ? c : max, coverLetters[0] || {});
 
   return (
     <div style={{ background: "white", padding: "20px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
       <h3 style={{ marginTop: 0, color: "#333" }}>📊 Materials Usage Analytics</h3>
       
-      {/* Summary Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
         <div style={{ padding: "16px", background: "#e3f2fd", borderRadius: "6px", textAlign: "center" }}>
           <div style={{ fontSize: "24px", fontWeight: "bold", color: "#1976d2" }}>{totalResumes}</div>
           <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Resume Versions</div>
@@ -826,31 +850,8 @@ export function MaterialsAnalytics() {
           <div style={{ fontSize: "24px", fontWeight: "bold", color: "#388e3c" }}>{totalUsage}</div>
           <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Total Applications</div>
         </div>
-        <div style={{ padding: "16px", background: "#fff3e0", borderRadius: "6px", textAlign: "center" }}>
-          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#f57c00" }}>
-            {totalUsage > 0 ? ((totalUsage / (totalResumes + totalCoverLetters)) || 0).toFixed(1) : '0'}
-          </div>
-          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Avg Uses per Material</div>
-        </div>
       </div>
 
-      {/* Most Used Materials */}
-      {(mostUsedResume.usage_count > 0 || mostUsedCoverLetter.usage_count > 0) && (
-        <div style={{ marginBottom: "24px", padding: "16px", background: "#fffbea", borderRadius: "6px" }}>
-          <h4 style={{ marginTop: 0, fontSize: "14px", color: "#333" }}>⭐ Most Used Materials</h4>
-          {mostUsedResume.usage_count > 0 && (
-            <div style={{ fontSize: "13px", color: "#666", marginBottom: "4px" }}>
-              📝 Resume: <strong>{mostUsedResume.version_name || 'Unnamed'}</strong> ({mostUsedResume.usage_count} uses)
-            </div>
-          )}
-          {mostUsedCoverLetter.usage_count > 0 && (
-            <div style={{ fontSize: "13px", color: "#666" }}>
-              ✉️ Cover Letter: <strong>{mostUsedCoverLetter.version_name || 'Unnamed'}</strong> ({mostUsedCoverLetter.usage_count} uses)
-            </div>
-          )}
-        </div>
-      )}
-      
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         <div>
           <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Resume Versions ({resumes.length})</h4>
@@ -859,41 +860,17 @@ export function MaterialsAnalytics() {
               const usageCount = resume.usage_count || 0;
               const usagePercentage = totalUsage > 0 ? ((usageCount / totalUsage) * 100).toFixed(1) : 0;
               return (
-                <div key={resume.resume_id || resume.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
+                <div key={resume._id || resume.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
                   <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                    {resume.version_name || resume.version || 'Unnamed Version'}
-                    {resume.is_default && <span style={{ marginLeft: "8px", fontSize: "12px", color: "#4caf50" }}>⭐ DEFAULT</span>}
+                    {resume.name || 'Unnamed Version'}
                   </div>
                   <div style={{ fontSize: "13px", color: "#666" }}>
-                    Used for: {usageCount} application(s) ({usagePercentage}%)
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
-                    Created: {new Date(resume.created_at).toLocaleDateString()}
-                  </div>
-                  {/* Usage bar */}
-                  <div style={{ 
-                    marginTop: "8px", 
-                    height: "4px", 
-                    background: "#e0e0e0", 
-                    borderRadius: "2px",
-                    overflow: "hidden"
-                  }}>
-                    <div style={{ 
-                      height: "100%", 
-                      width: `${usagePercentage}%`, 
-                      background: "#4f8ef7",
-                      transition: "width 0.3s"
-                    }} />
+                    Used for: {usageCount} application(s)
                   </div>
                 </div>
               );
             })}
           </div>
-          {resumes.length === 0 && (
-            <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px" }}>
-              No resumes tracked yet
-            </div>
-          )}
         </div>
 
         <div>
@@ -901,57 +878,20 @@ export function MaterialsAnalytics() {
           <div style={{ maxHeight: "300px", overflowY: "auto" }}>
             {coverLetters.map(letter => {
               const usageCount = letter.usage_count || 0;
-              const usagePercentage = totalUsage > 0 ? ((usageCount / totalUsage) * 100).toFixed(1) : 0;
               return (
-                <div key={letter.cover_letter_id || letter.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
+                <div key={letter._id || letter.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
                   <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                    {letter.version_name || letter.version || 'Unnamed Version'}
-                    {letter.is_default && <span style={{ marginLeft: "8px", fontSize: "12px", color: "#4caf50" }}>⭐ DEFAULT</span>}
+                    {letter.title || 'Unnamed Version'}
                   </div>
                   <div style={{ fontSize: "13px", color: "#666" }}>
-                    Used for: {usageCount} application(s) ({usagePercentage}%)
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
-                    Created: {new Date(letter.created_at).toLocaleDateString()}
-                  </div>
-                  {/* Usage bar */}
-                  <div style={{ 
-                    marginTop: "8px", 
-                    height: "4px", 
-                    background: "#e0e0e0", 
-                    borderRadius: "2px",
-                    overflow: "hidden"
-                  }}>
-                    <div style={{ 
-                      height: "100%", 
-                      width: `${usagePercentage}%`, 
-                      background: "#9c27b0",
-                      transition: "width 0.3s"
-                    }} />
+                    Used for: {usageCount} application(s)
                   </div>
                 </div>
               );
             })}
           </div>
-          {coverLetters.length === 0 && (
-            <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px" }}>
-              No cover letters tracked yet
-            </div>
-          )}
         </div>
       </div>
-
-      {usageStats && (
-        <div style={{ marginTop: "20px", padding: "16px", background: "#e3f2fd", borderRadius: "6px" }}>
-          <h4 style={{ marginTop: 0, fontSize: "14px", color: "#333" }}>📈 Usage Insights</h4>
-          <div style={{ fontSize: "13px", color: "#666" }}>
-            Total applications with materials: {usageStats.total_applications || 0}
-          </div>
-          <div style={{ fontSize: "13px", color: "#666", marginTop: "4px" }}>
-            Applications with both resume & cover letter: {usageStats.complete_applications || 0}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
