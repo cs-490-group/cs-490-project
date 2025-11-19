@@ -7,7 +7,7 @@ import JobCard from "./JobCard";
 import { DeadlineCalendar, DeadlineReminderModal } from "./DeadlineComponents";
 import { MaterialsModal, MaterialsAnalytics } from "./MaterialsTracking";
 import JobStatistics from "./JobStatistics";
-import PerformanceDashboard from "./PerformanceDashboard";
+import PerformanceDashboard from "./performance/PerformanceDashboard";
 import FloatingDeadlineWidget from "./FloatingDeadlineWidget";
 import JobsAPI from "../../api/jobs";
 import ProfilesAPI from "../../api/profiles";
