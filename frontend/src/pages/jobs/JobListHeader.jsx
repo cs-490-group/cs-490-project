@@ -162,7 +162,7 @@ export default function JobListHeader({
             <button
               onClick={() => {
                 setView("pipeline");
-                setShowArchived(!showArchived);
+                setShowArchived(true);
                 setShowStatistics(false);
                 setShowCalendar(false);
                 setShowMaterials(false);
