@@ -219,17 +219,22 @@ async def get_job(job_id: str, uuid: str = Depends(authorize)):
                     if resume:
                         materials["resume_name"] = resume.get("name", "Unnamed Resume")
                         materials["resume_version"] = resume.get("version_name", "Version 1")
-                except:
+                except Exception as e:
+                    print(f"Error fetching resume details: {e}")
                     pass  # Continue even if resume fetch fails
             
             # Fetch cover letter details if cover_letter_id exists
             if materials.get("cover_letter_id"):
                 try:
-                    cover_letter = await cover_letters_dao.get_cover_letter(materials["cover_letter_id"])
+                    cover_letter = await cover_letters_dao.get_cover_letter(
+                        materials["cover_letter_id"],
+                        uuid  # FIXED: Added uuid parameter
+                    )
                     if cover_letter:
                         materials["cover_letter_name"] = cover_letter.get("title", "Unnamed Cover Letter")
                         materials["cover_letter_version"] = cover_letter.get("version_name", "Version 1")
-                except:
+                except Exception as e:
+                    print(f"Error fetching cover letter details: {e}")
                     pass  # Continue even if cover letter fetch fails
         
         return result
@@ -253,17 +258,22 @@ async def get_all_jobs(uuid: str = Depends(authorize)):
                         if resume:
                             materials["resume_name"] = resume.get("name", "Unnamed Resume")
                             materials["resume_version"] = resume.get("version_name", "Version 1")
-                    except:
+                    except Exception as e:
+                        print(f"Error fetching resume details: {e}")
                         pass
                 
                 # Fetch cover letter details
                 if materials.get("cover_letter_id"):
                     try:
-                        cover_letter = await cover_letters_dao.get_cover_letter(materials["cover_letter_id"])
+                        cover_letter = await cover_letters_dao.get_cover_letter(
+                            materials["cover_letter_id"],
+                            uuid  # FIXED: Added uuid parameter
+                        )
                         if cover_letter:
                             materials["cover_letter_name"] = cover_letter.get("title", "Unnamed Cover Letter")
                             materials["cover_letter_version"] = cover_letter.get("version_name", "Version 1")
-                    except:
+                    except Exception as e:
+                        print(f"Error fetching cover letter details: {e}")
                         pass
         
     except Exception as e:
@@ -279,6 +289,34 @@ async def update_job(job_id: str, job: Job, uuid: str = Depends(authorize)):
         # Log materials update for debugging
         if model.get("materials"):
             print(f"Updating job {job_id} with materials: {model['materials']}")
+            
+            # Enrich materials with resume and cover letter details
+            materials = model["materials"]
+            
+            # Fetch resume details if resume_id exists
+            if materials.get("resume_id"):
+                try:
+                    resume = await resumes_dao.get_resume(materials["resume_id"])
+                    if resume:
+                        materials["resume_name"] = resume.get("name", "Unnamed Resume")
+                        materials["resume_version"] = resume.get("version_name", "Version 1")
+                except Exception as e:
+                    print(f"Error fetching resume details: {e}")
+            
+            # Fetch cover letter details if cover_letter_id exists
+            if materials.get("cover_letter_id"):
+                try:
+                    cover_letter = await cover_letters_dao.get_cover_letter(
+                        materials["cover_letter_id"],
+                        uuid  # FIXED: Added uuid parameter
+                    )
+                    if cover_letter:
+                        materials["cover_letter_name"] = cover_letter.get("title", "Unnamed Cover Letter")
+                        materials["cover_letter_version"] = cover_letter.get("version_name", "Version 1")
+                except Exception as e:
+                    print(f"Error fetching cover letter details: {e}")
+            
+            model["materials"] = materials
         
         updated = await jobs_dao.update_job(job_id, model)
     except Exception as e:
@@ -287,8 +325,12 @@ async def update_job(job_id: str, job: Job, uuid: str = Depends(authorize)):
     if updated == 0:
         raise HTTPException(400, "Job not found")
     else:
-        return {"detail": "Successfully updated job"}
-    
+        # Return the enriched materials in the response
+        return {
+            "detail": "Successfully updated job",
+            "materials": model.get("materials")
+        }    
+
 @jobs_router.delete("", tags = ["jobs"])
 async def delete_job(job_id: str, uuid: str = Depends(authorize)):
     try:
@@ -403,7 +445,10 @@ async def get_job_materials(job_id: str, uuid: str = Depends(authorize)):
         # Fetch full cover letter data
         if materials.get("cover_letter_id"):
             try:
-                cover_letter = await cover_letters_dao.get_cover_letter(materials["cover_letter_id"])
+                cover_letter = await cover_letters_dao.get_cover_letter(
+                    materials["cover_letter_id"],
+                    uuid  # FIXED: Added uuid parameter
+                )
                 if cover_letter:
                     cover_letter["_id"] = str(cover_letter["_id"])
                     result["cover_letter"] = cover_letter

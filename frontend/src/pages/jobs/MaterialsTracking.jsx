@@ -6,8 +6,11 @@ import CoverLetterAPI from "../../api/coverLetters";
 export function MaterialsModal({ job, onClose, onSave }) {
   const [resumes, setResumes] = useState([]);
   const [coverLetters, setCoverLetters] = useState([]);
-  const [selectedResume, setSelectedResume] = useState(job?.materials?.resume_id || "");
-  const [selectedCoverLetter, setSelectedCoverLetter] = useState(job?.materials?.cover_letter_id || "");
+  
+  // FIX: Initialize with the actual stored values from job.materials
+  const [selectedResume, setSelectedResume] = useState("");
+  const [selectedCoverLetter, setSelectedCoverLetter] = useState("");
+  
   const [uploadType, setUploadType] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -19,6 +22,21 @@ export function MaterialsModal({ job, onClose, onSave }) {
   useEffect(() => {
     loadMaterials();
   }, []);
+
+  // FIX: Set selected materials after loading materials list
+  useEffect(() => {
+    if (resumes.length > 0 && job?.materials?.resume_id) {
+      console.log('🔍 Setting selected resume from job.materials:', job.materials.resume_id);
+      setSelectedResume(job.materials.resume_id);
+    }
+  }, [resumes, job?.materials?.resume_id]);
+
+  useEffect(() => {
+    if (coverLetters.length > 0 && job?.materials?.cover_letter_id) {
+      console.log('🔍 Setting selected cover letter from job.materials:', job.materials.cover_letter_id);
+      setSelectedCoverLetter(job.materials.cover_letter_id);
+    }
+  }, [coverLetters, job?.materials?.cover_letter_id]);
 
   const loadMaterials = async () => {
     setLoading(true);
@@ -102,11 +120,14 @@ export function MaterialsModal({ job, onClose, onSave }) {
 
   const handleDownload = async (material, type) => {
     try {
+      // FIX: Use a helper function to get the correct ID
+      const materialId = getMaterialId(material);
+      
       let response;
       if (type === 'resume') {
-        response = await ResumesAPI.get(material.resume_id || material.id);
+        response = await ResumesAPI.get(materialId);
       } else {
-        response = await CoverLetterAPI.get(material.cover_letter_id || material.id);
+        response = await CoverLetterAPI.get(materialId);
       }
 
       if (response.data.file_url) {
@@ -130,11 +151,13 @@ export function MaterialsModal({ job, onClose, onSave }) {
 
   const handleView = async (material, type) => {
     try {
+      const materialId = getMaterialId(material);
+      
       let response;
       if (type === 'resume') {
-        response = await ResumesAPI.get(material.resume_id || material.id);
+        response = await ResumesAPI.get(materialId);
       } else {
-        response = await CoverLetterAPI.get(material.cover_letter_id || material.id);
+        response = await CoverLetterAPI.get(materialId);
       }
 
       if (response.data.file_url) {
@@ -159,11 +182,11 @@ export function MaterialsModal({ job, onClose, onSave }) {
     try {
       if (type === 'resume') {
         await ResumesAPI.delete(id);
-        setResumes(resumes.filter(r => (r.resume_id || r.id || r._id) !== id));
+        setResumes(resumes.filter(r => getMaterialId(r) !== id));
         if (selectedResume === id) setSelectedResume("");
       } else {
         await CoverLetterAPI.delete(id);
-        setCoverLetters(coverLetters.filter(c => (c.cover_letter_id || c.id || c._id) !== id));
+        setCoverLetters(coverLetters.filter(c => getMaterialId(c) !== id));
         if (selectedCoverLetter === id) setSelectedCoverLetter("");
       }
       alert('✅ Document deleted successfully!');
@@ -179,13 +202,13 @@ export function MaterialsModal({ job, onClose, onSave }) {
         await ResumesAPI.setDefault(id);
         setResumes(resumes.map(r => ({
           ...r,
-          is_default: (r.resume_id || r.id || r._id) === id
+          is_default: getMaterialId(r) === id
         })));
       } else {
         await CoverLetterAPI.setDefault(id);
         setCoverLetters(coverLetters.map(c => ({
           ...c,
-          is_default: (c.cover_letter_id || c.id || c._id) === id
+          is_default: getMaterialId(c) === id
         })));
       }
       alert('✅ Default material set successfully!');
@@ -195,7 +218,12 @@ export function MaterialsModal({ job, onClose, onSave }) {
     }
   };
 
-  const handleSave = () => {
+  // FIX: Helper function to get consistent ID from material object
+  const getMaterialId = (material) => {
+    return material._id || material.id || material.resume_id || material.cover_letter_id;
+  };
+
+  const handleSave = async () => {
     console.log('💾 handleSave called');
     console.log('Selected Resume:', selectedResume);
     console.log('Selected Cover Letter:', selectedCoverLetter);
@@ -222,31 +250,40 @@ export function MaterialsModal({ job, onClose, onSave }) {
       linked_date: new Date().toISOString()
     };
 
-    const updatedMaterialsHistory = [...(materialsHistory || []), historyEntry];
+    // FIX: Get current history from job, not from state
+    const currentHistory = job?.materials_history || [];
+    const updatedMaterialsHistory = [...currentHistory, historyEntry];
 
     console.log('💾 Saving materials to job:', {
       jobId: job.id,
       materials,
-      historyLength: updatedMaterialsHistory.length
+      historyLength: updatedMaterialsHistory.length,
+      previousHistoryLength: currentHistory.length
     });
 
-    onSave({ 
+    // Create updated job object
+    const updatedJob = { 
       ...job, 
       materials,
       materials_history: updatedMaterialsHistory
-    });
+    };
+
+    // Call onSave with the updated job - this will trigger the backend update
+    await onSave(updatedJob);
+    
+    console.log('✅ Materials saved successfully');
   };
 
   const MaterialCard = ({ material, type, selected, onSelect }) => {
-    // Try multiple possible ID fields
-    const materialId = material._id || material.id || material.resume_id || material.cover_letter_id;
+    // FIX: Use helper function for consistent ID extraction
+    const materialId = getMaterialId(material);
     const fileName = material.file_name || material.name || material.title || 'Unnamed Document';
     const versionName = material.version_name || material.version || 'Version 1';
-    const uploadDate = material.created_at || material.uploadDate || new Date().toISOString();
+    const uploadDate = material.created_at || material.uploadDate || material.date_created || new Date().toISOString();
     const fileSize = material.file_size || 0;
     const usageCount = material.usage_count || material.usedFor?.length || 0;
 
-    console.log(`MaterialCard - ${type}:`, { materialId, fileName, versionName });
+    console.log(`MaterialCard - ${type}:`, { materialId, fileName, versionName, selected });
 
     return (
       <div style={{
@@ -417,15 +454,9 @@ export function MaterialsModal({ job, onClose, onSave }) {
     );
   }
 
-  // Get display names for selected materials
-  const selectedResumeObj = resumes.find(r => {
-    const id = r._id || r.id || r.resume_id;
-    return id === selectedResume;
-  });
-  const selectedCoverLetterObj = coverLetters.find(c => {
-    const id = c._id || c.id || c.cover_letter_id;
-    return id === selectedCoverLetter;
-  });
+  // FIX: Get display names for selected materials using helper function
+  const selectedResumeObj = resumes.find(r => getMaterialId(r) === selectedResume);
+  const selectedCoverLetterObj = coverLetters.find(c => getMaterialId(c) === selectedCoverLetter);
 
   console.log('Selected Resume Object:', selectedResumeObj);
   console.log('Selected Cover Letter Object:', selectedCoverLetterObj);
@@ -473,6 +504,8 @@ export function MaterialsModal({ job, onClose, onSave }) {
           <div>Cover letters loaded: {coverLetters.length}</div>
           <div>Selected resume ID: {selectedResume || 'None'}</div>
           <div>Selected cover letter ID: {selectedCoverLetter || 'None'}</div>
+          <div>Job materials resume_id: {job?.materials?.resume_id || 'None'}</div>
+          <div>Job materials cover_letter_id: {job?.materials?.cover_letter_id || 'None'}</div>
         </div>
 
         {/* Action Buttons */}
@@ -531,7 +564,7 @@ export function MaterialsModal({ job, onClose, onSave }) {
           </div>
         )}
 
-        {/* Version Comparison - keeping same as before */}
+        {/* Version Comparison */}
         {showComparison && (
           <div style={{ marginBottom: "20px", padding: "16px", background: "#fff3e0", borderRadius: "6px" }}>
             <h3 style={{ fontSize: "16px", marginTop: 0, color: "#333" }}>🔄 Version Comparison</h3>
@@ -659,7 +692,7 @@ export function MaterialsModal({ job, onClose, onSave }) {
                 </div>
               ) : (
                 resumes.map((resume, idx) => {
-                  const resumeId = resume._id || resume.id || resume.resume_id;
+                  const resumeId = getMaterialId(resume);
                   return (
                     <MaterialCard
                       key={resumeId || idx}
@@ -730,7 +763,7 @@ export function MaterialsModal({ job, onClose, onSave }) {
                 </div>
               ) : (
                 coverLetters.map((letter, idx) => {
-                  const letterId = letter._id || letter.id || letter.cover_letter_id;
+                  const letterId = getMaterialId(letter);
                   return (
                     <MaterialCard
                       key={letterId || idx}
@@ -795,7 +828,7 @@ export function MaterialsModal({ job, onClose, onSave }) {
   );
 }
 
-// Materials Analytics Component (keeping as is)
+// Materials Analytics Component
 export function MaterialsAnalytics() {
   const [resumes, setResumes] = useState([]);
   const [coverLetters, setCoverLetters] = useState([]);
@@ -858,11 +891,10 @@ export function MaterialsAnalytics() {
           <div style={{ maxHeight: "300px", overflowY: "auto" }}>
             {resumes.map(resume => {
               const usageCount = resume.usage_count || 0;
-              const usagePercentage = totalUsage > 0 ? ((usageCount / totalUsage) * 100).toFixed(1) : 0;
               return (
                 <div key={resume._id || resume.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
                   <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                    {resume.name || 'Unnamed Version'}
+                    {resume.name || resume.file_name || 'Unnamed Version'}
                   </div>
                   <div style={{ fontSize: "13px", color: "#666" }}>
                     Used for: {usageCount} application(s)
@@ -881,7 +913,7 @@ export function MaterialsAnalytics() {
               return (
                 <div key={letter._id || letter.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
                   <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                    {letter.title || 'Unnamed Version'}
+                    {letter.title || letter.name || 'Unnamed Version'}
                   </div>
                   <div style={{ fontSize: "13px", color: "#666" }}>
                     Used for: {usageCount} application(s)

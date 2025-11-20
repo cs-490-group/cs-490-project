@@ -437,9 +437,23 @@ export default function JobDetailsModal({
           <MaterialsModal 
             job={selectedJob} 
             onClose={() => setMaterialsOpen(false)}
-            onSave={(updatedJob) => {
-              updateJob(updatedJob);
+            onSave={async (updatedJob) => {
+              console.log('📦 Saving materials from modal:', updatedJob.materials);
+              
+              // Update the job with the new materials
+              await updateJob(updatedJob);
+              
+              // Update selectedJob state to show changes immediately
+              setSelectedJob(prev => ({
+                ...prev,
+                materials: updatedJob.materials,
+                materials_history: updatedJob.materials_history
+              }));
+              
+              // Close the modal
               setMaterialsOpen(false);
+              
+              console.log('✅ Materials modal closed, job updated');
             }}
           />
         )}

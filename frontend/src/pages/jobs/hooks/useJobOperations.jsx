@@ -39,7 +39,10 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
         archiveDate: job.archive_date,
         reminderDays: job.reminderDays || 3,
         emailReminder: job.emailReminder !== false,
-        reminderEmail: job.reminderEmail
+        reminderEmail: job.reminderEmail,
+        // FIX: Add materials fields
+        materials: job.materials || null,
+        materials_history: job.materials_history || []
       }));
       
       setJobs(transformedJobs);
@@ -115,13 +118,23 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
         backendData.company = companyData;
       }
       
-      await JobsAPI.update(id, backendData);
+      console.log('🔄 Updating job:', id, 'with data:', backendData);
+      
+      const response = await JobsAPI.update(id, backendData);
+      
+      console.log('✅ Update response:', response);
+      
+      // Get enriched materials from response if available
+      const enrichedMaterials = response?.data?.materials || jobData.materials;
+      
+      console.log('📦 Enriched materials:', enrichedMaterials);
 
       setJobs(prev => prev.map(job => {
         if (job.id === id) {
           return {
             ...job,
             ...jobData,
+            materials: enrichedMaterials, // Use enriched materials from backend
             updatedAt: new Date().toISOString()
           };
         }
@@ -129,10 +142,14 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
       }));
 
       setSelectedJob(null);
+      
+      // Show success message
+      console.log('✅ Job updated successfully with materials:', enrichedMaterials);
+      
     } catch (error) {
       console.error("Failed to update job:", error);
       alert(error.response?.data?.detail || "Failed to update job. Please try again.");
-      loadJobs();
+      loadJobs(); // Reload to get correct state from backend
     }
   };
 

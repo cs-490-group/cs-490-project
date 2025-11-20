@@ -1,4 +1,3 @@
-// ===== api/coverLetters.js =====
 import api from "./base";
 
 const BASE_URL = "/cover-letters";
