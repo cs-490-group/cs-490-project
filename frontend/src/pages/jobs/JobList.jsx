@@ -228,7 +228,7 @@ export default function JobList() {
 
   if (loading) {
     return (
-      <div className="dashboard-gradient min-vh-100 py-4">
+      <div>
         <Container>
           <h1 className="text-center text-white fw-bold mb-5 display-4">Jobs</h1>
           <div className="d-flex flex-column align-items-center justify-content-center" style={{ height: '200px' }}>
