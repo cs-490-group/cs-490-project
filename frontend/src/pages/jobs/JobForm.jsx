@@ -20,6 +20,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
   const [id, setId] = useState(null);
   const [isScrapingUrl, setIsScrapingUrl] = useState(false);
   const [scrapeError, setScrapeError] = useState("");
+  const [scrapeSuccess, setScrapeSuccess] = useState("");
 
   // Company data fields
   const [companySize, setCompanySize] = useState("");
@@ -48,7 +49,6 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       setInterviewNotes(editJob.interview_notes || editJob.interviewNotes || "");
       setId(editJob.id);
 
-      // Load company data if available
       if (editJob.companyData) {
         setCompanySize(editJob.companyData.size || "");
         setCompanyIndustry(editJob.companyData.industry || "");
@@ -78,6 +78,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     setInterviewNotes("");
     setId(null);
     setScrapeError("");
+    setScrapeSuccess("");
     setCompanySize("");
     setCompanyIndustry("");
     setCompanyLocation("");
@@ -97,17 +98,23 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     }
   };
 
+  const detectPlatform = (url) => {
+    const urlLower = url.toLowerCase();
+    if (urlLower.includes('indeed.com')) return 'Indeed';
+    if (urlLower.includes('linkedin.com')) return 'LinkedIn';
+    if (urlLower.includes('glassdoor.com')) return 'Glassdoor';
+    return 'Unknown';
+  };
+
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert("Please upload an image file");
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("Image must be less than 5MB");
       return;
@@ -134,58 +141,203 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     }
 
     if (!validateUrl(importUrl.trim())) {
-      setScrapeError("Please enter a valid URL");
+      setScrapeError("Please enter a valid URL starting with http:// or https://");
+      return;
+    }
+
+    const platform = detectPlatform(importUrl);
+    if (platform === 'Unknown') {
+      setScrapeError("Unsupported platform. Please use Indeed, LinkedIn, or Glassdoor URLs.");
       return;
     }
 
     setIsScrapingUrl(true);
     setScrapeError("");
+    setScrapeSuccess("");
 
     try {
+      console.log(`🔍 Starting import from ${platform}...`);
+      console.log(`📍 URL: ${importUrl.trim()}`);
+      
       const response = await JobsAPI.importFromUrl(importUrl.trim());
       const data = response.data;
       
-      console.log("Scraped data:", data);
+      console.log(`✅ Received data from backend:`, {
+        ...data,
+        company_data: data.company_data ? {
+          ...data.company_data,
+          image: data.company_data.image ? `[${data.company_data.image.length} chars]` : null
+        } : null
+      });
+
+      let fieldsSet = [];
 
       // Set basic job fields
-      if (data.title) setTitle(data.title);
-      if (data.company) setCompany(data.company);
-      if (data.location) setLocation(data.location);
-      if (data.salary) setSalary(data.salary);
-      
-      // Set job type
-      if (data.job_type) {
-        const normalizedType = data.job_type.toLowerCase();
-        if (normalizedType.includes("full")) setJobType("Full-Time");
-        else if (normalizedType.includes("part")) setJobType("Part-Time");
-        else if (normalizedType.includes("intern")) setJobType("Internship");
-        else if (normalizedType.includes("contract")) setJobType("Contract");
-        else if (normalizedType.includes("freelance")) setJobType("Freelance");
+      if (data.title) {
+        setTitle(data.title);
+        fieldsSet.push('title');
+      }
+      if (data.company) {
+        setCompany(data.company);
+        fieldsSet.push('company');
+      }
+      if (data.location) {
+        setLocation(data.location);
+        fieldsSet.push('location');
+      }
+      if (data.salary) {
+        setSalary(data.salary);
+        fieldsSet.push('salary');
       }
       
-      if (data.description) setDescription(data.description.substring(0, 2000));
+      // Set job type with normalization
+      if (data.job_type) {
+        const normalizedType = data.job_type.toLowerCase();
+        if (normalizedType.includes("full")) {
+          setJobType("Full-Time");
+          fieldsSet.push('job_type (Full-Time)');
+        } else if (normalizedType.includes("part")) {
+          setJobType("Part-Time");
+          fieldsSet.push('job_type (Part-Time)');
+        } else if (normalizedType.includes("intern")) {
+          setJobType("Internship");
+          fieldsSet.push('job_type (Internship)');
+        } else if (normalizedType.includes("contract")) {
+          setJobType("Contract");
+          fieldsSet.push('job_type (Contract)');
+        } else if (normalizedType.includes("freelance")) {
+          setJobType("Freelance");
+          fieldsSet.push('job_type (Freelance)');
+        } else {
+          setJobType(data.job_type);
+          fieldsSet.push(`job_type (${data.job_type})`);
+        }
+      }
+      
+      if (data.description) {
+        setDescription(data.description.substring(0, 2000));
+        fieldsSet.push(`description (${data.description.length} chars)`);
+      }
+      
+      // Set industry if provided at top level
+      if (data.industry) {
+        setIndustry(data.industry);
+        fieldsSet.push('industry');
+      }
       
       // Set company data fields
       if (data.company_data) {
-        console.log("Setting company data:", data.company_data);
-        setCompanySize(data.company_data.size || "");
-        setCompanyIndustry(data.company_data.industry || "");
-        setCompanyLocation(data.company_data.location || "");
-        setCompanyWebsite(data.company_data.website || "");
-        setCompanyDescription(data.company_data.description || "");
-        setCompanyImageBase64(data.company_data.image || "");
+        console.log("🏢 Processing company data...");
+        let companyFieldsSet = [];
+        
+        // Only set fields that have actual values
+        if (data.company_data.size) {
+          setCompanySize(data.company_data.size);
+          companyFieldsSet.push('size');
+        }
+        
+        if (data.company_data.industry) {
+          setCompanyIndustry(data.company_data.industry);
+          companyFieldsSet.push('industry');
+          
+          // Also set main industry dropdown if not already set
+          if (!data.industry) {
+            const industryMap = {
+              'technology': 'Technology',
+              'tech': 'Technology',
+              'software': 'Technology',
+              'it': 'Technology',
+              'information technology': 'Technology',
+              'finance': 'Finance',
+              'financial': 'Finance',
+              'banking': 'Finance',
+              'healthcare': 'Healthcare',
+              'medical': 'Healthcare',
+              'health': 'Healthcare',
+              'education': 'Education',
+              'marketing': 'Marketing',
+              'advertising': 'Marketing',
+              'design': 'Design',
+              'consulting': 'Consulting',
+              'manufacturing': 'Manufacturing',
+              'retail': 'Retail',
+              'e-commerce': 'Retail'
+            };
+            
+            const normalizedIndustry = data.company_data.industry.toLowerCase();
+            let industrySet = false;
+            for (const [key, value] of Object.entries(industryMap)) {
+              if (normalizedIndustry.includes(key)) {
+                setIndustry(value);
+                companyFieldsSet.push(`main_industry (${value})`);
+                industrySet = true;
+                break;
+              }
+            }
+            
+            if (!industrySet) {
+              // If no match, set to "Other"
+              setIndustry("Other");
+              companyFieldsSet.push('main_industry (Other)');
+            }
+          }
+        }
+        
+        if (data.company_data.location) {
+          setCompanyLocation(data.company_data.location);
+          companyFieldsSet.push('location');
+        }
+        
+        if (data.company_data.website) {
+          setCompanyWebsite(data.company_data.website);
+          companyFieldsSet.push('website');
+        }
+        
+        if (data.company_data.description) {
+          setCompanyDescription(data.company_data.description);
+          companyFieldsSet.push(`description (${data.company_data.description.length} chars)`);
+        }
+        
+        if (data.company_data.image) {
+          setCompanyImageBase64(data.company_data.image);
+          companyFieldsSet.push('logo');
+          console.log(`✅ Company logo set (${data.company_data.image.length} chars)`);
+        }
+        
+        if (companyFieldsSet.length > 0) {
+          console.log(`✅ Company fields set: ${companyFieldsSet.join(', ')}`);
+          fieldsSet.push(`company_data (${companyFieldsSet.length} fields)`);
+        } else {
+          console.log(`⚠️ Company data object present but no fields had values`);
+        }
+      } else {
+        console.log(`⚠️ No company_data in response`);
       }
    
       setUrl(importUrl.trim());
+      fieldsSet.push('url');
+      
       setScrapeError("");
-      alert("Job imported successfully! Please review and fill any missing details.");
+      
+      const successMsg = `✅ Successfully imported from ${platform}! Fields populated: ${fieldsSet.join(', ')}`;
+      setScrapeSuccess(successMsg);
+      console.log(successMsg);
+      
+      // Clear success message after 8 seconds
+      setTimeout(() => setScrapeSuccess(""), 8000);
+      
     } catch (error) {
       const errorMessage =
         error.response?.data?.detail ||
         error.message ||
-        "Failed to scrape URL. Please enter details manually.";
+        "Failed to import job posting. Please try again or enter details manually.";
       setScrapeError(errorMessage);
-      console.error("Scraping error:", error);
+      console.error("❌ Import error:", error);
+      console.error("Error details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
     } finally {
       setIsScrapingUrl(false);
     }
@@ -239,7 +391,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       company_data: companyData,
     };
 
-    console.log("Submitting job data with company info:", {
+    console.log("Submitting job data:", {
       ...jobData,
       company_data: jobData.company_data ? {
         ...jobData.company_data,
@@ -321,13 +473,13 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
         }}
       >
         <h3 style={{ marginTop: 0, fontSize: "16px", color: "#4f8ef7" }}>
-          🔗 Quick Import from URL
+          🔗 Quick Import from Job Board
         </h3>
         <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-          Paste a job posting URL from Indeed to auto-fill the form
+          Paste a job URL from <strong>Indeed</strong>, <strong>LinkedIn</strong>, or <strong>Glassdoor</strong> to auto-fill the form
         </p>
 
-        <label style={labelStyle}>Import URL</label>
+        <label style={labelStyle}>Job Posting URL</label>
         <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
           <div style={{ flex: 1 }}>
             <input
@@ -340,11 +492,12 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
                     : "1px solid #ccc",
               }}
               type="url"
-              placeholder="https://www.indeed.com/viewjob?jk=..."
+              placeholder="https://www.indeed.com/viewjob?jk=... or LinkedIn/Glassdoor job URL"
               value={importUrl}
               onChange={(e) => {
                 setImportUrl(e.target.value);
                 setScrapeError("");
+                setScrapeSuccess("");
               }}
             />
             {importUrl.trim() && !validateUrl(importUrl.trim()) && (
@@ -356,9 +509,21 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
             )}
             {scrapeError && (
               <div
-                style={{ color: "#f44336", fontSize: "12px", marginTop: "4px" }}
+                style={{ color: "#f44336", fontSize: "12px", marginTop: "4px", fontWeight: "600" }}
               >
-                {scrapeError}
+                ❌ {scrapeError}
+              </div>
+            )}
+            {scrapeSuccess && (
+              <div
+                style={{ color: "#00bf72", fontSize: "12px", marginTop: "4px", fontWeight: "600" }}
+              >
+                {scrapeSuccess}
+              </div>
+            )}
+            {importUrl.trim() && validateUrl(importUrl.trim()) && (
+              <div style={{ color: "#666", fontSize: "12px", marginTop: "4px" }}>
+                Platform detected: <strong>{detectPlatform(importUrl)}</strong>
               </div>
             )}
           </div>
@@ -472,7 +637,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
           🏢 Company Information (Optional)
         </h3>
         <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-          Add details about the company. This information will be saved with your job application.
+          Add details about the company. Auto-populated from job imports when available.
         </p>
 
         {/* Company Logo Upload */}
