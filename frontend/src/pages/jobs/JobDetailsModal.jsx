@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MaterialsModal } from "./MaterialsTracking";
+import MaterialsModal from "./materials/MaterialsModal";
 
 export default function JobDetailsModal({
   selectedJob,
@@ -355,7 +355,7 @@ export default function JobDetailsModal({
             </div>
           </div>
         )}
-        
+
         {/* --- BUTTON ROW --- */}
         <div style={{ display: "flex", gap: "10px", marginTop: "24px", flexWrap: "wrap" }}>
 

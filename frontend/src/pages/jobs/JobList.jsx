@@ -5,7 +5,7 @@ import JobForm from "./JobForm";
 import JobPipeline from "./JobPipeline";
 import JobCard from "./JobCard";
 import { DeadlineCalendar, DeadlineReminderModal } from "./DeadlineComponents";
-import { MaterialsModal, MaterialsAnalytics } from "./MaterialsTracking";
+import MaterialsAnalytics from "./materials/MaterialsAnalytics";
 import JobStatistics from "./JobStatistics";
 import PerformanceDashboard from "./performance/PerformanceDashboard";
 import FloatingDeadlineWidget from "./FloatingDeadlineWidget";

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import ResumesAPI from "../../api/resumes";
-import CoverLetterAPI from "../../api/coverLetters";
+import ResumesAPI from "../../../api/resumes";
+import CoverLetterAPI from "../../../api/coverLetters";
 
-// Materials Management Modal
-export function MaterialsModal({ job, onClose, onSave }) {
+export default function MaterialsModal({ job, onClose, onSave }) {
   const [resumes, setResumes] = useState([]);
   const [coverLetters, setCoverLetters] = useState([]);
   
@@ -228,7 +227,6 @@ export function MaterialsModal({ job, onClose, onSave }) {
     console.log('Final Resume ID:', resumeId);
     console.log('Final Cover Letter ID:', coverLetterId);
 
-    // FIX: Get the actual material objects to extract names
     const selectedResumeObj = resumes.find(r => getMaterialId(r) === resumeId);
     const selectedCoverLetterObj = coverLetters.find(c => getMaterialId(c) === coverLetterId);
 
@@ -236,13 +234,11 @@ export function MaterialsModal({ job, onClose, onSave }) {
       date: new Date().toISOString(),
       resume_id: resumeId,
       cover_letter_id: coverLetterId,
-      // FIX: Include version names in history
       resume_version: selectedResumeObj?.version_name || selectedResumeObj?.name || null,
       cover_letter_version: selectedCoverLetterObj?.version_name || selectedCoverLetterObj?.title || null,
       action: job?.materials ? 'updated' : 'added'
     };
 
-    // FIX: Include material names in the materials object for immediate display
     const materials = {
       resume_id: resumeId,
       cover_letter_id: coverLetterId,
@@ -283,8 +279,6 @@ export function MaterialsModal({ job, onClose, onSave }) {
     
     const usageCount = material.usage_count || material.used_for?.length || 0;
 
-    console.log(`MaterialCard - ${type}:`, { materialId, fileName, versionName, selected, usageCount });
-
     return (
       <div style={{
         padding: "12px",
@@ -294,10 +288,7 @@ export function MaterialsModal({ job, onClose, onSave }) {
         background: selected ? "#e3f2fd" : "white",
         cursor: "pointer"
       }}
-      onClick={() => {
-        console.log(`Selected ${type}:`, materialId);
-        onSelect(materialId);
-      }}>
+      onClick={() => onSelect(materialId)}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
@@ -449,17 +440,13 @@ export function MaterialsModal({ job, onClose, onSave }) {
         </div>
       </div>
     );
-  };
+  }
 
   const selectedResumeObj = resumes.find(r => getMaterialId(r) === selectedResume);
   const selectedCoverLetterObj = coverLetters.find(c => getMaterialId(c) === selectedCoverLetter);
 
-  // FIX: Get display names for debug info
   const selectedResumeName = selectedResumeObj?.name || selectedResumeObj?.file_name || "None selected";
   const selectedCoverLetterName = selectedCoverLetterObj?.title || selectedCoverLetterObj?.name || "None selected";
-
-  console.log('Selected Resume Object:', selectedResumeObj);
-  console.log('Selected Cover Letter Object:', selectedCoverLetterObj);
 
   return (
     <div
@@ -497,7 +484,6 @@ export function MaterialsModal({ job, onClose, onSave }) {
           at {job.company}
         </p>
 
-        {/* FIX: Updated Debug Info with names instead of IDs */}
         <div style={{ marginBottom: "16px", padding: "12px", background: "#f0f0f0", borderRadius: "4px", fontSize: "12px" }}>
           <div><strong>Current Selection:</strong></div>
           <div style={{ marginTop: "8px" }}>
@@ -511,7 +497,6 @@ export function MaterialsModal({ job, onClose, onSave }) {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
           <button
             onClick={() => setShowHistory(!showHistory)}
@@ -545,7 +530,6 @@ export function MaterialsModal({ job, onClose, onSave }) {
           </button>
         </div>
 
-        {/* Materials History */}
         {showHistory && materialsHistory.length > 0 && (
           <div style={{ marginBottom: "20px", padding: "16px", background: "#f9f9f9", borderRadius: "6px" }}>
             <h3 style={{ fontSize: "16px", marginTop: 0, color: "#333" }}>📜 Materials History</h3>
@@ -560,14 +544,13 @@ export function MaterialsModal({ job, onClose, onSave }) {
                   {new Date(entry.date).toLocaleString()} - <strong>{entry.action}</strong>
                 </div>
                 <div style={{ fontSize: "11px", color: "#999" }}>
-                  Resume ID: {entry.resume_id || 'None'} | Cover Letter ID: {entry.cover_letter_id || 'None'}
+                  Resume: {entry.resume_version || 'None'} | Cover Letter: {entry.cover_letter_version || 'None'}
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Version Comparison */}
         {showComparison && (
           <div style={{ marginBottom: "20px", padding: "16px", background: "#fff3e0", borderRadius: "6px" }}>
             <h3 style={{ fontSize: "16px", marginTop: 0, color: "#333" }}>🔄 Version Comparison</h3>
@@ -639,7 +622,6 @@ export function MaterialsModal({ job, onClose, onSave }) {
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-          {/* Resumes Section */}
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
               <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>📝 Resumes ({resumes.length})</h3>
@@ -710,7 +692,6 @@ export function MaterialsModal({ job, onClose, onSave }) {
             </div>
           </div>
 
-          {/* Cover Letters Section */}
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
               <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>✉️ Cover Letters ({coverLetters.length})</h3>
@@ -825,109 +806,6 @@ export function MaterialsModal({ job, onClose, onSave }) {
           >
             💾 Save Materials
           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Materials Analytics Component
-export function MaterialsAnalytics() {
-  const [resumes, setResumes] = useState([]);
-  const [coverLetters, setCoverLetters] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadMaterials();
-  }, []);
-
-  const loadMaterials = async () => {
-    setLoading(true);
-    try {
-      const resumesResponse = await ResumesAPI.getAll();
-      setResumes(resumesResponse?.data || []);
-
-      const coverLettersResponse = await CoverLetterAPI.getAll();
-      setCoverLetters(coverLettersResponse?.data || []);
-    } catch (error) {
-      console.error("Failed to load materials:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div style={{ background: "white", padding: "40px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", marginBottom: "20px", textAlign: "center" }}>
-        <div style={{ fontSize: "16px", color: "#666" }}>Loading materials analytics...</div>
-      </div>
-    );
-  }
-
-  const totalResumes = resumes.length;
-  const totalCoverLetters = coverLetters.length;
-  
-  // FIX: Calculate total usage correctly for both resumes and cover letters
-  const totalUsage = resumes.reduce((sum, r) => sum + (r.usage_count || r.used_for?.length || 0), 0) +
-                     coverLetters.reduce((sum, c) => sum + (c.usage_count || c.used_for?.length || 0), 0);
-
-  return (
-    <div style={{ background: "white", padding: "20px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
-      <h3 style={{ marginTop: 0, color: "#333" }}>📊 Materials Usage Analytics</h3>
-      
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
-        <div style={{ padding: "16px", background: "#e3f2fd", borderRadius: "6px", textAlign: "center" }}>
-          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#1976d2" }}>{totalResumes}</div>
-          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Resume Versions</div>
-        </div>
-        <div style={{ padding: "16px", background: "#f3e5f5", borderRadius: "6px", textAlign: "center" }}>
-          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#7b1fa2" }}>{totalCoverLetters}</div>
-          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Cover Letter Versions</div>
-        </div>
-        <div style={{ padding: "16px", background: "#e8f5e9", borderRadius: "6px", textAlign: "center" }}>
-          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#388e3c" }}>{totalUsage}</div>
-          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Total Applications</div>
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-        <div>
-          <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Resume Versions ({resumes.length})</h4>
-          <div style={{ maxHeight: "300px", overflowY: "auto" }}>
-            {resumes.map(resume => {
-              // FIX: Check both usage_count and used_for array
-              const usageCount = resume.usage_count || resume.used_for?.length || 0;
-              return (
-                <div key={resume._id || resume.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
-                  <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                    {resume.name || resume.file_name || 'Unnamed Version'}
-                  </div>
-                  <div style={{ fontSize: "13px", color: "#666" }}>
-                    Used for: {usageCount} application(s)
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Cover Letter Versions ({coverLetters.length})</h4>
-          <div style={{ maxHeight: "300px", overflowY: "auto" }}>
-            {coverLetters.map(letter => {
-              const usageCount = letter.usage_count || letter.used_for?.length || 0;
-              return (
-                <div key={letter._id || letter.id} style={{ padding: "12px", background: "#f9f9f9", borderRadius: "6px", marginBottom: "8px" }}>
-                  <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                    {letter.title || letter.name || 'Unnamed Version'}
-                  </div>
-                  <div style={{ fontSize: "13px", color: "#666" }}>
-                    Used for: {usageCount} application(s)
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       </div>
     </div>
