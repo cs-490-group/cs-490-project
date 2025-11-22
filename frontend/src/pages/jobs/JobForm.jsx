@@ -4,7 +4,6 @@ import JobsAPI from "../../api/jobs";
 export default function JobForm({ addJob, editJob, cancelEdit }) {
   const [title, setTitle] = useState("");
   const [company, setCompany] = useState("");
-  const [companyData, setCompanyData] = useState(null);
   const [location, setLocation] = useState("");
   const [salary, setSalary] = useState("");
   const [url, setUrl] = useState("");
@@ -21,12 +20,21 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
   const [id, setId] = useState(null);
   const [isScrapingUrl, setIsScrapingUrl] = useState(false);
   const [scrapeError, setScrapeError] = useState("");
+  const [scrapeSuccess, setScrapeSuccess] = useState("");
+
+  // Company data fields
+  const [companySize, setCompanySize] = useState("");
+  const [companyIndustry, setCompanyIndustry] = useState("");
+  const [companyLocation, setCompanyLocation] = useState("");
+  const [companyWebsite, setCompanyWebsite] = useState("");
+  const [companyDescription, setCompanyDescription] = useState("");
+  const [companyImageUrl, setCompanyImageUrl] = useState("");
+  const [companyImageBase64, setCompanyImageBase64] = useState("");
 
   useEffect(() => {
     if (editJob) {
       setTitle(editJob.title || "");
       setCompany(editJob.company || "");
-      setCompanyData(editJob.companyData || null);
       setLocation(editJob.location || "");
       setSalary(editJob.salary || "");
       setUrl(editJob.url || "");
@@ -40,13 +48,23 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       setSalaryNotes(editJob.salary_notes || editJob.salaryNotes || "");
       setInterviewNotes(editJob.interview_notes || editJob.interviewNotes || "");
       setId(editJob.id);
+
+      // UPDATED: Handle both URL and base64 image formats
+      if (editJob.companyData?.image) {
+        if (editJob.companyData.image.startsWith("http")) {
+          setCompanyImageUrl(editJob.companyData.image);
+          setCompanyImageBase64("");
+        } else {
+          setCompanyImageBase64(editJob.companyData.image);
+          setCompanyImageUrl("");
+        }
+      }
     }
   }, [editJob]);
 
   const resetForm = () => {
     setTitle("");
     setCompany("");
-    setCompanyData(null);
     setLocation("");
     setSalary("");
     setUrl("");
@@ -62,6 +80,14 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     setInterviewNotes("");
     setId(null);
     setScrapeError("");
+    setScrapeSuccess("");
+    setCompanySize("");
+    setCompanyIndustry("");
+    setCompanyLocation("");
+    setCompanyWebsite("");
+    setCompanyDescription("");
+    setCompanyImageUrl("");
+    setCompanyImageBase64("");
   };
 
   const validateUrl = (urlString) => {
@@ -74,6 +100,42 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     }
   };
 
+  const detectPlatform = (url) => {
+    const urlLower = url.toLowerCase();
+    if (urlLower.includes('indeed.com')) return 'Indeed';
+    if (urlLower.includes('linkedin.com')) return 'LinkedIn';
+    if (urlLower.includes('glassdoor.com')) return 'Glassdoor';
+    return 'Unknown';
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert("Please upload an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be less than 5MB");
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = event.target.result.split(',')[1];
+        setCompanyImageBase64(base64String);
+        setCompanyImageUrl(URL.createObjectURL(file));
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Error reading image:", error);
+      alert("Failed to upload image");
+    }
+  };
+
   const handleScrapeUrl = async () => {
     if (!importUrl.trim()) {
       setScrapeError("Please enter a URL first");
@@ -81,61 +143,229 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     }
 
     if (!validateUrl(importUrl.trim())) {
-      setScrapeError("Please enter a valid URL");
+      setScrapeError("Please enter a valid URL starting with http:// or https://");
+      return;
+    }
+
+    const platform = detectPlatform(importUrl);
+    if (platform === 'Unknown') {
+      setScrapeError("Unsupported platform. Please use Indeed, LinkedIn, or Glassdoor URLs.");
       return;
     }
 
     setIsScrapingUrl(true);
     setScrapeError("");
+    setScrapeSuccess("");
 
     try {
+      console.log(`🔍 Starting import from ${platform}...`);
+      console.log(`📍 URL: ${importUrl.trim()}`);
+      
       const response = await JobsAPI.importFromUrl(importUrl.trim());
       const data = response.data;
       
-      console.log("Scraped data:", data);
-      console.log("Has company_data:", !!data.company_data);
-      if (data.company_data) {
-        console.log("Has image:", !!data.company_data.image);
-        if (data.company_data.image) {
-          console.log("Image length:", data.company_data.image.length);
-        }
-      }
+      console.log(`✅ Received data from backend:`, {
+        ...data,
+        company_data: data.company_data ? {
+          ...data.company_data,
+          image: data.company_data.image ? `[${data.company_data.image.length} chars]` : null
+        } : null
+      });
 
-      // Set basic job fields - company is a STRING, company_data is an OBJECT
-      if (data.title) setTitle(data.title);
-      if (data.company) setCompany(data.company); // This is the company NAME string
-      if (data.location) setLocation(data.location);
-      if (data.salary) setSalary(data.salary);
+      let jobFields = [];
+      let companyFields = [];
+
+      // Set basic job fields
+      if (data.title) {
+        setTitle(data.title);
+        jobFields.push('title');
+      }
+      if (data.company) {
+        setCompany(data.company);
+        jobFields.push('company name');
+      }
+      if (data.location) {
+        setLocation(data.location);
+        jobFields.push('location');
+      }
+      if (data.salary) {
+        setSalary(data.salary);
+        jobFields.push('salary');
+      }
       
-      // Set job type
+      // Set job type with normalization
       if (data.job_type) {
         const normalizedType = data.job_type.toLowerCase();
-        if (normalizedType.includes("full")) setJobType("Full-Time");
-        else if (normalizedType.includes("part")) setJobType("Part-Time");
-        else if (normalizedType.includes("intern")) setJobType("Internship");
-        else if (normalizedType.includes("contract")) setJobType("Contract");
-        else if (normalizedType.includes("freelance")) setJobType("Freelance");
-        //else setJobType("Full-Time");
+        if (normalizedType.includes("full")) {
+          setJobType("Full-Time");
+          jobFields.push('type');
+        } else if (normalizedType.includes("part")) {
+          setJobType("Part-Time");
+          jobFields.push('type');
+        } else if (normalizedType.includes("intern")) {
+          setJobType("Internship");
+          jobFields.push('type');
+        } else if (normalizedType.includes("contract")) {
+          setJobType("Contract");
+          jobFields.push('type');
+        } else if (normalizedType.includes("freelance")) {
+          setJobType("Freelance");
+          jobFields.push('type');
+        } else {
+          setJobType(data.job_type);
+          jobFields.push('type');
+        }
       }
       
-      if (data.description) setDescription(data.description.substring(0, 2000));
+      if (data.description) {
+        setDescription(data.description.substring(0, 2000));
+        jobFields.push('description');
+      }
       
-      // Store the company_data object (with size, location, website, IMAGE, etc.)
+      // Set industry if provided at top level with strict matching
+      if (data.industry) {
+        const industryMap = {
+          'technology': 'Technology',
+          'finance': 'Finance',
+          'healthcare': 'Healthcare',
+          'education': 'Education',
+          'marketing': 'Marketing',
+          'design': 'Design',
+          'consulting': 'Consulting',
+          'manufacturing': 'Manufacturing',
+          'retail': 'Retail'
+        };
+        
+        const normalizedIndustry = data.industry.toLowerCase().trim();
+        
+        for (const [key, value] of Object.entries(industryMap)) {
+          if (normalizedIndustry === key || normalizedIndustry.includes(key)) {
+            setIndustry(value);
+            jobFields.push('industry');
+            break;
+          }
+        }
+        // Don't set anything if no match found - leave it blank for user to select
+      }
+      
+      // Set company data fields
       if (data.company_data) {
-        console.log("Setting company data with image:", !!data.company_data.image);
-        setCompanyData(data.company_data);
+        console.log("🏢 Processing company data...");
+        
+        // Only set fields that have actual values
+        if (data.company_data.size) {
+          setCompanySize(data.company_data.size);
+          companyFields.push('size');
+        }
+        
+        if (data.company_data.industry) {
+          setCompanyIndustry(data.company_data.industry);
+          companyFields.push('industry');
+          
+          // Also set main industry dropdown if not already set
+          if (!data.industry) {
+            const industryMap = {
+              'technology': 'Technology',
+              'tech': 'Technology',
+              'software': 'Technology',
+              'it': 'Technology',
+              'information technology': 'Technology',
+              'finance': 'Finance',
+              'financial': 'Finance',
+              'banking': 'Finance',
+              'healthcare': 'Healthcare',
+              'medical': 'Healthcare',
+              'health': 'Healthcare',
+              'education': 'Education',
+              'marketing': 'Marketing',
+              'advertising': 'Marketing',
+              'design': 'Design',
+              'consulting': 'Consulting',
+              'manufacturing': 'Manufacturing',
+              'retail': 'Retail',
+              'e-commerce': 'Retail'
+            };
+            
+            const normalizedIndustry = data.company_data.industry.toLowerCase();
+            for (const [key, value] of Object.entries(industryMap)) {
+              if (normalizedIndustry.includes(key)) {
+                setIndustry(value);
+                jobFields.push('industry');
+                break;
+              }
+            }
+            // Don't set anything if no match found - leave it blank for user to select
+          }
+        }
+        
+        if (data.company_data.location) {
+          setCompanyLocation(data.company_data.location);
+          companyFields.push('headquarters');
+        }
+        
+        if (data.company_data.website) {
+          setCompanyWebsite(data.company_data.website);
+          companyFields.push('website');
+        }
+        
+        if (data.company_data.description) {
+          setCompanyDescription(data.company_data.description.substring(0, 1500));
+          companyFields.push('description');
+        }
+        
+        // UPDATED: Handle both URL and base64 image formats
+        if (data.company_data.image) {
+          if (data.company_data.image.startsWith("http")) {
+            setCompanyImageUrl(data.company_data.image);
+            setCompanyImageBase64("");
+          } else {
+            setCompanyImageBase64(data.company_data.image);
+            setCompanyImageUrl("");
+          }
+          companyFields.push('logo');
+          console.log(`✅ Company logo set (${data.company_data.image.length} chars)`);
+        }
+        
+        console.log(`✅ Company fields set: ${companyFields.join(', ')}`);
+      } else {
+        console.log(`⚠️ No company_data in response`);
       }
    
       setUrl(importUrl.trim());
+      jobFields.push('url');
+      
       setScrapeError("");
-      alert("Job imported successfully! Please enter missing details manually.");
+      
+      // Build success message
+      let successParts = [];
+      if (jobFields.length > 0) {
+        successParts.push('Job Data');
+      }
+      if (companyFields.length > 0) {
+        successParts.push('Company Data');
+      }
+      
+      const successMsg = `✅ Successfully imported ${successParts.join(' and ')} from ${platform}!`;
+      setScrapeSuccess(successMsg);
+      console.log(successMsg);
+      console.log(`Job fields: ${jobFields.join(', ')}`);
+      console.log(`Company fields: ${companyFields.join(', ')}`);
+      
+      // Clear success message after 8 seconds
+      setTimeout(() => setScrapeSuccess(""), 8000);
+      
     } catch (error) {
       const errorMessage =
         error.response?.data?.detail ||
         error.message ||
-        "Failed to scrape URL. Please enter details manually.";
+        "Failed to import job posting. Please try again or enter details manually.";
       setScrapeError(errorMessage);
-      console.error("Scraping error:", error);
+      console.error("❌ Import error:", error);
+      console.error("Error details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
     } finally {
       setIsScrapingUrl(false);
     }
@@ -144,18 +374,61 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!title.trim()) return alert("Job title is required");
-    if (!company.trim()) return alert("Company name is required");
-    if (!location.trim()) return alert("Location is required");
-    if (!industry) return alert("Industry is required");
-    if (!jobType) return alert("Job type is required");
-    if (!deadline) return alert("Application deadline is required");
+    // Validation with scroll to field
+    if (!title.trim()) {
+      alert("Job title is required");
+      document.querySelector('input[placeholder*="Senior Frontend Developer"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!company.trim()) {
+      alert("Company name is required");
+      document.querySelector('input[placeholder*="TechCorp Inc."]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!location.trim()) {
+      alert("Location is required");
+      document.querySelector('input[placeholder*="Remote or New York"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!industry || industry === "") {
+      alert("Industry is required");
+      document.querySelector('select[value="' + industry + '"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!jobType || jobType === "") {
+      alert("Job type is required");
+      document.querySelector('select').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!deadline) {
+      alert("Application deadline is required");
+      document.querySelector('input[type="date"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
 
     if (url.trim() && !validateUrl(url.trim())) {
-      return alert("Please enter a valid Job Posting URL starting with http:// or https://");
+      alert("Please enter a valid Job Posting URL starting with http:// or https://");
+      document.querySelector('input[placeholder*="example.com/job-posting"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    if (companyWebsite.trim() && !validateUrl(companyWebsite.trim())) {
+      alert("Please enter a valid company website URL starting with http:// or https://");
+      document.querySelector('input[placeholder*="www.company.com"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
 
     const now = new Date().toISOString();
+
+    // UPDATED: Build company data object supporting both base64 and URL images
+    const companyData = (companySize || companyIndustry || companyLocation || companyWebsite || companyDescription || companyImageBase64 || companyImageUrl) ? {
+      size: companySize.trim() || undefined,
+      industry: companyIndustry.trim() || undefined,
+      location: companyLocation.trim() || undefined,
+      website: companyWebsite.trim() || undefined,
+      description: companyDescription.trim() || undefined,
+      image: companyImageBase64 || companyImageUrl || undefined  // Support both base64 and URL
+    } : undefined;
 
     const jobData = {
       title: title.trim(),
@@ -172,7 +445,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       contacts: contacts.trim() || undefined,
       salary_notes: salaryNotes.trim() || undefined,
       interview_notes: interviewNotes.trim() || undefined,
-      company_data: companyData || undefined, 
+      company_data: companyData,
     };
 
     console.log("Submitting job data:", {
@@ -257,13 +530,13 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
         }}
       >
         <h3 style={{ marginTop: 0, fontSize: "16px", color: "#4f8ef7" }}>
-          🔗 Quick Import from URL
+          🔗 Quick Import from Job Board
         </h3>
         <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-          Paste a job posting URL from Indeed to auto-fill the form
+          Paste a job URL from <strong>Indeed</strong>, <strong>LinkedIn</strong>, or <strong>Glassdoor</strong> to auto-fill the form
         </p>
 
-        <label style={labelStyle}>Import URL</label>
+        <label style={labelStyle}>Job Posting URL</label>
         <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
           <div style={{ flex: 1 }}>
             <input
@@ -276,11 +549,12 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
                     : "1px solid #ccc",
               }}
               type="url"
-              placeholder="https://www.indeed.com/viewjob?jk=..."
+              placeholder="https://www.indeed.com/viewjob?jk=... or LinkedIn/Glassdoor job URL"
               value={importUrl}
               onChange={(e) => {
                 setImportUrl(e.target.value);
                 setScrapeError("");
+                setScrapeSuccess("");
               }}
             />
             {importUrl.trim() && !validateUrl(importUrl.trim()) && (
@@ -292,9 +566,21 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
             )}
             {scrapeError && (
               <div
-                style={{ color: "#f44336", fontSize: "12px", marginTop: "4px" }}
+                style={{ color: "#f44336", fontSize: "12px", marginTop: "4px", fontWeight: "600" }}
               >
-                {scrapeError}
+                ❌ {scrapeError}
+              </div>
+            )}
+            {scrapeSuccess && (
+              <div
+                style={{ color: "#00bf72", fontSize: "12px", marginTop: "4px", fontWeight: "600" }}
+              >
+                {scrapeSuccess}
+              </div>
+            )}
+            {importUrl.trim() && validateUrl(importUrl.trim()) && (
+              <div style={{ color: "#666", fontSize: "12px", marginTop: "4px" }}>
+                Platform detected: <strong>{detectPlatform(importUrl)}</strong>
               </div>
             )}
           </div>
@@ -323,55 +609,6 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
           </button>
         </div>
       </div>
-
-      {/* Company Info Preview (if scraped) */}
-      {companyData && (
-        <div
-          style={{
-            ...sectionStyle,
-            background: "#f0f7ff",
-            border: "2px solid #4f8ef7",
-          }}
-        >
-          <h3 style={{ marginTop: 0, fontSize: "16px", color: "#1976d2" }}>
-            🏢 Company Information (Imported)
-          </h3>
-          
-          {companyData.image && (
-            <div style={{ marginBottom: "12px", textAlign: "center" }}>
-              <img 
-                src={`data:image/png;base64,${companyData.image}`}
-                alt="Company logo"
-                style={{ maxWidth: "150px", maxHeight: "80px", objectFit: "contain", borderRadius: "4px" }}
-                onError={(e) => { 
-                  console.error("Failed to load company image");
-                  e.target.style.display = 'none'; 
-                }}
-              />
-            </div>
-          )}
-          
-          <div style={{ fontSize: "14px", color: "#333" }}>
-            {companyData.size && <p style={{ margin: "4px 0" }}><strong>👥 Size:</strong> {companyData.size}</p>}
-            {companyData.industry && <p style={{ margin: "4px 0" }}><strong>🏭 Industry:</strong> {companyData.industry}</p>}
-            {companyData.location && <p style={{ margin: "4px 0" }}><strong>📍 HQ:</strong> {companyData.location}</p>}
-            {companyData.website && (
-              <p style={{ margin: "4px 0" }}>
-                <strong>🌐 Website:</strong> <a href={companyData.website} target="_blank" rel="noopener noreferrer" style={{ color: "#4f8ef7" }}>{companyData.website}</a>
-              </p>
-            )}
-            {companyData.description && (
-              <p style={{ margin: "8px 0 4px 0", fontSize: "13px", color: "#555" }}>
-                <strong>About:</strong> {companyData.description.substring(0, 200)}{companyData.description.length > 200 ? "..." : ""}
-              </p>
-            )}
-          </div>
-          
-          <p style={{ fontSize: "12px", color: "#666", marginTop: "12px", marginBottom: 0 }}>
-            💡 This company information (including logo) will be saved with your job application
-          </p>
-        </div>
-      )}
 
       {/* Basic Information */}
       <div style={sectionStyle}>
@@ -447,6 +684,145 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
         )}
       </div>
 
+      {/* Company Information Section */}
+      <div style={{
+        ...sectionStyle,
+        background: "#f0f7ff",
+        border: "2px solid #4f8ef7",
+      }}>
+        <h3 style={{ marginTop: 0, fontSize: "16px", color: "#1976d2" }}>
+          🏢 Company Information (Optional)
+        </h3>
+        <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
+          Add details about the company. Auto-populated from job imports when available.
+        </p>
+
+        {/* Company Logo Upload */}
+        <label style={labelStyle}>Company Logo</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          style={{
+            ...inputStyle,
+            padding: "8px",
+          }}
+        />
+        {(companyImageBase64 || companyImageUrl) && (
+          <div style={{ marginBottom: "12px", textAlign: "center" }}>
+            <img
+              src={
+                companyImageBase64
+                  ? `data:image/png;base64,${companyImageBase64}`
+                  : companyImageUrl.startsWith("http")
+                  ? companyImageUrl
+                  : `data:image/png;base64,${companyImageUrl}`
+              }
+              alt="Company logo preview"
+              style={{
+                maxWidth: "150px",
+                maxHeight: "80px",
+                objectFit: "contain",
+                borderRadius: "4px",
+                border: "1px solid #ddd"
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setCompanyImageBase64("");
+                setCompanyImageUrl("");
+              }}
+              style={{
+                display: "block",
+                margin: "8px auto 0",
+                padding: "4px 12px",
+                background: "#f44336",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "12px"
+              }}
+            >
+              Remove Logo
+            </button>
+          </div>
+        )}
+
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div>
+            <label style={labelStyle}>Company Size</label>
+            <input
+              style={inputStyle}
+              placeholder="e.g., 1,000-5,000 employees"
+              value={companySize}
+              onChange={(e) => setCompanySize(e.target.value)}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Company Industry</label>
+            <input
+              style={inputStyle}
+              placeholder="e.g., Software Development"
+              value={companyIndustry}
+              onChange={(e) => setCompanyIndustry(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div>
+            <label style={labelStyle}>Company Headquarters</label>
+            <input
+              style={inputStyle}
+              placeholder="e.g., San Francisco, CA"
+              value={companyLocation}
+              onChange={(e) => setCompanyLocation(e.target.value)}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Company Website</label>
+            <input
+              style={{
+                ...inputStyle,
+                border:
+                  companyWebsite.trim() && !validateUrl(companyWebsite.trim())
+                    ? "2px solid #f44336"
+                    : "1px solid #ccc",
+              }}
+              type="url"
+              placeholder="https://www.company.com"
+              value={companyWebsite}
+              onChange={(e) => setCompanyWebsite(e.target.value)}
+            />
+            {companyWebsite.trim() && !validateUrl(companyWebsite.trim()) && (
+              <div style={{ color: "#f44336", fontSize: "12px", marginTop: "-8px" }}>
+                Please enter a valid URL
+              </div>
+            )}
+          </div>
+        </div>
+
+        <label style={labelStyle}>Company Description</label>
+        <textarea
+          style={{
+            ...inputStyle,
+            minHeight: "80px",
+            resize: "vertical",
+            fontFamily: "inherit",
+          }}
+          placeholder="Brief description of the company..."
+          value={companyDescription}
+          onChange={(e) => setCompanyDescription(e.target.value.substring(0, 1500))}
+          maxLength={1500}
+        />
+        <div style={{ fontSize: "12px", color: "#666", marginTop: "-8px", marginBottom: "12px" }}>
+          {companyDescription.length}/1500 characters
+        </div>
+      </div>
+
       {/* Job Details */}
       <div style={sectionStyle}>
         <h3 style={{ marginTop: 0, fontSize: "16px", color: "#4f8ef7" }}>
@@ -462,9 +838,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
               onChange={(e) => setIndustry(e.target.value)}
               required
             >
-              <option value="" disabled>
-                Select Industry
-              </option>
+              <option value="">Select Industry</option>
               <option value="Technology">Technology</option>
               <option value="Finance">Finance</option>
               <option value="Healthcare">Healthcare</option>
@@ -486,9 +860,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
               onChange={(e) => setJobType(e.target.value)}
               required
             >
-              <option value="" disabled>
-                Select Type
-              </option>
+              <option value="">Select Type</option>
               <option value="Full-Time">Full-Time</option>
               <option value="Part-Time">Part-Time</option>
               <option value="Internship">Internship</option>

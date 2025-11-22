@@ -24,12 +24,11 @@ class ResumesAPI {
         return api.delete(`${BASE_URL}?resume_id=${resumeId}`);
     }
 
-    
     setDefault(resumeId) {
         return api.put(`${BASE_URL}/${resumeId}/set-default`);
     }
 
-    
+    // RESUME VERSIONS
     createVersion(resumeId, data) {
         return api.post(`${BASE_URL}/${resumeId}/versions`, data);
     }
@@ -57,6 +56,7 @@ class ResumesAPI {
         return api.put(`${BASE_URL}/${resumeId}/versions/${versionId}/rename?${params.toString()}`);
     }
 
+    // RESUME FEEDBACK
     addFeedback(resumeId, data) {
         return api.post(`${BASE_URL}/${resumeId}/feedback`, data);
     }
@@ -89,6 +89,49 @@ class ResumesAPI {
     // PUBLIC: Get shared resume (no auth required)
     getSharedResume(token) {
         return api.get(`${BASE_URL}/public/${token}`);
+    }
+
+    validateResume(resumeId) {
+        return api.post(`${BASE_URL}/${resumeId}/validate`);
+    }
+
+    generateContent(resumeId, jobPosting) {
+        return api.post(`${BASE_URL}/${resumeId}/generate-content`, { job_posting: jobPosting });
+    }
+
+    optimizeSkills(resumeId, jobPosting) {
+        return api.post(`${BASE_URL}/${resumeId}/optimize-skills`, { job_posting: jobPosting });
+    }
+
+    tailorExperience(resumeId, jobPosting) {
+        return api.post(`${BASE_URL}/${resumeId}/tailor-experience`, { job_posting: jobPosting });
+    }
+
+    // PDF/EXPORT
+    generatePDF(resumeId, html) {
+        return api.post(`${BASE_URL}/${resumeId}/generate-pdf`, { html });
+    }
+
+    previewPDF(resumeId, html) {
+        return api.post(`${BASE_URL}/${resumeId}/preview-pdf`, { html });
+    }
+
+    exportPDF(resumeId) {
+        return api.post(`${BASE_URL}/${resumeId}/export-pdf`, {}, {
+            responseType: 'blob'
+        });
+    }
+
+    exportHTML(resumeId) {
+        return api.post(`${BASE_URL}/${resumeId}/export-html`, {}, {
+            responseType: 'blob'
+        });
+    }
+
+    generateDOCX(resumeId) {
+        return api.post(`${BASE_URL}/${resumeId}/generate-docx`, {}, {
+            responseType: 'blob'
+        });
     }
 }
 

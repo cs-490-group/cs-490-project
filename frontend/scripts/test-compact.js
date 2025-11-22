@@ -53,7 +53,9 @@ function runFrontendTests() {
     encoding: 'utf-8',
   });
 
-  const output = result.stdout + result.stderr;
+  const output = 
+    (result.stdout ? result.stdout.toString() : '') +
+    (result.stdeer ? result.stdout.toString() : '');
   
   const testMatch = output.match(/Tests:\s+(\d+) passed, (\d+) total/);
   const timeMatch = output.match(/Time:\s+([\d.]+\s+s)/);
