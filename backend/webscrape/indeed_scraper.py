@@ -19,15 +19,16 @@ async def scrape_indeed(job_html: str, company_html: Optional[str], url: str) ->
     
     logger.info(f"📊 Job HTML length: {len(job_html)} characters")
     
-    # Check if we hit CloudFlare or verification
-    if len(job_html) < 1000 or 'verification' in job_html.lower() or 'additional verification' in soup.get_text().lower():
+    # Check if we hit CloudFlare or verification page (more specific check)
+    page_text = soup.get_text().lower()
+    if len(job_html) < 1000 or ('verification' in page_text and 'additional verification' in page_text):
         raise ValueError("Indeed is currently blocking automated access. Please try again later or use a different job board.")
     
     # === JOB TITLE ===
     title = None
     title_selectors = [
-        'h1[class*="jobsearch-JobInfoHeader-title"]',
         '.jobsearch-JobInfoHeader-title span',
+        'h1[class*="jobsearch-JobInfoHeader-title"]',
         'h1.icl-u-xs-mb--xs',
         'h1'
     ]
@@ -35,16 +36,20 @@ async def scrape_indeed(job_html: str, company_html: Optional[str], url: str) ->
     for selector in title_selectors:
         title_elem = soup.select_one(selector)
         if title_elem:
-            title = title_elem.get_text(strip=True)
-            if title and 'verification' not in title.lower():
+            # Get direct text content, not nested elements
+            title = title_elem.find(text=True, recursive=False)
+            if not title:
+                title = title_elem.get_text(strip=True)
+            if title and 'verification' not in str(title).lower():
                 logger.info(f"✅ Found title: {title[:50]}...")
                 break
     
     # === COMPANY NAME ===
     company_name = None
     company_selectors = [
+        '[data-testid="jobsearch-CompanyInfoContainer"] a',
         '[data-testid="inlineHeader-companyName"]',
-        'div[data-testid="inlineHeader-companyName"] a',
+        '[data-testid="inlineHeader-companyName"] a',
         'div[data-testid="inlineHeader-companyName"] span',
         '.jobsearch-InlineCompanyRating-companyHeader'
     ]
@@ -59,8 +64,8 @@ async def scrape_indeed(job_html: str, company_html: Optional[str], url: str) ->
     # === LOCATION ===
     location = None
     location_selectors = [
+        '[data-testid="inlineHeader-companyLocation"] div',
         '[data-testid="inlineHeader-companyLocation"]',
-        'div[data-testid="inlineHeader-companyLocation"] div',
         '.jobsearch-JobInfoHeader-subtitle div'
     ]
     
@@ -75,27 +80,56 @@ async def scrape_indeed(job_html: str, company_html: Optional[str], url: str) ->
     salary = None
     job_type = None
     
-    salary_selectors = [
-        '[data-testid="jobsearch-JobMetadataHeader-salary"]',
-        '[id*="salaryInfoAndJobType"]'
-    ]
-    
-    for selector in salary_selectors:
-        elem = soup.select_one(selector)
-        if elem:
-            text = elem.get_text(strip=True)
-            if '$' in text or 'hour' in text or 'year' in text:
-                salary = text
+    # Strategy 1: Try the salaryInfoAndJobType section
+    info = soup.select_one("#salaryInfoAndJobType")
+    if info:
+        all_text = info.get_text(separator="|", strip=True)
+        parts = [p.strip() for p in all_text.split("|") if p.strip()]
+        
+        for part in parts:
+            # Check for salary
+            if not salary and ("$" in part or "hour" in part.lower() or "year" in part.lower() or "month" in part.lower()):
+                salary = part
                 logger.info(f"✅ Found salary: {salary}")
-                break
+            # Check for job type
+            if not job_type and any(keyword in part.lower() for keyword in ["full-time", "full time", "part-time", "part time", "contract", "temporary", "internship", "freelance"]):
+                job_type = part
+                logger.info(f"✅ Found job type: {job_type}")
     
-    attributes = soup.select('[data-testid="jobsearch-JobMetadataHeader-item"]')
-    for attr in attributes:
-        text = attr.get_text(strip=True).lower()
-        if any(x in text for x in ["full-time", "part-time", "contract", "temporary", "internship"]):
-            job_type = attr.get_text(strip=True)
-            logger.info(f"✅ Found job type: {job_type}")
-            break
+    # Strategy 2: Look for salary in metadata or attribute fields
+    if not salary:
+        salary_selectors = [
+            '[data-testid="viewJobBodyJobCompensation"]',
+            '[data-testid="jobsearch-JobMetadataHeader-salary"]',
+            '[id*="salaryInfoAndJobType"]'
+        ]
+        
+        for selector in salary_selectors:
+            elem = soup.select_one(selector)
+            if elem:
+                text = elem.get_text(strip=True)
+                if '$' in text or 'hour' in text or 'year' in text:
+                    salary = text
+                    logger.info(f"✅ Found salary: {salary}")
+                    break
+    
+    # Strategy 3: Look for job type in metadata or attribute fields  
+    if not job_type:
+        job_type_selectors = [
+            '[data-testid="viewJobBodyJobDetailsJobType"]',
+            '[data-testid="jobsearch-JobMetadataHeader-item"]'
+        ]
+        
+        for selector in job_type_selectors:
+            elems = soup.select(selector)
+            for elem in elems:
+                text = elem.get_text(strip=True).lower()
+                if any(x in text for x in ["full-time", "part-time", "contract", "temporary", "internship"]):
+                    job_type = elem.get_text(strip=True)
+                    logger.info(f"✅ Found job type: {job_type}")
+                    break
+            if job_type:
+                break
     
     # === DESCRIPTION ===
     description = None
@@ -120,7 +154,7 @@ async def scrape_indeed(job_html: str, company_html: Optional[str], url: str) ->
         logger.warning("⚠️ No company data available")
     
     return {
-        "title": title,
+        "title": str(title).strip() if title else None,
         "company": company_name,
         "company_data": company_data,
         "location": location,
@@ -133,7 +167,7 @@ async def scrape_indeed(job_html: str, company_html: Optional[str], url: str) ->
 
 
 async def scrape_indeed_company_page(html: str) -> Optional[Dict[str, Any]]:
-    """Extract company data from Indeed company page HTML with robust fallbacks"""
+    """Extract company data from Indeed company page HTML"""
     if not html or len(html) < 500:
         logger.warning("HTML too short or empty")
         return None
@@ -151,22 +185,20 @@ async def scrape_indeed_company_page(html: str) -> Optional[Dict[str, Any]]:
     }
     
     # === COMPANY SIZE ===
-    size_selectors = [
-        'li[data-testid="companyInfo-employee"]',
-        'span[data-testid="companySize"]',
-        '[data-testid="employeeCount"]'
-    ]
+    size_tab = soup.select_one('li[data-testid="companyInfo-employee"]')
+    if size_tab:
+        outer_span = size_tab.find("span")
+        if outer_span:
+            inner_span = outer_span.find("span")
+            inner_text = inner_span.get_text(strip=True) if inner_span else ""
+            company_size = outer_span.get_text(strip=True).replace(inner_text, "")
+            comparator = inner_span.find(text=True, recursive=False) if inner_span else ""
+            
+            company_data["size"] = f"{comparator} {company_size}".strip() if company_size else None
+            if company_data["size"]:
+                logger.info(f"✅ Company size: {company_data['size']}")
     
-    for selector in size_selectors:
-        elem = soup.select_one(selector)
-        if elem:
-            text = elem.get_text(strip=True)
-            if text and ('employee' in text.lower() or 'people' in text.lower()):
-                company_data["size"] = text
-                logger.info(f"✅ Company size (selector): {company_data['size']}")
-                break
-    
-    # Pattern matching fallback
+    # Pattern matching fallback for size
     if not company_data["size"]:
         patterns = [
             re.compile(r'(\d+[\s,]*(?:to|-|–)[\s,]*\d+)\s*(?:employee|Employee|people|People)', re.I),
@@ -180,24 +212,12 @@ async def scrape_indeed_company_page(html: str) -> Optional[Dict[str, Any]]:
                 break
     
     # === INDUSTRY ===
-    industry_selectors = [
-        'li[data-testid="companyInfo-industry"]',
-        '[data-testid="industry"]',
-        'div[class*="industry"]',
-    ]
+    industry_div = soup.select_one('li[data-testid="companyInfo-industry"] > div:nth-of-type(2)')
+    if industry_div:
+        company_data["industry"] = industry_div.get_text(strip=True)
+        logger.info(f"✅ Industry: {company_data['industry']}")
     
-    for selector in industry_selectors:
-        elem = soup.select_one(selector)
-        if elem:
-            text = elem.get_text(strip=True)
-            if ':' in text:
-                text = text.split(':', 1)[-1].strip()
-            if text and text.lower() != 'industry':
-                company_data["industry"] = text
-                logger.info(f"✅ Industry (selector): {company_data['industry']}")
-                break
-    
-    # Look for "Industry" label
+    # Fallback: Look for "Industry" label
     if not company_data["industry"]:
         industry_label = soup.find(string=re.compile(r'^\s*Industry\s*$', re.I))
         if industry_label:
@@ -211,24 +231,12 @@ async def scrape_indeed_company_page(html: str) -> Optional[Dict[str, Any]]:
                         logger.info(f"✅ Industry (label): {company_data['industry']}")
     
     # === HEADQUARTERS/LOCATION ===
-    hq_selectors = [
-        'li[data-testid="companyInfo-headquartersLocation"]',
-        '[data-testid="headquarters"]',
-        'div[class*="headquarters"]',
-    ]
+    headquarters_div = soup.select_one('li[data-testid="companyInfo-headquartersLocation"] > span:nth-of-type(1)')
+    if headquarters_div:
+        company_data["location"] = headquarters_div.get_text(strip=True)
+        logger.info(f"✅ Headquarters: {company_data['location']}")
     
-    for selector in hq_selectors:
-        elem = soup.select_one(selector)
-        if elem:
-            text = elem.get_text(strip=True)
-            if ':' in text:
-                text = text.split(':', 1)[-1].strip()
-            if text and text.lower() != 'headquarters':
-                company_data["location"] = text
-                logger.info(f"✅ Headquarters (selector): {company_data['location']}")
-                break
-    
-    # Look for "Headquarters" label
+    # Fallback: Look for "Headquarters" label
     if not company_data["location"]:
         hq_label = soup.find(string=re.compile(r'Headquarters', re.I))
         if hq_label:
@@ -242,12 +250,12 @@ async def scrape_indeed_company_page(html: str) -> Optional[Dict[str, Any]]:
                         logger.info(f"✅ Headquarters (label): {company_data['location']}")
     
     # === WEBSITE ===
-    website_elem = soup.select_one('li[data-testid="companyInfo-companyWebsite"] a')
-    if website_elem:
-        company_data["website"] = website_elem.get("href")
-        logger.info(f"✅ Website (selector): {company_data['website']}")
+    homepage_link_element = soup.select_one('li[data-testid="companyInfo-companyWebsite"] > div:nth-of-type(2) > a')
+    if homepage_link_element:
+        company_data["website"] = homepage_link_element.get("href")
+        logger.info(f"✅ Website: {company_data['website']}")
     
-    # Look for external links (not Indeed)
+    # Fallback: Look for external links (not Indeed)
     if not company_data["website"]:
         for link in soup.find_all('a', href=True):
             href = link.get('href', '')
@@ -259,21 +267,14 @@ async def scrape_indeed_company_page(html: str) -> Optional[Dict[str, Any]]:
                     break
     
     # === DESCRIPTION ===
-    desc_selectors = [
-        'div[data-testid="less-text"] p',
-        'div[data-testid="companyDescription"]',
-        'div[class*="description"] p',
-        'section[class*="about"] p',
-    ]
+    # Try multiple selectors for the description with "Show less" button structure
+    description_element = soup.select_one('div.css-vpxex4 span.css-15r9gu1') or \
+                         soup.select_one('div[data-testid="less-text"] > p')
+    if description_element:
+        company_data["description"] = description_element.get_text(strip=True)
+        logger.info(f"✅ Description: {len(company_data['description'])} chars")
     
-    for selector in desc_selectors:
-        elem = soup.select_one(selector)
-        if elem:
-            company_data["description"] = elem.get_text(strip=True)
-            logger.info(f"✅ Description (selector): {len(company_data['description'])} chars")
-            break
-    
-    # Look for "About" section
+    # Fallback: Look for "About" section
     if not company_data["description"]:
         about_heading = soup.find(string=re.compile(r'About|Overview|Description', re.I))
         if about_heading:
@@ -287,29 +288,48 @@ async def scrape_indeed_company_page(html: str) -> Optional[Dict[str, Any]]:
                         logger.info(f"✅ Description (about): {len(company_data['description'])} chars")
     
     # === LOGO/IMAGE ===
-    img_selectors = [
-        'div[data-testid="cmp-HeaderLayout"] img',
-        'img[alt*="logo" i]',
-        'img[class*="logo" i]',
-        'div[class*="company"] img',
-    ]
+    image_element = soup.select_one('div[data-testid="cmp-HeaderLayout"] img')
+    if image_element:
+        image_url = image_element.get("src")
+        if image_url:
+            try:
+                # Handle relative URLs
+                if image_url.startswith('/'):
+                    image_url = f"https://www.indeed.com{image_url}"
+                elif not image_url.startswith('http'):
+                    image_url = f"https://www.indeed.com/{image_url}"
+                
+                res = requests.get(image_url, timeout=10)
+                if res.status_code == 200 and len(res.content) > 100:
+                    company_data["image"] = base64.b64encode(res.content).decode("utf-8")
+                    logger.info(f"✅ Logo fetched: {len(company_data['image'])} chars")
+            except Exception as e:
+                logger.warning(f"Failed to fetch image: {e}")
     
-    for selector in img_selectors:
-        img_elem = soup.select_one(selector)
-        if img_elem:
-            img_url = img_elem.get("src")
-            if img_url and not img_url.startswith('data:') and len(img_url) > 20:
-                try:
-                    if img_url.startswith('/'):
-                        img_url = f"https://www.indeed.com{img_url}"
-                    
-                    res = requests.get(img_url, timeout=10)
-                    if res.status_code == 200 and len(res.content) > 100:
-                        company_data["image"] = base64.b64encode(res.content).decode("utf-8")
-                        logger.info(f"✅ Logo fetched: {len(company_data['image'])} chars")
-                        break
-                except Exception as e:
-                    logger.warning(f"Failed to fetch image: {e}")
+    # Fallback logo selectors
+    if not company_data["image"]:
+        logo_selectors = [
+            'img[alt*="logo" i]',
+            'img[class*="logo" i]',
+            'div[class*="company"] img',
+        ]
+        
+        for selector in logo_selectors:
+            img_elem = soup.select_one(selector)
+            if img_elem:
+                img_url = img_elem.get("src")
+                if img_url and not img_url.startswith('data:') and len(img_url) > 20:
+                    try:
+                        if img_url.startswith('/'):
+                            img_url = f"https://www.indeed.com{img_url}"
+                        
+                        res = requests.get(img_url, timeout=10)
+                        if res.status_code == 200 and len(res.content) > 100:
+                            company_data["image"] = base64.b64encode(res.content).decode("utf-8")
+                            logger.info(f"✅ Logo fetched (fallback)")
+                            break
+                    except Exception as e:
+                        logger.warning(f"Failed to fetch fallback image: {e}")
     
     if any(company_data.values()):
         logger.info(f"✅ Extracted company data with {sum(1 for v in company_data.values() if v)} fields")

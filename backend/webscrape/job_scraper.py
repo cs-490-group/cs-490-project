@@ -3,6 +3,7 @@ Enhanced Job Scraper for Indeed, LinkedIn, and Glassdoor
 Main entry point and shared utilities
 """
 
+
 import asyncio
 import logging
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
@@ -11,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 import traceback
 import tldextract
 
+from bs4 import BeautifulSoup
 from .indeed_scraper import scrape_indeed
 from .linkedin_scraper import scrape_linkedin
 from .glassdoor_scraper import scrape_glassdoor
@@ -62,25 +64,57 @@ def _scrape_with_playwright_sync(url: str, scrape_company: bool = False) -> Tupl
 
             logger.info(f"📄 Fetching job page: {url}")
             job_page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            # Refresh page ONLY for Indeed to bypass initial load issues
+            if 'indeed.com' in url:
+                job_page.reload(wait_until="domcontentloaded", timeout=45000)
+                logger.info("🔄 Indeed job page refreshed")
             job_page.wait_for_timeout(2000)
             job_page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
             job_page.wait_for_timeout(1000)
             job_html = job_page.content()
             logger.info(f"✅ Job page loaded: {job_page.title()}")
 
-            # Extract company URL
-            from bs4 import BeautifulSoup
+            # Extract company URL based on platform
+            company_url = None
             soup = BeautifulSoup(job_html, "html.parser")
-            company_elem = soup.select_one(
-                'a[data-tracking-control-name="public_jobs_topcard-org-name"], a[data-tracking-control-name="public_jobs_topcard-logo"]'
-            )
-            company_url = company_elem['href'] if company_elem else None
-            if not company_url:
-                company_text_elem = soup.select_one('a.topcard__org-name-link')
-                if company_text_elem:
-                    company_text = company_text_elem.get_text(strip=True).lower().replace(' ', '-')
-                    company_url = f"https://www.linkedin.com/company/{company_text}"
-                    logger.info(f"🏢 Constructed company URL: {company_url}")
+            
+            if 'linkedin.com' in url:
+                company_elem = soup.select_one(
+                    'a[data-tracking-control-name="public_jobs_topcard-org-name"], a[data-tracking-control-name="public_jobs_topcard-logo"]'
+                )
+                company_url = company_elem['href'] if company_elem else None
+                if not company_url:
+                    company_text_elem = soup.select_one('a.topcard__org-name-link')
+                    if company_text_elem:
+                        company_text = company_text_elem.get_text(strip=True).lower().replace(' ', '-')
+                        company_url = f"https://www.linkedin.com/company/{company_text}"
+                        logger.info(f"🏢 Constructed LinkedIn company URL: {company_url}")
+                    
+            elif 'indeed.com' in url:
+                # First try to find the direct link
+                href = soup.select_one('[data-testid="inlineHeader-companyName"] a')
+                if href:
+                    company_url = href.get("href")
+                    logger.info(f"🏢 Found Indeed company URL: {company_url}")
+                else:
+                    # Try alternative selector
+                    company_elem = soup.select_one('[data-testid="jobsearch-CompanyInfoContainer"] a')
+                    if company_elem:
+                        company_url = company_elem.get("href")
+                        logger.info(f"🏢 Found Indeed company URL (alternative): {company_url}")
+                
+                # If no direct link found, construct from company name
+                if not company_url:
+                    company_name_elem = soup.select_one('[data-testid="inlineHeader-companyName"]') or \
+                                       soup.select_one('[data-testid="jobsearch-CompanyInfoContainer"] a')
+                    if company_name_elem:
+                        company_name = company_name_elem.get_text(strip=True)
+                        # Convert company name to URL format: spaces to hyphens, remove special chars
+                        company_slug = company_name.replace(' ', '-').replace("'", '').replace(',', '')
+                        company_url = f"https://www.indeed.com/cmp/{company_slug}"
+                        logger.info(f"🏢 Constructed Indeed company URL: {company_url}")
+                    else:
+                        logger.warning("⚠️ Could not find Indeed company name to construct URL")
 
             # Close job page and clear context
             job_page.close()
@@ -90,6 +124,7 @@ def _scrape_with_playwright_sync(url: str, scrape_company: bool = False) -> Tupl
             # TAB 2: Company Page
             # --------------------
             if scrape_company and company_url:
+                logger.info(f"🏢 Fetching company page: {company_url}")
                 context = browser.new_context(
                     user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     viewport={'width': 1920, 'height': 1080},
@@ -98,12 +133,19 @@ def _scrape_with_playwright_sync(url: str, scrape_company: bool = False) -> Tupl
                 )
                 company_page = context.new_page()
                 company_page.goto(company_url, wait_until="domcontentloaded", timeout=30000)
+                # Refresh page ONLY for Indeed company pages to bypass initial load issues
+                if 'indeed.com' in company_url:
+                    company_page.reload(wait_until="domcontentloaded", timeout=30000)
+                    logger.info("🔄 Indeed company page refreshed")
                 company_page.wait_for_timeout(2000)
                 company_page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
                 company_page.wait_for_timeout(1000)
                 company_html = company_page.content()
+                logger.info(f"✅ Company page loaded: {len(company_html)} characters")
                 company_page.close()
                 context.close()
+            elif scrape_company:
+                logger.warning("⚠️ Company scraping requested but no company URL found")
 
             browser.close()
             return job_html, company_html
