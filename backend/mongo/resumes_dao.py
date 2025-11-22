@@ -73,13 +73,22 @@ class ResumeDAO:
         if not version:
             return 0
 
-        # Copy the resume_data from version to current resume
+        # Get resume_data from version and prepare update fields
+        resume_data = version.get("resume_data", {})
+
+        # Build update dict - only include fields from resume_data (not _id)
+        update_fields = {}
+        for key, value in resume_data.items():
+            if key != "_id":  # Don't try to update the _id field
+                update_fields[key] = value
+
+        # Add date_updated
+        update_fields["date_updated"] = datetime.now(timezone.utc)
+
+        # Update the resume
         updated = await self.collection.update_one(
             {"_id": ObjectId(resume_id)},
-            {"$set": {
-                **version.get("resume_data", {}),
-                "date_updated": datetime.now(timezone.utc)
-            }}
+            {"$set": update_fields}
         )
         return updated.matched_count
 
@@ -87,11 +96,13 @@ class ResumeDAO:
         result = await self.versions_collection.delete_one({"_id": ObjectId(version_id)})
         return result.deleted_count
 
-    async def rename_resume_version(self, version_id: str, name: str, description: str = None) -> int:
-        """Rename a resume version"""
+    async def rename_resume_version(self, version_id: str, name: str, description: str = None, job_linked: str = None) -> int:
+        """Rename a resume version and optionally update description and job link"""
         update_data = {"name": name}
         if description is not None:
             update_data["description"] = description
+        if job_linked is not None:
+            update_data["job_linked"] = job_linked
         updated = await self.versions_collection.update_one(
             {"_id": ObjectId(version_id)},
             {"$set": update_data}

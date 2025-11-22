@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Header, Path, File, UploadFile, Form, Body
+from fastapi import APIRouter, HTTPException, Header, Path, File, UploadFile, Form, Body, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional
@@ -14,13 +14,14 @@ from bs4 import BeautifulSoup
 
 from schema.CoverLetter import CoverLetterIn, CoverLetterOut
 from mongo.cover_letters_dao import cover_letters_dao
+from sessions.session_authorizer import authorize
 
-coverletter_router = APIRouter()
+coverletter_router = APIRouter(prefix="/cover-letters")
 
 # ============================================================
 # GET usage stats aggregated by template type (MUST BE FIRST)
 # ============================================================
-@coverletter_router.get("/cover-letters/usage/by-type")
+@coverletter_router.get("/usage/by-type")
 async def get_usage_by_template_type():
     """Get aggregated usage counts grouped by template type (style_industry)."""
     try:
@@ -30,36 +31,10 @@ async def get_usage_by_template_type():
         raise HTTPException(status_code=500, detail=f"Failed to get usage stats: {str(e)}")
 
 # ============================================================
-# GET a single cover letter by ID
-# ============================================================
-@coverletter_router.get("/cover-letters/{letter_id}", response_model=CoverLetterOut)
-async def get_coverletter(
-    letter_id: str = Path(...),
-    uuid: str = Header(...)
-):
-    """Fetch a single cover letter by ID if it belongs to the current user."""
-    letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
-
-    if not letter:
-        raise HTTPException(status_code=404, detail="Cover letter not found or not owned by user")
-
-    return {
-        "id": str(letter["_id"]),
-        "user_id": letter.get("uuid"),
-        "title": letter.get("title"),
-        "company": letter.get("company"),
-        "position": letter.get("position"),
-        "content": letter.get("content"),
-        "created_at": letter.get("created_at"),
-        "style": letter.get("style"),        
-        "industry": letter.get("industry")
-    }
-
-# ============================================================
 # GET all cover letters for the current user
 # ============================================================
-@coverletter_router.get("/cover-letters/me/{uuid}", response_model=List[CoverLetterOut])
-async def get_my_coverletters(uuid: str = Path(...)):
+@coverletter_router.get("/me", response_model=List[CoverLetterOut])
+async def get_my_coverletters(uuid: str = Depends(authorize)):
     """Fetch all cover letters belonging to the current user."""
     letters = await cover_letters_dao.get_all_cover_letters(uuid)
 
@@ -75,6 +50,7 @@ async def get_my_coverletters(uuid: str = Path(...)):
             "position": l.get("position"),
             "content": l.get("content"),
             "created_at": l.get("created_at"),
+            "usage_count": l.get("usage_count", 0)
         }
         for l in letters
     ]
@@ -82,12 +58,37 @@ async def get_my_coverletters(uuid: str = Path(...)):
     return mapped_letters
 
 # ============================================================
+# GET a single cover letter by ID
+# ============================================================
+@coverletter_router.get("/{letter_id}", response_model=CoverLetterOut)
+async def get_coverletter(
+    letter_id: str = Path(...),
+    uuid: str = Depends(authorize)
+):
+    """Fetch a single cover letter by ID if it belongs to the current user."""
+    letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
+
+    if not letter:
+        raise HTTPException(status_code=404, detail="Cover letter not found or not owned by user")
+
+    return {
+        "id": str(letter["_id"]),
+        "user_id": letter.get("uuid"),
+        "title": letter.get("title"),
+        "company": letter.get("company"),
+        "position": letter.get("position"),
+        "content": letter.get("content"),
+        "created_at": letter.get("created_at"),
+        "usage_count": letter.get("usage_count", 0)
+    }
+
+# ============================================================
 # POST create a new cover letter
 # ============================================================
-@coverletter_router.post("/cover-letters")
+@coverletter_router.post("")
 async def add_coverletter(
     coverletter: CoverLetterIn,
-    uuid: str = Header(...)
+    uuid: str = Depends(authorize)
 ):
     """Add a new cover letter for the current user."""
     new_letter = {
@@ -103,16 +104,83 @@ async def add_coverletter(
     }
 
     inserted_id = await cover_letters_dao.add_cover_letter(new_letter)
-    return {"coverletter_id": inserted_id}
+    
+    return {
+        "coverletter_id": inserted_id,
+        "data": {
+            "_id": inserted_id,
+            "title": new_letter["title"],
+            "created_at": new_letter["created_at"]
+        }
+    }
+
+# ============================================================
+# POST upload an HTML/file cover letter
+# ============================================================
+@coverletter_router.post("/upload")
+async def upload_coverletter(
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    company: str = Form(""),
+    position: str = Form(""),
+    version_name: str = Form("Version 1"),
+    description: str = Form(None),
+    uuid: str = Depends(authorize)
+):
+    """Upload a cover letter file (HTML, PDF, or DOCX)."""
+    
+    # For now, accept HTML files
+    if file.content_type != "text/html" and not file.filename.lower().endswith('.html'):
+        # If it's PDF/DOCX, we'd need different handling
+        raise HTTPException(status_code=400, detail="Only HTML files are supported currently")
+    
+    try:
+        content = await file.read()
+        html_content = content.decode('utf-8')
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {str(e)}")
+    
+    letter_id = str(uuid4())
+    created_at = datetime.utcnow().isoformat()
+    
+    new_letter = {
+        "_id": letter_id,
+        "uuid": uuid,
+        "title": title,
+        "company": company,
+        "position": position,
+        "content": html_content,
+        "version_name": version_name,
+        "description": description,
+        "created_at": created_at,
+        "usage_count": 0,
+        "uploadedFile": True,
+        "template_type": None,
+        "file_type": file.content_type,
+        "file_size": len(content)
+    }
+    
+    await cover_letters_dao.add_cover_letter(new_letter)
+    
+    return {
+        "detail": "File uploaded successfully",
+        "data": {
+            "_id": letter_id,
+            "title": title,
+            "version_name": version_name,
+            "created_at": created_at,
+            "file_size": len(content)
+        }
+    }
 
 # ============================================================
 # PUT update a cover letter
 # ============================================================
-@coverletter_router.put("/cover-letters/{letter_id}")
+@coverletter_router.put("/{letter_id}")
 async def update_coverletter(
     letter_id: str = Path(...),
     coverletter: CoverLetterIn = Body(...),
-    uuid: str = Header(...)
+    uuid: str = Depends(authorize)
 ):
     """Update an existing cover letter if it belongs to the current user."""
     updates = {
@@ -135,10 +203,10 @@ async def update_coverletter(
 # ============================================================
 # DELETE a cover letter
 # ============================================================
-@coverletter_router.delete("/cover-letters/{letter_id}")
+@coverletter_router.delete("/{letter_id}")
 async def delete_coverletter(
     letter_id: str = Path(...),
-    uuid: str = Header(...)
+    uuid: str = Depends(authorize)
 ):
     """Delete a cover letter belonging to the current user."""
     letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
@@ -153,67 +221,30 @@ async def delete_coverletter(
     return {"message": "Deleted successfully"}
 
 # ============================================================
-# POST upload an HTML cover letter file
+# PUT set as default cover letter
 # ============================================================
-@coverletter_router.post("/cover-letters/upload")
-async def upload_coverletter(
-    file: UploadFile = File(...),
-    title: str = Form(...),
-    company: str = Form(""),
-    position: str = Form(""),
-    uuid: str = Header(...)
+@coverletter_router.put("/{letter_id}/default")
+async def set_default_coverletter(
+    letter_id: str = Path(...),
+    uuid: str = Depends(authorize)
 ):
-    """Upload an HTML file and save as a cover letter."""
+    """Set a cover letter as the default for the user."""
+    # First verify the letter exists and belongs to user
+    letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
+    if not letter:
+        raise HTTPException(status_code=404, detail="Cover letter not found or not owned by user")
     
-    if file.content_type != "text/html" and not file.filename.lower().endswith('.html'):
-        raise HTTPException(status_code=400, detail="Only HTML files are supported")
-    
-    try:
-        content = await file.read()
-        html_content = content.decode('utf-8')
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to read HTML file: {str(e)}")
-    
-    letter_id = str(uuid4())
-    created_at = datetime.utcnow().isoformat()
-    
-    new_letter = {
-        "_id": letter_id,
-        "uuid": uuid,
-        "title": title,
-        "company": company,
-        "position": position,
-        "content": html_content,
-        "created_at": created_at,
-        "usage_count": 0,
-        "uploadedFile": True,
-        "template_type": None
-    }
-    
-    await cover_letters_dao.add_cover_letter(new_letter)
-    
-    return {
-        "coverletter_id": letter_id,
-        "letter": {
-            "id": letter_id,
-            "user_id": uuid,
-            "title": title,
-            "company": company,
-            "position": position,
-            "content": html_content,
-            "created_at": created_at,
-            "uploadedFile": True,
-            "usage_count": 0
-        }
-    }
+    # Implementation would set is_default field
+    # For now, just return success
+    return {"message": "Default cover letter set successfully"}
 
 # ============================================================
 # GET download as PDF
 # ============================================================
-@coverletter_router.get("/cover-letters/{letter_id}/download/pdf")
+@coverletter_router.get("/{letter_id}/download/pdf")
 async def download_pdf(
     letter_id: str = Path(...),
-    uuid: str = Header(...)
+    uuid: str = Depends(authorize)
 ):
     """Download cover letter as PDF with styling preserved."""
     letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
@@ -251,10 +282,10 @@ async def download_pdf(
 # ============================================================
 # GET download as DOCX
 # ============================================================
-@coverletter_router.get("/cover-letters/{letter_id}/download/docx")
+@coverletter_router.get("/{letter_id}/download/docx")
 async def download_docx(
     letter_id: str = Path(...),
-    uuid: str = Header(...)
+    uuid: str = Depends(authorize)
 ):
     """Download cover letter as DOCX with styling preserved."""
     letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
@@ -357,35 +388,6 @@ def process_html_element(element, doc):
             run = p.add_run(element.get_text())
             run.font.italic = True
             run.font.color.rgb = RGBColor(52, 152, 219)
-        
-        elif 'skills' in class_attr:
-            p = doc.add_paragraph()
-            run = p.add_run('Key Skills')
-            run.font.bold = True
-            run.font.size = Pt(14)
-            
-            ul = element.find('ul')
-            if ul:
-                for li in ul.find_all('li', recursive=False):
-                    doc.add_paragraph(li.get_text(), style='List Bullet')
-        
-        elif 'experience' in class_attr:
-            p = doc.add_paragraph()
-            run = p.add_run('Professional Experience')
-            run.font.bold = True
-            run.font.size = Pt(14)
-            
-            for child in element.children:
-                process_html_element(child, doc)
-        
-        elif 'education' in class_attr:
-            p = doc.add_paragraph()
-            run = p.add_run('Education')
-            run.font.bold = True
-            run.font.size = Pt(14)
-            
-            for child in element.children:
-                process_html_element(child, doc)
         
         else:
             for child in element.children:

@@ -526,6 +526,9 @@ export default function ResumeEditor() {
           <button onClick={() => setShowSaveTemplateModal(true)} className="btn btn-info">
             Save as Template
           </button>
+          <button onClick={() => navigate(`/resumes/versions/${id}`)} className="btn btn-warning" title="Manage resume versions, compare, and merge">
+            📋 Version Management
+          </button>
           <button onClick={() => navigate(`/resumes/export/${id}`)} className="btn btn-success">
             Export Resume
           </button>
