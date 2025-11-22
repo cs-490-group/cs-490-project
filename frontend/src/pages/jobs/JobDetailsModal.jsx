@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import MaterialsModal from "./materials/MaterialsModal";
+import PDFAPI from "../../api/pdf";
+import CoverLetterAPI from "../../api/coverLetters";
 
 export default function JobDetailsModal({
   selectedJob,
@@ -19,6 +21,63 @@ export default function JobDetailsModal({
 
   // Check if materials are linked
   const hasMaterials = selectedJob.materials?.resume_id || selectedJob.materials?.cover_letter_id;
+
+  const handleDownloadLinkedPDF = async (type) => {
+    try {
+      const materialId = type === 'resume' 
+        ? selectedJob.materials?.resume_id 
+        : selectedJob.materials?.cover_letter_id;
+
+      if (!materialId) {
+        alert(`No ${type} linked to this application`);
+        return;
+      }
+
+      console.log(`📥 Downloading ${type} PDF:`, materialId);
+      
+      let pdfBlob;
+      if (type === 'resume') {
+        // Use the PDF export API for resumes
+        pdfBlob = await PDFAPI.exportPDFFromData(materialId);
+      } else {
+        // For cover letters, get the file content
+        const response = await CoverLetterAPI.get(materialId);
+        
+        if (response.data.file_url) {
+          window.open(response.data.file_url, '_blank');
+          return;
+        } else if (response.data.file_content) {
+          pdfBlob = new Blob([response.data.file_content], { type: 'application/pdf' });
+        } else {
+          alert("PDF download not available for this cover letter");
+          return;
+        }
+      }
+
+      if (!pdfBlob || pdfBlob.size === 0) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      // Download the PDF
+      const fileName = type === 'resume' 
+        ? selectedJob.materials?.resume_name || 'resume.pdf'
+        : selectedJob.materials?.cover_letter_name || 'cover_letter.pdf';
+      
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      alert('✅ PDF downloaded successfully!');
+    } catch (error) {
+      console.error(`Error downloading ${type} PDF:`, error);
+      alert(`Failed to download ${type} PDF. Please try again.`);
+    }
+  };
 
   return (
     <div
@@ -242,9 +301,24 @@ export default function JobDetailsModal({
                     <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
                       <strong>Version:</strong> {selectedJob.materials.resume_version || 'N/A'}
                     </div>
-                    <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
+                    <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>
                       <strong>File:</strong> {selectedJob.materials.resume_name || 'Unnamed'}
                     </div>
+                    <button
+                      onClick={() => handleDownloadLinkedPDF('resume')}
+                      style={{
+                        padding: "6px 12px",
+                        background: "#34c759",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "11px",
+                        width: "100%"
+                      }}
+                    >
+                      📥 Download Resume PDF
+                    </button>
                     {selectedJob.materials.linked_date && (
                       <div style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>
                         Linked: {new Date(selectedJob.materials.linked_date).toLocaleDateString()}
@@ -268,9 +342,24 @@ export default function JobDetailsModal({
                     <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
                       <strong>Version:</strong> {selectedJob.materials.cover_letter_version || 'N/A'}
                     </div>
-                    <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
+                    <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>
                       <strong>File:</strong> {selectedJob.materials.cover_letter_name || 'Unnamed'}
                     </div>
+                    <button
+                      onClick={() => handleDownloadLinkedPDF('coverLetter')}
+                      style={{
+                        padding: "6px 12px",
+                        background: "#34c759",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "11px",
+                        width: "100%"
+                      }}
+                    >
+                      📥 Download Cover Letter PDF
+                    </button>
                     {selectedJob.materials.linked_date && (
                       <div style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>
                         Linked: {new Date(selectedJob.materials.linked_date).toLocaleDateString()}
@@ -327,7 +416,7 @@ export default function JobDetailsModal({
           </div>
         )}
 
-                {/* --- STATUS HISTORY SECTION --- */}
+        {/* --- STATUS HISTORY SECTION --- */}
         {selectedJob.status_history && selectedJob.status_history.length > 0 && (
           <div style={{ marginBottom: "16px", background: "#e8f5e9", padding: "16px", borderRadius: "6px", border: "1px solid #c8e6c9" }}>
             <h3 style={{ margin: "0 0 12px 0", color: "#2e7d32", fontSize: "16px" }}>📋 Status History</h3>
