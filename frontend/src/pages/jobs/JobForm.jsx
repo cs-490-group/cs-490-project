@@ -49,13 +49,12 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       setInterviewNotes(editJob.interview_notes || editJob.interviewNotes || "");
       setId(editJob.id);
 
-      if (editJob.companyData) {
-        setCompanySize(editJob.companyData.size || "");
-        setCompanyIndustry(editJob.companyData.industry || "");
-        setCompanyLocation(editJob.companyData.location || "");
-        setCompanyWebsite(editJob.companyData.website || "");
-        setCompanyDescription(editJob.companyData.description || "");
+      if (editJob.companyData.image?.startsWith("http")) {
+        setCompanyImageUrl(editJob.companyData.image);
+        setCompanyImageBase64("");
+      } else {
         setCompanyImageBase64(editJob.companyData.image || "");
+        setCompanyImageUrl("");
       }
     }
   }, [editJob]);
@@ -299,7 +298,13 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
         }
         
         if (data.company_data.image) {
-          setCompanyImageBase64(data.company_data.image);
+          if (data.company_data.image.startsWith("http")) {
+            setCompanyImageUrl(data.company_data.image);
+            setCompanyImageBase64("");
+          } else {
+            setCompanyImageBase64(data.company_data.image);
+            setCompanyImageUrl("");
+          }
           companyFieldsSet.push('logo');
           console.log(`✅ Company logo set (${data.company_data.image.length} chars)`);
         }
@@ -654,7 +659,13 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
         {(companyImageBase64 || companyImageUrl) && (
           <div style={{ marginBottom: "12px", textAlign: "center" }}>
             <img
-              src={companyImageBase64 ? `data:image/png;base64,${companyImageBase64}` : companyImageUrl}
+              src={
+                companyImageBase64
+                  ? `data:image/png;base64,${companyImageBase64}`
+                  : companyImageUrl.startsWith("http")
+                  ? companyImageUrl
+                  : `data:image/png;base64,${companyImageUrl}`
+              }
               alt="Company logo preview"
               style={{
                 maxWidth: "150px",
@@ -686,6 +697,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
             </button>
           </div>
         )}
+
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
           <div>

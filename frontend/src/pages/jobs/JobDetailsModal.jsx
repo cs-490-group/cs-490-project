@@ -79,10 +79,13 @@ export default function JobDetailsModal({
             {selectedJob.companyData.image && (
               <div style={{ marginBottom: "12px", textAlign: "center" }}>
                 <img
-                  src={`data:image/png;base64,${selectedJob.companyData.image}`}
+                  src={
+                    selectedJob.companyData.image.startsWith("http") 
+                      ? selectedJob.companyData.image 
+                      : `data:image/png;base64,${selectedJob.companyData.image}`
+                  }
                   alt={`${selectedJob.company} logo`}
                   style={{ maxWidth: "150px", maxHeight: "80px", objectFit: "contain", borderRadius: "4px" }}
-                  onError={(e) => { e.target.style.display = 'none'; }}
                 />
               </div>
             )}

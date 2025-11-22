@@ -92,32 +92,32 @@ async def scrape_linkedin_company_page(html: str) -> Optional[Dict[str, str]]:
         logger.warning("⚠ No company data extracted from page")
         return None
 
-    # === LOGO / IMAGE SCRAPING ===
-    img_selectors = [
-        'div.top-card-layout__entity-image-container img',
-        'img[class*="entity-image" i]',
-        'img[alt*="logo" i]',
-        'img[class*="logo" i]',
-        'div[class*="company"] img',
-    ]
+        # === LOGO / IMAGE SCRAPING ===
+        img_selectors = [
+            'div.top-card-layout__entity-image-container img',
+            'img[class*="entity-image" i]',
+            'img[alt*="logo" i]',
+            'img[class*="logo" i]',
+            'div[class*="company"] img',
+        ]
 
-    for selector in img_selectors:
-        img_elem = soup.select_one(selector)
-        if img_elem:
-            img_url = img_elem.get("src")
-            if img_url and not img_url.startswith('data:') and len(img_url) > 20:
-                try:
-                    # LinkedIn often returns abs URLs, but just in case:
-                    if img_url.startswith('/'):
-                        img_url = f"https://www.linkedin.com{img_url}"
+        for selector in img_selectors:
+            img_elem = soup.select_one(selector)
+            if img_elem:
+                img_url = img_elem.get("src")
+                if img_url and not img_url.startswith('data:') and len(img_url) > 20:
+                    try:
+                        # LinkedIn often returns abs URLs, but just in case:
+                        if img_url.startswith('/'):
+                            img_url = f"https://www.linkedin.com{img_url}"
 
-                    res = requests.get(img_url, timeout=10)
-                    if res.status_code == 200 and len(res.content) > 100:
-                        company_data["image"] = base64.b64encode(res.content).decode("utf-8")
-                        logger.info(f"📸 LinkedIn logo fetched: {len(company_data['image'])} chars")
-                        break
-                except Exception as e:
-                    logger.warning(f"Failed to fetch LinkedIn logo: {e}")
-                    
-    logger.info(f"✨ Extracted {sum(1 for v in company_data.values() if v)} company fields")
-    return company_data
+                        res = requests.get(img_url, timeout=10)
+                        if res.status_code == 200 and len(res.content) > 100:
+                            company_data["image"] = base64.b64encode(res.content).decode("utf-8")
+                            logger.info(f"📸 LinkedIn logo fetched: {len(company_data['image'])} chars")
+                            break
+                    except Exception as e:
+                        logger.warning(f"Failed to fetch LinkedIn logo: {e}")
+                        
+        logger.info(f"✨ Extracted {sum(1 for v in company_data.values() if v)} company fields")
+        return company_data
