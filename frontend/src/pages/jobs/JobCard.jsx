@@ -107,6 +107,7 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
             {expanded ? "▲" : "▼"}
           </button>
         </div>
+        
 
         <div style={{ fontSize: "12px", color: "#999", marginBottom: "4px" }}>
           {daysInStage === 0 ? "Added today" : `${daysInStage} day${daysInStage !== 1 ? "s" : ""} in stage`}
@@ -123,7 +124,11 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
             {formatDate(job.deadline)}
           </div>
         )}
-        
+        {job.materials && (job.materials.resume_id || job.materials.cover_letter_id) && (
+          <div style={{ fontSize: "11px", color: "#7b1fa2", marginTop: "2px", fontWeight: "600" }}>
+            📦 {job.materials.resume_id ? '📝' : ''} {job.materials.cover_letter_id ? '✉️' : ''} Materials Attached
+          </div>
+        )}        
         {job.location && (
           <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}>
             📍 {job.location}
