@@ -49,12 +49,15 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       setInterviewNotes(editJob.interview_notes || editJob.interviewNotes || "");
       setId(editJob.id);
 
-      if (editJob.companyData.image?.startsWith("http")) {
-        setCompanyImageUrl(editJob.companyData.image);
-        setCompanyImageBase64("");
-      } else {
-        setCompanyImageBase64(editJob.companyData.image || "");
-        setCompanyImageUrl("");
+      // UPDATED: Handle both URL and base64 image formats
+      if (editJob.companyData?.image) {
+        if (editJob.companyData.image.startsWith("http")) {
+          setCompanyImageUrl(editJob.companyData.image);
+          setCompanyImageBase64("");
+        } else {
+          setCompanyImageBase64(editJob.companyData.image);
+          setCompanyImageUrl("");
+        }
       }
     }
   }, [editJob]);
@@ -169,24 +172,25 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
         } : null
       });
 
-      let fieldsSet = [];
+      let jobFields = [];
+      let companyFields = [];
 
       // Set basic job fields
       if (data.title) {
         setTitle(data.title);
-        fieldsSet.push('title');
+        jobFields.push('title');
       }
       if (data.company) {
         setCompany(data.company);
-        fieldsSet.push('company');
+        jobFields.push('company name');
       }
       if (data.location) {
         setLocation(data.location);
-        fieldsSet.push('location');
+        jobFields.push('location');
       }
       if (data.salary) {
         setSalary(data.salary);
-        fieldsSet.push('salary');
+        jobFields.push('salary');
       }
       
       // Set job type with normalization
@@ -194,50 +198,69 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
         const normalizedType = data.job_type.toLowerCase();
         if (normalizedType.includes("full")) {
           setJobType("Full-Time");
-          fieldsSet.push('job_type (Full-Time)');
+          jobFields.push('type');
         } else if (normalizedType.includes("part")) {
           setJobType("Part-Time");
-          fieldsSet.push('job_type (Part-Time)');
+          jobFields.push('type');
         } else if (normalizedType.includes("intern")) {
           setJobType("Internship");
-          fieldsSet.push('job_type (Internship)');
+          jobFields.push('type');
         } else if (normalizedType.includes("contract")) {
           setJobType("Contract");
-          fieldsSet.push('job_type (Contract)');
+          jobFields.push('type');
         } else if (normalizedType.includes("freelance")) {
           setJobType("Freelance");
-          fieldsSet.push('job_type (Freelance)');
+          jobFields.push('type');
         } else {
           setJobType(data.job_type);
-          fieldsSet.push(`job_type (${data.job_type})`);
+          jobFields.push('type');
         }
       }
       
       if (data.description) {
         setDescription(data.description.substring(0, 2000));
-        fieldsSet.push(`description (${data.description.length} chars)`);
+        jobFields.push('description');
       }
       
-      // Set industry if provided at top level
+      // Set industry if provided at top level with strict matching
       if (data.industry) {
-        setIndustry(data.industry);
-        fieldsSet.push('industry');
+        const industryMap = {
+          'technology': 'Technology',
+          'finance': 'Finance',
+          'healthcare': 'Healthcare',
+          'education': 'Education',
+          'marketing': 'Marketing',
+          'design': 'Design',
+          'consulting': 'Consulting',
+          'manufacturing': 'Manufacturing',
+          'retail': 'Retail'
+        };
+        
+        const normalizedIndustry = data.industry.toLowerCase().trim();
+        
+        for (const [key, value] of Object.entries(industryMap)) {
+          if (normalizedIndustry === key || normalizedIndustry.includes(key)) {
+            setIndustry(value);
+            jobFields.push('industry');
+            break;
+          }
+        }
+        // Don't set anything if no match found - leave it blank for user to select
       }
       
       // Set company data fields
       if (data.company_data) {
         console.log("🏢 Processing company data...");
-        let companyFieldsSet = [];
         
         // Only set fields that have actual values
         if (data.company_data.size) {
           setCompanySize(data.company_data.size);
-          companyFieldsSet.push('size');
+          companyFields.push('size');
         }
         
         if (data.company_data.industry) {
           setCompanyIndustry(data.company_data.industry);
-          companyFieldsSet.push('industry');
+          companyFields.push('industry');
           
           // Also set main industry dropdown if not already set
           if (!data.industry) {
@@ -264,39 +287,33 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
             };
             
             const normalizedIndustry = data.company_data.industry.toLowerCase();
-            let industrySet = false;
             for (const [key, value] of Object.entries(industryMap)) {
               if (normalizedIndustry.includes(key)) {
                 setIndustry(value);
-                companyFieldsSet.push(`main_industry (${value})`);
-                industrySet = true;
+                jobFields.push('industry');
                 break;
               }
             }
-            
-            if (!industrySet) {
-              // If no match, set to "Other"
-              setIndustry("Other");
-              companyFieldsSet.push('main_industry (Other)');
-            }
+            // Don't set anything if no match found - leave it blank for user to select
           }
         }
         
         if (data.company_data.location) {
           setCompanyLocation(data.company_data.location);
-          companyFieldsSet.push('location');
+          companyFields.push('headquarters');
         }
         
         if (data.company_data.website) {
           setCompanyWebsite(data.company_data.website);
-          companyFieldsSet.push('website');
+          companyFields.push('website');
         }
         
         if (data.company_data.description) {
-          setCompanyDescription(data.company_data.description);
-          companyFieldsSet.push(`description (${data.company_data.description.length} chars)`);
+          setCompanyDescription(data.company_data.description.substring(0, 1500));
+          companyFields.push('description');
         }
         
+        // UPDATED: Handle both URL and base64 image formats
         if (data.company_data.image) {
           if (data.company_data.image.startsWith("http")) {
             setCompanyImageUrl(data.company_data.image);
@@ -305,28 +322,34 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
             setCompanyImageBase64(data.company_data.image);
             setCompanyImageUrl("");
           }
-          companyFieldsSet.push('logo');
+          companyFields.push('logo');
           console.log(`✅ Company logo set (${data.company_data.image.length} chars)`);
         }
         
-        if (companyFieldsSet.length > 0) {
-          console.log(`✅ Company fields set: ${companyFieldsSet.join(', ')}`);
-          fieldsSet.push(`company_data (${companyFieldsSet.length} fields)`);
-        } else {
-          console.log(`⚠️ Company data object present but no fields had values`);
-        }
+        console.log(`✅ Company fields set: ${companyFields.join(', ')}`);
       } else {
         console.log(`⚠️ No company_data in response`);
       }
    
       setUrl(importUrl.trim());
-      fieldsSet.push('url');
+      jobFields.push('url');
       
       setScrapeError("");
       
-      const successMsg = `✅ Successfully imported from ${platform}! Fields populated: ${fieldsSet.join(', ')}`;
+      // Build success message
+      let successParts = [];
+      if (jobFields.length > 0) {
+        successParts.push('Job Data');
+      }
+      if (companyFields.length > 0) {
+        successParts.push('Company Data');
+      }
+      
+      const successMsg = `✅ Successfully imported ${successParts.join(' and ')} from ${platform}!`;
       setScrapeSuccess(successMsg);
       console.log(successMsg);
+      console.log(`Job fields: ${jobFields.join(', ')}`);
+      console.log(`Company fields: ${companyFields.join(', ')}`);
       
       // Clear success message after 8 seconds
       setTimeout(() => setScrapeSuccess(""), 8000);
@@ -351,31 +374,60 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!title.trim()) return alert("Job title is required");
-    if (!company.trim()) return alert("Company name is required");
-    if (!location.trim()) return alert("Location is required");
-    if (!industry) return alert("Industry is required");
-    if (!jobType) return alert("Job type is required");
-    if (!deadline) return alert("Application deadline is required");
+    // Validation with scroll to field
+    if (!title.trim()) {
+      alert("Job title is required");
+      document.querySelector('input[placeholder*="Senior Frontend Developer"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!company.trim()) {
+      alert("Company name is required");
+      document.querySelector('input[placeholder*="TechCorp Inc."]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!location.trim()) {
+      alert("Location is required");
+      document.querySelector('input[placeholder*="Remote or New York"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!industry || industry === "") {
+      alert("Industry is required");
+      document.querySelector('select[value="' + industry + '"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!jobType || jobType === "") {
+      alert("Job type is required");
+      document.querySelector('select').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!deadline) {
+      alert("Application deadline is required");
+      document.querySelector('input[type="date"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
 
     if (url.trim() && !validateUrl(url.trim())) {
-      return alert("Please enter a valid Job Posting URL starting with http:// or https://");
+      alert("Please enter a valid Job Posting URL starting with http:// or https://");
+      document.querySelector('input[placeholder*="example.com/job-posting"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
 
     if (companyWebsite.trim() && !validateUrl(companyWebsite.trim())) {
-      return alert("Please enter a valid company website URL starting with http:// or https://");
+      alert("Please enter a valid company website URL starting with http:// or https://");
+      document.querySelector('input[placeholder*="www.company.com"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
 
     const now = new Date().toISOString();
 
-    // Build company data object if any field is filled
-    const companyData = (companySize || companyIndustry || companyLocation || companyWebsite || companyDescription || companyImageBase64) ? {
+    // UPDATED: Build company data object supporting both base64 and URL images
+    const companyData = (companySize || companyIndustry || companyLocation || companyWebsite || companyDescription || companyImageBase64 || companyImageUrl) ? {
       size: companySize.trim() || undefined,
       industry: companyIndustry.trim() || undefined,
       location: companyLocation.trim() || undefined,
       website: companyWebsite.trim() || undefined,
       description: companyDescription.trim() || undefined,
-      image: companyImageBase64 || undefined
+      image: companyImageBase64 || companyImageUrl || undefined  // Support both base64 and URL
     } : undefined;
 
     const jobData = {
@@ -763,11 +815,11 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
           }}
           placeholder="Brief description of the company..."
           value={companyDescription}
-          onChange={(e) => setCompanyDescription(e.target.value)}
-          maxLength={500}
+          onChange={(e) => setCompanyDescription(e.target.value.substring(0, 1500))}
+          maxLength={1500}
         />
         <div style={{ fontSize: "12px", color: "#666", marginTop: "-8px", marginBottom: "12px" }}>
-          {companyDescription.length}/500 characters
+          {companyDescription.length}/1500 characters
         </div>
       </div>
 
@@ -786,9 +838,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
               onChange={(e) => setIndustry(e.target.value)}
               required
             >
-              <option value="" disabled>
-                Select Industry
-              </option>
+              <option value="">Select Industry</option>
               <option value="Technology">Technology</option>
               <option value="Finance">Finance</option>
               <option value="Healthcare">Healthcare</option>
@@ -810,9 +860,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
               onChange={(e) => setJobType(e.target.value)}
               required
             >
-              <option value="" disabled>
-                Select Type
-              </option>
+              <option value="">Select Type</option>
               <option value="Full-Time">Full-Time</option>
               <option value="Part-Time">Part-Time</option>
               <option value="Internship">Internship</option>
