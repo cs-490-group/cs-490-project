@@ -3,7 +3,6 @@ Enhanced Job Scraper for Indeed, LinkedIn, and Glassdoor
 Main entry point and shared utilities
 """
 
-
 import asyncio
 import logging
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
@@ -11,16 +10,20 @@ from typing import Optional, Dict, Any, Tuple
 from concurrent.futures import ThreadPoolExecutor
 import traceback
 import tldextract
-
 from bs4 import BeautifulSoup
-from .indeed_scraper import scrape_indeed
+import requests
+import base64
+import re
+
 from .linkedin_scraper import scrape_linkedin
 from .glassdoor_scraper import scrape_glassdoor
+from .indeed_scraper import scrape_indeed
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 _executor = ThreadPoolExecutor(max_workers=3)
+
 
 class URLScrapeError(Exception):
     """Custom exception for scraping errors"""
@@ -115,6 +118,45 @@ def _scrape_with_playwright_sync(url: str, scrape_company: bool = False) -> Tupl
                         logger.info(f"🏢 Constructed Indeed company URL: {company_url}")
                     else:
                         logger.warning("⚠️ Could not find Indeed company name to construct URL")
+            
+            elif 'glassdoor.com' in url or 'glassdoor.co.uk' in url:
+                # Strategy 1: Look for the employer profile link (the exact structure you showed)
+                company_elem = soup.select_one('a.EmployerProfile_profileContainer__63w3R')
+                if company_elem:
+                    company_url = company_elem.get("href")
+                    if company_url:
+                        if not company_url.startswith("http"):
+                            base_domain = "glassdoor.co.uk" if "glassdoor.co.uk" in url else "glassdoor.com"
+                            company_url = f"https://www.{base_domain}{company_url}"
+                        logger.info(f"🏢 Found Glassdoor company URL from profile container: {company_url}")
+                
+                # Strategy 2: Try other common selectors if first fails
+                if not company_url:
+                    company_elem = soup.select_one('a[href*="/Overview/Working-at-"]')
+                    if company_elem:
+                        company_url = company_elem.get("href")
+                        if company_url and not company_url.startswith("http"):
+                            base_domain = "glassdoor.co.uk" if "glassdoor.co.uk" in url else "glassdoor.com"
+                            company_url = f"https://www.{base_domain}{company_url}"
+                        logger.info(f"🏢 Found Glassdoor company URL: {company_url}")
+                
+                # Strategy 3: If still no link found, try to construct from company name
+                if not company_url:
+                    company_name_elem = soup.select_one('[data-test="employer-name"]')
+                    if not company_name_elem:
+                        company_name_elem = soup.select_one('div.EmployerProfile_employerNameHeading__bXBYr h4')
+                    
+                    if company_name_elem:
+                        company_name = company_name_elem.get_text(strip=True)
+                        # Remove rating if present
+                        company_name = re.sub(r'\d+\.\d+', '', company_name).strip()
+                        # Convert to URL slug
+                        company_slug = company_name.replace(' ', '-').replace("'", '').replace(',', '').replace('.', '')
+                        base_domain = "glassdoor.co.uk" if "glassdoor.co.uk" in url else "glassdoor.com"
+                        company_url = f"https://www.{base_domain}/Overview/Working-at-{company_slug}-EI_IE.htm"
+                        logger.info(f"🏢 Constructed Glassdoor company URL: {company_url}")
+                    else:
+                        logger.warning("⚠️ Could not find Glassdoor company name to construct URL")
 
             # Close job page and clear context
             job_page.close()
@@ -156,6 +198,7 @@ def _scrape_with_playwright_sync(url: str, scrape_company: bool = False) -> Tupl
 
 
 async def job_from_url(url: str) -> Dict[str, Any]:
+    """Main entry point for scraping job postings"""
     ext = tldextract.extract(url)
     domain = ext.domain.lower()
 
