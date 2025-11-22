@@ -6,6 +6,7 @@ from pymongo.errors import DuplicateKeyError
 from uuid import uuid4
 import bcrypt
 from datetime import datetime, timezone
+import requests as Requests
 
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -13,6 +14,7 @@ from google.auth.exceptions import GoogleAuthError
 
 from mongo.auth_dao import auth_dao
 from mongo.profiles_dao import profiles_dao
+from mongo.media_dao import media_dao
 from mongo.forgotPassword import ForgotPassword
 from sessions.session_manager import session_manager
 from sessions.session_authorizer import authorize
@@ -151,11 +153,8 @@ async def verify_google_token(token: dict = Body(...)):
     try:
 
         idinfo = id_token.verify_oauth2_token(credentials, requests.Request()) # returns user data such as email and profile picture
-        print(idinfo["email"])
 
         data = await auth_dao.get_uuid(idinfo["email"]) # this returns a uuid
-        print("DATA")
-        print(data)
         pass_exists = None
 
         if (data): # if the user already exists, still log in because it doesn't matter.
@@ -166,12 +165,14 @@ async def verify_google_token(token: dict = Body(...)):
             uuid = str(uuid4())
             idinfo["username"] = idinfo["email"]
             await auth_dao.add_user(uuid,idinfo)
-    
             await profiles_dao.add_profile(uuid, idinfo)
+            image = Requests.get(idinfo.get("picture"))
+            await media_dao.add_media(uuid,idinfo.get("picture"),image.content,content_type="image/jpeg")
         
         session_token = session_manager.begin_session(uuid)
         print("here is it")
         print(data != None and pass_exists)
+
 
         return {
             "detail": "success",
