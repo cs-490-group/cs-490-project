@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 
 export function useJobFilters(jobs, stages, showArchived) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,6 +17,37 @@ export function useJobFilters(jobs, stages, showArchived) {
     setJobTypeFilter("All");
     setSalaryFilter("");
   };
+
+  const getLastUpdateTime = useCallback((job) => {
+    const history = job.status_history || job.statusHistory;
+    
+    if (history && Array.isArray(history) && history.length > 0) {
+      const lastEntry = history[history.length - 1];
+      
+      let timestamp;
+      if (Array.isArray(lastEntry)) {
+        timestamp = lastEntry[1];
+      } else if (lastEntry && typeof lastEntry === 'object') {
+        timestamp = lastEntry.timestamp;
+      }
+      
+      if (timestamp) {
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+          return date;
+        }
+      }
+    }
+    
+    if (job.createdAt) {
+      const createdDate = new Date(job.createdAt);
+      if (!isNaN(createdDate.getTime())) {
+        return createdDate;
+      }
+    }
+    
+    return new Date(0);
+  }, []);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
@@ -52,24 +83,34 @@ export function useJobFilters(jobs, stages, showArchived) {
   const sortedJobs = useMemo(() => {
     return [...filteredJobs].sort((a, b) => {
       switch (sortBy) {
+        case "recentlyUpdated":
+          return getLastUpdateTime(b) - getLastUpdateTime(a);
+        
+        case "leastRecentlyUpdated":
+          return getLastUpdateTime(a) - getLastUpdateTime(b);
+        
         case "deadline":
           if (!a.deadline) return 1;
           if (!b.deadline) return -1;
           return new Date(a.deadline) - new Date(b.deadline);
+        
         case "company":
           return a.company.localeCompare(b.company);
+        
         case "title":
           return a.title.localeCompare(b.title);
+        
         case "archiveDate":
           if (!a.archiveDate) return 1;
           if (!b.archiveDate) return -1;
           return new Date(b.archiveDate) - new Date(a.archiveDate);
+        
         case "dateAdded":
         default:
           return new Date(b.createdAt) - new Date(a.createdAt);
       }
     });
-  }, [filteredJobs, sortBy]);
+  }, [filteredJobs, sortBy, getLastUpdateTime]);
 
   const groupedJobs = useMemo(() => {
     return stages.reduce((acc, stage) => {

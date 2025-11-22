@@ -327,6 +327,35 @@ export default function JobDetailsModal({
           </div>
         )}
 
+                {/* --- STATUS HISTORY SECTION --- */}
+        {selectedJob.status_history && selectedJob.status_history.length > 0 && (
+          <div style={{ marginBottom: "16px", background: "#e8f5e9", padding: "16px", borderRadius: "6px", border: "1px solid #c8e6c9" }}>
+            <h3 style={{ margin: "0 0 12px 0", color: "#2e7d32", fontSize: "16px" }}>📋 Status History</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {[...selectedJob.status_history].reverse().map((entry, idx) => (
+                <div key={idx} style={{ 
+                  padding: "10px 12px", 
+                  background: "white", 
+                  borderRadius: "4px",
+                  borderLeft: "3px solid #4caf50",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center"
+                }}>
+                  <div>
+                    <span style={{ fontSize: "13px", fontWeight: "600", color: "#333" }}>
+                      {entry[0]}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>
+                    {new Date(entry[1]).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
         {/* --- BUTTON ROW --- */}
         <div style={{ display: "flex", gap: "10px", marginTop: "24px", flexWrap: "wrap" }}>
 

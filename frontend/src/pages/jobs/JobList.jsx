@@ -113,18 +113,35 @@ export default function JobList() {
 
     if (activeJob.status !== newStatus) {
       const now = new Date().toISOString();
-      const updatedStatusHistory = [...activeJob.status_history, [newStatus, now]];
+      
+      let existingHistory = [];
+      if (activeJob.status_history && Array.isArray(activeJob.status_history)) {
+        existingHistory = activeJob.status_history.map(entry => {
+          if (Array.isArray(entry)) {
+            return entry;
+          } else if (entry && typeof entry === 'object') {
+            return [entry.status, entry.timestamp];
+          }
+          return entry;
+        });
+      }
+      
+      const updatedStatusHistory = [...existingHistory, [newStatus, now]];
+      
       const updatedJob = {
         ...activeJob,
         status: newStatus,
         updatedAt: now,
-        status_history: updatedStatusHistory,
-        statusHistory: updatedStatusHistory.map(([status, timestamp]) => ({ status, timestamp }))
+        status_history: updatedStatusHistory
       };
+      
       setJobs(jobs.map((j) => (j.id === activeJob.id ? updatedJob : j)));
 
       try {
-        await JobsAPI.update(activeJob.id, {status: newStatus, status_history: updatedStatusHistory});
+        await JobsAPI.update(activeJob.id, {
+          status: newStatus, 
+          status_history: updatedStatusHistory
+        });
       } catch (error) {
         console.error("Failed to update job status:", error);
         loadJobs();
@@ -269,12 +286,10 @@ export default function JobList() {
         saveAutoArchiveSettings={saveAutoArchiveSettings}
       />
 
-      {/* Performance Dashboard View */}
       {view === "dashboard" && (
         <PerformanceDashboard jobs={jobs} />
       )}
 
-      {/* Pipeline View with Calendar, Statistics, and Materials */}
       {view === "pipeline" && (
         <>
           {showCalendar && <DeadlineCalendar jobs={jobs.filter(j => !j.archived)} />}
@@ -395,7 +410,6 @@ export default function JobList() {
         />
       )}
       
-      {/* Floating Deadline Widget - appears on all job views */}
       {showFloatingWidget && <FloatingDeadlineWidget jobs={jobs} onJobClick={(job) => setSelectedJob(job)} />}
     </div>
   );

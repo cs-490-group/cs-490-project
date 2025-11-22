@@ -122,6 +122,8 @@ export default function FilterBar({
 
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={inputStyle}>
           <option value="dateAdded">Sort: Date Added</option>
+          <option value="recentlyUpdated">Sort: Recently Updated</option>
+          <option value="leastRecentlyUpdated">Sort: Least Recently Updated</option>
           <option value="deadline">Sort: Deadline</option>
           <option value="company">Sort: Company</option>
           <option value="title">Sort: Title</option>
