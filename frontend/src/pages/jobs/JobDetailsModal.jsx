@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import MaterialsModal from "./materials/MaterialsModal";
-import PDFAPI from "../../api/pdf";
-import CoverLetterAPI from "../../api/coverLetters";
+import JobsAPI from "../../api/jobs";
 
 export default function JobDetailsModal({
   selectedJob,
@@ -16,6 +15,7 @@ export default function JobDetailsModal({
   setView
 }) {
   const [materialsOpen, setMaterialsOpen] = useState(false);
+  const [downloading, setDownloading] = useState(null);
 
   if (!selectedJob) return null;
 
@@ -24,34 +24,27 @@ export default function JobDetailsModal({
 
   const handleDownloadLinkedPDF = async (type) => {
     try {
+      setDownloading(type);
+      
       const materialId = type === 'resume' 
         ? selectedJob.materials?.resume_id 
         : selectedJob.materials?.cover_letter_id;
 
       if (!materialId) {
         alert(`No ${type} linked to this application`);
+        setDownloading(null);
         return;
       }
 
-      console.log(`📥 Downloading ${type} PDF:`, materialId);
+      console.log(`📥 Downloading ${type} PDF for job:`, selectedJob.id);
       
       let pdfBlob;
       if (type === 'resume') {
-        // Use the PDF export API for resumes
-        pdfBlob = await PDFAPI.exportPDFFromData(materialId);
+        // Use the new job-specific endpoint for resume
+        pdfBlob = await JobsAPI.downloadLinkedResumePDF(selectedJob.id);
       } else {
-        // For cover letters, get the file content
-        const response = await CoverLetterAPI.get(materialId);
-        
-        if (response.data.file_url) {
-          window.open(response.data.file_url, '_blank');
-          return;
-        } else if (response.data.file_content) {
-          pdfBlob = new Blob([response.data.file_content], { type: 'application/pdf' });
-        } else {
-          alert("PDF download not available for this cover letter");
-          return;
-        }
+        // Use the new job-specific endpoint for cover letter
+        pdfBlob = await JobsAPI.downloadLinkedCoverLetterPDF(selectedJob.id);
       }
 
       if (!pdfBlob || pdfBlob.size === 0) {
@@ -75,7 +68,10 @@ export default function JobDetailsModal({
       alert('✅ PDF downloaded successfully!');
     } catch (error) {
       console.error(`Error downloading ${type} PDF:`, error);
-      alert(`Failed to download ${type} PDF. Please try again.`);
+      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error';
+      alert(`Failed to download ${type} PDF: ${errorMessage}`);
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -306,18 +302,19 @@ export default function JobDetailsModal({
                     </div>
                     <button
                       onClick={() => handleDownloadLinkedPDF('resume')}
+                      disabled={downloading === 'resume'}
                       style={{
                         padding: "6px 12px",
-                        background: "#34c759",
+                        background: downloading === 'resume' ? "#ccc" : "#34c759",
                         color: "white",
                         border: "none",
                         borderRadius: "4px",
-                        cursor: "pointer",
+                        cursor: downloading === 'resume' ? "not-allowed" : "pointer",
                         fontSize: "11px",
                         width: "100%"
                       }}
                     >
-                      📥 Download Resume PDF
+                      {downloading === 'resume' ? '⏳ Downloading...' : '📥 Download Resume PDF'}
                     </button>
                     {selectedJob.materials.linked_date && (
                       <div style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>
@@ -347,18 +344,19 @@ export default function JobDetailsModal({
                     </div>
                     <button
                       onClick={() => handleDownloadLinkedPDF('coverLetter')}
+                      disabled={downloading === 'coverLetter'}
                       style={{
                         padding: "6px 12px",
-                        background: "#34c759",
+                        background: downloading === 'coverLetter' ? "#ccc" : "#34c759",
                         color: "white",
                         border: "none",
                         borderRadius: "4px",
-                        cursor: "pointer",
+                        cursor: downloading === 'coverLetter' ? "not-allowed" : "pointer",
                         fontSize: "11px",
                         width: "100%"
                       }}
                     >
-                      📥 Download Cover Letter PDF
+                      {downloading === 'coverLetter' ? '⏳ Downloading...' : '📥 Download Cover Letter PDF'}
                     </button>
                     {selectedJob.materials.linked_date && (
                       <div style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>

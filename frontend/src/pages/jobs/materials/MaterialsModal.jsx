@@ -9,8 +9,6 @@ export default function MaterialsModal({ job, onClose, onSave }) {
   const [selectedResume, setSelectedResume] = useState("");
   const [selectedCoverLetter, setSelectedCoverLetter] = useState("");
   
-  const [uploadType, setUploadType] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
@@ -55,114 +53,27 @@ export default function MaterialsModal({ job, onClose, onSave }) {
     }
   };
 
-  const handleFileUpload = async (e, type) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf' && !file.type.includes('word')) {
-      alert("Please upload a PDF or Word document");
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert("File must be less than 10MB");
-      return;
-    }
-
-    const versionName = prompt("Enter version name (e.g., 'Tech Companies v2', 'General'):", "Version 1");
-    if (!versionName) return;
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('version_name', versionName);
-      formData.append('description', `Uploaded for ${job.title} at ${job.company}`);
-
-      console.log(`📤 Uploading ${type}...`);
-
-      if (type === 'resume') {
-        const response = await ResumesAPI.add(formData);
-        console.log('✅ Resume upload response:', response);
-        const newResume = response.data;
-        
-        const resumeId = newResume._id || newResume.id || newResume.resume_id;
-        console.log('📌 New resume ID:', resumeId);
-        
-        setResumes([...resumes, newResume]);
-        setSelectedResume(resumeId);
-      } else {
-        const response = await CoverLetterAPI.upload(formData);
-        console.log('✅ Cover letter upload response:', response);
-        const newCoverLetter = response.data;
-        
-        const coverLetterId = newCoverLetter._id || newCoverLetter.id || newCoverLetter.cover_letter_id;
-        console.log('📌 New cover letter ID:', coverLetterId);
-        
-        setCoverLetters([...coverLetters, newCoverLetter]);
-        setSelectedCoverLetter(coverLetterId);
-      }
-      
-      setUploadType(null);
-      alert('✅ File uploaded successfully!');
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      alert(`Failed to upload file: ${error.message}`);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleDownload = async (material, type) => {
-    try {
-      const materialId = getMaterialId(material);
-      
-      let response;
-      if (type === 'resume') {
-        response = await ResumesAPI.get(materialId);
-      } else {
-        response = await CoverLetterAPI.get(materialId);
-      }
-
-      if (response.data.file_url) {
-        window.open(response.data.file_url, '_blank');
-      } else if (response.data.file_content) {
-        const blob = new Blob([response.data.file_content], { type: material.file_type || 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = material.file_name || material.name || `document.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
-      } else {
-        alert("Download not available for this file");
-      }
-    } catch (error) {
-      console.error("Error downloading file:", error);
-      alert("Failed to download file. Please try again.");
-    }
-  };
-
   const handleView = async (material, type) => {
     try {
       const materialId = getMaterialId(material);
       
       let response;
       if (type === 'resume') {
-        response = await ResumesAPI.get(materialId);
+        // For resumes, navigate to preview page
+        window.open(`/resumes/preview/${materialId}`, '_blank');
       } else {
+        // For cover letters, try to open if available
         response = await CoverLetterAPI.get(materialId);
-      }
-
-      if (response.data.file_url) {
-        window.open(response.data.file_url, '_blank');
-      } else if (response.data.file_content) {
-        const blob = new Blob([response.data.file_content], { type: material.file_type || 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      } else {
-        alert("Preview not available for this file");
+        if (response.data.file_url) {
+          window.open(response.data.file_url, '_blank');
+        } else if (response.data.file_content) {
+          const blob = new Blob([response.data.file_content], { type: material.file_type || 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } else {
+          alert("Preview not available for this file");
+        }
       }
     } catch (error) {
       console.error("Error viewing file:", error);
@@ -298,7 +209,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
               Version: {versionName}
             </div>
             <div style={{ fontSize: "11px", color: "#999" }}>
-              Uploaded: {new Date(uploadDate).toLocaleDateString()}
+              Created: {new Date(uploadDate).toLocaleDateString()}
             </div>
             {fileSize > 0 && (
               <div style={{ fontSize: "11px", color: "#999" }}>
@@ -338,23 +249,6 @@ export default function MaterialsModal({ job, onClose, onSave }) {
               }}
             >
               👁 View
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownload(material, type);
-              }}
-              style={{
-                padding: "4px 8px",
-                background: "#4f8ef7",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "11px"
-              }}
-            >
-              📥 Download
             </button>
             <button
               onClick={(e) => {
@@ -493,7 +387,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
             <strong>Cover Letter:</strong> {selectedCoverLetterName}
           </div>
           <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #ddd", fontSize: "11px", color: "#666" }}>
-            {resumes.length} resume(s) | {coverLetters.length} cover letter(s) loaded
+            {resumes.length} resume(s) | {coverLetters.length} cover letter(s) available
           </div>
         </div>
 
@@ -625,8 +519,9 @@ export default function MaterialsModal({ job, onClose, onSave }) {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
               <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>📝 Resumes ({resumes.length})</h3>
-              <button
-                onClick={() => setUploadType('resume')}
+              <a 
+                href="/resumes/templates" 
+                target="_blank"
                 style={{
                   padding: "6px 12px",
                   background: "#34c759",
@@ -635,45 +530,19 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                   borderRadius: "4px",
                   cursor: "pointer",
                   fontSize: "12px",
-                  fontWeight: "600"
+                  fontWeight: "600",
+                  textDecoration: "none",
+                  display: "inline-block"
                 }}
               >
-                + Upload Resume
-              </button>
+                + Create New Resume
+              </a>
             </div>
-
-            {uploadType === 'resume' && (
-              <div style={{ marginBottom: "12px", padding: "12px", background: "#f0f7ff", borderRadius: "6px" }}>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => handleFileUpload(e, 'resume')}
-                  disabled={uploading}
-                  style={{ fontSize: "13px" }}
-                />
-                <button
-                  onClick={() => setUploadType(null)}
-                  style={{
-                    marginLeft: "8px",
-                    padding: "4px 8px",
-                    background: "#999",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "12px"
-                  }}
-                >
-                  Cancel
-                </button>
-                {uploading && <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>Uploading...</div>}
-              </div>
-            )}
 
             <div style={{ maxHeight: "400px", overflowY: "auto" }}>
               {resumes.length === 0 ? (
                 <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px", border: "2px dashed #ddd", borderRadius: "6px" }}>
-                  No resumes uploaded yet
+                  No resumes available. <a href="/resumes/templates" target="_blank">Create one</a>
                 </div>
               ) : (
                 resumes.map((resume, idx) => {
@@ -695,8 +564,9 @@ export default function MaterialsModal({ job, onClose, onSave }) {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
               <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>✉️ Cover Letters ({coverLetters.length})</h3>
-              <button
-                onClick={() => setUploadType('coverLetter')}
+              <a 
+                href="/coverletter" 
+                target="_blank"
                 style={{
                   padding: "6px 12px",
                   background: "#34c759",
@@ -705,45 +575,19 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                   borderRadius: "4px",
                   cursor: "pointer",
                   fontSize: "12px",
-                  fontWeight: "600"
+                  fontWeight: "600",
+                  textDecoration: "none",
+                  display: "inline-block"
                 }}
               >
-                + Upload Cover Letter
-              </button>
+                + Create New Cover Letter
+              </a>
             </div>
-
-            {uploadType === 'coverLetter' && (
-              <div style={{ marginBottom: "12px", padding: "12px", background: "#f0f7ff", borderRadius: "6px" }}>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => handleFileUpload(e, 'coverLetter')}
-                  disabled={uploading}
-                  style={{ fontSize: "13px" }}
-                />
-                <button
-                  onClick={() => setUploadType(null)}
-                  style={{
-                    marginLeft: "8px",
-                    padding: "4px 8px",
-                    background: "#999",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "12px"
-                  }}
-                >
-                  Cancel
-                </button>
-                {uploading && <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>Uploading...</div>}
-              </div>
-            )}
 
             <div style={{ maxHeight: "400px", overflowY: "auto" }}>
               {coverLetters.length === 0 ? (
                 <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px", border: "2px dashed #ddd", borderRadius: "6px" }}>
-                  No cover letters uploaded yet
+                  No cover letters available. <a href="/coverletter" target="_blank">Create one</a>
                 </div>
               ) : (
                 coverLetters.map((letter, idx) => {
