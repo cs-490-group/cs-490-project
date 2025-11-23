@@ -94,18 +94,12 @@ export default function MaterialsModal({ job, onClose, onSave }) {
     try {
       if (type === 'resume') {
         await ResumesAPI.setDefault(id);
-        // Update local state - set all to false, then this one to true
-        setResumes(resumes.map(r => ({
-          ...r,
-          default_resume: getMaterialId(r) === id
-        })));
+        // Reload materials to get updated default status
+        await loadMaterials();
       } else {
         await CoverLetterAPI.setDefault(id);
-        // Update local state - set all to false, then this one to true
-        setCoverLetters(coverLetters.map(c => ({
-          ...c,
-          default_cover_letter: getMaterialId(c) === id
-        })));
+        // Reload materials to get updated default status
+        await loadMaterials();
       }
       alert('✅ Default material set successfully!');
     } catch (error) {
@@ -266,6 +260,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                   ...prev,
                   [prev.v1 ? 'v2' : 'v1']: { material, type }
                 }));
+                setShowComparison(true);
               }}
               style={{
                 padding: "4px 8px",
@@ -444,7 +439,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                 <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Version 1</div>
                 {compareVersions.v1 ? (
                   <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
-                    <div><strong>{compareVersions.v1.material.version_name || 'Unnamed'}</strong></div>
+                    <div><strong>{compareVersions.v1.material.name || compareVersions.v1.material.title || 'Unnamed'}</strong></div>
                     <div style={{ color: "#666" }}>Type: {compareVersions.v1.type}</div>
                     {compareVersions.v1.material.file_size && (
                       <div style={{ color: "#666" }}>Size: {(compareVersions.v1.material.file_size / 1024).toFixed(1)} KB</div>
@@ -475,7 +470,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                 <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Version 2</div>
                 {compareVersions.v2 ? (
                   <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
-                    <div><strong>{compareVersions.v2.material.version_name || 'Unnamed'}</strong></div>
+                    <div><strong>{compareVersions.v2.material.name || compareVersions.v2.material.title || 'Unnamed'}</strong></div>
                     <div style={{ color: "#666" }}>Type: {compareVersions.v2.type}</div>
                     {compareVersions.v2.material.file_size && (
                       <div style={{ color: "#666" }}>Size: {(compareVersions.v2.material.file_size / 1024).toFixed(1)} KB</div>

@@ -50,7 +50,8 @@ async def get_my_coverletters(uuid: str = Depends(authorize)):
             "position": l.get("position"),
             "content": l.get("content"),
             "created_at": l.get("created_at"),
-            "usage_count": l.get("usage_count", 0)
+            "usage_count": l.get("usage_count", 0),
+            "default_cover_letter": l.get("default_cover_letter", False)
         }
         for l in letters
     ]
@@ -79,7 +80,8 @@ async def get_coverletter(
         "position": letter.get("position"),
         "content": letter.get("content"),
         "created_at": letter.get("created_at"),
-        "usage_count": letter.get("usage_count", 0)
+        "usage_count": letter.get("usage_count", 0),
+        "default_cover_letter": letter.get("default_cover_letter", False)
     }
 
 # ============================================================
@@ -100,7 +102,8 @@ async def add_coverletter(
         "content": coverletter.content,
         "created_at": datetime.utcnow().isoformat(),
         "usage_count": 1 if coverletter.template_type else 0,
-        "template_type": getattr(coverletter, 'template_type', None)
+        "template_type": getattr(coverletter, 'template_type', None),
+        "default_cover_letter": False
     }
 
     inserted_id = await cover_letters_dao.add_cover_letter(new_letter)
@@ -157,7 +160,8 @@ async def upload_coverletter(
         "uploadedFile": True,
         "template_type": None,
         "file_type": file.content_type,
-        "file_size": len(content)
+        "file_size": len(content),
+        "default_cover_letter": False
     }
     
     await cover_letters_dao.add_cover_letter(new_letter)
@@ -234,8 +238,12 @@ async def set_default_coverletter(
     if not letter:
         raise HTTPException(status_code=404, detail="Cover letter not found or not owned by user")
     
-    # Implementation would set is_default field
-    # For now, just return success
+    # Set as default (this will unset all other defaults automatically)
+    updated = await cover_letters_dao.set_default_cover_letter(letter_id, uuid)
+    
+    if updated == 0:
+        raise HTTPException(status_code=404, detail="Cover letter not found")
+    
     return {"message": "Default cover letter set successfully"}
 
 # ============================================================
@@ -414,22 +422,3 @@ def process_html_element(element, doc):
         if hasattr(element, 'children'):
             for child in element.children:
                 process_html_element(child, doc)
-
-@coverletter_router.put("/{letter_id}/default")
-async def set_default_coverletter(
-    letter_id: str = Path(...),
-    uuid: str = Depends(authorize)
-):
-    """Set a cover letter as the default for the user."""
-    # First verify the letter exists and belongs to user
-    letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
-    if not letter:
-        raise HTTPException(status_code=404, detail="Cover letter not found or not owned by user")
-    
-    # Set as default (this will unset all other defaults automatically)
-    updated = await cover_letters_dao.set_default_cover_letter(letter_id, uuid)
-    
-    if updated == 0:
-        raise HTTPException(status_code=404, detail="Cover letter not found")
-    
-    return {"message": "Default cover letter set successfully"}

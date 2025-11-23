@@ -9,6 +9,8 @@ export default function MaterialsAnalytics() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(null);
+  const [showComparison, setShowComparison] = useState(false);
+  const [compareVersions, setCompareVersions] = useState({ v1: null, v2: null });
 
   useEffect(() => {
     loadAllData();
@@ -81,34 +83,103 @@ export default function MaterialsAnalytics() {
     setDownloading(`${type}-${materialId}`);
     
     try {
-      let blob;
       if (type === 'resume') {
-        blob = await ResumesAPI.exportPDF(materialId);
+        const blob = await ResumesAPI.exportPDF(materialId);
+        
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${material.name || material.title || 'document'}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
       } else {
-        // For cover letters, use the download endpoint from CoverLetterAPI
-        const response = await CoverLetterAPI.get(materialId);
-        // Generate PDF from cover letter content
-        // This assumes you have a download PDF method - you may need to add one
-        alert('Cover letter download: Please use the view button to open and download from the edit page');
-        setDownloading(null);
-        return;
-      }
+        // For cover letters, generate PDF from HTML content using html2canvas + jsPDF
+        const html2canvas = (await import('html2canvas')).default;
+        const jsPDF = (await import('jspdf')).default;
+        
+        // Create a temporary container to render the HTML
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.width = '210mm'; // A4 width
+        tempContainer.innerHTML = material.content;
+        document.body.appendChild(tempContainer);
+        
+        try {
+          const canvas = await html2canvas(tempContainer, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            windowHeight: tempContainer.scrollHeight
+          });
 
-      // Create download link
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${material.name || material.title || 'document'}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+          });
+
+          const imgWidth = 210; 
+          const pageHeight = 295; 
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          let heightLeft = imgHeight;
+          let position = 0;
+
+          const imgData = canvas.toDataURL('image/png');
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+
+          while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+          }
+
+          pdf.save(`${material.title || material.name || 'cover_letter'}.pdf`);
+        } finally {
+          // Clean up temporary container
+          document.body.removeChild(tempContainer);
+        }
+      }
     } catch (error) {
       console.error(`Error downloading ${type}:`, error);
       alert(`Failed to download ${type}. Please try again.`);
     } finally {
       setDownloading(null);
     }
+  };
+
+  // Handle setting default material
+  const handleSetDefault = async (material, type) => {
+    const materialId = getMaterialId(material);
+    try {
+      if (type === 'resume') {
+        await ResumesAPI.setDefault(materialId);
+      } else {
+        await CoverLetterAPI.setDefault(materialId);
+      }
+      // Reload data to get updated default status
+      await loadAllData();
+      alert('✅ Default material set successfully!');
+    } catch (error) {
+      console.error("Error setting default:", error);
+      alert("Failed to set default. Please try again.");
+    }
+  };
+
+  // Handle adding material to comparison
+  const handleCompare = (material, type) => {
+    setCompareVersions(prev => ({
+      ...prev,
+      [prev.v1 ? 'v2' : 'v1']: { material, type }
+    }));
+    setShowComparison(true);
   };
 
   if (loading) {
@@ -152,6 +223,106 @@ export default function MaterialsAnalytics() {
           <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>Total Applications</div>
         </div>
       </div>
+
+      {/* Comparison Panel */}
+      {showComparison && (
+        <div style={{ marginBottom: "20px", padding: "16px", background: "#fff3e0", borderRadius: "6px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+            <h4 style={{ margin: 0, fontSize: "14px", color: "#333" }}>🔄 Version Comparison</h4>
+            <button
+              onClick={() => {
+                setShowComparison(false);
+                setCompareVersions({ v1: null, v2: null });
+              }}
+              style={{
+                padding: "4px 8px",
+                background: "#f44336",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "11px"
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Version 1</div>
+              {compareVersions.v1 ? (
+                <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
+                  <div><strong>{compareVersions.v1.material.name || compareVersions.v1.material.title || 'Unnamed'}</strong></div>
+                  <div style={{ color: "#666" }}>Type: {compareVersions.v1.type}</div>
+                  {compareVersions.v1.material.file_size && (
+                    <div style={{ color: "#666" }}>Size: {(compareVersions.v1.material.file_size / 1024).toFixed(1)} KB</div>
+                  )}
+                  <div style={{ color: "#666" }}>
+                    Used: {compareVersions.v1.type === 'resume' 
+                      ? getResumeUsageCount(getMaterialId(compareVersions.v1.material))
+                      : getCoverLetterUsageCount(getMaterialId(compareVersions.v1.material))} times
+                  </div>
+                  <button
+                    onClick={() => setCompareVersions(prev => ({ ...prev, v1: null }))}
+                    style={{
+                      marginTop: "4px",
+                      padding: "4px 8px",
+                      background: "#f44336",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "11px"
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: "20px", background: "white", borderRadius: "4px", textAlign: "center", fontSize: "12px", color: "#999" }}>
+                  Click "Compare" on a material
+                </div>
+              )}
+            </div>
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Version 2</div>
+              {compareVersions.v2 ? (
+                <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
+                  <div><strong>{compareVersions.v2.material.name || compareVersions.v2.material.title || 'Unnamed'}</strong></div>
+                  <div style={{ color: "#666" }}>Type: {compareVersions.v2.type}</div>
+                  {compareVersions.v2.material.file_size && (
+                    <div style={{ color: "#666" }}>Size: {(compareVersions.v2.material.file_size / 1024).toFixed(1)} KB</div>
+                  )}
+                  <div style={{ color: "#666" }}>
+                    Used: {compareVersions.v2.type === 'resume' 
+                      ? getResumeUsageCount(getMaterialId(compareVersions.v2.material))
+                      : getCoverLetterUsageCount(getMaterialId(compareVersions.v2.material))} times
+                  </div>
+                  <button
+                    onClick={() => setCompareVersions(prev => ({ ...prev, v2: null }))}
+                    style={{
+                      marginTop: "4px",
+                      padding: "4px 8px",
+                      background: "#f44336",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "11px"
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: "20px", background: "white", borderRadius: "4px", textAlign: "center", fontSize: "12px", color: "#999" }}>
+                  Click "Compare" on another material
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         <div>
@@ -215,11 +386,42 @@ export default function MaterialsAnalytics() {
                           👁 View
                         </button>
                         <button
+                          onClick={() => handleSetDefault(resume, 'resume')}
+                          disabled={resume.default_resume}
+                          style={{
+                            padding: "4px 8px",
+                            background: resume.default_resume ? "#9e9e9e" : "#4caf50",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: resume.default_resume ? "not-allowed" : "pointer",
+                            fontSize: "10px",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          ⭐ {resume.default_resume ? 'Default' : 'Set Default'}
+                        </button>
+                        <button
+                          onClick={() => handleCompare(resume, 'resume')}
+                          style={{
+                            padding: "4px 8px",
+                            background: "#ff9800",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "10px",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          🔄 Compare
+                        </button>
+                        <button
                           onClick={() => handleDownload(resume, 'resume')}
                           disabled={isDownloading}
                           style={{
                             padding: "4px 8px",
-                            background: isDownloading ? "#ccc" : "#4caf50",
+                            background: isDownloading ? "#ccc" : "#9c27b0",
                             color: "white",
                             border: "none",
                             borderRadius: "4px",
@@ -300,11 +502,42 @@ export default function MaterialsAnalytics() {
                           👁 View
                         </button>
                         <button
+                          onClick={() => handleSetDefault(letter, 'coverLetter')}
+                          disabled={letter.default_cover_letter}
+                          style={{
+                            padding: "4px 8px",
+                            background: letter.default_cover_letter ? "#9e9e9e" : "#4caf50",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: letter.default_cover_letter ? "not-allowed" : "pointer",
+                            fontSize: "10px",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          ⭐ {letter.default_cover_letter ? 'Default' : 'Set Default'}
+                        </button>
+                        <button
+                          onClick={() => handleCompare(letter, 'coverLetter')}
+                          style={{
+                            padding: "4px 8px",
+                            background: "#ff9800",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "10px",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          🔄 Compare
+                        </button>
+                        <button
                           onClick={() => handleDownload(letter, 'coverLetter')}
                           disabled={isDownloading}
                           style={{
                             padding: "4px 8px",
-                            background: isDownloading ? "#ccc" : "#4caf50",
+                            background: isDownloading ? "#ccc" : "#9c27b0",
                             color: "white",
                             border: "none",
                             borderRadius: "4px",
@@ -328,7 +561,7 @@ export default function MaterialsAnalytics() {
       {/* Additional insights */}
       <div style={{ marginTop: "20px", padding: "12px", background: "#fffbea", borderRadius: "6px" }}>
         <div style={{ fontSize: "13px", color: "#666" }}>
-          💡 <strong>Tip:</strong> Track which resume and cover letter versions perform best by linking them to your job applications.
+          💡 <strong>Tip:</strong> Track which resume and cover letter versions perform best by linking them to your job applications. Use the compare feature to see differences between versions.
         </div>
       </div>
     </div>

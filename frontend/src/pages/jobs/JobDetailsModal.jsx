@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import MaterialsModal from "./materials/MaterialsModal";
 import JobsAPI from "../../api/jobs";
+import ResumesAPI from "../../api/resumes";
+import CoverLetterAPI from "../../api/coverLetters";
 
 export default function JobDetailsModal({
   selectedJob,
   setSelectedJob,
   setReminderJob,
-  setMaterialsJob,
   updateJob,
   archiveJob,
   restoreJob,
@@ -36,34 +37,87 @@ export default function JobDetailsModal({
         return;
       }
 
-      console.log(`📥 Downloading ${type} PDF for job:`, selectedJob.id);
+      console.log(`📥 Downloading ${type} PDF for material ID:`, materialId);
       
-      let pdfBlob;
       if (type === 'resume') {
-        // Use the new job-specific endpoint for resume
-        pdfBlob = await JobsAPI.downloadLinkedResumePDF(selectedJob.id);
+        // Download resume PDF
+        const blob = await ResumesAPI.exportPDF(materialId);
+        
+        if (!blob || blob.size === 0) {
+          throw new Error('Failed to generate resume PDF');
+        }
+
+        // Download the file
+        const fileName = selectedJob.materials?.resume_name || 'resume';
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${fileName}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
       } else {
-        // Use the new job-specific endpoint for cover letter
-        pdfBlob = await JobsAPI.downloadLinkedCoverLetterPDF(selectedJob.id);
-      }
+        // Download cover letter PDF - get the full cover letter object first
+        const coverLetterResponse = await CoverLetterAPI.get(materialId);
+        const coverLetter = coverLetterResponse.data || coverLetterResponse;
+        
+        if (!coverLetter.content) {
+          throw new Error('Cover letter content not found');
+        }
 
-      if (!pdfBlob || pdfBlob.size === 0) {
-        throw new Error('Failed to generate PDF');
-      }
+        // Generate PDF from HTML content using html2canvas + jsPDF
+        const html2canvas = (await import('html2canvas')).default;
+        const jsPDF = (await import('jspdf')).default;
+        
+        // Create a temporary container to render the HTML
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.width = '210mm'; // A4 width
+        tempContainer.innerHTML = coverLetter.content;
+        document.body.appendChild(tempContainer);
+        
+        try {
+          const canvas = await html2canvas(tempContainer, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            windowHeight: tempContainer.scrollHeight
+          });
 
-      // Download the PDF
-      const fileName = type === 'resume' 
-        ? selectedJob.materials?.resume_name || 'resume.pdf'
-        : selectedJob.materials?.cover_letter_name || 'cover_letter.pdf';
-      
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+          });
+
+          const imgWidth = 210; 
+          const pageHeight = 295; 
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          let heightLeft = imgHeight;
+          let position = 0;
+
+          const imgData = canvas.toDataURL('image/png');
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+
+          while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+          }
+
+          const fileName = selectedJob.materials?.cover_letter_name || coverLetter.title || 'cover_letter';
+          pdf.save(`${fileName}.pdf`);
+        } finally {
+          // Clean up temporary container
+          document.body.removeChild(tempContainer);
+        }
+      }
       
       alert('✅ PDF downloaded successfully!');
     } catch (error) {
@@ -469,7 +523,8 @@ export default function JobDetailsModal({
 
           {/* --- MATERIALS --- */}
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setMaterialsOpen(true);
             }}
             style={{
