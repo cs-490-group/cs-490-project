@@ -1,0 +1,43 @@
+#add-contact-button:hover {
+    background-color: #00b300;
+    border-width: 0rem;
+}
+
+#add-contact-button {
+    background-color: limegreen;
+    transition: background-color 0.1s ease-in;
+    border-width: 0rem;
+}
+
+#add-contact-form {
+    background-color: whitesmoke;
+    max-width: 100%;
+    width: fit-content;
+    border: 0.1rem solid lightgray;
+    border-radius: 1rem;
+    padding:0.5rem;
+    margin:auto;
+    margin-top:0.5rem;
+}
+
+#add-contact-form h5 {
+    color:rgb(101, 116, 131);
+}
+
+#add-contact-form input {
+    padding:0.5rem;
+    margin:0.2rem;
+    margin-top:0rem;
+    margin-bottom:0.5rem;
+}
+
+.input-column {
+    display: flex;
+    flex-direction: column;
+    padding:0.5rem;
+}
+
+.field-label {
+    text-align:left;
+    padding-left:0.5rem;
+}
