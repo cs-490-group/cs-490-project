@@ -1,6 +1,6 @@
 """
 AI Resume Generator Service
-OpenAI-powered resume content generation
+Cohere-powered resume content generation
 UC-047: Generate Resume Content
 UC-049: Optimize Skills
 UC-050: Tailor Experience
@@ -10,33 +10,33 @@ import json
 import os
 import re
 from typing import Dict, List, Any
-from openai import OpenAI
+import cohere
 from services.prompt_templates import PromptTemplates
 
 
 class AIGenerator:
-    """Generate AI-powered resume content and suggestions using OpenAI"""
+    """Generate AI-powered resume content and suggestions using Cohere"""
 
-    # Initialize OpenAI client
+    # Initialize Cohere client
     _client = None
 
     @classmethod
     def get_client(cls):
-        """Get or create OpenAI client"""
+        """Get or create Cohere client"""
         if cls._client is None:
-            api_key = os.getenv('OPENAI_API_KEY')
+            api_key = os.getenv('COHERE_API_KEY')
             if not api_key:
                 raise ValueError(
-                    "OPENAI_API_KEY environment variable not set. "
-                    "Please add your OpenAI API key to the .env file."
+                    "COHERE_API_KEY environment variable not set. "
+                    "Please add your Cohere API key to the .env file."
                 )
-            cls._client = OpenAI(api_key=api_key)
+            cls._client = cohere.ClientV2(api_key=api_key)
         return cls._client
 
     @staticmethod
     def parse_json_response(response_text: str) -> Dict[str, Any]:
         """
-        Parse JSON from OpenAI response
+        Parse JSON from Cohere response
         Handles cases where JSON is wrapped in markdown code blocks
         """
         # Remove markdown code blocks if present
@@ -93,10 +93,10 @@ class AIGenerator:
                 job_requirements=job_posting.get('requirements', ''),
             )
 
-            # Call OpenAI API
-            print(f"[AIGenerator] Calling OpenAI for content generation...")
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+            # Call Cohere API
+            print(f"[AIGenerator] Calling Cohere for content generation...")
+            response = client.chat(
+                model="command-a-03-2025",
                 messages=[
                     {"role": "system", "content": "You are an expert resume writer. Respond with valid JSON only."},
                     {"role": "user", "content": prompt}
@@ -106,7 +106,7 @@ class AIGenerator:
             )
 
             # Parse response
-            response_text = response.choices[0].message.content
+            response_text = response.message.content[0].text
             result = cls.parse_json_response(response_text)
 
             # Ensure expected fields exist
@@ -156,10 +156,10 @@ class AIGenerator:
                 job_requirements=job_posting.get('requirements', ''),
             )
 
-            # Call OpenAI API
-            print(f"[AIGenerator] Calling OpenAI for skills optimization...")
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+            # Call Cohere API
+            print(f"[AIGenerator] Calling Cohere for skills optimization...")
+            response = client.chat(
+                model="command-a-03-2025",
                 messages=[
                     {"role": "system", "content": "You are an ATS expert. Respond with valid JSON only."},
                     {"role": "user", "content": prompt}
@@ -169,7 +169,7 @@ class AIGenerator:
             )
 
             # Parse response
-            response_text = response.choices[0].message.content
+            response_text = response.message.content[0].text
             result = cls.parse_json_response(response_text)
 
             # Ensure expected fields exist
@@ -224,10 +224,10 @@ class AIGenerator:
                 job_requirements=job_posting.get('requirements', ''),
             )
 
-            # Call OpenAI API
-            print(f"[AIGenerator] Calling OpenAI for experience tailoring...")
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+            # Call Cohere API
+            print(f"[AIGenerator] Calling Cohere for experience tailoring...")
+            response = client.chat(
+                model="command-a-03-2025",
                 messages=[
                     {"role": "system", "content": "You are a career coach. Respond with valid JSON only."},
                     {"role": "user", "content": prompt}
@@ -237,7 +237,7 @@ class AIGenerator:
             )
 
             # Parse response
-            response_text = response.choices[0].message.content
+            response_text = response.message.content[0].text
             print(f"[AIGenerator] Raw tailor_experience response: {response_text[:500]}")
             try:
                 result = cls.parse_json_response(response_text)
