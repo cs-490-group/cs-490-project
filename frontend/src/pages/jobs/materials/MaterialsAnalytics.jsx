@@ -8,6 +8,7 @@ export default function MaterialsAnalytics() {
   const [coverLetters, setCoverLetters] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(null);
 
   useEffect(() => {
     loadAllData();
@@ -64,6 +65,52 @@ export default function MaterialsAnalytics() {
     return count;
   };
 
+  // Handle viewing materials
+  const handleView = (material, type) => {
+    const materialId = getMaterialId(material);
+    if (type === 'resume') {
+      window.open(`/resumes/preview/${materialId}`, '_blank');
+    } else {
+      window.open(`/cover-letter/edit/${materialId}`, '_blank');
+    }
+  };
+
+  // Handle downloading materials
+  const handleDownload = async (material, type) => {
+    const materialId = getMaterialId(material);
+    setDownloading(`${type}-${materialId}`);
+    
+    try {
+      let blob;
+      if (type === 'resume') {
+        blob = await ResumesAPI.exportPDF(materialId);
+      } else {
+        // For cover letters, use the download endpoint from CoverLetterAPI
+        const response = await CoverLetterAPI.get(materialId);
+        // Generate PDF from cover letter content
+        // This assumes you have a download PDF method - you may need to add one
+        alert('Cover letter download: Please use the view button to open and download from the edit page');
+        setDownloading(null);
+        return;
+      }
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${material.name || material.title || 'document'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(`Error downloading ${type}:`, error);
+      alert(`Failed to download ${type}. Please try again.`);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ background: "white", padding: "40px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", marginBottom: "20px", textAlign: "center" }}>
@@ -109,7 +156,7 @@ export default function MaterialsAnalytics() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         <div>
           <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Resume Versions ({resumes.length})</h4>
-          <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+          <div style={{ maxHeight: "400px", overflowY: "auto" }}>
             {resumes.length === 0 ? (
               <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "13px" }}>
                 No resumes yet
@@ -119,6 +166,7 @@ export default function MaterialsAnalytics() {
                 const resumeId = getMaterialId(resume);
                 const usageCount = getResumeUsageCount(resumeId);
                 const displayName = resume.name || resume.file_name || resume.version_name || 'Unnamed Version';
+                const isDownloading = downloading === `resume-${resumeId}`;
                 
                 return (
                   <div key={resumeId} style={{ 
@@ -128,11 +176,61 @@ export default function MaterialsAnalytics() {
                     marginBottom: "8px",
                     borderLeft: usageCount > 0 ? "3px solid #1976d2" : "none"
                   }}>
-                    <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                      {displayName}
-                    </div>
-                    <div style={{ fontSize: "13px", color: usageCount > 0 ? "#1976d2" : "#999" }}>
-                      Used for: {usageCount} application(s)
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
+                          {displayName}
+                          {resume.default_resume && (
+                            <span style={{ 
+                              marginLeft: "8px",
+                              fontSize: "10px", 
+                              padding: "2px 6px",
+                              background: "#4caf50", 
+                              color: "white",
+                              borderRadius: "3px",
+                              fontWeight: "600"
+                            }}>
+                              ⭐ DEFAULT
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: "13px", color: usageCount > 0 ? "#1976d2" : "#999" }}>
+                          Used for: {usageCount} application(s)
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: "4px", flexDirection: "column", marginLeft: "8px" }}>
+                        <button
+                          onClick={() => handleView(resume, 'resume')}
+                          style={{
+                            padding: "4px 8px",
+                            background: "#2196f3",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "10px",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          👁 View
+                        </button>
+                        <button
+                          onClick={() => handleDownload(resume, 'resume')}
+                          disabled={isDownloading}
+                          style={{
+                            padding: "4px 8px",
+                            background: isDownloading ? "#ccc" : "#4caf50",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: isDownloading ? "not-allowed" : "pointer",
+                            fontSize: "10px",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          {isDownloading ? "⏳" : "📥"} Download
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -143,7 +241,7 @@ export default function MaterialsAnalytics() {
 
         <div>
           <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "12px" }}>Cover Letter Versions ({coverLetters.length})</h4>
-          <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+          <div style={{ maxHeight: "400px", overflowY: "auto" }}>
             {coverLetters.length === 0 ? (
               <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "13px" }}>
                 No cover letters yet
@@ -153,6 +251,7 @@ export default function MaterialsAnalytics() {
                 const letterId = getMaterialId(letter);
                 const usageCount = getCoverLetterUsageCount(letterId);
                 const displayName = letter.title || letter.name || letter.version_name || 'Unnamed Version';
+                const isDownloading = downloading === `coverLetter-${letterId}`;
                 
                 return (
                   <div key={letterId} style={{ 
@@ -162,11 +261,61 @@ export default function MaterialsAnalytics() {
                     marginBottom: "8px",
                     borderLeft: usageCount > 0 ? "3px solid #7b1fa2" : "none"
                   }}>
-                    <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                      {displayName}
-                    </div>
-                    <div style={{ fontSize: "13px", color: usageCount > 0 ? "#7b1fa2" : "#999" }}>
-                      Used for: {usageCount} application(s)
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
+                          {displayName}
+                          {letter.default_cover_letter && (
+                            <span style={{ 
+                              marginLeft: "8px",
+                              fontSize: "10px", 
+                              padding: "2px 6px",
+                              background: "#4caf50", 
+                              color: "white",
+                              borderRadius: "3px",
+                              fontWeight: "600"
+                            }}>
+                              ⭐ DEFAULT
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: "13px", color: usageCount > 0 ? "#7b1fa2" : "#999" }}>
+                          Used for: {usageCount} application(s)
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: "4px", flexDirection: "column", marginLeft: "8px" }}>
+                        <button
+                          onClick={() => handleView(letter, 'coverLetter')}
+                          style={{
+                            padding: "4px 8px",
+                            background: "#2196f3",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "10px",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          👁 View
+                        </button>
+                        <button
+                          onClick={() => handleDownload(letter, 'coverLetter')}
+                          disabled={isDownloading}
+                          style={{
+                            padding: "4px 8px",
+                            background: isDownloading ? "#ccc" : "#4caf50",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: isDownloading ? "not-allowed" : "pointer",
+                            fontSize: "10px",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          {isDownloading ? "⏳" : "📥"} Download
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

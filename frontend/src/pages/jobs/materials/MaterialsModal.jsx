@@ -57,23 +57,12 @@ export default function MaterialsModal({ job, onClose, onSave }) {
     try {
       const materialId = getMaterialId(material);
       
-      let response;
       if (type === 'resume') {
         // For resumes, navigate to preview page
         window.open(`/resumes/preview/${materialId}`, '_blank');
       } else {
-        // For cover letters, try to open if available
-        response = await CoverLetterAPI.get(materialId);
-        if (response.data.file_url) {
-          window.open(response.data.file_url, '_blank');
-        } else if (response.data.file_content) {
-          const blob = new Blob([response.data.file_content], { type: material.file_type || 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          window.open(url, '_blank');
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        } else {
-          alert("Preview not available for this file");
-        }
+        // For cover letters, navigate to edit page
+        window.open(`/cover-letter/edit/${materialId}`, '_blank');
       }
     } catch (error) {
       console.error("Error viewing file:", error);
@@ -105,15 +94,17 @@ export default function MaterialsModal({ job, onClose, onSave }) {
     try {
       if (type === 'resume') {
         await ResumesAPI.setDefault(id);
+        // Update local state - set all to false, then this one to true
         setResumes(resumes.map(r => ({
           ...r,
-          is_default: getMaterialId(r) === id
+          default_resume: getMaterialId(r) === id
         })));
       } else {
         await CoverLetterAPI.setDefault(id);
+        // Update local state - set all to false, then this one to true
         setCoverLetters(coverLetters.map(c => ({
           ...c,
-          is_default: getMaterialId(c) === id
+          default_cover_letter: getMaterialId(c) === id
         })));
       }
       alert('✅ Default material set successfully!');
@@ -221,7 +212,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                 Used for {usageCount} application(s)
               </div>
             )}
-            {material.is_default && (
+            {(material.default_resume || material.default_cover_letter) && (
               <div style={{ 
                 fontSize: "10px", 
                 color: "#4caf50", 
@@ -257,16 +248,16 @@ export default function MaterialsModal({ job, onClose, onSave }) {
               }}
               style={{
                 padding: "4px 8px",
-                background: material.is_default ? "#9e9e9e" : "#4caf50",
+                background: (material.default_resume || material.default_cover_letter) ? "#9e9e9e" : "#4caf50",
                 color: "white",
                 border: "none",
                 borderRadius: "4px",
                 cursor: "pointer",
                 fontSize: "11px"
               }}
-              disabled={material.is_default}
+              disabled={material.default_resume || material.default_cover_letter}
             >
-              ⭐ {material.is_default ? 'Default' : 'Set Default'}
+              ⭐ {(material.default_resume || material.default_cover_letter) ? 'Default' : 'Set Default'}
             </button>
             <button
               onClick={(e) => {
@@ -565,7 +556,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
               <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>✉️ Cover Letters ({coverLetters.length})</h3>
               <a 
-                href="/coverletter" 
+                href="/cover-letter" 
                 target="_blank"
                 style={{
                   padding: "6px 12px",
@@ -587,7 +578,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
             <div style={{ maxHeight: "400px", overflowY: "auto" }}>
               {coverLetters.length === 0 ? (
                 <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px", border: "2px dashed #ddd", borderRadius: "6px" }}>
-                  No cover letters available. <a href="/coverletter" target="_blank">Create one</a>
+                  No cover letters available. <a href="/cover-letter" target="_blank">Create one</a>
                 </div>
               ) : (
                 coverLetters.map((letter, idx) => {

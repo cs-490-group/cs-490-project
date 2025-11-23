@@ -414,3 +414,22 @@ def process_html_element(element, doc):
         if hasattr(element, 'children'):
             for child in element.children:
                 process_html_element(child, doc)
+
+@coverletter_router.put("/{letter_id}/default")
+async def set_default_coverletter(
+    letter_id: str = Path(...),
+    uuid: str = Depends(authorize)
+):
+    """Set a cover letter as the default for the user."""
+    # First verify the letter exists and belongs to user
+    letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
+    if not letter:
+        raise HTTPException(status_code=404, detail="Cover letter not found or not owned by user")
+    
+    # Set as default (this will unset all other defaults automatically)
+    updated = await cover_letters_dao.set_default_cover_letter(letter_id, uuid)
+    
+    if updated == 0:
+        raise HTTPException(status_code=404, detail="Cover letter not found")
+    
+    return {"message": "Default cover letter set successfully"}

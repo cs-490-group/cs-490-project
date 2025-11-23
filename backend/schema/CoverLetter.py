@@ -18,3 +18,4 @@ class CoverLetterOut(BaseModel):
     created_at: str
     template_type: Optional[str] = None
     usage_count: Optional[int] = 0
+    default_cover_letter: Optional[bool] = False
