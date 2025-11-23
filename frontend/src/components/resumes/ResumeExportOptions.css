@@ -1,0 +1,194 @@
+.resume-export-options {
+  width: 100%;
+}
+
+/* Format Selection */
+.resume-export-options .format-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.resume-export-options .format-option {
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #f9f9f9;
+}
+
+.resume-export-options .format-option:hover {
+  border-color: #007bff;
+  background-color: #f0f8ff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+.resume-export-options .format-option.selected {
+  border-color: #007bff;
+  background-color: #e7f3ff;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.resume-export-options .format-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.resume-export-options .format-icon {
+  font-size: 1.5rem;
+}
+
+.resume-export-options .format-name {
+  flex-grow: 1;
+}
+
+/* Theme Grid */
+.resume-export-options .theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+}
+
+.resume-export-options .theme-option {
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  background-color: #f9f9f9;
+}
+
+.resume-export-options .theme-option:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+.resume-export-options .theme-option.selected {
+  border-color: #007bff;
+  background-color: #e7f3ff;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.resume-export-options .theme-preview {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  height: 40px;
+}
+
+.resume-export-options .preview-primary,
+.resume-export-options .preview-accent {
+  flex: 1;
+}
+
+.resume-export-options .theme-label {
+  display: block;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Export Options Form */
+.resume-export-options .input-group-text {
+  background-color: #e9ecef;
+  border-left: 0;
+}
+
+.resume-export-options .form-control {
+  border-right: 0;
+}
+
+.resume-export-options .form-check {
+  margin-bottom: 1rem;
+}
+
+.resume-export-options .form-check input[type="checkbox"] {
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+
+.resume-export-options .form-check label {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Theme Preview */
+.resume-export-options .theme-preview-card {
+  background-color: #f9f9f9;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e0e0e0;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.resume-export-options .preview-header {
+  border-bottom: 2px solid;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.resume-export-options .preview-header h3 {
+  margin: 0;
+  font-size: 20px;
+  margin-bottom: 0.25rem;
+}
+
+.resume-export-options .preview-header p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.resume-export-options .preview-section {
+  margin-bottom: 1rem;
+}
+
+.resume-export-options .preview-section h4 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 14px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 0.5rem;
+}
+
+.resume-export-options .preview-section p {
+  margin: 0.25rem 0;
+  font-size: 13px;
+}
+
+/* Export Actions */
+.resume-export-options .export-actions {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.resume-export-options .btn {
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+}
+
+.resume-export-options .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .resume-export-options .theme-grid {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  }
+
+  .resume-export-options .export-actions {
+    flex-direction: column;
+  }
+
+  .resume-export-options .export-actions .btn {
+    width: 100%;
+  }
+}
