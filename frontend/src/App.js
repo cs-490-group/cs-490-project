@@ -28,6 +28,10 @@ import SharingAndFeedbackPage from "./pages/resumes/SharingAndFeedbackPage";
 import PublicSharePage from "./pages/resumes/PublicSharePage";
 import ExportResumePage from "./pages/resumes/ExportResumePage";
 import TemplateLibraryPage from "./pages/resumes/TemplateLibraryPage";
+import QuestionLibrary from "./pages/interview/QuestionLibrary";
+import IndustryRoles from "./pages/interview/IndustryRoles";
+import RoleQuestions from "./pages/interview/RoleQuestions";
+import PracticeQuestion from "./pages/interview/PracticeQuestion";
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -78,6 +82,12 @@ export function App() {
               <Route path="/resumes/feedback/:id" element={<SharingAndFeedbackPage />} />
               <Route path="/resumes/public/:token" element={<PublicSharePage />} />
               <Route path="/resumes/export/:id" element={<ExportResumePage />} />
+
+              {/* Interview Question Bank Routes */}
+              <Route path="/interview/question-library" element={<QuestionLibrary />} />
+              <Route path="/interview/industry/:industryId" element={<IndustryRoles />} />
+              <Route path="/interview/questions/:roleId" element={<RoleQuestions />} />
+              <Route path="/interview/questions/practice/:questionId" element={<PracticeQuestion />} />
               </Routes>
             </FlashProvider>
           </>
