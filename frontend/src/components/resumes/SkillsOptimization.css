@@ -1,0 +1,96 @@
+.skills-optimization {
+  width: 100%;
+}
+
+.skills-suggestions {
+  border: 2px solid #007bff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.skills-suggestions .card-header {
+  border-bottom: 2px solid #007bff;
+}
+
+.skills-suggestions .skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.skills-suggestions .badge {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.skills-suggestions .badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.skills-suggestions .badge.bg-success {
+  background-color: #28a745 !important;
+}
+
+.skills-suggestions .badge.bg-success:hover {
+  background-color: #218838 !important;
+}
+
+.skills-suggestions .badge.bg-warning {
+  background-color: #ffc107 !important;
+  color: #333;
+}
+
+.skills-suggestions .badge.bg-warning:hover {
+  background-color: #e0a800 !important;
+}
+
+.skills-suggestions .badge.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+.skills-suggestions h6 {
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.skills-suggestions h6:first-child {
+  margin-top: 0;
+}
+
+.skills-suggestions p.text-muted {
+  margin-bottom: 0.75rem;
+}
+
+.skills-suggestions .progress {
+  height: 1.5rem;
+  border-radius: 0.25rem;
+}
+
+.skills-suggestions .progress-bar {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.skills-suggestions .d-flex.gap-2 {
+  gap: 0.5rem !important;
+}
+
+.skills-suggestions .btn {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .skills-suggestions .skill-tags {
+    flex-direction: column;
+  }
+
+  .skills-suggestions .badge {
+    display: block;
+    width: 100%;
+    text-align: left;
+  }
+}
