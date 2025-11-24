@@ -8,6 +8,14 @@ class CoverLetterIn(BaseModel):
     content: str
     template_type: Optional[str] = None
 
+class CoverLetterUpdate(BaseModel):
+    title: Optional[str] = None
+    company: Optional[str] = None
+    position: Optional[str] = None
+    content: Optional[str] = None
+    job_id: Optional[str] = None
+    template_type: Optional[str] = None
+
 class CoverLetterOut(BaseModel):
     id: str
     user_id: str
@@ -18,3 +26,4 @@ class CoverLetterOut(BaseModel):
     created_at: str
     template_type: Optional[str] = None
     usage_count: Optional[int] = 0
+    job_id: Optional[str] = None  # Add this if it should be in the output
