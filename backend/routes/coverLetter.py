@@ -12,7 +12,7 @@ import tempfile
 import requests
 from bs4 import BeautifulSoup
 
-from schema.CoverLetter import CoverLetterIn, CoverLetterOut
+from schema.CoverLetter import CoverLetterIn, CoverLetterOut, CoverLetterUpdate
 from mongo.cover_letters_dao import cover_letters_dao
 from sessions.session_authorizer import authorize
 
@@ -50,7 +50,8 @@ async def get_my_coverletters(uuid: str = Depends(authorize)):
             "position": l.get("position"),
             "content": l.get("content"),
             "created_at": l.get("created_at"),
-            "usage_count": l.get("usage_count", 0)
+            "usage_count": l.get("usage_count", 0),
+            "job_id":l.get("job_id")
         }
         for l in letters
     ]
@@ -79,7 +80,8 @@ async def get_coverletter(
         "position": letter.get("position"),
         "content": letter.get("content"),
         "created_at": letter.get("created_at"),
-        "usage_count": letter.get("usage_count", 0)
+        "usage_count": letter.get("usage_count", 0),
+        "job_id": letter.get("job_id")
     }
 
 # ============================================================
@@ -100,7 +102,8 @@ async def add_coverletter(
         "content": coverletter.content,
         "created_at": datetime.utcnow().isoformat(),
         "usage_count": 1 if coverletter.template_type else 0,
-        "template_type": getattr(coverletter, 'template_type', None)
+        "template_type": getattr(coverletter, 'template_type', None),
+        "job_id": ""
     }
 
     inserted_id = await cover_letters_dao.add_cover_letter(new_letter)
@@ -157,7 +160,8 @@ async def upload_coverletter(
         "uploadedFile": True,
         "template_type": None,
         "file_type": file.content_type,
-        "file_size": len(content)
+        "file_size": len(content),
+        "job_id" : ""
     }
     
     await cover_letters_dao.add_cover_letter(new_letter)
@@ -179,16 +183,14 @@ async def upload_coverletter(
 @coverletter_router.put("/{letter_id}")
 async def update_coverletter(
     letter_id: str = Path(...),
-    coverletter: CoverLetterIn = Body(...),
+    coverletter: CoverLetterUpdate = Body(...), 
     uuid: str = Depends(authorize)
 ):
-    """Update an existing cover letter if it belongs to the current user."""
-    updates = {
-        "title": coverletter.title,
-        "company": coverletter.company,
-        "position": coverletter.position,
-        "content": coverletter.content
-    }
+   
+    updates = coverletter.model_dump(exclude_unset=True)
+    
+    if not updates:
+        return {"message": "No fields to update"}
 
     modified_count = await cover_letters_dao.update_cover_letter(letter_id, uuid, updates)
 
