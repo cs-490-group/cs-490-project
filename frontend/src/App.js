@@ -32,6 +32,8 @@ import QuestionLibrary from "./pages/interview/QuestionLibrary";
 import IndustryRoles from "./pages/interview/IndustryRoles";
 import RoleQuestions from "./pages/interview/RoleQuestions";
 import PracticeQuestion from "./pages/interview/PracticeQuestion";
+import MyPractice from "./pages/interview/MyPractice";
+import Progress from "./pages/interview/Progress";
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -86,6 +88,8 @@ export function App() {
               {/* Interview Question Bank Routes */}
               <Route path="/interview/question-library" element={<QuestionLibrary />} />
               <Route path="/interview/industry/:industryId" element={<IndustryRoles />} />
+              <Route path="/interview/my-practice" element={<MyPractice />} />
+              <Route path="/interview/progress" element={<Progress />} />
               <Route path="/interview/questions/practice/:questionId" element={<PracticeQuestion />} />
               <Route path="/interview/questions/:roleId" element={<RoleQuestions />} />
               </Routes>

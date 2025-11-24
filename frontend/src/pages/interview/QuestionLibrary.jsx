@@ -156,9 +156,10 @@ function QuestionLibrary() {
     try {
       // Try to load from API first
       const response = await QuestionBankAPI.getAllIndustries();
-      setIndustries(response.data || response);
+      const data = response.data || response;
+      setIndustries(Array.isArray(data) ? data : dummyIndustries);
     } catch (error) {
-      console.log("Using dummy data for industries");
+      console.log("Using dummy data for industries:", error.message);
       // Fall back to dummy data
       setIndustries(dummyIndustries);
     } finally {
@@ -171,6 +172,18 @@ function QuestionLibrary() {
       industry.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       industry.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleIndustryClick = (industryId) => {
+    navigate(`/interview/industry/${industryId}`);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleResetSearch = () => {
+    setSearchQuery("");
+  };
 
   if (loading) {
     return (
@@ -196,7 +209,7 @@ function QuestionLibrary() {
             placeholder="Search industries..."
             className="search-input"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
           />
           <span className="search-icon">🔍</span>
         </div>
@@ -250,7 +263,14 @@ function QuestionLibrary() {
               <div
                 key={industry.uuid}
                 className="industry-card"
-                onClick={() => navigate(`/interview/industry/${industry.uuid}`)}
+                onClick={() => handleIndustryClick(industry.uuid)}
+                role="button"
+                tabIndex="0"
+                onKeyPress={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    handleIndustryClick(industry.uuid);
+                  }
+                }}
               >
                 <div className="industry-icon">{industry.icon}</div>
                 <h3 className="industry-name">{industry.name}</h3>
@@ -270,7 +290,7 @@ function QuestionLibrary() {
               <p>No industries found matching "{searchQuery}"</p>
               <button
                 className="reset-search-btn"
-                onClick={() => setSearchQuery("")}
+                onClick={handleResetSearch}
               >
                 Clear Search
               </button>
