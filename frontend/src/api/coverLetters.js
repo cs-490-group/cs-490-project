@@ -43,6 +43,12 @@ class CoverLetterAPI {
   setDefault(coverLetterId) {
     return api.put(`${BASE_URL}/${coverLetterId}/default`);
   }
+
+ addToJob(coverLetterId, jobId) {
+    return api.put(`${BASE_URL}/${coverLetterId}`, {
+        job_id: jobId
+    });
+}
 }
 
 export default new CoverLetterAPI();
