@@ -1,0 +1,140 @@
+.experience-tailoring {
+  width: 100%;
+}
+
+.experience-suggestions {
+  border: 2px solid #007bff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.experience-suggestions .card-header {
+  border-bottom: 2px solid #007bff;
+}
+
+.experience-suggestions .exp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 1rem;
+}
+
+.experience-suggestions .exp-title {
+  font-weight: 600;
+  flex-grow: 1;
+}
+
+.experience-suggestions .keyword-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.experience-suggestions .keyword-tags .badge {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.experience-suggestions .variations {
+  margin-top: 1rem;
+}
+
+.experience-suggestions .variation-item {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6 !important;
+  transition: all 0.3s ease;
+}
+
+.experience-suggestions .variation-item:hover {
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.experience-suggestions .original-text {
+  background-color: #fff;
+  padding: 0.75rem;
+  border-left: 3px solid #6c757d;
+  border-radius: 0.25rem;
+  font-style: italic;
+  color: #495057;
+}
+
+.experience-suggestions .alternatives {
+  margin-top: 0.75rem;
+}
+
+.experience-suggestions .alternative-option {
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+}
+
+.experience-suggestions .alternative-option:hover {
+  background-color: #f0f8ff;
+  border-color: #007bff;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+}
+
+.experience-suggestions .alternative-option.selected {
+  background-color: #d1ecf1;
+  border-color: #0c5460;
+  box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
+}
+
+.experience-suggestions .alternative-option input[type="radio"] {
+  margin-top: 0.25rem;
+  cursor: pointer;
+}
+
+.experience-suggestions .summary {
+  border-left: 4px solid #007bff;
+}
+
+.experience-suggestions .experience-accordion {
+  margin-bottom: 1.5rem;
+}
+
+.experience-suggestions .accordion-button {
+  padding: 1rem;
+  font-weight: 500;
+}
+
+.experience-suggestions .accordion-button:not(.collapsed) {
+  background-color: #e7f3ff;
+  color: #004085;
+}
+
+.experience-suggestions .accordion-body {
+  padding: 1.5rem;
+}
+
+.experience-suggestions .d-flex.gap-2 {
+  gap: 0.5rem !important;
+}
+
+.experience-suggestions .btn {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .experience-suggestions .exp-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .experience-suggestions .variation-item {
+    padding: 0.75rem !important;
+  }
+
+  .experience-suggestions .alternative-option {
+    flex-direction: column;
+  }
+
+  .experience-suggestions .alternative-option input[type="radio"] {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+}
