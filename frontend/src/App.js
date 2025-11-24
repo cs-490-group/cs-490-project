@@ -86,8 +86,8 @@ export function App() {
               {/* Interview Question Bank Routes */}
               <Route path="/interview/question-library" element={<QuestionLibrary />} />
               <Route path="/interview/industry/:industryId" element={<IndustryRoles />} />
-              <Route path="/interview/questions/:roleId" element={<RoleQuestions />} />
               <Route path="/interview/questions/practice/:questionId" element={<PracticeQuestion />} />
+              <Route path="/interview/questions/:roleId" element={<RoleQuestions />} />
               </Routes>
             </FlashProvider>
           </>
