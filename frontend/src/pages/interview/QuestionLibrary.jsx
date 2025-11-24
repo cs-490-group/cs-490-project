@@ -9,7 +9,8 @@ const dummyIndustries = [
     uuid: "ind-001",
     name: "Software Engineering",
     icon: "💻",
-    description: "Engineering & Technology roles",
+    description: "Engineering description: "Engineering & Technology roles", Technology roles",
+    category: "Technology",
     roles: [
       { uuid: "role-001", name: "Software Engineer" },
       { uuid: "role-002", name: "Senior Software Engineer" },
@@ -22,7 +23,8 @@ const dummyIndustries = [
     uuid: "ind-002",
     name: "Data Science",
     icon: "📊",
-    description: "Data & Analytics roles",
+    description: "Data description: "Data & Analytics roles", Analytics roles",
+    category: "Technology",
     roles: [
       { uuid: "role-006", name: "Data Scientist" },
       { uuid: "role-007", name: "Data Engineer" },
@@ -34,7 +36,8 @@ const dummyIndustries = [
     uuid: "ind-003",
     name: "Product & Design",
     icon: "🎨",
-    description: "Product Management & UX Design",
+    description: "Product Management description: "Product Management & UX Design", UX Design",
+    category: "Product Design",
     roles: [
       { uuid: "role-010", name: "Product Manager" },
       { uuid: "role-011", name: "UX Designer" },
@@ -45,7 +48,8 @@ const dummyIndustries = [
     uuid: "ind-004",
     name: "Finance",
     icon: "💰",
-    description: "Financial Services & Accounting",
+    description: "Financial Services description: "Financial Services & Accounting", Accounting",
+    category: "Finance",
     roles: [
       { uuid: "role-013", name: "Financial Analyst" },
       { uuid: "role-014", name: "Investment Banker" },
@@ -56,7 +60,8 @@ const dummyIndustries = [
     uuid: "ind-005",
     name: "Sales & Marketing",
     icon: "📈",
-    description: "Sales, Marketing & Business Development",
+    description: "Sales, Marketing description: "Sales, Marketing & Business Development", Business Development",
+    category: "Sales description: "Sales, Marketing & Business Development", Marketing",
     roles: [
       { uuid: "role-016", name: "Sales Executive" },
       { uuid: "role-017", name: "Marketing Manager" },
@@ -67,7 +72,8 @@ const dummyIndustries = [
     uuid: "ind-006",
     name: "Healthcare",
     icon: "🏥",
-    description: "Healthcare & Medical Professions",
+    description: "Healthcare description: "Healthcare & Medical Professions", Medical Professions",
+    category: "Healthcare",
     roles: [
       { uuid: "role-019", name: "Nurse" },
       { uuid: "role-020", name: "Medical Doctor" },
@@ -78,7 +84,8 @@ const dummyIndustries = [
     uuid: "ind-007",
     name: "Education",
     icon: "🎓",
-    description: "Education & Training",
+    description: "Education description: "Education & Training", Training",
+    category: "Education",
     roles: [
       { uuid: "role-022", name: "Teacher" },
       { uuid: "role-023", name: "Curriculum Developer" },
@@ -89,7 +96,8 @@ const dummyIndustries = [
     uuid: "ind-008",
     name: "Operations",
     icon: "⚙️",
-    description: "Operations & Supply Chain",
+    description: "Operations description: "Operations & Supply Chain", Supply Chain",
+    category: "Operations",
     roles: [
       { uuid: "role-025", name: "Operations Manager" },
       { uuid: "role-026", name: "Supply Chain Analyst" },
@@ -100,7 +108,8 @@ const dummyIndustries = [
     uuid: "ind-009",
     name: "Human Resources",
     icon: "👥",
-    description: "HR & Talent Management",
+    description: "HR description: "HR & Talent Management", Talent Management",
+    category: "HR",
     roles: [
       { uuid: "role-028", name: "HR Manager" },
       { uuid: "role-029", name: "Recruiter" },
@@ -111,7 +120,8 @@ const dummyIndustries = [
     uuid: "ind-010",
     name: "Legal",
     icon: "⚖️",
-    description: "Legal Services & Compliance",
+    description: "Legal Services description: "Legal Services & Compliance", Compliance",
+    category: "Legal",
     roles: [
       { uuid: "role-031", name: "Lawyer" },
       { uuid: "role-032", name: "Compliance Officer" },
@@ -122,7 +132,8 @@ const dummyIndustries = [
     uuid: "ind-011",
     name: "DevOps & Infrastructure",
     icon: "🔧",
-    description: "Cloud & Infrastructure Management",
+    description: "Cloud description: "Cloud & Infrastructure Management", Infrastructure Management",
+    category: "Technology",
     roles: [
       { uuid: "role-034", name: "DevOps Engineer" },
       { uuid: "role-035", name: "Cloud Architect" },
@@ -133,13 +144,15 @@ const dummyIndustries = [
     uuid: "ind-012",
     name: "Consulting",
     icon: "💼",
-    description: "Management & Business Consulting",
+    description: "Management description: "Management & Business Consulting", Business Consulting",
+    category: "Consulting",
     roles: [
       { uuid: "role-037", name: "Consultant" },
       { uuid: "role-038", name: "Senior Consultant" },
       { uuid: "role-039", name: "Strategy Analyst" },
     ],
   },
+const categories = [  { id: "all", name: "All Industries", count: 12 },  { id: "Technology", name: "Technology", count: 3 },  { id: "Product Design", name: "Product Design", count: 1 },  { id: "Finance", name: "Finance", count: 1 },  { id: "Sales & Marketing", name: "Sales & Marketing", count: 1 },  { id: "Healthcare", name: "Healthcare", count: 1 },  { id: "Education", name: "Education", count: 1 },  { id: "Operations", name: "Operations", count: 1 },  { id: "HR", name: "HR", count: 1 },  { id: "Legal", name: "Legal", count: 1 },  { id: "Consulting", name: "Consulting", count: 1 },];
 ];
 
 function QuestionLibrary() {
@@ -147,6 +160,7 @@ function QuestionLibrary() {
   const [industries, setIndustries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     loadIndustries();
@@ -167,11 +181,7 @@ function QuestionLibrary() {
     }
   };
 
-  const filteredIndustries = industries.filter(
-    (industry) =>
-      industry.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      industry.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+const filteredIndustries = industries.filter((industry) => {    const categoryMatch =      selectedCategory === "all" || industry.category === selectedCategory;    const searchMatch =      !searchQuery ||      industry.name.toLowerCase().includes(searchQuery.toLowerCase()) ||      industry.description?.toLowerCase().includes(searchQuery.toLowerCase());    return categoryMatch && searchMatch;  });
 
   const handleIndustryClick = (industryId) => {
     navigate(`/interview/industry/${industryId}`);
@@ -182,8 +192,11 @@ function QuestionLibrary() {
   };
 
   const handleResetSearch = () => {
+const handleCategoryClick = (categoryId) => {    setSelectedCategory(categoryId);  };
     setSearchQuery("");
+const handleCategoryClick = (categoryId) => {    setSelectedCategory(categoryId);  };
   };
+const handleCategoryClick = (categoryId) => {    setSelectedCategory(categoryId);  };
 
   if (loading) {
     return (
@@ -220,40 +233,7 @@ function QuestionLibrary() {
         {/* Left Sidebar - Categories */}
         <aside className="question-library-sidebar">
           <h3>Browse by Category</h3>
-          <ul className="category-list">
-            <li className="category-item active">
-              <span>All Industries</span>
-              <span className="count">{industries.length}</span>
-            </li>
-            <li className="category-item">
-              <span>Technology</span>
-              <span className="count">3</span>
-            </li>
-            <li className="category-item">
-              <span>Finance & Accounting</span>
-              <span className="count">1</span>
-            </li>
-            <li className="category-item">
-              <span>Sales & Marketing</span>
-              <span className="count">1</span>
-            </li>
-            <li className="category-item">
-              <span>Healthcare</span>
-              <span className="count">1</span>
-            </li>
-            <li className="category-item">
-              <span>Education</span>
-              <span className="count">1</span>
-            </li>
-            <li className="category-item">
-              <span>Government</span>
-              <span className="count">0</span>
-            </li>
-            <li className="category-item">
-              <span>Consulting</span>
-              <span className="count">1</span>
-            </li>
-          </ul>
+<ul className="category-list">            {categories.map((cat) => (              <li                key={cat.id}                className={`category-item ${selectedCategory === cat.id ? "active" : ""}`}                onClick={() => handleCategoryClick(cat.id)}                role="button"                tabIndex="0"              >                <span>{cat.name}</span>                <span className="count">{cat.count}</span>              </li>            ))}          </ul>
         </aside>
 
         {/* Main Grid */}

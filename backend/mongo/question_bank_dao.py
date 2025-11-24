@@ -227,7 +227,8 @@ class UserPracticedQuestionDAO:
         return results
 
     async def mark_as_practiced(self, user_uuid: str, question_uuid: str) -> int:
-        """Mark a question as practiced"""
+        """Mark a question as practiced - creates response if it doesn't exist"""
+        # First try to update existing response
         result = await self.collection.update_one(
             {
                 "user_uuid": user_uuid,
@@ -238,10 +239,43 @@ class UserPracticedQuestionDAO:
                     "is_marked_practiced": True,
                     "last_practiced": datetime.now(timezone.utc),
                     "date_updated": datetime.now(timezone.utc)
-                }
+                },
+                "$inc": {"practice_count": 1}
             }
         )
+        
+        # If no existing response, create one
+        if result.matched_count == 0:
+            await self.collection.insert_one({
+                "uuid": str(uuid.uuid4()),
+                "user_uuid": user_uuid,
+                "question_uuid": question_uuid,
+                "response_html": "",
+                "is_marked_practiced": True,
+                "last_practiced": datetime.now(timezone.utc),
+                "practice_count": 1,
+                "date_created": datetime.now(timezone.utc),
+                "date_updated": datetime.now(timezone.utc)
+            })
+            return 1
+        
         return result.matched_count
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     async def delete_response(self, user_uuid: str, question_uuid: str) -> int:
         """Delete a user's response"""
