@@ -184,7 +184,7 @@ function QuestionLibrary() {
       // Try to load from API first
       const response = await QuestionBankAPI.getAllIndustries();
       const data = response.data || response;
-      // Check if data is a valid non-empty array, otherwise use dummy data
+      // Only use API data if it's a non-empty array
       if (Array.isArray(data) && data.length > 0) {
         setIndustries(data);
       } else {
