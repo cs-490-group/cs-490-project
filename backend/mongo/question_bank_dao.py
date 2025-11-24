@@ -247,8 +247,7 @@ class UserPracticedQuestionDAO:
         ]
 
         results = []
-        cursor = self.collection.aggregate(pipeline)
-        async for doc in cursor:
+        async for doc in await self.collection.aggregate(pipeline):
             results.append(doc)
         return results
 
