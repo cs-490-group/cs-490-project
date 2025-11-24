@@ -5,301 +5,78 @@
 
 import api from './base';
 
-const API_BASE = 'http://localhost:8000/api/templates';
+const BASE_URL = '/templates';
 
-const TemplatesAPI = {
-  /**
-   * Create a new template
-   */
-  add: async (templateData) => {
-    const response = await fetch(`${API_BASE}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(templateData),
+class TemplatesAPI {
+  // Create a new template
+  add(data) {
+    return api.post(BASE_URL, data);
+  }
+
+  // Get the built-in template library (no auth required)
+  getLibrary() {
+    return api.get(`${BASE_URL}/library`);
+  }
+
+  // Get all templates for the current user
+  getUserTemplates() {
+    return api.get(`${BASE_URL}/me`);
+  }
+
+  // Get the user's default template
+  getDefaultTemplate() {
+    return api.get(`${BASE_URL}/default`);
+  }
+
+  // Get public templates
+  getPublicTemplates(limit = 20) {
+    return api.get(`${BASE_URL}/public`, { params: { limit } });
+  }
+
+  // Get a specific template
+  get(templateId) {
+    return api.get(BASE_URL, { params: { template_id: templateId } });
+  }
+
+  // Update a template
+  update(templateId, data) {
+    return api.put(BASE_URL, data, { params: { template_id: templateId } });
+  }
+
+  // Delete a template
+  delete(templateId) {
+    return api.delete(BASE_URL, { params: { template_id: templateId } });
+  }
+
+  // Set a template as default
+  setDefaultTemplate(templateId) {
+    return api.put(`${BASE_URL}/${templateId}/set-default`);
+  }
+
+  // Create a template from an existing resume
+  createFromResume(resumeId, templateName) {
+    return api.post(`${BASE_URL}/${resumeId}/from-resume`, null, {
+      params: { name: templateName }
     });
+  }
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to create template');
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Get the built-in template library
-   */
-  getLibrary: async () => {
-    try {
-      const response = await fetch(`${API_BASE}/library`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || `Failed to fetch template library (${response.status})`);
-      }
-
-      return response.json();
-    } catch (err) {
-      // If it's already an Error, re-throw it
-      if (err instanceof Error) {
-        throw err;
-      }
-      // Otherwise wrap it
-      throw new Error(err?.detail || 'Failed to fetch template library');
-    }
-  },
-
-  /**
-   * Get all templates for the current user
-   */
-  getUserTemplates: async () => {
-    try {
-      const response = await fetch(`${API_BASE}/me`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || `Failed to fetch templates (${response.status})`);
-      }
-
-      return response.json();
-    } catch (err) {
-      // If it's already an Error, re-throw it
-      if (err instanceof Error) {
-        throw err;
-      }
-      // Otherwise wrap it
-      throw new Error(err?.detail || 'Failed to fetch templates');
-    }
-  },
-
-  /**
-   * Get the user's default template
-   */
-  getDefaultTemplate: async () => {
-    const response = await fetch(`${API_BASE}/default`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
+  // Upload an HTML resume file as a template
+  upload(formData) {
+    return api.post(`${BASE_URL}/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
+  }
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to fetch default template');
-    }
+  // Share a template with other users
+  shareTemplate(templateId, userIds) {
+    return api.put(`${BASE_URL}/${templateId}/share`, { user_ids: userIds });
+  }
 
-    return response.json();
-  },
+  // Search templates
+  search(query) {
+    return api.get(`${BASE_URL}/search/${query}`);
+  }
+}
 
-  /**
-   * Get public templates
-   */
-  getPublicTemplates: async (limit = 20) => {
-    const response = await fetch(`${API_BASE}/public?limit=${limit}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to fetch public templates');
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Get a specific template
-   */
-  get: async (templateId) => {
-    const response = await fetch(`${API_BASE}?template_id=${templateId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to fetch template');
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Update a template
-   */
-  update: async (templateId, templateData) => {
-    const response = await fetch(`${API_BASE}?template_id=${templateId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(templateData),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to update template');
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Delete a template
-   */
-  delete: async (templateId) => {
-    const response = await fetch(`${API_BASE}?template_id=${templateId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to delete template');
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Delete a template (alias for delete)
-   */
-  deleteTemplate: async (templateId) => {
-    const response = await fetch(`${API_BASE}?template_id=${templateId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to delete template');
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Set a template as default
-   */
-  setDefaultTemplate: async (templateId) => {
-    const response = await fetch(`${API_BASE}/${templateId}/set-default`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to set default template');
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Create a template from an existing resume
-   */
-  createFromResume: async (resumeId, templateName) => {
-    const response = await fetch(`${API_BASE}/${resumeId}/from-resume?name=${templateName}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to create template from resume');
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Upload an HTML resume file as a template
-   */
-  upload: async (formData) => {
-    try {
-      const response = await api.post(`/templates/upload`, formData);
-      return response.data;
-    } catch (err) {
-      const error = err?.response?.data;
-      throw new Error(error?.detail || 'Failed to upload template');
-    }
-  },
-
-  /**
-   * Share a template with other users
-   */
-  shareTemplate: async (templateId, userIds) => {
-    const response = await fetch(`${API_BASE}/${templateId}/share`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ user_ids: userIds }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to share template');
-    }
-
-    return response.json();
-  },
-
-  /**
-   * Search templates
-   */
-  search: async (query) => {
-    const response = await fetch(`${API_BASE}/search/${query}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to search templates');
-    }
-
-    return response.json();
-  },
-};
-
-export default TemplatesAPI;
+const templatesAPI = new TemplatesAPI();
+export default templatesAPI;

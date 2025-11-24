@@ -4,8 +4,9 @@ const BASE_URL = "/cover-letters";
 
 class CoverLetterAPI {
   // GET all cover letters for the current user
-  getAll(uuid) {
-    return api.get(`${BASE_URL}/me/${uuid}`);
+  getAll() {
+    // Backend gets uuid from header, not URL parameter
+    return api.get(`${BASE_URL}/me`);
   }
 
   // GET a specific cover letter by ID
@@ -18,7 +19,8 @@ class CoverLetterAPI {
     return api.post(BASE_URL, data);
   }
 
-  upload(data){
+  // POST upload a cover letter file
+  upload(data) {
     return api.post(`${BASE_URL}/upload`, data);
   }
 
@@ -36,6 +38,17 @@ class CoverLetterAPI {
   getUsageByType() {
     return api.get(`${BASE_URL}/usage/by-type`);
   }
+
+  // PUT set as default (if you implement this)
+  setDefault(coverLetterId) {
+    return api.put(`${BASE_URL}/${coverLetterId}/default`);
+  }
+
+ addToJob(coverLetterId, jobId) {
+    return api.put(`${BASE_URL}/${coverLetterId}`, {
+        job_id: jobId
+    });
+}
 }
 
 export default new CoverLetterAPI();
