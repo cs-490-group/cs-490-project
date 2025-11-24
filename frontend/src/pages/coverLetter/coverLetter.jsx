@@ -5,7 +5,6 @@ import UserAPI from "../../api/user";
 import CoverLetterAPI from "../../api/coverLetters";
 import JobsAPI from "../../api/jobs";
 import CoverLetterForm from "./CoverLetterForm";
-import CoverLetterJob from "./coverLetterJob";
 import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
