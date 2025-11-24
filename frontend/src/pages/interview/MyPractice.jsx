@@ -113,7 +113,7 @@ function MyPractice() {
             <div key={item.uuid || item._id} className="practice-item">
               <div className="practice-item-header">
                 <div className="practice-item-info">
-                  <h3>{item.question_prompt || "Question"}</h3>
+                  <h3>{item.prompt || "Question"}</h3>
                   <div className="practice-item-meta">
                     {item.is_marked_practiced && (
                       <span className="badge badge-success">✓ Practiced</span>

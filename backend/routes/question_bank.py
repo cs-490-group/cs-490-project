@@ -1,6 +1,7 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
+from seed_database import INDUSTRIES_AND_ROLES, ROLE_SPECIFIC_QUESTIONS
 
 from schema.QuestionBank import (
     QuestionIndustry,
@@ -114,15 +115,6 @@ async def get_questions_by_role(role_id: str):
     return questions
 
 
-@question_bank_router.get("/questions/{question_id}")
-async def get_question(question_id: str):
-    """Get a specific question by ID"""
-    question = await question_dao.get_question(question_id)
-    if not question:
-        raise HTTPException(status_code=404, detail="Question not found")
-    return question
-
-
 @question_bank_router.get("/roles/{role_id}/questions/category/{category}")
 async def get_questions_by_category(role_id: str, category: str):
     """Get questions by role and category (behavioral, technical, situational, company)"""
@@ -183,8 +175,15 @@ async def create_question(data: Question, uuid_val: str = Depends(authorize)):
 
 
 # ============================================================================
-# USER PRACTICE ENDPOINTS
+# USER PRACTICE ENDPOINTS (Must be BEFORE /questions/{question_id} route)
 # ============================================================================
+
+@question_bank_router.get("/questions/practiced")
+async def get_practiced_questions(uuid_val: str = Depends(authorize)):
+    """Get all questions the user has practiced"""
+    practiced = await practiced_dao.get_user_practiced_questions(uuid_val)
+    return practiced
+
 
 @question_bank_router.post("/questions/{question_id}/save-response")
 async def save_question_response(
@@ -193,11 +192,6 @@ async def save_question_response(
     uuid_val: str = Depends(authorize)
 ):
     """Save or update a user's response to a question"""
-    # Verify question exists
-    question = await question_dao.get_question(question_id)
-    if not question:
-        raise HTTPException(status_code=404, detail="Question not found")
-
     response_dict = {
         "uuid": str(uuid.uuid4()),
         "user_uuid": uuid_val,
@@ -224,13 +218,6 @@ async def get_question_response(question_id: str, uuid_val: str = Depends(author
     return response
 
 
-@question_bank_router.get("/questions/practiced")
-async def get_practiced_questions(uuid_val: str = Depends(authorize)):
-    """Get all questions the user has practiced"""
-    practiced = await practiced_dao.get_user_practiced_questions(uuid_val)
-    return practiced
-
-
 @question_bank_router.get("/roles/{role_id}/questions/practiced")
 async def get_practiced_questions_by_role(role_id: str, uuid_val: str = Depends(authorize)):
     """Get all practiced questions for a user in a specific role"""
@@ -254,3 +241,115 @@ async def delete_question_response(question_id: str, uuid_val: str = Depends(aut
     if deleted == 0:
         raise HTTPException(status_code=404, detail="Response not found")
     return {"detail": "Response deleted successfully"}
+
+
+# ============================================================================
+# SEEDING ENDPOINT
+# ============================================================================
+
+@question_bank_router.post("/seed")
+async def seed_database():
+    """Seed the database with all industries, roles, and questions"""
+    try:
+        now = datetime.now(timezone.utc)
+        total_questions = 0
+        total_roles = 0
+
+        # Seed industries and roles
+        for industry_uuid, industry_data in INDUSTRIES_AND_ROLES.items():
+            # Seed industry
+            industry = {
+                "uuid": industry_uuid,
+                "name": industry_data["name"],
+                "icon": industry_data["icon"],
+                "description": industry_data["description"],
+                "category": industry_data["category"],
+                "roles": [role["uuid"] for role in industry_data["roles"]],
+                "date_created": now,
+                "date_updated": now,
+            }
+
+            existing_industry = await db_client["question_industries"].find_one({"uuid": industry_uuid})
+            if not existing_industry:
+                await industry_dao.add_industry(industry)
+
+            # Seed roles for this industry
+            for role in industry_data["roles"]:
+                role_data = {
+                    "uuid": role["uuid"],
+                    "industry_uuid": industry_uuid,
+                    "name": role["name"],
+                    "description": f"{role['name']} role in {industry_data['name']}",
+                    "question_ids": [],
+                    "date_created": now,
+                    "date_updated": now,
+                }
+
+                existing_role = await db_client["question_roles"].find_one({"uuid": role["uuid"]})
+                if not existing_role:
+                    await role_dao.add_role(role_data)
+                    total_roles += 1
+
+        # Clear old questions
+        await db_client["questions"].delete_many({})
+
+        # Seed role-specific questions
+        for industry_uuid, industry_data in INDUSTRIES_AND_ROLES.items():
+            for role in industry_data["roles"]:
+                role_uuid = role["uuid"]
+                role_name = role["name"]
+
+                # Get role-specific questions from dictionary
+                role_questions_dict = ROLE_SPECIFIC_QUESTIONS.get(role_uuid, {})
+                question_id = 1
+
+                for category in ["behavioral", "technical", "situational", "company"]:
+                    category_questions = role_questions_dict.get(category, {})
+
+                    for difficulty in ["entry", "mid", "senior"]:
+                        prompt = category_questions.get(difficulty, f"Question for {role_name}")
+
+                        question = {
+                            "uuid": f"q-{int(role_uuid.replace('role-', '')) * 100 + question_id}",
+                            "role_uuid": role_uuid,
+                            "category": category,
+                            "difficulty": difficulty,
+                            "prompt": prompt,
+                            "expected_skills": [
+                                "Communication",
+                                "Problem Solving",
+                                "Teamwork",
+                            ],
+                            "interviewer_guidance": f"Evaluate the candidate's {category} skills and {difficulty}-level competency in the context of a {role_name} role.",
+                            "sample_answers": [f"A strong answer should demonstrate {difficulty}-level proficiency in {category} competencies relevant to this {role_name} position."],
+                            "date_created": now,
+                            "date_updated": now,
+                        }
+
+                        await question_dao.add_question(question)
+                        total_questions += 1
+
+                        question_id += 1
+
+        return {
+            "detail": "Database seeded successfully",
+            "industries": len(INDUSTRIES_AND_ROLES),
+            "roles": total_roles,
+            "questions": total_questions
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Seeding failed: {str(e)}")
+
+
+# ============================================================================
+# GENERIC QUESTION ENDPOINT (Must be LAST to avoid conflicts)
+# ============================================================================
+
+@question_bank_router.get("/questions/{question_id}")
+async def get_question(question_id: str):
+    """Get a specific question by ID"""
+    question = await question_dao.get_question(question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    return question

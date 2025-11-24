@@ -36,9 +36,18 @@ function RoleQuestions() {
     try {
       // Try to load from API first
       const response = await QuestionBankAPI.getQuestionsByRole(roleId);
-      setQuestions(response.data || response);
+      const data = response.data || response || [];
+      // Only use API data if it's a non-empty array
+      if (Array.isArray(data) && data.length > 0) {
+        setQuestions(data);
+      } else {
+        console.log("API returned empty, using dummy data for questions");
+        // Fall back to dummy data
+        const roleQuestions = dummyQuestions.filter((q) => q.role_uuid === roleId);
+        setQuestions(roleQuestions);
+      }
     } catch (error) {
-      console.log("Using dummy data for questions");
+      console.log("API error, using dummy data for questions:", error.message);
       // Fall back to dummy data
       const roleQuestions = dummyQuestions.filter((q) => q.role_uuid === roleId);
       setQuestions(roleQuestions);

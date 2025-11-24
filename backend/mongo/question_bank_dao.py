@@ -199,11 +199,56 @@ class UserPracticedQuestionDAO:
         return doc
 
     async def get_user_practiced_questions(self, user_uuid: str) -> list[dict]:
-        """Get all questions a user has practiced"""
-        cursor = self.collection.find({"user_uuid": user_uuid})
+        """Get all questions a user has practiced with question and role details"""
+        # Use aggregation pipeline to join with questions and roles collections
+        pipeline = [
+            # Match documents for this user
+            {"$match": {"user_uuid": user_uuid}},
+            # Join with questions collection
+            {
+                "$lookup": {
+                    "from": "questions",
+                    "localField": "question_uuid",
+                    "foreignField": "uuid",
+                    "as": "question_details"
+                }
+            },
+            # Unwind the question details array
+            {"$unwind": {"path": "$question_details", "preserveNullAndEmptyArrays": True}},
+            # Join with roles collection to get role name
+            {
+                "$lookup": {
+                    "from": "question_roles",
+                    "localField": "question_details.role_uuid",
+                    "foreignField": "uuid",
+                    "as": "role_details"
+                }
+            },
+            # Unwind the role details array
+            {"$unwind": {"path": "$role_details", "preserveNullAndEmptyArrays": True}},
+            # Project the fields we need
+            {
+                "$project": {
+                    "_id": {"$toString": "$_id"},
+                    "user_uuid": 1,
+                    "question_uuid": 1,
+                    "response_html": 1,
+                    "is_marked_practiced": 1,
+                    "practice_count": 1,
+                    "last_practiced": 1,
+                    "date_created": 1,
+                    "date_updated": 1,
+                    "prompt": {"$ifNull": ["$question_details.prompt", "Unknown"]},
+                    "category": {"$ifNull": ["$question_details.category", "Unknown"]},
+                    "difficulty": {"$ifNull": ["$question_details.difficulty", "Unknown"]},
+                    "role_name": {"$ifNull": ["$role_details.name", "Unknown"]},
+                }
+            }
+        ]
+
         results = []
+        cursor = self.collection.aggregate(pipeline)
         async for doc in cursor:
-            doc["_id"] = str(doc["_id"])
             results.append(doc)
         return results
 
