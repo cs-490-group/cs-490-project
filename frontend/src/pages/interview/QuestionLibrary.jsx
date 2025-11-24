@@ -184,7 +184,12 @@ function QuestionLibrary() {
       // Try to load from API first
       const response = await QuestionBankAPI.getAllIndustries();
       const data = response.data || response;
-      setIndustries(Array.isArray(data) ? data : dummyIndustries);
+      // Check if data is a valid non-empty array, otherwise use dummy data
+      if (Array.isArray(data) && data.length > 0) {
+        setIndustries(data);
+      } else {
+        setIndustries(dummyIndustries);
+      }
     } catch (error) {
       console.log("Using dummy data for industries:", error.message);
       // Fall back to dummy data
@@ -263,6 +268,11 @@ function QuestionLibrary() {
                   selectedCategory === cat.id ? "active" : ""
                 }`}
                 onClick={() => handleCategoryClick(cat.id)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    handleCategoryClick(cat.id);
+                  }
+                }}
                 role="button"
                 tabIndex="0"
               >
