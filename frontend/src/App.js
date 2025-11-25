@@ -35,6 +35,7 @@ import PracticeQuestion from "./pages/interview/PracticeQuestion";
 import MyPractice from "./pages/interview/MyPractice";
 import Progress from "./pages/interview/Progress";
 import { FlashProvider, FlashMessage } from "./context/flashContext";
+import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
@@ -52,11 +53,12 @@ export function App() {
   return (
     <div className="App">
       <header>
-        
+
         <>
-    
+
           <FlashProvider>
             <FlashMessage />
+            <JobProvider>
               <Nav key={location.pathname} />
               <Routes>
                 <Route path = "/" element = {<Home />} />
@@ -93,6 +95,7 @@ export function App() {
               <Route path="/interview/questions/practice/:questionId" element={<PracticeQuestion />} />
               <Route path="/interview/questions/:roleId" element={<RoleQuestions />} />
               </Routes>
+            </JobProvider>
             </FlashProvider>
           </>
 

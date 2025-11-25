@@ -1,158 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import QuestionBankAPI from "../../api/questionBank";
+import JobsAPI from "../../api/jobs";
+import JobPostingSelector from "../../components/resumes/JobPostingSelector";
+import { useJob } from "../../context/JobContext";
 import "../../styles/questionLibrary.css";
-
-// Dummy data - until backend is wired
-const dummyIndustries = [
-  {
-    uuid: "ind-001",
-    name: "Software Engineering",
-    icon: "💻",
-    description: "Engineering & Technology roles",
-    category: "Technology",
-    roles: [
-      { uuid: "role-001", name: "Software Engineer" },
-      { uuid: "role-002", name: "Senior Software Engineer" },
-      { uuid: "role-003", name: "Full-Stack Developer" },
-      { uuid: "role-004", name: "Frontend Engineer" },
-      { uuid: "role-005", name: "Backend Engineer" },
-    ],
-  },
-  {
-    uuid: "ind-002",
-    name: "Data Science",
-    icon: "📊",
-    description: "Data & Analytics roles",
-    category: "Technology",
-    roles: [
-      { uuid: "role-006", name: "Data Scientist" },
-      { uuid: "role-007", name: "Data Engineer" },
-      { uuid: "role-008", name: "ML Engineer" },
-      { uuid: "role-009", name: "Analytics Engineer" },
-    ],
-  },
-  {
-    uuid: "ind-003",
-    name: "Product & Design",
-    icon: "🎨",
-    description: "Product Management & UX Design",
-    category: "Product Design",
-    roles: [
-      { uuid: "role-010", name: "Product Manager" },
-      { uuid: "role-011", name: "UX Designer" },
-      { uuid: "role-012", name: "UI Designer" },
-    ],
-  },
-  {
-    uuid: "ind-004",
-    name: "Finance",
-    icon: "💰",
-    description: "Financial Services & Accounting",
-    category: "Finance",
-    roles: [
-      { uuid: "role-013", name: "Financial Analyst" },
-      { uuid: "role-014", name: "Investment Banker" },
-      { uuid: "role-015", name: "Accountant" },
-    ],
-  },
-  {
-    uuid: "ind-005",
-    name: "Sales & Marketing",
-    icon: "📈",
-    description: "Sales, Marketing & Business Development",
-    category: "Sales & Marketing",
-    roles: [
-      { uuid: "role-016", name: "Sales Executive" },
-      { uuid: "role-017", name: "Marketing Manager" },
-      { uuid: "role-018", name: "Business Development" },
-    ],
-  },
-  {
-    uuid: "ind-006",
-    name: "Healthcare",
-    icon: "🏥",
-    description: "Healthcare & Medical Professions",
-    category: "Healthcare",
-    roles: [
-      { uuid: "role-019", name: "Nurse" },
-      { uuid: "role-020", name: "Medical Doctor" },
-      { uuid: "role-021", name: "Healthcare Administrator" },
-    ],
-  },
-  {
-    uuid: "ind-007",
-    name: "Education",
-    icon: "🎓",
-    description: "Education & Training",
-    category: "Education",
-    roles: [
-      { uuid: "role-022", name: "Teacher" },
-      { uuid: "role-023", name: "Curriculum Developer" },
-      { uuid: "role-024", name: "Education Coordinator" },
-    ],
-  },
-  {
-    uuid: "ind-008",
-    name: "Operations",
-    icon: "⚙️",
-    description: "Operations & Supply Chain",
-    category: "Operations",
-    roles: [
-      { uuid: "role-025", name: "Operations Manager" },
-      { uuid: "role-026", name: "Supply Chain Analyst" },
-      { uuid: "role-027", name: "Logistics Coordinator" },
-    ],
-  },
-  {
-    uuid: "ind-009",
-    name: "Human Resources",
-    icon: "👥",
-    description: "HR & Talent Management",
-    category: "HR",
-    roles: [
-      { uuid: "role-028", name: "HR Manager" },
-      { uuid: "role-029", name: "Recruiter" },
-      { uuid: "role-030", name: "Talent Acquisition Specialist" },
-    ],
-  },
-  {
-    uuid: "ind-010",
-    name: "Legal",
-    icon: "⚖️",
-    description: "Legal Services & Compliance",
-    category: "Legal",
-    roles: [
-      { uuid: "role-031", name: "Lawyer" },
-      { uuid: "role-032", name: "Compliance Officer" },
-      { uuid: "role-033", name: "Legal Analyst" },
-    ],
-  },
-  {
-    uuid: "ind-011",
-    name: "DevOps & Infrastructure",
-    icon: "🔧",
-    description: "Cloud & Infrastructure Management",
-    category: "Technology",
-    roles: [
-      { uuid: "role-034", name: "DevOps Engineer" },
-      { uuid: "role-035", name: "Cloud Architect" },
-      { uuid: "role-036", name: "Systems Administrator" },
-    ],
-  },
-  {
-    uuid: "ind-012",
-    name: "Consulting",
-    icon: "💼",
-    description: "Management & Business Consulting",
-    category: "Consulting",
-    roles: [
-      { uuid: "role-037", name: "Consultant" },
-      { uuid: "role-038", name: "Senior Consultant" },
-      { uuid: "role-039", name: "Strategy Analyst" },
-    ],
-  },
-];
 
 const categories = [
   { id: "all", name: "All Industries", count: 12 },
@@ -170,10 +22,12 @@ const categories = [
 
 function QuestionLibrary() {
   const navigate = useNavigate();
-  const [industries, setIndustries] = useState(dummyIndustries);
+  const { selectedJob, selectJob, clearJob } = useJob();
+  const [industries, setIndustries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [showJobSelector, setShowJobSelector] = useState(false);
 
   useEffect(() => {
     loadIndustries();
@@ -181,19 +35,12 @@ function QuestionLibrary() {
 
   const loadIndustries = async () => {
     try {
-      // Try to load from API first
       const response = await QuestionBankAPI.getAllIndustries();
       const data = response.data || response;
-      // Only use API data if it's a non-empty array
-      if (Array.isArray(data) && data.length > 0) {
-        setIndustries(data);
-      } else {
-        setIndustries(dummyIndustries);
-      }
+      setIndustries(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.log("Using dummy data for industries:", error.message);
-      // Fall back to dummy data
-      setIndustries(dummyIndustries);
+      console.error("Failed to load industries:", error);
+      setIndustries([]);
     } finally {
       setLoading(false);
     }
@@ -225,6 +72,15 @@ function QuestionLibrary() {
     setSelectedCategory(categoryId);
   };
 
+  const handleSelectJob = (job) => {
+    selectJob(job);
+    setShowJobSelector(false);
+  };
+
+  const handleClearJob = () => {
+    clearJob();
+  };
+
   if (loading) {
     return (
       <div className="question-library-loading">
@@ -239,6 +95,70 @@ function QuestionLibrary() {
       <div className="question-library-header">
         <h1>Interview Question Library</h1>
         <p>Prepare for your interview with curated questions by industry and role</p>
+      </div>
+
+      {/* Job Selection Section */}
+      <div className="job-selection-banner" style={{
+        background: selectedJob ? '#e8f5e9' : '#f5f5f5',
+        padding: '16px',
+        borderRadius: '8px',
+        marginBottom: '20px',
+        border: selectedJob ? '2px solid #4caf50' : '1px solid #ddd',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div>
+          {selectedJob ? (
+            <div>
+              <strong style={{ color: '#2e7d32' }}>✓ Tailoring questions for:</strong>
+              <p style={{ margin: '8px 0 0 0', fontSize: '16px', color: '#1b5e20' }}>
+                <strong>{selectedJob.title}</strong> at {selectedJob.company}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <strong>No job selected</strong>
+              <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#666' }}>
+                Select a job application to get interview questions tailored to that role
+              </p>
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setShowJobSelector(true)}
+            style={{
+              padding: '8px 16px',
+              background: '#2196f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          >
+            {selectedJob ? 'Change Job' : 'Select Job'}
+          </button>
+          {selectedJob && (
+            <button
+              onClick={handleClearJob}
+              style={{
+                padding: '8px 16px',
+                background: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -325,6 +245,14 @@ function QuestionLibrary() {
           )}
         </main>
       </div>
+
+      {/* Job Posting Selector Modal */}
+      {showJobSelector && (
+        <JobPostingSelector
+          onSelect={handleSelectJob}
+          onClose={() => setShowJobSelector(false)}
+        />
+      )}
     </div>
   );
 }

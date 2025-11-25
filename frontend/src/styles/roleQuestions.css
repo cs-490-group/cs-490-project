@@ -221,6 +221,27 @@
   color: #c2185b;
 }
 
+/* Relevance Badge */
+.relevance-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.relevance-badge.highly-matched {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-left: 3px solid #4caf50;
+}
+
+.relevance-badge.partially-matched {
+  background: #fff8e1;
+  color: #f57f17;
+  border-left: 3px solid #fbc02d;
+}
+
 /* Skills Preview */
 .skills-preview {
   display: flex;

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import QuestionBankAPI from "../../api/questionBank";
+import { useJob } from "../../context/JobContext";
+import { matchQuestionsToJob, getRelevanceLevel } from "../../utils/questionMatcher";
 import "../../styles/roleQuestions.css";
-import { dummyQuestions } from "../../data/dummyQuestions";
 
 const roleNames = {
   "role-001": "Software Engineer",
@@ -22,11 +23,13 @@ const roleNames = {
 function RoleQuestions() {
   const { roleId } = useParams();
   const navigate = useNavigate();
+  const { selectedJob } = useJob();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeDifficulty, setActiveDifficulty] = useState("all");
   const [roleName, setRoleName] = useState("");
+  const [showOnlyRelevant, setShowOnlyRelevant] = useState(false);
 
   useEffect(() => {
     loadQuestions();
@@ -34,23 +37,12 @@ function RoleQuestions() {
 
   const loadQuestions = async () => {
     try {
-      // Try to load from API first
       const response = await QuestionBankAPI.getQuestionsByRole(roleId);
       const data = response.data || response || [];
-      // Only use API data if it's a non-empty array
-      if (Array.isArray(data) && data.length > 0) {
-        setQuestions(data);
-      } else {
-        console.log("API returned empty, using dummy data for questions");
-        // Fall back to dummy data
-        const roleQuestions = dummyQuestions.filter((q) => q.role_uuid === roleId);
-        setQuestions(roleQuestions);
-      }
+      setQuestions(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.log("API error, using dummy data for questions:", error.message);
-      // Fall back to dummy data
-      const roleQuestions = dummyQuestions.filter((q) => q.role_uuid === roleId);
-      setQuestions(roleQuestions);
+      console.error("Failed to load questions:", error);
+      setQuestions([]);
     } finally {
       setLoading(false);
     }
@@ -73,13 +65,25 @@ function RoleQuestions() {
     { id: "senior", name: "Senior Level" },
   ];
 
-  const filteredQuestions = questions.filter((q) => {
+  let filteredQuestions = questions.filter((q) => {
     const categoryMatch =
       activeCategory === "all" || q.category === activeCategory;
     const difficultyMatch =
       activeDifficulty === "all" || q.difficulty === activeDifficulty;
     return categoryMatch && difficultyMatch;
   });
+
+  // Apply job-based filtering if job is selected
+  if (selectedJob) {
+    filteredQuestions = matchQuestionsToJob(filteredQuestions, selectedJob);
+
+    // Filter to only highly relevant questions if toggle is on
+    if (showOnlyRelevant) {
+      filteredQuestions = filteredQuestions.filter(
+        q => getRelevanceLevel(q, selectedJob) === 'highly-matched'
+      );
+    }
+  }
 
   if (loading) {
     return (
@@ -142,6 +146,36 @@ function RoleQuestions() {
             ))}
           </div>
         </div>
+
+        {/* Job-Based Filter */}
+        {selectedJob && (
+          <div className="filter-group">
+            <h4>Job Relevance</h4>
+            <div style={{ marginBottom: "12px" }}>
+              <p style={{ fontSize: "14px", color: "#666", margin: "0 0 8px 0" }}>
+                Tailoring questions for: <strong>{selectedJob.title}</strong>
+              </p>
+            </div>
+            <div className="filter-buttons">
+              <button
+                className={`filter-btn ${
+                  !showOnlyRelevant ? "active" : ""
+                }`}
+                onClick={() => setShowOnlyRelevant(false)}
+              >
+                All Questions
+              </button>
+              <button
+                className={`filter-btn ${
+                  showOnlyRelevant ? "active" : ""
+                }`}
+                onClick={() => setShowOnlyRelevant(true)}
+              >
+                Highly Relevant Only
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Questions List */}
@@ -165,6 +199,21 @@ function RoleQuestions() {
                     {question.difficulty.charAt(0).toUpperCase() +
                       question.difficulty.slice(1)}
                   </span>
+                  {selectedJob && (
+                    <span
+                      className={`relevance-badge ${getRelevanceLevel(
+                        question,
+                        selectedJob
+                      )}`}
+                    >
+                      {getRelevanceLevel(question, selectedJob) === "highly-matched"
+                        ? "✓ Highly Relevant"
+                        : getRelevanceLevel(question, selectedJob) ===
+                          "partially-matched"
+                        ? "~ Relevant"
+                        : ""}
+                    </span>
+                  )}
                   {question.expected_skills?.length > 0 && (
                     <div className="skills-preview">
                       {question.expected_skills.slice(0, 2).map((skill) => (
