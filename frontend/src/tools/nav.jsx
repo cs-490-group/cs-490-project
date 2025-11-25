@@ -277,7 +277,7 @@ const Nav = () => {
                   Resumes
                 </BootstrapNav.Link>
 
-                 <BootstrapNav.Link as={NavLink} to="/coverletter" className="mx-3">
+                 <BootstrapNav.Link as={NavLink} to="/cover-letter" className="mx-3">
                   Cover Letters
                 </BootstrapNav.Link>
 

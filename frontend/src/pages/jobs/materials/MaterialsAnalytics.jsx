@@ -78,6 +78,25 @@ export default function MaterialsAnalytics() {
     }
   };
 
+  // Handle deleting materials (copied from MaterialsModal)
+  const handleDelete = async (id, type) => {
+    if (!window.confirm("Are you sure you want to delete this document?")) return;
+
+    try {
+      if (type === 'resume') {
+        await ResumesAPI.delete(id);
+        setResumes(resumes.filter(r => getMaterialId(r) !== id));
+      } else {
+        await CoverLetterAPI.delete(id);
+        setCoverLetters(coverLetters.filter(c => getMaterialId(c) !== id));
+      }
+      alert('✅ Document deleted successfully!');
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      alert("Failed to delete file. Please try again.");
+    }
+  };
+
   // Handle downloading materials
   const handleDownload = async (material, type) => {
     const materialId = getMaterialId(material);
@@ -193,6 +212,7 @@ export default function MaterialsAnalytics() {
   };
 
   // Handle adding material to comparison
+  /* COMMENTED OUT - Compare functionality
   const handleCompare = (material, type) => {
     setCompareVersions(prev => ({
       ...prev,
@@ -200,6 +220,7 @@ export default function MaterialsAnalytics() {
     }));
     setShowComparison(true);
   };
+  */
 
   if (loading) {
     return (
@@ -243,7 +264,7 @@ export default function MaterialsAnalytics() {
         </div>
       </div>
 
-      {/* Comparison Panel */}
+      {/* COMMENTED OUT - Comparison Panel
       {showComparison && (
         <div style={{ marginBottom: "20px", padding: "16px", background: "#fff3e0", borderRadius: "6px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
@@ -342,6 +363,7 @@ export default function MaterialsAnalytics() {
           </div>
         </div>
       )}
+      */}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         <div>
@@ -420,6 +442,7 @@ export default function MaterialsAnalytics() {
                         >
                           ⭐ {resume.default_resume ? 'Default' : 'Set Default'}
                         </button>
+                        {/* COMMENTED OUT - Compare button
                         <button
                           onClick={() => handleCompare(resume, 'resume')}
                           style={{
@@ -435,6 +458,7 @@ export default function MaterialsAnalytics() {
                         >
                           🔄 Compare
                         </button>
+                        */}
                         <button
                           onClick={() => handleDownload(resume, 'resume')}
                           disabled={isDownloading}
@@ -450,6 +474,21 @@ export default function MaterialsAnalytics() {
                           }}
                         >
                           {isDownloading ? "⏳" : "📥"} Download
+                        </button>
+                        <button
+                          onClick={() => handleDelete(resumeId, 'resume')}
+                          style={{
+                            padding: "4px 8px",
+                            background: "#f44336",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "10px",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          🗑️ Delete
                         </button>
                       </div>
                     </div>
@@ -536,6 +575,7 @@ export default function MaterialsAnalytics() {
                         >
                           ⭐ {letter.default_cover_letter ? 'Default' : 'Set Default'}
                         </button>
+                        {/* COMMENTED OUT - Compare button
                         <button
                           onClick={() => handleCompare(letter, 'coverLetter')}
                           style={{
@@ -551,6 +591,7 @@ export default function MaterialsAnalytics() {
                         >
                           🔄 Compare
                         </button>
+                        */}
                         <button
                           onClick={() => handleDownload(letter, 'coverLetter')}
                           disabled={isDownloading}
@@ -567,6 +608,21 @@ export default function MaterialsAnalytics() {
                         >
                           {isDownloading ? "⏳" : "📥"} Download
                         </button>
+                        <button
+                          onClick={() => handleDelete(letterId, 'coverLetter')}
+                          style={{
+                            padding: "4px 8px",
+                            background: "#f44336",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "10px",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          🗑️ Delete
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -580,7 +636,7 @@ export default function MaterialsAnalytics() {
       {/* Additional insights */}
       <div style={{ marginTop: "20px", padding: "12px", background: "#fffbea", borderRadius: "6px" }}>
         <div style={{ fontSize: "13px", color: "#666" }}>
-          💡 <strong>Tip:</strong> Track which resume and cover letter versions perform best by linking them to your job applications. Use the compare feature to see differences between versions.
+          💡 <strong>Tip:</strong> Track which resume and cover letter versions perform best by linking them to your job applications.
         </div>
       </div>
     </div>

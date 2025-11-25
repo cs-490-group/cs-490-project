@@ -11,8 +11,6 @@ export default function MaterialsModal({ job, onClose, onSave }) {
   
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
-  const [showComparison, setShowComparison] = useState(false);
-  const [compareVersions, setCompareVersions] = useState({ v1: null, v2: null });
   const [materialsHistory, setMaterialsHistory] = useState(job?.materials_history || []);
 
   useEffect(() => {
@@ -67,44 +65,6 @@ export default function MaterialsModal({ job, onClose, onSave }) {
     } catch (error) {
       console.error("Error viewing file:", error);
       alert("Failed to view file. Please try again.");
-    }
-  };
-
-  const handleDelete = async (id, type) => {
-    if (!window.confirm("Are you sure you want to delete this document?")) return;
-
-    try {
-      if (type === 'resume') {
-        await ResumesAPI.delete(id);
-        setResumes(resumes.filter(r => getMaterialId(r) !== id));
-        if (selectedResume === id) setSelectedResume("");
-      } else {
-        await CoverLetterAPI.delete(id);
-        setCoverLetters(coverLetters.filter(c => getMaterialId(c) !== id));
-        if (selectedCoverLetter === id) setSelectedCoverLetter("");
-      }
-      alert('✅ Document deleted successfully!');
-    } catch (error) {
-      console.error("Error deleting file:", error);
-      alert("Failed to delete file. Please try again.");
-    }
-  };
-
-  const handleSetDefault = async (id, type) => {
-    try {
-      if (type === 'resume') {
-        await ResumesAPI.setDefault(id);
-        // Reload materials to get updated default status
-        await loadMaterials();
-      } else {
-        await CoverLetterAPI.setDefault(id);
-        // Reload materials to get updated default status
-        await loadMaterials();
-      }
-      alert('✅ Default material set successfully!');
-    } catch (error) {
-      console.error("Error setting default:", error);
-      alert("Failed to set default. Please try again.");
     }
   };
 
@@ -235,62 +195,6 @@ export default function MaterialsModal({ job, onClose, onSave }) {
             >
               👁 View
             </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSetDefault(materialId, type);
-              }}
-              style={{
-                padding: "4px 8px",
-                background: (material.default_resume || material.default_cover_letter) ? "#9e9e9e" : "#4caf50",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "11px"
-              }}
-              disabled={material.default_resume || material.default_cover_letter}
-            >
-              ⭐ {(material.default_resume || material.default_cover_letter) ? 'Default' : 'Set Default'}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setCompareVersions(prev => ({
-                  ...prev,
-                  [prev.v1 ? 'v2' : 'v1']: { material, type }
-                }));
-                setShowComparison(true);
-              }}
-              style={{
-                padding: "4px 8px",
-                background: "#ff9800",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "11px"
-              }}
-            >
-              🔄 Compare
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(materialId, type);
-              }}
-              style={{
-                padding: "4px 8px",
-                background: "#f44336",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "11px"
-              }}
-            >
-              🗑️ Delete
-            </button>
           </div>
         </div>
       </div>
@@ -393,21 +297,6 @@ export default function MaterialsModal({ job, onClose, onSave }) {
           >
             📜 {showHistory ? 'Hide' : 'Show'} History
           </button>
-          <button
-            onClick={() => setShowComparison(!showComparison)}
-            style={{
-              padding: "6px 12px",
-              background: showComparison ? "#ff9800" : "#e0e0e0",
-              color: showComparison ? "white" : "#333",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: "600"
-            }}
-          >
-            🔄 {showComparison ? 'Hide' : 'Show'} Comparison
-          </button>
         </div>
 
         {showHistory && materialsHistory.length > 0 && (
@@ -428,76 +317,6 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {showComparison && (
-          <div style={{ marginBottom: "20px", padding: "16px", background: "#fff3e0", borderRadius: "6px" }}>
-            <h3 style={{ fontSize: "16px", marginTop: 0, color: "#333" }}>🔄 Version Comparison</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div>
-                <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Version 1</div>
-                {compareVersions.v1 ? (
-                  <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
-                    <div><strong>{compareVersions.v1.material.name || compareVersions.v1.material.title || 'Unnamed'}</strong></div>
-                    <div style={{ color: "#666" }}>Type: {compareVersions.v1.type}</div>
-                    {compareVersions.v1.material.file_size && (
-                      <div style={{ color: "#666" }}>Size: {(compareVersions.v1.material.file_size / 1024).toFixed(1)} KB</div>
-                    )}
-                    <button
-                      onClick={() => setCompareVersions(prev => ({ ...prev, v1: null }))}
-                      style={{
-                        marginTop: "4px",
-                        padding: "4px 8px",
-                        background: "#f44336",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "11px"
-                      }}
-                    >
-                      Clear
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ padding: "20px", background: "white", borderRadius: "4px", textAlign: "center", fontSize: "12px", color: "#999" }}>
-                    Click "Compare" on a material
-                  </div>
-                )}
-              </div>
-              <div>
-                <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Version 2</div>
-                {compareVersions.v2 ? (
-                  <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
-                    <div><strong>{compareVersions.v2.material.name || compareVersions.v2.material.title || 'Unnamed'}</strong></div>
-                    <div style={{ color: "#666" }}>Type: {compareVersions.v2.type}</div>
-                    {compareVersions.v2.material.file_size && (
-                      <div style={{ color: "#666" }}>Size: {(compareVersions.v2.material.file_size / 1024).toFixed(1)} KB</div>
-                    )}
-                    <button
-                      onClick={() => setCompareVersions(prev => ({ ...prev, v2: null }))}
-                      style={{
-                        marginTop: "4px",
-                        padding: "4px 8px",
-                        background: "#f44336",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "11px"
-                      }}
-                    >
-                      Clear
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ padding: "20px", background: "white", borderRadius: "4px", textAlign: "center", fontSize: "12px", color: "#999" }}>
-                    Click "Compare" on another material
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         )}
 
