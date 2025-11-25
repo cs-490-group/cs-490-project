@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import QuestionBankAPI from "../../api/questionBank";
 import "../../styles/practiceQuestion.css";
-import { dummyQuestions } from "../../data/dummyQuestions";
+
 
 function PracticeQuestion() {
   const { questionId } = useParams();
@@ -25,14 +25,11 @@ function PracticeQuestion() {
 
   const loadQuestion = async () => {
     try {
-      // Try to load from API first
       const response = await QuestionBankAPI.getQuestion(questionId);
       setQuestion(response.data || response);
     } catch (error) {
-      console.log("Using dummy data for question");
-      // Fall back to dummy data
-      const found = dummyQuestions.find((q) => q.uuid === questionId);
-      setQuestion(found);
+      console.error("Failed to load question:", error);
+      setQuestion(null);
     } finally {
       setLoading(false);
     }
