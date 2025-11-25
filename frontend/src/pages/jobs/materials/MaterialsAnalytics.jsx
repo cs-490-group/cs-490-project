@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import ResumesAPI from "../../../api/resumes";
 import CoverLetterAPI from "../../../api/coverLetters";
 import JobsAPI from "../../../api/jobs";
+import api from "../../../api/base";
 
 export default function MaterialsAnalytics() {
   const [resumes, setResumes] = useState([]);
@@ -84,17 +85,33 @@ export default function MaterialsAnalytics() {
     
     try {
       if (type === 'resume') {
-        const blob = await ResumesAPI.exportPDF(materialId);
+        console.log('📥 Downloading resume PDF for ID:', materialId);
         
-        // Create download link
+        // Call the resume export API endpoint
+        const response = await api.post(
+          `/resumes/${materialId}/export-pdf`,
+          {},
+          { responseType: 'blob' }
+        );
+        
+        const blob = response.data;
+        
+        if (!blob || blob.size === 0) {
+          throw new Error('Failed to generate resume PDF');
+        }
+
+        // Download the file
+        const fileName = material.name || material.title || 'resume';
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${material.name || material.title || 'document'}.pdf`;
+        link.download = `${fileName}.pdf`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+        
+        alert('✅ Resume PDF downloaded successfully!');
       } else {
         // For cover letters, generate PDF from HTML content using html2canvas + jsPDF
         const html2canvas = (await import('html2canvas')).default;
@@ -142,6 +159,7 @@ export default function MaterialsAnalytics() {
           }
 
           pdf.save(`${material.title || material.name || 'cover_letter'}.pdf`);
+          alert('✅ Cover letter PDF downloaded successfully!');
         } finally {
           // Clean up temporary container
           document.body.removeChild(tempContainer);
@@ -149,7 +167,8 @@ export default function MaterialsAnalytics() {
       }
     } catch (error) {
       console.error(`Error downloading ${type}:`, error);
-      alert(`Failed to download ${type}. Please try again.`);
+      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error';
+      alert(`Failed to download ${type} PDF: ${errorMessage}`);
     } finally {
       setDownloading(null);
     }

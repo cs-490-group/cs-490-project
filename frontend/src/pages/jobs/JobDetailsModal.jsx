@@ -3,6 +3,7 @@ import MaterialsModal from "./materials/MaterialsModal";
 import JobsAPI from "../../api/jobs";
 import ResumesAPI from "../../api/resumes";
 import CoverLetterAPI from "../../api/coverLetters";
+import api from "../../api/base";
 
 export default function JobDetailsModal({
   selectedJob,
@@ -27,21 +28,25 @@ export default function JobDetailsModal({
     try {
       setDownloading(type);
       
-      const materialId = type === 'resume' 
-        ? selectedJob.materials?.resume_id 
-        : selectedJob.materials?.cover_letter_id;
-
-      if (!materialId) {
-        alert(`No ${type} linked to this application`);
-        setDownloading(null);
-        return;
-      }
-
-      console.log(`📥 Downloading ${type} PDF for material ID:`, materialId);
-      
       if (type === 'resume') {
-        // Download resume PDF
-        const blob = await ResumesAPI.exportPDF(materialId);
+        const resumeId = selectedJob.materials?.resume_id;
+        
+        if (!resumeId) {
+          alert('No resume linked to this application');
+          setDownloading(null);
+          return;
+        }
+
+        console.log('📥 Downloading resume PDF for resume ID:', resumeId);
+        
+        // Call the resume export API endpoint
+        const response = await api.post(
+          `/resumes/${resumeId}/export-pdf`,
+          {},
+          { responseType: 'blob' }
+        );
+        
+        const blob = response.data;
         
         if (!blob || blob.size === 0) {
           throw new Error('Failed to generate resume PDF');
@@ -57,9 +62,22 @@ export default function JobDetailsModal({
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+        
+        alert('✅ Resume PDF downloaded successfully!');
+        
       } else {
-        // Download cover letter PDF - get the full cover letter object first
-        const coverLetterResponse = await CoverLetterAPI.get(materialId);
+        // Cover letter logic
+        const coverLetterId = selectedJob.materials?.cover_letter_id;
+        
+        if (!coverLetterId) {
+          alert('No cover letter linked to this application');
+          setDownloading(null);
+          return;
+        }
+
+        console.log('📥 Downloading cover letter PDF for ID:', coverLetterId);
+        
+        const coverLetterResponse = await CoverLetterAPI.get(coverLetterId);
         const coverLetter = coverLetterResponse.data || coverLetterResponse;
         
         if (!coverLetter.content) {
@@ -70,11 +88,10 @@ export default function JobDetailsModal({
         const html2canvas = (await import('html2canvas')).default;
         const jsPDF = (await import('jspdf')).default;
         
-        // Create a temporary container to render the HTML
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'absolute';
         tempContainer.style.left = '-9999px';
-        tempContainer.style.width = '210mm'; // A4 width
+        tempContainer.style.width = '210mm';
         tempContainer.innerHTML = coverLetter.content;
         document.body.appendChild(tempContainer);
         
@@ -113,13 +130,12 @@ export default function JobDetailsModal({
 
           const fileName = selectedJob.materials?.cover_letter_name || coverLetter.title || 'cover_letter';
           pdf.save(`${fileName}.pdf`);
+          
+          alert('✅ Cover letter PDF downloaded successfully!');
         } finally {
-          // Clean up temporary container
           document.body.removeChild(tempContainer);
         }
       }
-      
-      alert('✅ PDF downloaded successfully!');
     } catch (error) {
       console.error(`Error downloading ${type} PDF:`, error);
       const errorMessage = error.response?.data?.detail || error.message || 'Unknown error';
