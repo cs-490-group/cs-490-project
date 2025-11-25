@@ -270,6 +270,41 @@
   box-shadow: 0 6px 20px rgba(79, 142, 247, 0.4);
 }
 
+/* Job Selection Banner */
+.job-selection-banner {
+  max-width: 700px;
+  margin: -40px auto 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 30px !important;
+  border-radius: 15px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+  animation: popInScale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.job-selection-banner button {
+  transition: all 0.3s ease !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 10px 18px !important;
+}
+
+.job-selection-banner button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+.job-selection-banner-selected {
+  background: #e8f5e9 !important;
+  border: 2px solid #4caf50 !important;
+}
+
+.job-selection-banner-empty {
+  background: #f5f5f5 !important;
+  border: 1px solid #ddd !important;
+}
+
 /* Loading State */
 .question-library-loading {
   display: flex;
@@ -298,6 +333,17 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes popInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 

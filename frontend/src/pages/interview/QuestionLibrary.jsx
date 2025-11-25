@@ -98,67 +98,62 @@ function QuestionLibrary() {
       </div>
 
       {/* Job Selection Section */}
-      <div className="job-selection-banner" style={{
-        background: selectedJob ? '#e8f5e9' : '#f5f5f5',
-        padding: '16px',
-        borderRadius: '8px',
-        marginBottom: '20px',
-        border: selectedJob ? '2px solid #4caf50' : '1px solid #ddd',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          {selectedJob ? (
+      <div className={`job-selection-banner ${selectedJob ? 'job-selection-banner-selected' : 'job-selection-banner-empty'}`}>
+        {selectedJob ? (
+          <>
             <div>
               <strong style={{ color: '#2e7d32' }}>✓ Tailoring questions for:</strong>
               <p style={{ margin: '8px 0 0 0', fontSize: '16px', color: '#1b5e20' }}>
                 <strong>{selectedJob.title}</strong> at {selectedJob.company}
               </p>
             </div>
-          ) : (
-            <div>
-              <strong>No job selected</strong>
-              <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#666' }}>
-                Select a job application to get interview questions tailored to that role
-              </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowJobSelector(true)}
+                style={{
+                  background: '#2196f3',
+                  color: 'white',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
+                Change Job
+              </button>
+              <button
+                onClick={handleClearJob}
+                style={{
+                  background: '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
+                Clear
+              </button>
             </div>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => setShowJobSelector(true)}
-            style={{
-              padding: '8px 16px',
-              background: '#2196f3',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600'
-            }}
-          >
-            {selectedJob ? 'Change Job' : 'Select Job'}
-          </button>
-          {selectedJob && (
+          </>
+        ) : (
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '18px', color: '#666', margin: '0 0 20px 0', fontWeight: '500' }}>
+              Select a job application to get interview questions tailored to that role
+            </p>
             <button
-              onClick={handleClearJob}
+              onClick={() => setShowJobSelector(true)}
               style={{
-                padding: '8px 16px',
-                background: '#f44336',
+                background: '#2196f3',
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '14px',
-                fontWeight: '600'
+                padding: '10px 24px',
               }}
             >
-              Clear
+              Select Job
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Search Bar */}
