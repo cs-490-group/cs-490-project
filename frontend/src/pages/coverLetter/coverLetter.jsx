@@ -3,6 +3,7 @@ import { renderTemplate } from "./renderTemplate";
 import { useFlash } from "../../context/flashContext";
 import UserAPI from "../../api/user";
 import CoverLetterAPI from "../../api/coverLetters";
+import JobsAPI from "../../api/jobs";
 import CoverLetterForm from "./CoverLetterForm";
 import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
@@ -66,6 +67,124 @@ const sortLetters = (letters, sortOrder) => {
   return sorted;
 };
 
+// Job Selection Modal Component
+function JobSelectionModal({ letterId, onClose, onSelect, showFlash }) {
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        const res = await JobsAPI.getAll();
+        setJobs(res.data || []);
+      } catch (err) {
+        console.error("Failed to load jobs:", err);
+        showFlash("Failed to load jobs", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadJobs();
+  }, []);
+
+  const handleModalJobSelect = (jobId) => {
+    console.log("Modal job selected with jobId:", jobId);
+    onSelect(jobId);
+    onClose();
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          backgroundColor: "white",
+          borderRadius: "8px",
+          padding: "24px",
+          maxWidth: "500px",
+          width: "90%",
+          maxHeight: "80vh",
+          overflowY: "auto",
+          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 style={{ margin: "0 0 16px 0", color: "#333" }}>Select a Job</h2>
+
+        {loading ? (
+          <p style={{ color: "#666" }}>Loading jobs...</p>
+        ) : jobs.length === 0 ? (
+          <p style={{ color: "#666" }}>No jobs found</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {jobs.map((job) => (
+              <button
+                key={job.id || job._id}
+                onClick={() => handleModalJobSelect(job.id || job._id)}
+                style={{
+                  padding: "12px 16px",
+                  textAlign: "left",
+                  backgroundColor: "#f5f5f5",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  fontSize: "14px",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#e3f2fd";
+                  e.target.style.borderColor = "#2196f3";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "#f5f5f5";
+                  e.target.style.borderColor = "#ddd";
+                }}
+              >
+                <div style={{ fontWeight: "500", color: "#333" }}>
+                  {job.title || "Untitled Position"}
+                </div>
+                <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                  {job.company || "Company"}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={onClose}
+          style={{
+            marginTop: "16px",
+            padding: "8px 16px",
+            backgroundColor: "#f44336",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            width: "100%",
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function CoverLetterList() {
   const [sampleLetters, setSampleLetters] = useState([]);
   const [userLetters, setUserLetters] = useState([]);
@@ -73,6 +192,7 @@ export default function CoverLetterList() {
   const [filterIndustry, setFilterIndustry] = useState("");
   const [sortOrder, setSortOrder] = useState("");
   const [editingLetter, setEditingLetter] = useState(null);
+  const [jobLetter, setJobLetter] = useState(null);
   const [uploading, setUploading] = useState(false);
   const { showFlash } = useFlash();
   const iframeRefs = useRef({});
@@ -424,6 +544,21 @@ export default function CoverLetterList() {
     setEditingLetter(letter);
   };
 
+  const handleJobAdd = (letterId) => {
+    setJobLetter(letterId);
+  };
+
+  const handleJobSelect = async (jobId) => {
+    try {
+      // Call your API to associate the letter with the job
+      await CoverLetterAPI.addToJob(jobLetter, jobId);
+      showFlash("Cover letter added to job!", "success");
+    } catch (err) {
+      console.error("Failed to add cover letter to job:", err);
+      showFlash("Failed to add cover letter to job", "error");
+    }
+  };
+
   const handleSave = async (letter) => {
     try {
       if (letter.id) {
@@ -462,6 +597,15 @@ export default function CoverLetterList() {
           editEntry={editingLetter}
           onAdded={handleSave}
           cancelEdit={() => setEditingLetter(null)}
+        />
+      )}
+
+      {jobLetter && (
+        <JobSelectionModal
+          letterId={jobLetter}
+          onClose={() => setJobLetter(null)}
+          onSelect={handleJobSelect}
+          showFlash={showFlash}
         />
       )}
 
@@ -555,6 +699,12 @@ export default function CoverLetterList() {
                 style={{ padding: "6px 12px", background: "#ffa500", color: "white", border: "none", borderRadius: "4px" }}
               >
                 Edit
+              </button>
+              <button 
+                onClick={() => handleJobAdd(letter.id)}
+                style={{ padding: "6px 12px", background: "#2196f3", color: "white", border: "none", borderRadius: "4px" }}
+              >
+                Add to Job
               </button>
               <button
                 onClick={() => handleDelete(letter.id)}

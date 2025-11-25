@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import CoverLetterAPI from "../../api/coverLetters";
+import JobsAPI from "../../api/jobs";
 import UserAPI from "../../api/user";
 import AIAPI from "../../api/AI";
 import { useFlash } from "../../context/flashContext";
@@ -118,7 +119,7 @@ export default function EditCoverLetterPage() {
   const performAutoSave = async () => {
     setAutoSaveStatus("saving");
     try {
-      await CoverLetterAPI.update(id, { title, company, position, content: contentRef.current });
+      await CoverLetterAPI.update(id, { title, content: contentRef.current });
       setAutoSaveStatus("saved");
       setVersionHistory(prev => [...prev, { timestamp: new Date(), content: contentRef.current }].slice(-10));
     } catch (err) {
@@ -210,14 +211,35 @@ export default function EditCoverLetterPage() {
     }
   };
 
-  // 🔹 Generate Cover Letter
-  const handleGenerateCoverLetter = async () => {
-    setAiLoading(true);
+const handleGenerateCoverLetter = async () => {
+  setAiLoading(true);
+  try {
+    const userData = await UserAPI.getAllData();
+    
+    // Fetch all jobs to find the matching one
+    let jobData = null;
     try {
+      const jobsRes = await JobsAPI.getAll();
+      const jobs = jobsRes.data || [];
+      
+      // Try to find a job that matches the company/position in the cover letter
+      if (company || position) {
+        jobData = jobs.find(j => 
+          (company && j.company && j.company.toLowerCase().includes(company.toLowerCase())) ||
+          (position && j.title && j.title.toLowerCase().includes(position.toLowerCase()))
+        );
+      }
+      
+      // If no match found, use the most recent job
+      if (!jobData && jobs.length > 0) {
+        jobData = jobs[0];
+      }
+    } catch (err) {
+      console.warn("Failed to fetch job data:", err);
+    }
 
-      const userData = await UserAPI.getAllData(); // gets user data for dynamic injection
-      const res = await AIAPI.generateText({
-        prompt: `
+    const res = await AIAPI.generateText({
+      prompt: `
 User instructions: "${aiPrompt}"
 Personalize for company "${company}" and role "${position}".
 if "${company}" is specified, then you MUST provide at one or two specific details about the company, as well as a comment about recent news of the company in the cover letter (the more specific, the better). This is non-negotiable.
@@ -227,39 +249,51 @@ DO NOT ADD YOUR OWN STYLINGS OR HTML ELEMENTS OR CSS. ONLY WHAT WAS ORIGINALLY T
 Return ONLY HTML content.
 Don't invent any personal details/certifications/education/skills. Only use what you are given in the cover letter.
 
+User Profile Data:
+${JSON.stringify(userData, null, 2)}
+
+${jobData ? `
+Job Details:
+${JSON.stringify(jobData, null, 2)}
+` : ''}
+
 Current letter content:
 ${contentRef.current}
-        `,
-        system_message: `
+      `,
+      system_message: `
 You are a professional cover letter writer.
 Preserve all HTML and inline styles.
 DO NOT ADD YOUR OWN STYLINGS OR HTML ELEMENTS OR CSS. ONLY WHAT WAS ORIGINALLY THERE. 
 Return ONLY HTML content.
-Don't invent any personal details/certifications/education/skills. Only use what you are given in here: ${userData}.
+Don't invent any personal details/certifications/education/skills. Only use what you are given.
+
+Reference Data:
+${JSON.stringify(userData, null, 2)}
+${jobData ? `\nJob Data:\n${JSON.stringify(jobData, null, 2)}` : ''}
 `
-      });
+    });
 
-      const generated = res.data.response || res.data.result || res.data.text || "";
-      if (iframeRef.current && editorMode === "visual") {
-        const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
-        doc.body.innerHTML = generated;
-        contentRef.current = doc.documentElement.innerHTML;
-        setHtmlContent(doc.documentElement.innerHTML);
-        calculateStats(doc.documentElement.innerHTML);
-        setAutoSaveStatus("unsaved");
-      }
-
-      setAiPrompt("");
-      showFlash("Cover letter generated successfully.", "success");
-    } catch (err) {
-      console.error(err);
-      showFlash("Failed to generate cover letter.", "error");
-    } finally {
-      setAiLoading(false);
+    const generated = res.data.response || res.data.result || res.data.text || "";
+    if (iframeRef.current && editorMode === "visual") {
+      const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
+      doc.body.innerHTML = generated;
+      contentRef.current = doc.documentElement.innerHTML;
+      setHtmlContent(doc.documentElement.innerHTML);
+      calculateStats(doc.documentElement.innerHTML);
+      setAutoSaveStatus("unsaved");
     }
-  };
 
-  // 🔹 AI Suggestions handler (text-only)
+    setAiPrompt("");
+    showFlash("Cover letter generated successfully.", "success");
+  } catch (err) {
+    console.error(err);
+    showFlash("Failed to generate cover letter.", "error");
+  } finally {
+    setAiLoading(false);
+  }
+};
+
+  // AI Suggestions handler (text-only)
   const handleAISuggestions = async () => {
     if (!contentRef.current) return;
     setAiLoading(true);
