@@ -34,6 +34,9 @@ import RoleQuestions from "./pages/interview/RoleQuestions";
 import PracticeQuestion from "./pages/interview/PracticeQuestion";
 import MyPractice from "./pages/interview/MyPractice";
 import Progress from "./pages/interview/Progress";
+import MockInterviewStart from "./pages/interview/MockInterviewStart";
+import MockInterviewQuestion from "./pages/interview/MockInterviewQuestion";
+import MockInterviewSummary from "./pages/interview/MockInterviewSummary";
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -94,6 +97,11 @@ export function App() {
               <Route path="/interview/progress" element={<Progress />} />
               <Route path="/interview/questions/practice/:questionId" element={<PracticeQuestion />} />
               <Route path="/interview/questions/:roleId" element={<RoleQuestions />} />
+
+              {/* Mock Interview Routes */}
+              <Route path="/interview/mock-interview-start" element={<MockInterviewStart />} />
+              <Route path="/interview/mock-interview/:sessionId" element={<MockInterviewQuestion />} />
+              <Route path="/interview/mock-interview-summary/:sessionId" element={<MockInterviewSummary />} />
               </Routes>
             </JobProvider>
             </FlashProvider>

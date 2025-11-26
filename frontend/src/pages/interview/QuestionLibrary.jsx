@@ -91,10 +91,39 @@ function QuestionLibrary() {
 
   return (
     <div className="question-library-container">
-      {/* Header Section */}
-      <div className="question-library-header">
-        <h1>Interview Question Library</h1>
-        <p>Prepare for your interview with curated questions by industry and role</p>
+      {/* Top Section - Title and CTA Side by Side */}
+      <div className="question-library-top-section">
+        {/* Left Side - Title */}
+        <div className="question-library-header">
+          <h1>Interview Question Library</h1>
+          <p>Prepare for your interview with curated questions by industry and role</p>
+        </div>
+
+        {/* Right Side - Mock Interview CTA */}
+        <div className="mock-interview-cta-section">
+          <div className="cta-content">
+            <div className="cta-text">
+              <h2>🎯 Ready for a Full Mock Interview?</h2>
+              <p>
+                Practice complete interview scenarios with sequential questions, real-time response timing,
+                and performance metrics. Get a realistic interview experience and identify areas for improvement.
+              </p>
+              <ul className="cta-features">
+                <li>Full interview simulations with 5-8 questions</li>
+                <li>Realistic question progression (behavioral → technical → situational)</li>
+                <li>Performance metrics and timing analysis</li>
+                <li>Response review and feedback</li>
+                <li>Track progress across multiple sessions</li>
+              </ul>
+            </div>
+            <button
+              onClick={() => navigate("/interview/mock-interview-start")}
+              className="mock-interview-cta-btn"
+            >
+              Start Mock Interview
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Job Selection Section */}

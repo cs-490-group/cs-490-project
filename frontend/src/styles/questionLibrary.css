@@ -11,7 +11,7 @@
 /* Header Section */
 .question-library-header {
   text-align: center;
-  margin-bottom: 50px;
+  margin-bottom: 20px;
   padding: 30px 0;
   animation: slideDown 0.6s ease-out;
 }
@@ -27,9 +27,101 @@
 .question-library-header p {
   font-size: 1.2rem;
   color: #556c7e;
-  max-width: 600px;
-  margin: 0 auto;
+  margin: 0;
   line-height: 1.6;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Mock Interview CTA Section */
+.mock-interview-cta-section {
+  max-width: 1000px;
+  margin: 0 auto 60px;
+  animation: slideUp 0.6s ease-out;
+}
+
+.cta-content {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 2px solid #4f8ef7;
+  border-radius: 15px;
+  padding: 50px;
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(79, 142, 247, 0.15);
+}
+
+.cta-text {
+  flex: 1;
+}
+
+.cta-text h2 {
+  font-size: 1.8rem;
+  color: #1f3a70;
+  margin: 0 0 15px 0;
+  font-weight: 700;
+}
+
+.cta-text > p {
+  color: #556c7e;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+}
+
+.cta-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.cta-features li {
+  margin-bottom: 10px;
+  padding-left: 25px;
+  position: relative;
+}
+
+.cta-features li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #4f8ef7;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.cta-features li:last-child {
+  margin-bottom: 0;
+}
+
+/* Mock Interview CTA Button */
+.mock-interview-cta-btn {
+  background: linear-gradient(135deg, #4f8ef7, #2563eb);
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(79, 142, 247, 0.4);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mock-interview-cta-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(79, 142, 247, 0.5);
+}
+
+.mock-interview-cta-btn:active {
+  transform: translateY(-1px);
 }
 
 /* Search Bar */
@@ -45,7 +137,9 @@
   max-width: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   border-radius: 50px;
-  background: white;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
 }
@@ -81,10 +175,12 @@
 /* Sidebar */
 .question-library-sidebar {
   flex: 0 0 250px;
-  background: white;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
   padding: 30px;
   border-radius: 15px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   height: fit-content;
   position: sticky;
   top: 100px;
@@ -155,14 +251,15 @@
 
 /* Industry Card */
 .industry-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
   border-radius: 15px;
   padding: 35px 25px;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  border: 2px solid transparent;
+  border: 2px solid rgba(255, 255, 255, 0.5);
   position: relative;
   overflow: hidden;
 }
@@ -279,6 +376,9 @@
   gap: 20px;
   padding: 30px !important;
   border-radius: 15px !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
   animation: popInScale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -367,6 +467,25 @@
 @media (max-width: 768px) {
   .question-library-header h1 {
     font-size: 2rem;
+  }
+
+  .mock-interview-cta-section {
+    max-width: 100%;
+    padding: 0 15px;
+  }
+
+  .cta-content {
+    flex-direction: column;
+    gap: 25px;
+    padding: 25px;
+  }
+
+  .cta-text h2 {
+    font-size: 1.3rem;
+  }
+
+  .mock-interview-cta-btn {
+    width: 100%;
   }
 
   .industries-grid {
