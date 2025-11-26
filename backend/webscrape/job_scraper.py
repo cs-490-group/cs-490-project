@@ -67,10 +67,10 @@ def _scrape_with_playwright_sync(url: str, scrape_company: bool = False) -> Tupl
 
             logger.info(f"📄 Fetching job page: {url}")
             job_page.goto(url, wait_until="domcontentloaded", timeout=45000)
-            # # Refresh page ONLY for Indeed to bypass initial load issues
-            # if 'indeed.com' in url:
-            #     job_page.reload(wait_until="domcontentloaded", timeout=45000)
-            #     logger.info("🔄 Indeed job page refreshed")
+            # Refresh page ONLY for Indeed to bypass initial load issues
+            if 'indeed.com' in url:
+                 job_page.reload(wait_until="domcontentloaded", timeout=45000)
+                 logger.info("🔄 Indeed job page refreshed")
             job_page.wait_for_timeout(2000)
             job_html = job_page.content()
             logger.info(f"✅ Job page loaded: {job_page.title()}")
@@ -174,9 +174,9 @@ def _scrape_with_playwright_sync(url: str, scrape_company: bool = False) -> Tupl
                 company_page = context.new_page()
                 company_page.goto(company_url, wait_until="domcontentloaded", timeout=30000)
                 # # Refresh page ONLY for Indeed company pages to bypass initial load issues
-                # if 'indeed.com' in company_url:
-                #     company_page.reload(wait_until="domcontentloaded", timeout=30000)
-                #     logger.info("🔄 Indeed company page refreshed")
+                if 'indeed.com' in company_url:
+                     company_page.reload(wait_until="domcontentloaded", timeout=30000)
+                     logger.info("🔄 Indeed company page refreshed")
                 company_page.wait_for_timeout(2000)
                 company_html = company_page.content()
                 logger.info(f"✅ Company page loaded: {len(company_html)} characters")

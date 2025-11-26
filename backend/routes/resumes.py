@@ -1,11 +1,17 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import FileResponse
 from pymongo.errors import DuplicateKeyError
+import tempfile
+import requests
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from mongo.resumes_dao import resumes_dao
 from sessions.session_authorizer import authorize
 from schema.Resume import Resume, ResumeVersion, ResumeFeedback, ResumeShare
 from services.resume_validator import ResumeValidator
 from services.ai_generator import AIGenerator
+from services.html_pdf_generator import HTMLPDFGenerator
 
 resumes_router = APIRouter(prefix = "/resumes")
 
@@ -510,3 +516,97 @@ async def revoke_share_link(resume_id: str, uuid: str = Depends(authorize)):
         raise HTTPException(400, "Share link not found")
     else:
         return {"detail": "Share link revoked successfully"}
+
+# ============================================
+# EXPORT RESUME AS PDF (Windows-compatible)
+# ============================================
+
+def _generate_pdf_sync(html_content: str) -> bytes:
+    """Synchronous wrapper for Playwright PDF generation (Windows-compatible)"""
+    import asyncio
+    from playwright.sync_api import sync_playwright
+    
+    try:
+        print(f"[PDF Sync] Starting synchronous PDF generation...")
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_content(html_content)
+            
+            # Generate PDF
+            pdf_bytes = page.pdf(
+                format='Letter',
+                margin={'top': '0.5in', 'right': '0.5in', 'bottom': '0.5in', 'left': '0.5in'},
+            )
+            
+            browser.close()
+            print(f"[PDF Sync] PDF generated successfully, size: {len(pdf_bytes)} bytes")
+            return pdf_bytes
+    except Exception as e:
+        print(f"[PDF Sync] ERROR: {type(e).__name__}: {str(e)}")
+        raise
+
+
+@resumes_router.post("/{resume_id}/export-pdf", tags=["resumes"])
+async def export_resume_pdf(resume_id: str, uuid: str = Depends(authorize)):
+    """Export resume as PDF using Playwright (Windows-compatible version)"""
+    tmp_path = None
+    try:
+        print(f"[PDF Export] Starting export for resume_id: {resume_id}")
+        
+        # Get resume data
+        resume = await resumes_dao.get_resume(resume_id)
+        if not resume:
+            print(f"[PDF Export] Resume not found: {resume_id}")
+            raise HTTPException(404, "Resume not found")
+        
+        print(f"[PDF Export] Resume found: {resume.get('name', 'unnamed')}")
+        
+        # Verify ownership
+        if resume.get("uuid") != uuid:
+            print(f"[PDF Export] Unauthorized access attempt")
+            raise HTTPException(403, "Not authorized to access this resume")
+        
+        print(f"[PDF Export] Building HTML...")
+        # Build HTML from resume data
+        resume_html = HTMLPDFGenerator.build_resume_html_from_data(resume)
+        full_html = HTMLPDFGenerator.wrap_resume_html(
+            resume_html, 
+            resume.get('colors'), 
+            resume.get('fonts')
+        )
+        
+        print(f"[PDF Export] HTML built, length: {len(full_html)} chars")
+        print(f"[PDF Export] Generating PDF with Playwright (sync mode)...")
+        
+        # Run synchronous Playwright in a thread pool to avoid Windows asyncio issues
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            pdf_bytes = await loop.run_in_executor(executor, _generate_pdf_sync, full_html)
+        
+        print(f"[PDF Export] PDF generated successfully, size: {len(pdf_bytes)} bytes")
+        
+        filename = f"{resume.get('name', 'resume')}.pdf"
+        
+        # Create temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+            tmp.write(pdf_bytes)
+            tmp_path = tmp.name
+        
+        print(f"[PDF Export] Temporary file created at: {tmp_path}")
+        print(f"[PDF Export] Returning FileResponse with filename: {filename}")
+        
+        return FileResponse(
+            tmp_path,
+            media_type='application/pdf',
+            filename=filename,
+            headers={"Content-Disposition": f"attachment; filename=\"{filename}\""}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[PDF Export] ERROR: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to export resume PDF: {str(e)}")

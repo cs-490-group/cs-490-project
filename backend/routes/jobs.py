@@ -1,8 +1,13 @@
-from fastapi import APIRouter, HTTPException, Depends, Body, UploadFile, File
-from fastapi.responses import StreamingResponse
+"""
+Updated Jobs Router with Materials Download Support
+Adds endpoints for downloading linked resume/cover letter PDFs
+"""
+
+from fastapi import APIRouter, HTTPException, Depends, Request, Body, UploadFile, File
+from fastapi.responses import StreamingResponse, FileResponse
 from pymongo.errors import DuplicateKeyError
 from datetime import datetime, timezone
-import smtplib, os
+import smtplib, os, tempfile
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from io import BytesIO
@@ -13,6 +18,7 @@ from mongo.resumes_dao import resumes_dao
 from mongo.cover_letters_dao import cover_letters_dao
 from sessions.session_authorizer import authorize
 from schema.Job import Job, UrlBody
+from services.html_pdf_generator import HTMLPDFGenerator
 
 # Import the new enhanced scraper
 from webscrape.job_scraper import job_from_url, URLScrapeError
@@ -399,7 +405,6 @@ async def import_from_url(url: UrlBody):
         raise HTTPException(400, str(e))
     except Exception as e:
         print(f"❌ Unexpected error: {str(e)}")
-        #print(f"Traceback: {traceback.format_exc()}")
         print(f"{'='*60}\n")
         raise HTTPException(500, f"Failed to import job posting: {str(e)}")
 
@@ -503,3 +508,115 @@ async def get_job_materials(job_id: str, uuid: str = Depends(authorize)):
     except Exception as e:
         print(f"Error getting job materials: {e}")
         raise HTTPException(500, "Failed to fetch job materials")
+
+
+# NEW ENDPOINT: Download linked resume as PDF
+@jobs_router.get("/{job_id}/materials/resume/pdf", tags=["jobs"])
+async def download_linked_resume_pdf(job_id: str, uuid: str = Depends(authorize)):
+    """Download the resume linked to this job as PDF"""
+    try:
+        import requests
+        
+        job = await jobs_dao.get_job(job_id)
+        if not job:
+            raise HTTPException(404, "Job not found")
+        
+        resume_id = job.get("materials", {}).get("resume_id")
+        if not resume_id:
+            raise HTTPException(404, "No resume linked to this job")
+        
+        # Get resume data
+        resume = await resumes_dao.get_resume(resume_id)
+        if not resume:
+            raise HTTPException(404, "Resume not found")
+        
+        # Build HTML from resume data
+        resume_html = HTMLPDFGenerator.build_resume_html_from_data(resume)
+        full_html = HTMLPDFGenerator.wrap_resume_html(
+            resume_html, 
+            resume.get('colors'), 
+            resume.get('fonts')
+        )
+        
+        # Generate PDF using external service (same as cover letters)
+        response = requests.post(
+            'https://api.html2pdf.app/v1/generate',
+            json={'html': full_html},
+            timeout=30
+        )
+        
+        if response.status_code != 200:
+            raise HTTPException(500, "PDF generation failed")
+        
+        filename = f"{resume.get('name', 'resume')}.pdf"
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+            tmp.write(response.content)
+            tmp_path = tmp.name
+        
+        return FileResponse(
+            tmp_path,
+            media_type='application/pdf',
+            filename=filename,
+            headers={"Content-Disposition": f"attachment; filename=\"{filename}\""}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error downloading resume PDF: {e}")
+        raise HTTPException(500, f"Failed to download resume PDF: {str(e)}")
+
+
+# NEW ENDPOINT: Download linked cover letter as PDF
+@jobs_router.get("/{job_id}/materials/cover-letter/pdf", tags=["jobs"])
+async def download_linked_cover_letter_pdf(job_id: str, uuid: str = Depends(authorize)):
+    """Download the cover letter linked to this job as PDF"""
+    try:
+        import requests
+        
+        job = await jobs_dao.get_job(job_id)
+        if not job:
+            raise HTTPException(404, "Job not found")
+        
+        cover_letter_id = job.get("materials", {}).get("cover_letter_id")
+        if not cover_letter_id:
+            raise HTTPException(404, "No cover letter linked to this job")
+        
+        # Get cover letter data
+        cover_letter = await cover_letters_dao.get_cover_letter(cover_letter_id, uuid)
+        if not cover_letter:
+            raise HTTPException(404, "Cover letter not found")
+        
+        html_content = cover_letter.get("content", "")
+        if not html_content:
+            raise HTTPException(400, "Cover letter has no content")
+        
+        filename = f"{cover_letter.get('title', 'cover_letter')}.pdf"
+        
+        # Use external PDF service
+        response = requests.post(
+            'https://api.html2pdf.app/v1/generate',
+            json={'html': html_content},
+            timeout=30
+        )
+        
+        if response.status_code != 200:
+            raise HTTPException(500, "PDF generation failed")
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+            tmp.write(response.content)
+            tmp_path = tmp.name
+        
+        return FileResponse(
+            tmp_path,
+            media_type='application/pdf',
+            filename=filename,
+            headers={"Content-Disposition": f"attachment; filename=\"{filename}\""}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error downloading cover letter PDF: {e}")
+        raise HTTPException(500, f"Failed to download cover letter PDF: {str(e)}")

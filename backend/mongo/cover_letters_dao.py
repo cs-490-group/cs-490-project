@@ -57,7 +57,7 @@ class CoverLettersDAO:
                 "$sort": {"total_count": -1}
             }
         ]
-        cursor = await self.collection.aggregate(pipeline)
+        cursor = self.collection.aggregate(pipeline)
         result = {}
         async for doc in cursor:
             if doc.get("_id"):
@@ -85,6 +85,22 @@ class CoverLettersDAO:
         cursor = self.collection.find({"uuid": user_uuid}).sort("usage_count", sort_order)
         return [doc async for doc in cursor]
 
+    async def set_default_cover_letter(self, letter_id: str, uuid: str) -> int:
+        """Set a cover letter as default for the user. Unsets all other defaults first."""
+        # First, unset default on all user's cover letters
+        await self.collection.update_many(
+            {"uuid": uuid},
+            {"$set": {"default_cover_letter": False}}
+        )
+        
+        # Then set the specified letter as default
+        result = await self.collection.update_one(
+            {"_id": letter_id, "uuid": uuid},
+            {"$set": {"default_cover_letter": True}}
+        )
+        
+        return result.modified_count
 
+    
 # Singleton instance to use in FastAPI routes
 cover_letters_dao = CoverLettersDAO()
