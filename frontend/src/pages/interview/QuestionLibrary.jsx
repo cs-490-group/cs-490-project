@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import QuestionBankAPI from "../../api/questionBank";
 import JobsAPI from "../../api/jobs";
 import JobPostingSelector from "../../components/resumes/JobPostingSelector";
+import IndustryIcon from "../../components/IndustryIcon";
 import { useJob } from "../../context/JobContext";
 import "../../styles/questionLibrary.css";
 
@@ -243,7 +244,9 @@ function QuestionLibrary() {
                   }
                 }}
               >
-                <div className="industry-icon">{industry.icon}</div>
+                <div className="industry-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <IndustryIcon industryId={industry.uuid} className="w-8 h-8" />
+                </div>
                 <h3 className="industry-name">{industry.name}</h3>
                 <p className="industry-description">{industry.description}</p>
                 <div className="industry-footer">

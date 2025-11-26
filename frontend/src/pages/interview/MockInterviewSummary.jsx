@@ -225,12 +225,14 @@ function MockInterviewSummary() {
           )
         : 0;
 
-    const categoryBreakdown = {
-      behavioral: responses.filter((r) => r.question_category === "behavioral").length,
-      technical: responses.filter((r) => r.question_category === "technical").length,
-      situational: responses.filter((r) => r.question_category === "situational").length,
-      company: responses.filter((r) => r.question_category === "company").length
-    };
+    const categoryBreakdown = responses.reduce(
+      (acc, r) => {
+        const category = r.question_category || "unknown";
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      },
+      { behavioral: 0, technical: 0, situational: 0, company: 0 }
+    );
 
     return {
       totalAnswered: responses.length,

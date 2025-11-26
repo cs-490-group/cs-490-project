@@ -33,6 +33,7 @@ function MockInterviewQuestion() {
   const interviewStartTimeRef = useRef(null);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     loadSession();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -45,23 +46,23 @@ function MockInterviewQuestion() {
     if (!isPreviewMode || !currentQuestion) return;
 
     previewTimerRef.current = setInterval(() => {
-      setPreviewTimeRemaining((prev) => {
-        if (prev <= 1) {
-          // Preview done, transition to answer mode
-          setIsPreviewMode(false);
-          setResponseTimer(0);
-          setResponseStartTime(new Date());
-          clearInterval(previewTimerRef.current);
-          return 5;
-        }
-        return prev - 1;
-      });
+      setPreviewTimeRemaining((prev) => prev - 1);
     }, 1000);
 
     return () => {
       if (previewTimerRef.current) clearInterval(previewTimerRef.current);
     };
   }, [isPreviewMode, currentQuestion]);
+
+  // Handle preview end - separate from interval to avoid state update race conditions
+  useEffect(() => {
+    if (previewTimeRemaining <= 0 && isPreviewMode) {
+      clearInterval(previewTimerRef.current);
+      setIsPreviewMode(false);
+      setResponseTimer(0);
+      setResponseStartTime(new Date());
+    }
+  }, [previewTimeRemaining, isPreviewMode]);
 
   // Response timer - counts up from 0 when in answer mode
   useEffect(() => {
@@ -200,9 +201,9 @@ function MockInterviewQuestion() {
           setResponseText("");
           setResponseStartTime(new Date());
           setShowGuidance(false);
-
-          // Reload session to update progress
-          loadSession();
+          setIsPreviewMode(true);
+          setPreviewTimeRemaining(5);
+          setResponseTimer(0);
         } else {
           // Interview complete
           showFlash("All questions completed!", "success");
