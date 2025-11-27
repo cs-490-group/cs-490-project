@@ -9,12 +9,8 @@ export default function MaterialsModal({ job, onClose, onSave }) {
   const [selectedResume, setSelectedResume] = useState("");
   const [selectedCoverLetter, setSelectedCoverLetter] = useState("");
   
-  const [uploadType, setUploadType] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
-  const [showComparison, setShowComparison] = useState(false);
-  const [compareVersions, setCompareVersions] = useState({ v1: null, v2: null });
   const [materialsHistory, setMaterialsHistory] = useState(job?.materials_history || []);
 
   useEffect(() => {
@@ -55,160 +51,20 @@ export default function MaterialsModal({ job, onClose, onSave }) {
     }
   };
 
-  const handleFileUpload = async (e, type) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf' && !file.type.includes('word')) {
-      alert("Please upload a PDF or Word document");
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert("File must be less than 10MB");
-      return;
-    }
-
-    const versionName = prompt("Enter version name (e.g., 'Tech Companies v2', 'General'):", "Version 1");
-    if (!versionName) return;
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('version_name', versionName);
-      formData.append('description', `Uploaded for ${job.title} at ${job.company}`);
-
-      console.log(`📤 Uploading ${type}...`);
-
-      if (type === 'resume') {
-        const response = await ResumesAPI.add(formData);
-        console.log('✅ Resume upload response:', response);
-        const newResume = response.data;
-        
-        const resumeId = newResume._id || newResume.id || newResume.resume_id;
-        console.log('📌 New resume ID:', resumeId);
-        
-        setResumes([...resumes, newResume]);
-        setSelectedResume(resumeId);
-      } else {
-        const response = await CoverLetterAPI.upload(formData);
-        console.log('✅ Cover letter upload response:', response);
-        const newCoverLetter = response.data;
-        
-        const coverLetterId = newCoverLetter._id || newCoverLetter.id || newCoverLetter.cover_letter_id;
-        console.log('📌 New cover letter ID:', coverLetterId);
-        
-        setCoverLetters([...coverLetters, newCoverLetter]);
-        setSelectedCoverLetter(coverLetterId);
-      }
-      
-      setUploadType(null);
-      alert('✅ File uploaded successfully!');
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      alert(`Failed to upload file: ${error.message}`);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleDownload = async (material, type) => {
-    try {
-      const materialId = getMaterialId(material);
-      
-      let response;
-      if (type === 'resume') {
-        response = await ResumesAPI.get(materialId);
-      } else {
-        response = await CoverLetterAPI.get(materialId);
-      }
-
-      if (response.data.file_url) {
-        window.open(response.data.file_url, '_blank');
-      } else if (response.data.file_content) {
-        const blob = new Blob([response.data.file_content], { type: material.file_type || 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = material.file_name || material.name || `document.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
-      } else {
-        alert("Download not available for this file");
-      }
-    } catch (error) {
-      console.error("Error downloading file:", error);
-      alert("Failed to download file. Please try again.");
-    }
-  };
-
   const handleView = async (material, type) => {
     try {
       const materialId = getMaterialId(material);
       
-      let response;
       if (type === 'resume') {
-        response = await ResumesAPI.get(materialId);
+        // For resumes, navigate to preview page
+        window.open(`/resumes/preview/${materialId}`, '_blank');
       } else {
-        response = await CoverLetterAPI.get(materialId);
-      }
-
-      if (response.data.file_url) {
-        window.open(response.data.file_url, '_blank');
-      } else if (response.data.file_content) {
-        const blob = new Blob([response.data.file_content], { type: material.file_type || 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      } else {
-        alert("Preview not available for this file");
+        // For cover letters, navigate to edit page
+        window.open(`/cover-letter/edit/${materialId}`, '_blank');
       }
     } catch (error) {
       console.error("Error viewing file:", error);
       alert("Failed to view file. Please try again.");
-    }
-  };
-
-  const handleDelete = async (id, type) => {
-    if (!window.confirm("Are you sure you want to delete this document?")) return;
-
-    try {
-      if (type === 'resume') {
-        await ResumesAPI.delete(id);
-        setResumes(resumes.filter(r => getMaterialId(r) !== id));
-        if (selectedResume === id) setSelectedResume("");
-      } else {
-        await CoverLetterAPI.delete(id);
-        setCoverLetters(coverLetters.filter(c => getMaterialId(c) !== id));
-        if (selectedCoverLetter === id) setSelectedCoverLetter("");
-      }
-      alert('✅ Document deleted successfully!');
-    } catch (error) {
-      console.error("Error deleting file:", error);
-      alert("Failed to delete file. Please try again.");
-    }
-  };
-
-  const handleSetDefault = async (id, type) => {
-    try {
-      if (type === 'resume') {
-        await ResumesAPI.setDefault(id);
-        setResumes(resumes.map(r => ({
-          ...r,
-          is_default: getMaterialId(r) === id
-        })));
-      } else {
-        await CoverLetterAPI.setDefault(id);
-        setCoverLetters(coverLetters.map(c => ({
-          ...c,
-          is_default: getMaterialId(c) === id
-        })));
-      }
-      alert('✅ Default material set successfully!');
-    } catch (error) {
-      console.error("Error setting default:", error);
-      alert("Failed to set default. Please try again.");
     }
   };
 
@@ -298,7 +154,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
               Version: {versionName}
             </div>
             <div style={{ fontSize: "11px", color: "#999" }}>
-              Uploaded: {new Date(uploadDate).toLocaleDateString()}
+              Created: {new Date(uploadDate).toLocaleDateString()}
             </div>
             {fileSize > 0 && (
               <div style={{ fontSize: "11px", color: "#999" }}>
@@ -310,7 +166,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                 Used for {usageCount} application(s)
               </div>
             )}
-            {material.is_default && (
+            {(material.default_resume || material.default_cover_letter) && (
               <div style={{ 
                 fontSize: "10px", 
                 color: "#4caf50", 
@@ -338,78 +194,6 @@ export default function MaterialsModal({ job, onClose, onSave }) {
               }}
             >
               👁 View
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownload(material, type);
-              }}
-              style={{
-                padding: "4px 8px",
-                background: "#4f8ef7",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "11px"
-              }}
-            >
-              📥 Download
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSetDefault(materialId, type);
-              }}
-              style={{
-                padding: "4px 8px",
-                background: material.is_default ? "#9e9e9e" : "#4caf50",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "11px"
-              }}
-              disabled={material.is_default}
-            >
-              ⭐ {material.is_default ? 'Default' : 'Set Default'}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setCompareVersions(prev => ({
-                  ...prev,
-                  [prev.v1 ? 'v2' : 'v1']: { material, type }
-                }));
-              }}
-              style={{
-                padding: "4px 8px",
-                background: "#ff9800",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "11px"
-              }}
-            >
-              🔄 Compare
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(materialId, type);
-              }}
-              style={{
-                padding: "4px 8px",
-                background: "#f44336",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "11px"
-              }}
-            >
-              🗑️ Delete
             </button>
           </div>
         </div>
@@ -493,7 +277,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
             <strong>Cover Letter:</strong> {selectedCoverLetterName}
           </div>
           <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #ddd", fontSize: "11px", color: "#666" }}>
-            {resumes.length} resume(s) | {coverLetters.length} cover letter(s) loaded
+            {resumes.length} resume(s) | {coverLetters.length} cover letter(s) available
           </div>
         </div>
 
@@ -512,21 +296,6 @@ export default function MaterialsModal({ job, onClose, onSave }) {
             }}
           >
             📜 {showHistory ? 'Hide' : 'Show'} History
-          </button>
-          <button
-            onClick={() => setShowComparison(!showComparison)}
-            style={{
-              padding: "6px 12px",
-              background: showComparison ? "#ff9800" : "#e0e0e0",
-              color: showComparison ? "white" : "#333",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: "600"
-            }}
-          >
-            🔄 {showComparison ? 'Hide' : 'Show'} Comparison
           </button>
         </div>
 
@@ -551,82 +320,13 @@ export default function MaterialsModal({ job, onClose, onSave }) {
           </div>
         )}
 
-        {showComparison && (
-          <div style={{ marginBottom: "20px", padding: "16px", background: "#fff3e0", borderRadius: "6px" }}>
-            <h3 style={{ fontSize: "16px", marginTop: 0, color: "#333" }}>🔄 Version Comparison</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div>
-                <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Version 1</div>
-                {compareVersions.v1 ? (
-                  <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
-                    <div><strong>{compareVersions.v1.material.version_name || 'Unnamed'}</strong></div>
-                    <div style={{ color: "#666" }}>Type: {compareVersions.v1.type}</div>
-                    {compareVersions.v1.material.file_size && (
-                      <div style={{ color: "#666" }}>Size: {(compareVersions.v1.material.file_size / 1024).toFixed(1)} KB</div>
-                    )}
-                    <button
-                      onClick={() => setCompareVersions(prev => ({ ...prev, v1: null }))}
-                      style={{
-                        marginTop: "4px",
-                        padding: "4px 8px",
-                        background: "#f44336",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "11px"
-                      }}
-                    >
-                      Clear
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ padding: "20px", background: "white", borderRadius: "4px", textAlign: "center", fontSize: "12px", color: "#999" }}>
-                    Click "Compare" on a material
-                  </div>
-                )}
-              </div>
-              <div>
-                <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Version 2</div>
-                {compareVersions.v2 ? (
-                  <div style={{ padding: "8px", background: "white", borderRadius: "4px", fontSize: "12px" }}>
-                    <div><strong>{compareVersions.v2.material.version_name || 'Unnamed'}</strong></div>
-                    <div style={{ color: "#666" }}>Type: {compareVersions.v2.type}</div>
-                    {compareVersions.v2.material.file_size && (
-                      <div style={{ color: "#666" }}>Size: {(compareVersions.v2.material.file_size / 1024).toFixed(1)} KB</div>
-                    )}
-                    <button
-                      onClick={() => setCompareVersions(prev => ({ ...prev, v2: null }))}
-                      style={{
-                        marginTop: "4px",
-                        padding: "4px 8px",
-                        background: "#f44336",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "11px"
-                      }}
-                    >
-                      Clear
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ padding: "20px", background: "white", borderRadius: "4px", textAlign: "center", fontSize: "12px", color: "#999" }}>
-                    Click "Compare" on another material
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
               <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>📝 Resumes ({resumes.length})</h3>
-              <button
-                onClick={() => setUploadType('resume')}
+              <a 
+                href="/resumes/templates" 
+                target="_blank"
                 style={{
                   padding: "6px 12px",
                   background: "#34c759",
@@ -635,45 +335,19 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                   borderRadius: "4px",
                   cursor: "pointer",
                   fontSize: "12px",
-                  fontWeight: "600"
+                  fontWeight: "600",
+                  textDecoration: "none",
+                  display: "inline-block"
                 }}
               >
-                + Upload Resume
-              </button>
+                + Create New Resume
+              </a>
             </div>
-
-            {uploadType === 'resume' && (
-              <div style={{ marginBottom: "12px", padding: "12px", background: "#f0f7ff", borderRadius: "6px" }}>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => handleFileUpload(e, 'resume')}
-                  disabled={uploading}
-                  style={{ fontSize: "13px" }}
-                />
-                <button
-                  onClick={() => setUploadType(null)}
-                  style={{
-                    marginLeft: "8px",
-                    padding: "4px 8px",
-                    background: "#999",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "12px"
-                  }}
-                >
-                  Cancel
-                </button>
-                {uploading && <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>Uploading...</div>}
-              </div>
-            )}
 
             <div style={{ maxHeight: "400px", overflowY: "auto" }}>
               {resumes.length === 0 ? (
                 <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px", border: "2px dashed #ddd", borderRadius: "6px" }}>
-                  No resumes uploaded yet
+                  No resumes available. <a href="/resumes/templates" target="_blank">Create one</a>
                 </div>
               ) : (
                 resumes.map((resume, idx) => {
@@ -695,8 +369,9 @@ export default function MaterialsModal({ job, onClose, onSave }) {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
               <h3 style={{ margin: 0, fontSize: "16px", color: "#333" }}>✉️ Cover Letters ({coverLetters.length})</h3>
-              <button
-                onClick={() => setUploadType('coverLetter')}
+              <a 
+                href="/cover-letter" 
+                target="_blank"
                 style={{
                   padding: "6px 12px",
                   background: "#34c759",
@@ -705,45 +380,19 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                   borderRadius: "4px",
                   cursor: "pointer",
                   fontSize: "12px",
-                  fontWeight: "600"
+                  fontWeight: "600",
+                  textDecoration: "none",
+                  display: "inline-block"
                 }}
               >
-                + Upload Cover Letter
-              </button>
+                + Create New Cover Letter
+              </a>
             </div>
-
-            {uploadType === 'coverLetter' && (
-              <div style={{ marginBottom: "12px", padding: "12px", background: "#f0f7ff", borderRadius: "6px" }}>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => handleFileUpload(e, 'coverLetter')}
-                  disabled={uploading}
-                  style={{ fontSize: "13px" }}
-                />
-                <button
-                  onClick={() => setUploadType(null)}
-                  style={{
-                    marginLeft: "8px",
-                    padding: "4px 8px",
-                    background: "#999",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "12px"
-                  }}
-                >
-                  Cancel
-                </button>
-                {uploading && <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>Uploading...</div>}
-              </div>
-            )}
 
             <div style={{ maxHeight: "400px", overflowY: "auto" }}>
               {coverLetters.length === 0 ? (
                 <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "14px", border: "2px dashed #ddd", borderRadius: "6px" }}>
-                  No cover letters uploaded yet
+                  No cover letters available. <a href="/cover-letter" target="_blank">Create one</a>
                 </div>
               ) : (
                 coverLetters.map((letter, idx) => {

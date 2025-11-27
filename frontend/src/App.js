@@ -70,7 +70,7 @@ export function App() {
                 <Route path = "/set-password" element = {<SetPassword />} />
                 <Route path = "/dashboard" element = {<Dashboard />} />
                 <Route path = "/resetPassword/:token" element = {<ResetPassword />}/>
-                <Route path = "/coverLetter" element = {<CoverLetter />} />
+                <Route path = "/cover-Letter" element = {<CoverLetter />} />
                 <Route path="/cover-letter/edit/:id" element={<CoverLetterEditPage />} />
 
               <Route path="/skills" element={<SkillsList />} />
