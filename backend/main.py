@@ -10,6 +10,8 @@ load_dotenv(dotenv_path=env_path)
 
 from routes.auth import auth_router
 from routes.profiles import profiles_router
+from routes.groups import groups_router
+from routes.posts import posts_router
 from routes.skills import skills_router
 from routes.projects import projects_router
 from routes.employment import employment_router
@@ -55,6 +57,8 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix = api_prefix)
 app.include_router(profiles_router, prefix = api_prefix)
+app.include_router(groups_router, prefix = api_prefix)
+app.include_router(posts_router,prefix = api_prefix)
 app.include_router(skills_router, prefix = api_prefix)
 app.include_router(projects_router, prefix = api_prefix)
 app.include_router(education_router, prefix = api_prefix)
