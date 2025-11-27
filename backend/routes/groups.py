@@ -16,6 +16,7 @@ async def create_group(request: CreateGroupRequest):
             "maxMembers": request.maxMembers,
             "creator_id": request.uuid,
             "members": [{"uuid": request.uuid, "role": "admin"}],
+            "postsVisibleToNonMembers": True,  
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
@@ -37,7 +38,6 @@ async def create_group(request: CreateGroupRequest):
 async def get_all_groups():
     try:
         groups = await groups_dao.get_all_groups()
-        
         return [
             {
                 "id": str(group["_id"]),
@@ -53,12 +53,10 @@ async def get_all_groups():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-# GET specific group by ID - MUST come BEFORE /user/ route
 @groups_router.get("/{group_id}")
 async def get_group(group_id: str):
     try:
         group = await groups_dao.get_group(group_id)
-        
         if not group:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
         
@@ -68,6 +66,7 @@ async def get_group(group_id: str):
             "category": group.get("category"),
             "maxMembers": group.get("maxMembers"),
             "members": group.get("members", []),
+            "postsVisibleToNonMembers": group.get("postsVisibleToNonMembers", True),  
             "createdAt": group.get("created_at")
         }
     except HTTPException:
@@ -76,12 +75,10 @@ async def get_group(group_id: str):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-# Get user groups - MUST come AFTER /{group_id} route
 @groups_router.get("/user/{user_id}")
 async def get_user_groups(user_id: str):
     try:
         groups = await groups_dao.get_all_user_groups(user_id)
-        
         return [
             {
                 "id": str(group["_id"]),
@@ -100,14 +97,11 @@ async def get_user_groups(user_id: str):
 async def get_user_group(group_id: str, user_id: str):
     try:
         group_id = ObjectId(group_id)
-        
         group = await groups_dao.collection.find_one({"_id": group_id})
-        
         if not group:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
         
-        user_member = next((m for m in group.get("members", []) if m["user_id"] == user_id), None)
-        
+        user_member = next((m for m in group.get("members", []) if m["uuid"] == user_id), None)
         if not user_member:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not in group")
         
@@ -127,23 +121,17 @@ async def get_user_group(group_id: str, user_id: str):
 async def join_group(request: JoinGroupRequest):
     try:
         group_id = ObjectId(request.groupId)
-        
         group = await groups_dao.collection.find_one({"_id": group_id})
-        
         if not group:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
         
-        # Check if user is already a member
-        user_already_member = any(m["uuid"] == request.uuid for m in group.get("members", []))
-        if user_already_member:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You are already a member of this group")
+        if any(m["uuid"] == request.uuid for m in group.get("members", [])):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You are already a member")
         
-        current_members = len(group.get("members", []))
-        if current_members >= group.get("maxMembers", 50):
+        if len(group.get("members", [])) >= group.get("maxMembers", 50):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Group is full")
         
         result = await groups_dao.add_user_to_group(group_id, request.uuid, request.role)
-        
         if result == 0:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to join group")
         
@@ -158,12 +146,9 @@ async def join_group(request: JoinGroupRequest):
 async def leave_group(group_id: str, request: JoinGroupRequest):
     try:
         group_id = ObjectId(group_id)
-        
         result = await groups_dao.remove_user_from_group(group_id, request.uuid)
-        
         if result == 0:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to leave group - user not found or already left")
-        
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to leave group")
         return {"message": "Successfully left the group"}
     except HTTPException:
         raise
@@ -175,12 +160,9 @@ async def leave_group(group_id: str, request: JoinGroupRequest):
 async def update_user_in_group(group_id: str, user_id: str, request: UpdateUserRoleRequest):
     try:
         group_id = ObjectId(group_id)
-        
         result = await groups_dao.update_user_role(group_id, user_id, request.newRole)
-        
         if result == 0:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update user role")
-        
         return {"message": f"User role updated to {request.newRole}"}
     except HTTPException:
         raise
@@ -192,7 +174,6 @@ async def update_user_in_group(group_id: str, user_id: str, request: UpdateUserR
 async def update_group(group_id: str, request: UpdateGroupRequest):
     try:
         group_id = ObjectId(group_id)
-        
         update_data = {}
         if request.name:
             update_data["name"] = request.name
@@ -200,14 +181,13 @@ async def update_group(group_id: str, request: UpdateGroupRequest):
             update_data["category"] = request.category
         if request.maxMembers:
             update_data["maxMembers"] = request.maxMembers
-        
+        if hasattr(request, "postsVisibleToNonMembers"):
+            update_data["postsVisibleToNonMembers"] = request.postsVisibleToNonMembers
         update_data["updated_at"] = datetime.utcnow()
         
         result = await groups_dao.update_group(group_id, update_data)
-        
         if result == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
-        
         return {"message": "Group updated successfully"}
     except HTTPException:
         raise
@@ -219,12 +199,9 @@ async def update_group(group_id: str, request: UpdateGroupRequest):
 async def delete_group(group_id: str):
     try:
         group_id = ObjectId(group_id)
-        
         result = await groups_dao.delete_group(group_id)
-        
         if result == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
-        
         return {"message": "Group deleted successfully"}
     except HTTPException:
         raise

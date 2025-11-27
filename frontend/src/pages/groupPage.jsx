@@ -21,15 +21,16 @@ function GroupPage() {
   const [commentTexts, setCommentTexts] = useState({});
   const [username, setUsername] = useState('');
 
-
   const [webinarTitle, setWebinarTitle] = useState('');
   const [webinarLink, setWebinarLink] = useState('');
   const [webinars, setWebinars] = useState([]);
 
+
+  const [postsVisibleToNonMembers, setPostsVisibleToNonMembers] = useState(true);
+
   const isUserInGroup = () => group?.members?.some(m => m.uuid === uuid);
   const isUserAdmin = () => group?.members?.some(m => m.uuid === uuid && m.role === 'admin');
 
-  
   const postTypeMap = {
     insight: 'insight',
     strategy: 'strategy',
@@ -49,6 +50,10 @@ function GroupPage() {
     try {
       const data = await groupAPI.getGroup(groupId);
       setGroup(data);
+
+  
+      setPostsVisibleToNonMembers(data.postsVisibleToNonMembers ?? true);
+
     } catch (error) {
       console.error('Error fetching group:', error);
       showFlash('Failed to load group', 'error');
@@ -187,8 +192,19 @@ function GroupPage() {
     }
   };
 
-  if (!group) return <div style={{ padding: '20px' }}>Loading group...</div>;
 
+  const handleTogglePrivacy = async (value) => {
+  try {
+    setPostsVisibleToNonMembers(value);
+    await groupAPI.updateGroupSettings(groupId, { postsVisibleToNonMembers: value });
+    showFlash('Privacy updated', 'success');
+  } catch (err) {
+    console.error(err);
+    showFlash('Failed to update privacy', 'error');
+  }
+};
+
+  if (!group) return <div style={{ padding: '20px' }}>Loading group...</div>;
 
   let displayedPosts = [];
   if (activeTab === 'feed') {
@@ -201,7 +217,6 @@ function GroupPage() {
     <div style={{ width: '100%', backgroundColor: '#f3f4f6', minHeight: '100vh', padding: '32px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
 
-  
         <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '24px', marginBottom: '24px' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, marginBottom: '8px' }}>{group.name}</h1>
           <p style={{ color: '#666', margin: 0, marginBottom: '16px' }}>{group.category}</p>
@@ -234,10 +249,37 @@ function GroupPage() {
           ))}
         </div>
 
- 
-        {activeTab !== 'coaching' && (
+
+        {activeTab === 'privacy' && (
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>Group Privacy</h3>
+
+            {!isUserAdmin() && (
+              <p style={{ color: '#999' }}>Only admins can manage privacy settings.</p>
+            )}
+
+            {isUserAdmin() && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px' }}>
+                <input
+                  type="checkbox"
+                  checked={postsVisibleToNonMembers}
+                  onChange={(e) => handleTogglePrivacy(e.target.checked)}
+                />
+                Allow non-members to view posts
+              </label>
+            )}
+          </div>
+        )}
+
+
+        {activeTab !== 'coaching' && activeTab !== 'privacy' && (
           <>
-  
             <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '24px', marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginTop: 0 }}>Share with Your Community</h3>
               {!isUserInGroup() && (
@@ -280,7 +322,6 @@ function GroupPage() {
               </button>
             </div>
 
-
             <div>
               {loading ? (
                 <p>Loading posts...</p>
@@ -288,11 +329,24 @@ function GroupPage() {
                 <p>No posts yet.</p>
               ) : (
                 displayedPosts.map(post => (
-                  <div key={post.id} style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '20px', marginBottom: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                  <div
+                    key={post.id}
+                    style={{
+                      filter: !postsVisibleToNonMembers && !isUserInGroup() ? 'blur(5px)' : 'none',
+                      pointerEvents: !postsVisibleToNonMembers && !isUserInGroup() ? 'none' : 'auto',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      marginBottom: '16px',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                       <div>
                         <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>
-                          <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '4px', marginRight: '8px' }}>{post.postType}</span>
+                          <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '4px', marginRight: '8px' }}>
+                            {post.postType}
+                          </span>
                           {post.isAnonymous ? 'Anonymous' : post.username}
                         </div>
                         <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>{post.title}</h3>
@@ -301,6 +355,7 @@ function GroupPage() {
                         <button onClick={() => handleDeletePost(post.id)} style={{ backgroundColor: '#ef4444', color: 'white', padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px' }}>Delete</button>
                       )}
                     </div>
+
                     <p>{post.content}</p>
 
                     <div style={{ marginBottom: '12px' }}>
@@ -341,61 +396,60 @@ function GroupPage() {
           </>
         )}
 
-{activeTab === 'coaching' && (
-  <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Post a Webinar</h3>
+        {activeTab === 'coaching' && (
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Post a Webinar</h3>
 
-    {!isUserInGroup() && <p style={{ color: '#92400e' }}>⚠️ Join this group to post webinars.</p>}
+            {!isUserInGroup() && <p style={{ color: '#92400e' }}>⚠️ Join this group to post webinars.</p>}
 
-    {isUserInGroup() && (
-      <>
-        <input
-          type="text"
-          placeholder="Webinar Title"
-          value={webinarTitle}
-          onChange={(e) => setWebinarTitle(e.target.value)}
-          style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #ddd' }}
-        />
-        <input
-          type="text"
-          placeholder="Webinar Link (Webex, Zoom, etc.)"
-          value={webinarLink}
-          onChange={(e) => setWebinarLink(e.target.value)}
-          style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #ddd' }}
-        />
-        <button
-          onClick={handleCreateWebinar}
-          style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold', cursor: 'pointer', marginBottom: '16px' }}
-        >
-          Post Webinar
-        </button>
-      </>
-    )}
+            {isUserInGroup() && (
+              <>
+                <input
+                  type="text"
+                  placeholder="Webinar Title"
+                  value={webinarTitle}
+                  onChange={(e) => setWebinarTitle(e.target.value)}
+                  style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #ddd' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Webinar Link (Webex, Zoom, etc.)"
+                  value={webinarLink}
+                  onChange={(e) => setWebinarLink(e.target.value)}
+                  style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #ddd' }}
+                />
+                <button
+                  onClick={handleCreateWebinar}
+                  style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold', cursor: 'pointer', marginBottom: '16px' }}
+                >
+                  Post Webinar
+                </button>
+              </>
+            )}
 
-    <div>
-      {webinars.length === 0 ? (
-        <p>No webinars posted yet.</p>
-      ) : (
-        webinars.map(webinar => (
-          <div key={webinar.id} style={{ borderTop: '1px solid #eee', padding: '12px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 'bold', marginRight: '12px' }}>{webinar.title}</span>
-              {(webinar.uuid === uuid || isUserAdmin()) && (
-                <button onClick={() => handleDeletePost(webinar.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>Delete</button>
+            <div>
+              {webinars.length === 0 ? (
+                <p>No webinars posted yet.</p>
+              ) : (
+                webinars.map(webinar => (
+                  <div key={webinar.id} style={{ borderTop: '1px solid #eee', padding: '12px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 'bold', marginRight: '12px' }}>{webinar.title}</span>
+                      {(webinar.uuid === uuid || isUserAdmin()) && (
+                        <button onClick={() => handleDeletePost(webinar.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>Delete</button>
+                      )}
+                    </div>
+                    <div style={{ marginTop: '4px' }}>
+                      <a href={webinar.content} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>
+                        {webinar.content}
+                      </a>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
-            <div style={{ marginTop: '4px' }}>
-              <a href={webinar.content} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>
-                {webinar.content}
-              </a>
-            </div>
           </div>
-        ))
-      )}
-    </div>
-  </div>
-)}
-
+        )}
 
       </div>
     </div>
