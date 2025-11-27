@@ -13,6 +13,7 @@ from schema.MockInterview import (
 )
 from mongo.mock_interview_dao import MockInterviewSessionDAO
 from services.interview_scenario_service import InterviewScenarioService
+from services.interview_coaching_service import InterviewCoachingService
 from mongo.dao_setup import db_client
 from sessions.session_authorizer import authorize
 
@@ -22,6 +23,7 @@ mock_interview_router = APIRouter(prefix="/mock-interview", tags=["mock-intervie
 # Initialize DAOs and services
 session_dao = MockInterviewSessionDAO(db_client)
 scenario_service = InterviewScenarioService(db_client)
+coaching_service = InterviewCoachingService(db_client)
 
 
 # ============================================================================
@@ -150,6 +152,46 @@ async def submit_interview_response(
         # Add response to session
         await session_dao.add_response(session_id, interview_response)
 
+        # ====================================================================
+        # UC-076: GENERATE AI COACHING FEEDBACK
+        # ====================================================================
+        try:
+            # Generate coaching feedback asynchronously
+            coaching_feedback = await coaching_service.generate_response_feedback(
+                response_text=request_data.response_text,
+                response_duration_seconds=request_data.response_duration_seconds,
+                question_text=current_question["prompt"],
+                question_category=current_question["category"],
+                question_difficulty=current_question["difficulty"],
+                expected_skills=current_question.get("expected_skills", []),
+                interviewer_guidance=current_question.get("interviewer_guidance", ""),
+                question_id=current_question_uuid
+            )
+
+            # Update the response with coaching data
+            coaching_score = coaching_feedback.get("overall_score", None)
+            coaching_timestamp = datetime.now(timezone.utc)
+
+            # Prepare updated response with coaching data
+            interview_response_with_coaching = {
+                **interview_response,
+                "coaching_feedback": coaching_feedback,
+                "coaching_score": coaching_score,
+                "coaching_timestamp": coaching_timestamp
+            }
+
+            # Update the response in database with coaching info
+            # Get the index of the response we just added (it's the last one)
+            updated_responses = interview_response_with_coaching
+            await session_dao.update_response(session_id, current_index, updated_responses)
+
+        except Exception as coaching_error:
+            # Log but don't fail if coaching generation fails
+            print(f"Warning: Failed to generate coaching feedback: {str(coaching_error)}")
+            coaching_feedback = None
+            coaching_score = None
+            # Response is still saved without coaching, user can continue interview
+
         # Move to next question
         next_index = current_index + 1
         await session_dao.set_current_question_index(session_id, next_index)
@@ -157,13 +199,20 @@ async def submit_interview_response(
         # Check if there are more questions
         if next_index >= len(session["question_sequence"]):
             # Interview is complete
-            return SubmitInterviewResponseResponse(
+            response = SubmitInterviewResponseResponse(
                 detail="Response saved. Interview complete!",
                 session_id=session_id,
                 response_saved=True,
                 next_question=None,
                 questions_remaining=0
             )
+            # Add coaching feedback to response if available
+            if coaching_feedback:
+                response_dict = response.dict()
+                response_dict["coaching_feedback"] = coaching_feedback
+                response_dict["coaching_score"] = coaching_score
+                return response_dict
+            return response
 
         # Get next question
         next_question_uuid = session["question_sequence"][next_index]
@@ -181,13 +230,22 @@ async def submit_interview_response(
             "total_questions": len(session["question_sequence"])
         }
 
-        return SubmitInterviewResponseResponse(
+        response = SubmitInterviewResponseResponse(
             detail="Response saved successfully",
             session_id=session_id,
             response_saved=True,
             next_question=next_question_data,
             questions_remaining=len(session["question_sequence"]) - next_index
         )
+
+        # Add coaching feedback to response if available
+        if coaching_feedback:
+            response_dict = response.dict()
+            response_dict["coaching_feedback"] = coaching_feedback
+            response_dict["coaching_score"] = coaching_score
+            return response_dict
+
+        return response
 
     except HTTPException:
         raise
@@ -217,6 +275,40 @@ async def complete_interview_session(
             raise HTTPException(status_code=403, detail="Unauthorized access to this session")
 
         # Generate basic performance summary (infrastructure ready for UC-080, UC-085)
+        # ====================================================================
+        # UC-076: AGGREGATE COACHING METRICS
+        # ====================================================================
+
+        # Calculate coaching scores (UC-076)
+        coaching_scores = [r.get("coaching_score") for r in session["responses"] if r.get("coaching_score")]
+        overall_coaching_score = (
+            sum(coaching_scores) / len(coaching_scores) if coaching_scores else None
+        )
+
+        # Compile improvement recommendations from all coaching feedback
+        all_improvements = []
+        for response in session["responses"]:
+            if response.get("coaching_feedback"):
+                improvements = response["coaching_feedback"].get("recommended_improvements", [])
+                all_improvements.extend(improvements)
+
+        # Compile coaching strengths
+        all_strengths = []
+        for response in session["responses"]:
+            if response.get("coaching_feedback"):
+                strengths = response["coaching_feedback"].get("strengths", [])
+                all_strengths.extend(strengths)
+
+        # Remove duplicates while preserving order
+        unique_improvements = []
+        for imp in all_improvements:
+            if imp not in unique_improvements:
+                unique_improvements.append(imp)
+        unique_strengths = []
+        for strength in all_strengths:
+            if strength not in unique_strengths:
+                unique_strengths.append(strength)
+
         performance_summary = {
             "total_questions_answered": len(session["responses"]),
             "total_questions_in_session": len(session["question_sequence"]),
@@ -234,7 +326,12 @@ async def complete_interview_session(
             "situational_count": len([r for r in session["responses"] if r["question_category"] == "situational"]),
             "company_count": len([r for r in session["responses"] if r["question_category"] == "company"]),
             "overall_score": None,  # Will be populated by UC-080/085
-            "areas_for_improvement": [],  # Will be populated by UC-080/085
+            "areas_for_improvement": unique_improvements,  # From UC-076 coaching
+            # UC-076 coaching metrics
+            "overall_coaching_score": round(overall_coaching_score, 1) if overall_coaching_score else None,
+            "coaching_scores": coaching_scores,
+            "coaching_strengths": unique_strengths[:5],  # Top 5 unique strengths
+            "coaching_recommendations": unique_improvements[:5],  # Top 5 unique improvements
         }
 
         # Complete the session

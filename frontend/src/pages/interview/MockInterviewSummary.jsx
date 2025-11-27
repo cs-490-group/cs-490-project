@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MockInterviewAPI from "../../api/mockInterview";
 import { useFlash } from "../../context/flashContext";
+import CoachingFeedbackPanel from "../../components/CoachingFeedbackPanel";
 import "../../styles/mockInterview.css";
 
 function MockInterviewSummary() {
@@ -402,21 +403,97 @@ function MockInterviewSummary() {
                     <p>{response.response_text}</p>
                   </div>
 
-                  {/* Placeholder for AI Coaching Feedback (UC-076) */}
+                  {/* UC-076: AI Coaching Feedback */}
                   {response.coaching_feedback ? (
-                    <div className="coaching-feedback">
-                      <h5>AI Coaching Feedback</h5>
-                      <p>Score: {response.coaching_score}/100</p>
-                      {/* More feedback details will be populated by UC-076 */}
+                    <div className="response-coaching-section">
+                      <div className="coaching-score-badge">
+                        <span className="score-label">AI Coaching Score</span>
+                        <span className="score-value">{Math.round(response.coaching_score)}</span>
+                      </div>
+                      <CoachingFeedbackPanel
+                        feedback={response.coaching_feedback}
+                        loading={false}
+                        questionCategory={response.question_category}
+                      />
                     </div>
                   ) : (
                     <div className="coaching-placeholder">
-                      <p>💡 AI coaching feedback will be available when UC-076 is integrated</p>
+                      <p>💡 AI coaching feedback is being generated...</p>
                     </div>
                   )}
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* UC-076: Overall Coaching Insights */}
+        {session.performance_summary && (
+          <section className="summary-section coaching-insights">
+            <h2>🎯 Overall Coaching Insights</h2>
+
+            {session.performance_summary.overall_coaching_score !== null && (
+              <div className="overall-coaching-score">
+                <div className="score-display">
+                  <div className="large-score">{Math.round(session.performance_summary.overall_coaching_score)}</div>
+                  <div className="score-text">Overall Coaching Score</div>
+                </div>
+              </div>
+            )}
+
+            {/* Key Strengths */}
+            {session.performance_summary.coaching_strengths && session.performance_summary.coaching_strengths.length > 0 && (
+              <div className="insights-section">
+                <h4>✓ Your Strengths</h4>
+                <ul className="strengths-list">
+                  {session.performance_summary.coaching_strengths.map((strength, idx) => (
+                    <li key={idx} className="strength-item">
+                      <span className="checkmark">✓</span> {strength}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Key Recommendations */}
+            {session.performance_summary.coaching_recommendations && session.performance_summary.coaching_recommendations.length > 0 && (
+              <div className="insights-section">
+                <h4>→ Key Areas to Improve</h4>
+                <div className="recommendations-list">
+                  {session.performance_summary.coaching_recommendations.map((rec, idx) => (
+                    <div key={idx} className="recommendation-item">
+                      <span className="rec-number">{idx + 1}</span>
+                      <p>{rec}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Coaching Metrics Summary */}
+            {session.performance_summary.coaching_scores && session.performance_summary.coaching_scores.length > 0 && (
+              <div className="coaching-metrics">
+                <h4>📊 Coaching Score Breakdown</h4>
+                <div className="metrics-summary">
+                  <div className="metric-item">
+                    <span className="metric-label">Average Score</span>
+                    <span className="metric-value">{Math.round(session.performance_summary.overall_coaching_score)}/100</span>
+                  </div>
+                  <div className="metric-item">
+                    <span className="metric-label">Highest Score</span>
+                    <span className="metric-value">{Math.round(Math.max(...session.performance_summary.coaching_scores))}/100</span>
+                  </div>
+                  <div className="metric-item">
+                    <span className="metric-label">Lowest Score</span>
+                    <span className="metric-value">{Math.round(Math.min(...session.performance_summary.coaching_scores))}/100</span>
+                  </div>
+                  <div className="metric-item">
+                    <span className="metric-label">Responses Analyzed</span>
+                    <span className="metric-value">{session.performance_summary.coaching_scores.length}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
