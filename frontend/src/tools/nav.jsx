@@ -18,6 +18,7 @@ const Nav = () => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
+  const [showJobsDropdown, setShowJobsDropdown] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState(localStorage.getItem("avatarUrl") || null);
   const [username, setUsername] = React.useState(localStorage.getItem("username") || "");
   const hasValidated = React.useRef(false);
@@ -269,15 +270,39 @@ const Nav = () => {
                   </NavDropdown.Item>
                 </NavDropdown>
 
-                <BootstrapNav.Link as={NavLink} to="/jobs" className="mx-3">
-                  Jobs
-                </BootstrapNav.Link>
+                <NavDropdown
+                  title={
+                    <span
+                      onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      navigate("/jobs");
+                      }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Jobs
+                    </span>
+                  }
+                  id="jobs-dropdown"
+                  className="mx-3"
+                  show={showJobsDropdown}
+                  onMouseEnter={() => setShowJobsDropdown(true)}
+                  onMouseLeave={() => setShowJobsDropdown(false)}
+                >
+                  <NavDropdown.Item as={NavLink} to="/company-news">
+                    Company News
+                  </NavDropdown.Item>
+
+                  <NavDropdown.Item as={NavLink} to="/company-research">
+                    Company Research
+                  </NavDropdown.Item>
+                </NavDropdown>
 
                 <BootstrapNav.Link as={NavLink} to="/resumes" className="mx-3">
                   Resumes
                 </BootstrapNav.Link>
 
-                 <BootstrapNav.Link as={NavLink} to="/coverletter" className="mx-3">
+                <BootstrapNav.Link as={NavLink} to="/coverletter" className="mx-3">
                   Cover Letters
                 </BootstrapNav.Link>
 

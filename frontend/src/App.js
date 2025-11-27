@@ -18,6 +18,8 @@ import EducationList from "./pages/education/EducationList";
 import CertificationList from "./pages/certifications/CertificationList";
 import ProjectsList from "./pages/projects/ProjectList";
 import JobsList from "./pages/jobs/JobList";
+import CompanyNews from "./pages/CompanyNews";
+import CompanyResearch from "./pages/CompanyResearch";
 import CoverLetter from "./pages/coverLetter/coverLetter";
 import CoverLetterEditPage from "./pages/coverLetter/CoverLetterEditPage";
 import ResumeList from "./pages/resumes/ResumeList";
@@ -70,6 +72,8 @@ export function App() {
               <Route path="/certifications" element={<CertificationList />} />
               <Route path="/projects" element={<ProjectsList />} />
               <Route path="/jobs" element={<JobsList />} />
+              <Route path="/company-news" element={<CompanyNews />} />
+              <Route path="/company-research" element={<CompanyResearch />} />
               <Route path="/resumes" element={<ResumeList />} />
               <Route path="/resumes/templates" element={<TemplateLibraryPage />} />
               <Route path="/resumes/edit/:id" element={<ResumeEditor />} />

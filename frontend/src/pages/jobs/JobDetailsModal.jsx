@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import MaterialsModal from "./materials/MaterialsModal";
 import PDFAPI from "../../api/pdf";
 import CoverLetterAPI from "../../api/coverLetters";
+import axios from "axios";
+
 
 export default function JobDetailsModal({
   selectedJob,
@@ -16,6 +18,44 @@ export default function JobDetailsModal({
   setView
 }) {
   const [materialsOpen, setMaterialsOpen] = useState(false);
+
+  // 🔄 Refresh AI Company Research
+const refreshResearch = async () => {
+  try {
+    const res = await axios.post(
+  "/api/company-research",
+  {
+    job_id: selectedJob.id,
+    company: selectedJob.company
+  },
+  {
+    headers: {
+      uuid: localStorage.getItem("uuid"),
+      Authorization: `Bearer ${localStorage.getItem("session_token")}`
+    }
+  }
+);
+
+
+    // Save research into DB + React state
+    await updateJob({
+      ...selectedJob,
+      company_research: res.data.research
+    });
+
+    // Instantly update modal
+    setSelectedJob(prev => ({
+      ...prev,
+      company_research: res.data.research
+    }));
+
+    alert("✅ AI Research updated!");
+  } catch (err) {
+    console.error("Research refresh failed:", err);
+    alert("❌ Failed to refresh research.");
+  }
+};
+
 
   if (!selectedJob) return null;
 
@@ -191,6 +231,157 @@ export default function JobDetailsModal({
             )}
           </div>
         )}
+
+        {/* --- AI COMPANY RESEARCH (EMPTY STATE) --- */}
+{!selectedJob.company_research && (
+  <div style={{ marginBottom: "20px" }}>
+    <h3 style={{
+      marginBottom: "10px",
+      color: "#004c99",
+      fontSize: "16px",
+      fontWeight: "600"
+    }}>
+      🤖 AI Company Research
+    </h3>
+
+    <button
+      onClick={refreshResearch}
+      style={{
+        padding: "10px 20px",
+        background: "#4f8ef7",
+        color: "white",
+        border: "none",
+        borderRadius: "6px",
+        cursor: "pointer",
+        fontSize: "14px",
+        fontWeight: "600"
+      }}
+    >
+      ⚡ Generate AI Research
+    </button>
+  </div>
+)}
+
+
+        {/* --- AI COMPANY RESEARCH SECTION --- */}
+{selectedJob.company_research && (
+  <div style={{ marginBottom: "16px", background: "#eef7ff", padding: "16px", borderRadius: "6px", border: "1px solid #bcdcff" }}>
+    <h3 style={{ margin: "0 0 12px 0", color: "#004c99", fontSize: "16px" }}>🤖 AI Company Research</h3>
+
+    {/* Overview */}
+    {selectedJob.company_research.overview && (
+      <div style={{ marginBottom: "10px" }}>
+        <strong>Overview:</strong>
+        <div style={{ marginTop: "4px", whiteSpace: "pre-wrap", color: "#333" }}>
+          {selectedJob.company_research.overview}
+        </div>
+      </div>
+    )}
+
+    {/* Industry, Size, Mission */}
+    <div style={{ fontSize: "14px", color: "#000" }}>
+      {selectedJob.company_research.industry && (
+        <p><strong>Industry:</strong> {selectedJob.company_research.industry}</p>
+      )}
+      {selectedJob.company_research.size && (
+        <p><strong>Company Size:</strong> {selectedJob.company_research.size}</p>
+      )}
+      {selectedJob.company_research.mission && (
+        <p><strong>Mission:</strong> {selectedJob.company_research.mission}</p>
+      )}
+    </div>
+
+    {/* Products */}
+    {selectedJob.company_research.products?.length > 0 && (
+      <div style={{ marginTop: "10px" }}>
+        <strong>Products:</strong>
+        <ul>
+          {selectedJob.company_research.products.map((p, idx) => (
+            <li key={idx}>{p}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {/* Competitors */}
+    {selectedJob.company_research.competitors?.length > 0 && (
+      <div style={{ marginTop: "10px" }}>
+        <strong>Competitors:</strong>
+        <ul>
+          {selectedJob.company_research.competitors.map((c, idx) => (
+            <li key={idx}>{c}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {/* News */}
+    {selectedJob.company_research.news?.length > 0 && (
+      <div style={{ marginTop: "10px" }}>
+        <strong>Recent News:</strong>
+        <ul>
+          {selectedJob.company_research.news.map((n, idx) => (
+            <li key={idx}>
+              <strong>{n.title}</strong> — {n.date} ({n.source})
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {selectedJob.company_research.summary && (
+      <div style={{ marginTop: "10px" }}>
+        <strong>Summary:</strong>
+        <div style={{ marginTop: "4px", whiteSpace: "pre-wrap" }}>
+          {selectedJob.company_research.summary}
+        </div>
+      </div>
+    )}
+
+    {/* REFRESH BUTTON */}
+    <button
+  onClick={async () => {
+    const response = await axios.post(
+      "/api/company-research",
+      {
+        job_id: selectedJob.id,
+        company: selectedJob.company
+      },
+      {
+        headers: {
+      uuid: localStorage.getItem("uuid"),
+      Authorization: `Bearer ${localStorage.getItem("session_token")}`
+    }
+      }
+    );
+
+    updateJob({ ...selectedJob, company_research: response.data.research });
+
+    setSelectedJob(prev => ({
+      ...prev,
+      company_research: response.data.research
+    }));
+  }}
+
+      style={{
+        marginTop: "12px",
+        padding: "8px 16px",
+        background: "#1976d2",
+        color: "white",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+        fontSize: "13px",
+        fontWeight: "600"
+      }}
+    >
+      🔄 Refresh AI Research
+    </button>
+  </div>
+)}
+
+
+
 
         {/* --- BASIC JOB DETAILS --- */}
         {selectedJob.location && (

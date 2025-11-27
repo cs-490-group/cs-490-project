@@ -14,6 +14,7 @@ class JobMaterials(BaseModel):
     cover_letter_id: Optional[str] = None
     linked_date: Optional[str] = None
 
+
 class MaterialsHistoryEntry(BaseModel):
     date: str
     resume_id: Optional[str] = None
@@ -42,6 +43,7 @@ class Job(BaseModel):
     company_data: Optional[Union[dict, Company]] = None 
     materials: Optional[Union[dict, JobMaterials]] = None
     materials_history: Optional[List[Union[dict, MaterialsHistoryEntry]]] = None
+    company_research: Optional[Union[str, dict]] = None
 
 class UrlBody(BaseModel):
     url: str

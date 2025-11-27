@@ -22,6 +22,7 @@ from routes.resumes import resumes_router
 from routes.resumes_pdf import pdf_router
 from routes.templates import templates_router
 from routes.AI import ai_router
+from routes.companyResearch import company_research_router
 
 app = FastAPI()
 
@@ -64,6 +65,7 @@ app.include_router(user_router,prefix=api_prefix)
 app.include_router(resumes_router, prefix = api_prefix)
 app.include_router(pdf_router, prefix = api_prefix)
 app.include_router(templates_router, prefix = api_prefix)
+app.include_router(company_research_router, prefix=api_prefix)
 
 @app.on_event("startup")
 async def startup_event():

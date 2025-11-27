@@ -19,6 +19,8 @@ import BulkActionsBar from "./BulkActionsBar";
 import JobDetailsModal from "./JobDetailsModal";
 import { useJobFilters } from "./hooks/useJobFilters";
 import { useJobOperations } from "./hooks/useJobOperations";
+import axios from "axios";
+
 
 export default function JobList() {
   const [jobs, setJobs] = useState([]);
@@ -93,6 +95,43 @@ export default function JobList() {
       checkAutoArchive();
     }
   }, [jobs, autoArchiveEnabled, autoArchiveDays]);
+
+    // Auto-research all jobs that have a company but no saved research yet
+  useEffect(() => {
+    if (!jobs || jobs.length === 0) return;
+
+    async function autoResearchJobs() {
+      for (const job of jobs) {
+        // skip if no company or research already exists
+        if (!job.company || job.companyResearch) continue;
+
+        try {
+          console.log("🔍 Running company research for:", job.company);
+
+          const res = await axios.post(
+            "http://127.0.0.1:8000/api/company-research",
+            { company: job.company }
+          );
+
+          const research = res.data;
+
+          // merge research into the job and persist via existing updateJob helper
+          const updatedJob = {
+            ...job,
+            companyResearch: research,   // <- new field on the job document
+          };
+
+          await updateJob(updatedJob);
+        } catch (err) {
+          console.error("Failed to auto-research company:", job.company, err);
+          // continue with next job; don't throw
+        }
+      }
+    }
+
+    autoResearchJobs();
+  }, [jobs, updateJob]);
+
 
   const handleDragStart = (event) => setActiveId(event.active.id);
 
