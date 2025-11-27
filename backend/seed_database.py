@@ -21,7 +21,7 @@ DB_NAME = "interview_prep"
 INDUSTRIES_AND_ROLES = {
     "ind-001": {
         "name": "Software Engineering",
-        "icon": "💻",
+        "icon": "code-bracket",
         "description": "Engineering & Technology roles",
         "category": "Technology",
         "roles": [
@@ -34,7 +34,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-002": {
         "name": "Data Science",
-        "icon": "📊",
+        "icon": "sparkles",
         "description": "Data & Analytics roles",
         "category": "Technology",
         "roles": [
@@ -46,7 +46,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-003": {
         "name": "Product & Design",
-        "icon": "🎨",
+        "icon": "paint-brush",
         "description": "Product Management & UX Design",
         "category": "Product Design",
         "roles": [
@@ -57,7 +57,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-004": {
         "name": "Finance",
-        "icon": "💰",
+        "icon": "building-library",
         "description": "Financial Services & Accounting",
         "category": "Finance",
         "roles": [
@@ -68,7 +68,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-005": {
         "name": "Sales & Marketing",
-        "icon": "📈",
+        "icon": "megaphone",
         "description": "Sales, Marketing & Business Development",
         "category": "Sales & Marketing",
         "roles": [
@@ -79,7 +79,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-006": {
         "name": "Healthcare",
-        "icon": "🏥",
+        "icon": "check-circle",
         "description": "Healthcare & Medical Professions",
         "category": "Healthcare",
         "roles": [
@@ -90,7 +90,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-007": {
         "name": "Education",
-        "icon": "🎓",
+        "icon": "academic-cap",
         "description": "Education & Training",
         "category": "Education",
         "roles": [
@@ -101,7 +101,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-008": {
         "name": "Operations",
-        "icon": "⚙️",
+        "icon": "cog",
         "description": "Operations & Supply Chain",
         "category": "Operations",
         "roles": [
@@ -112,7 +112,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-009": {
         "name": "Human Resources",
-        "icon": "👥",
+        "icon": "user-group",
         "description": "HR & Talent Management",
         "category": "HR",
         "roles": [
@@ -123,7 +123,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-010": {
         "name": "Legal",
-        "icon": "⚖️",
+        "icon": "scale",
         "description": "Legal Services & Compliance",
         "category": "Legal",
         "roles": [
@@ -134,7 +134,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-011": {
         "name": "DevOps & Infrastructure",
-        "icon": "🔧",
+        "icon": "bolt",
         "description": "Cloud & Infrastructure Management",
         "category": "Technology",
         "roles": [
@@ -145,7 +145,7 @@ INDUSTRIES_AND_ROLES = {
     },
     "ind-012": {
         "name": "Consulting",
-        "icon": "💼",
+        "icon": "briefcase",
         "description": "Management & Business Consulting",
         "category": "Consulting",
         "roles": [

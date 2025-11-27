@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import QuestionBankAPI from "../../api/questionBank";
+import IndustryIcon from "../../components/IndustryIcon";
 import "../../styles/industryRoles.css";
 
 // Dummy roles data
@@ -85,30 +86,15 @@ const industryNames = {
   "ind-012": "Consulting",
 };
 
-const industryIcons = {
-  "ind-001": "💻",
-  "ind-002": "📊",
-  "ind-003": "🎨",
-  "ind-004": "💰",
-  "ind-005": "📈",
-  "ind-006": "🏥",
-  "ind-007": "🎓",
-  "ind-008": "⚙️",
-  "ind-009": "👥",
-  "ind-010": "⚖️",
-  "ind-011": "🔧",
-  "ind-012": "💼",
-};
-
 function IndustryRoles() {
   const { industryId } = useParams();
   const navigate = useNavigate();
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [industryName, setIndustryName] = useState("");
-  const [industryIcon, setIndustryIcon] = useState("");
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     loadRoles();
   }, [industryId]);
 
@@ -127,7 +113,6 @@ function IndustryRoles() {
 
     // Set industry metadata
     setIndustryName(industryNames[industryId] || "Industry");
-    setIndustryIcon(industryIcons[industryId] || "📋");
   };
 
   if (loading) {
@@ -149,7 +134,9 @@ function IndustryRoles() {
           ← Back
         </button>
         <div className="header-content">
-          <span className="industry-icon">{industryIcon}</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "50px", height: "50px" }}>
+            <IndustryIcon industryId={industryId} className="w-6 h-6" />
+          </div>
           <div>
             <h1>{industryName}</h1>
             <p>{roles.length} roles available</p>
