@@ -287,6 +287,33 @@ const Nav = () => {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        navigate("/interview/question-library");
+                      }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Interview Prep
+                    </span>
+                  }
+                  id="interview-dropdown"
+                  className="mx-3"
+                >
+                  <NavDropdown.Item as={NavLink} to="/interview/question-library">
+                    Question Library
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/my-practice">
+                    My Practice
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/progress">
+                    Progress
+                  </NavDropdown.Item>
+                </NavDropdown>
+
+                <NavDropdown
+                  title={
+                    <span
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         navigate("/profile");
                       }}
                       style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
