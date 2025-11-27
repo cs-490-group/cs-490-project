@@ -1,0 +1,390 @@
+/* ========================================================================
+   ROLE QUESTIONS PAGE
+   ======================================================================== */
+
+.role-questions-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 40px 20px;
+}
+
+/* Header */
+.role-questions-header {
+  max-width: 1200px;
+  margin: 0 auto 40px;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  animation: slideDown 0.6s ease-out;
+}
+
+.back-button {
+  background: white;
+  border: 2px solid #e0e0e0;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #333;
+  white-space: nowrap;
+}
+
+.back-button:hover {
+  background: #f5f5f5;
+  border-color: #4f8ef7;
+  color: #4f8ef7;
+  transform: translateX(-3px);
+}
+
+.header-content h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1f3a70;
+  margin: 0;
+}
+
+.header-content p {
+  font-size: 1rem;
+  color: #666;
+  margin: 5px 0 0 0;
+}
+
+/* Filters Section */
+.filters-section {
+  max-width: 1200px;
+  margin: 0 auto 40px;
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  animation: slideUp 0.6s ease-out;
+}
+
+.filter-group {
+  margin-bottom: 25px;
+}
+
+.filter-group:last-child {
+  margin-bottom: 0;
+}
+
+.filter-group h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f3a70;
+  margin-bottom: 15px;
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.filter-btn {
+  background: #f5f5f5;
+  color: #333;
+  border: 2px solid transparent;
+  padding: 10px 18px;
+  border-radius: 25px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+  background: #e8f4f8;
+  color: #4f8ef7;
+  border-color: #4f8ef7;
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, #4f8ef7, #0084ff);
+  color: white;
+  border-color: transparent;
+}
+
+/* Questions List */
+.questions-list {
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.question-item {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-left: 5px solid transparent;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.question-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-left-color: #4f8ef7;
+}
+
+.question-number {
+  background: linear-gradient(135deg, #4f8ef7, #0084ff);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.question-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.question-prompt {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f3a70;
+  margin: 0 0 15px 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.question-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.category-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.category-badge.behavioral {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.category-badge.technical {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.category-badge.situational {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.category-badge.company {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.difficulty-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.difficulty-badge.entry {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.difficulty-badge.mid {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.difficulty-badge.senior {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+/* Relevance Badge */
+.relevance-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.relevance-badge.highly-matched {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-left: 3px solid #4caf50;
+}
+
+.relevance-badge.partially-matched {
+  background: #fff8e1;
+  color: #f57f17;
+  border-left: 3px solid #fbc02d;
+}
+
+/* Skills Preview */
+.skills-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skill-tag {
+  background: #f0f0f0;
+  color: #555;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.skill-more {
+  color: #4f8ef7;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
+/* Question Action */
+.question-action {
+  flex-shrink: 0;
+}
+
+.practice-btn {
+  background: linear-gradient(135deg, #4f8ef7, #0084ff);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.practice-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 142, 247, 0.3);
+}
+
+/* No Questions */
+.no-questions {
+  background: white;
+  padding: 80px 40px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.no-questions p {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Loading State */
+.role-questions-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+/* Animations */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .role-questions-header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 30px;
+  }
+
+  .header-content h1 {
+    font-size: 1.6rem;
+  }
+
+  .filters-section {
+    padding: 20px;
+  }
+
+  .filter-buttons {
+    gap: 8px;
+  }
+
+  .filter-btn {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+
+  .question-item {
+    padding: 15px;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .question-action {
+    width: 100%;
+  }
+
+  .practice-btn {
+    width: 100%;
+  }
+
+  .question-meta {
+    margin-bottom: 10px;
+  }
+}
