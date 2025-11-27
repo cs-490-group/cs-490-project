@@ -9,6 +9,8 @@ import Home from "./pages/home";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import Profile from "./pages/profile";
+import CreateGroup from "./pages/createGroup";
+import GroupPage from "./pages/groupPage";
 import EmploymentList from "./pages/employment/EmploymentList";
 import SetPassword from "./pages/setPassword";
 import ForgotPassword from "./pages/forgotPassword";
@@ -57,6 +59,8 @@ export function App() {
                 <Route path = "/register" element = {<Register />} />
                 <Route path = "/login" element = {<Login />} />
                 <Route path = "/profile" element = {<Profile />} />
+                <Route path = "/newGroup" element = {<CreateGroup />} />
+                <Route path = "/group/:groupId" element = {<GroupPage />} />
                 <Route path="/employment-history" element={<EmploymentList />} />
                 <Route path = "/forgotPassword" element = {<ForgotPassword />} />
                 <Route path = "/set-password" element = {<SetPassword />} />
