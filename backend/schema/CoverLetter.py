@@ -26,4 +26,5 @@ class CoverLetterOut(BaseModel):
     created_at: str
     template_type: Optional[str] = None
     usage_count: Optional[int] = 0
+    default_cover_letter: Optional[bool] = False
     job_id: Optional[str] = None  # Add this if it should be in the output

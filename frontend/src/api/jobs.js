@@ -44,6 +44,37 @@ class JobsAPI {
     downloadCompanyImage(jobId) {
         return api.post(`${BASE_URL}/upload-company-image?job_id=${jobId}`);
     }
+
+    // NEW: Get full materials details for a job
+    getMaterials(jobId) {
+        return api.get(`${BASE_URL}/${jobId}/materials`);
+    }
+
+    // NEW: Download linked resume as PDF
+    async downloadLinkedResumePDF(jobId) {
+        try {
+            const response = await api.get(`${BASE_URL}/${jobId}/materials/resume/pdf`, {
+                responseType: 'blob'
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error downloading resume PDF:', error);
+            throw error;
+        }
+    }
+
+    // NEW: Download linked cover letter as PDF
+    async downloadLinkedCoverLetterPDF(jobId) {
+        try {
+            const response = await api.get(`${BASE_URL}/${jobId}/materials/cover-letter/pdf`, {
+                responseType: 'blob'
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error downloading cover letter PDF:', error);
+            throw error;
+        }
+    }
 }
 
 export default new JobsAPI();

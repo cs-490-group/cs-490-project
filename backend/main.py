@@ -24,6 +24,8 @@ from routes.resumes import resumes_router
 from routes.resumes_pdf import pdf_router
 from routes.templates import templates_router
 from routes.AI import ai_router
+from routes.question_bank import question_bank_router
+from routes.mock_interview import mock_interview_router
 
 app = FastAPI()
 
@@ -68,6 +70,8 @@ app.include_router(user_router,prefix=api_prefix)
 app.include_router(resumes_router, prefix = api_prefix)
 app.include_router(pdf_router, prefix = api_prefix)
 app.include_router(templates_router, prefix = api_prefix)
+app.include_router(question_bank_router, prefix = api_prefix)
+app.include_router(mock_interview_router, prefix = api_prefix)
 
 @app.on_event("startup")
 async def startup_event():
