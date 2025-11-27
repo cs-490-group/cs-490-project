@@ -21,7 +21,7 @@ function GroupPage() {
   const [commentTexts, setCommentTexts] = useState({});
   const [username, setUsername] = useState('');
 
-  // Webinar-specific state
+
   const [webinarTitle, setWebinarTitle] = useState('');
   const [webinarLink, setWebinarLink] = useState('');
   const [webinars, setWebinars] = useState([]);
@@ -29,7 +29,7 @@ function GroupPage() {
   const isUserInGroup = () => group?.members?.some(m => m.uuid === uuid);
   const isUserAdmin = () => group?.members?.some(m => m.uuid === uuid && m.role === 'admin');
 
-  // Map tab keys to postType values returned by API
+  
   const postTypeMap = {
     insight: 'insight',
     strategy: 'strategy',
@@ -79,7 +79,6 @@ function GroupPage() {
     setLoading(false);
   };
 
-  // --- Post / Comment Handlers ---
   const handleCreatePost = async () => {
     if (!isUserInGroup()) return showFlash('You must be a member of this group to post', 'error');
     if (!postTitle.trim() || !postContent.trim()) return showFlash('Please fill in all fields', 'error');
@@ -190,7 +189,7 @@ function GroupPage() {
 
   if (!group) return <div style={{ padding: '20px' }}>Loading group...</div>;
 
-  // --- Determine displayed posts based on active tab ---
+
   let displayedPosts = [];
   if (activeTab === 'feed') {
     displayedPosts = posts.filter(p => p.postType !== 'coaching');
@@ -202,7 +201,7 @@ function GroupPage() {
     <div style={{ width: '100%', backgroundColor: '#f3f4f6', minHeight: '100vh', padding: '32px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
 
-        {/* Group Header */}
+  
         <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '24px', marginBottom: '24px' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, marginBottom: '8px' }}>{group.name}</h1>
           <p style={{ color: '#666', margin: 0, marginBottom: '16px' }}>{group.category}</p>
@@ -211,7 +210,6 @@ function GroupPage() {
           </p>
         </div>
 
-        {/* Tabs */}
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid #ddd', backgroundColor: '#ffffff', borderRadius: '12px 12px 0 0', padding: '16px' }}>
           {['feed', 'insight', 'strategy', 'success_story', 'challenge', 'opportunity', 'coaching', 'privacy'].map(tab => (
             <button
@@ -236,10 +234,10 @@ function GroupPage() {
           ))}
         </div>
 
-        {/* --- Feed / Other Post Tabs --- */}
+ 
         {activeTab !== 'coaching' && (
           <>
-            {/* Create Post */}
+  
             <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '24px', marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginTop: 0 }}>Share with Your Community</h3>
               {!isUserInGroup() && (
@@ -282,7 +280,7 @@ function GroupPage() {
               </button>
             </div>
 
-            {/* Posts Feed */}
+
             <div>
               {loading ? (
                 <p>Loading posts...</p>
@@ -305,7 +303,6 @@ function GroupPage() {
                     </div>
                     <p>{post.content}</p>
 
-                    {/* Likes */}
                     <div style={{ marginBottom: '12px' }}>
                       <button
                         onClick={() => post.likes?.includes(uuid) ? handleUnlikePost(post.id) : handleLikePost(post.id)}
@@ -315,7 +312,6 @@ function GroupPage() {
                       </button>
                     </div>
 
-                    {/* Comments */}
                     <div style={{ marginTop: '12px' }}>
                       {post.comments?.map(comment => (
                         <div key={comment.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '13px', borderBottom: '1px solid #eee' }}>
@@ -345,7 +341,6 @@ function GroupPage() {
           </>
         )}
 
-        {/* --- Webinar Tab --- */}
 {activeTab === 'coaching' && (
   <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
     <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Post a Webinar</h3>
@@ -354,7 +349,6 @@ function GroupPage() {
 
     {isUserInGroup() && (
       <>
-        {/* Create Webinar Form always at top */}
         <input
           type="text"
           placeholder="Webinar Title"
@@ -378,7 +372,6 @@ function GroupPage() {
       </>
     )}
 
-    {/* Webinar Posts (newest first) */}
     <div>
       {webinars.length === 0 ? (
         <p>No webinars posted yet.</p>
