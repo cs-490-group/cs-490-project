@@ -51,8 +51,8 @@ async def get_my_coverletters(uuid: str = Depends(authorize)):
             "content": l.get("content"),
             "created_at": l.get("created_at"),
             "usage_count": l.get("usage_count", 0),
-            "default_cover_letter": l.get("default_cover_letter", False),
-            "job_id": l.get("job_id")
+            "default_cover_letter": l.get("default_cover_letter", False)
+            "job_id":l.get("job_id")
         }
         for l in letters
     ]
@@ -82,7 +82,7 @@ async def get_coverletter(
         "content": letter.get("content"),
         "created_at": letter.get("created_at"),
         "usage_count": letter.get("usage_count", 0),
-        "default_cover_letter": letter.get("default_cover_letter", False),
+        "default_cover_letter": letter.get("default_cover_letter", False)
         "job_id": letter.get("job_id")
     }
 
@@ -105,7 +105,7 @@ async def add_coverletter(
         "created_at": datetime.utcnow().isoformat(),
         "usage_count": 1 if coverletter.template_type else 0,
         "template_type": getattr(coverletter, 'template_type', None),
-        "default_cover_letter": False,
+        "default_cover_letter": False
         "job_id": ""
     }
 
@@ -164,7 +164,7 @@ async def upload_coverletter(
         "template_type": None,
         "file_type": file.content_type,
         "file_size": len(content),
-        "default_cover_letter": False,
+        "default_cover_letter": False
         "job_id" : ""
     }
     
