@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import QuestionBankAPI from "../../api/questionBank";
 import MockInterviewAPI from "../../api/mockInterview";
@@ -23,6 +23,16 @@ function PracticeQuestion() {
   // UC-076: AI Coaching feedback state
   const [coachingFeedback, setCoachingFeedback] = useState(null);
   const [loadingCoaching, setLoadingCoaching] = useState(false);
+  const coachingFeedbackRef = useRef(null);
+
+  // Auto-scroll to coaching feedback when it loads
+  useEffect(() => {
+    if (coachingFeedback && coachingFeedbackRef.current) {
+      setTimeout(() => {
+        coachingFeedbackRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, [coachingFeedback]);
 
   useEffect(() => {
     loadQuestion();
@@ -398,7 +408,7 @@ function PracticeQuestion() {
 
       {/* UC-076: AI Coaching Feedback - Separate Card Below */}
       {(coachingFeedback || loadingCoaching) && (
-        <div className="coaching-feedback-card">
+        <div className="coaching-feedback-card" ref={coachingFeedbackRef}>
           {coachingFeedback && (
             <CoachingFeedbackPanel
               feedback={coachingFeedback}
