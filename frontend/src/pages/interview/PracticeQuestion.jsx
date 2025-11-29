@@ -76,8 +76,10 @@ function PracticeQuestion() {
           const plainTextResponse = userResponse.replace(/<[^>]*>/g, '');
 
           console.log("[UC-076] Starting coaching feedback generation...");
-          console.log("[UC-076] Token:", localStorage.getItem('token') ? '✓ Present' : '✗ Missing');
-          console.log("[UC-076] User UUID:", localStorage.getItem('user_uuid') ? '✓ Present' : '✗ Missing');
+          const session = localStorage.getItem('session');
+          const uuid = localStorage.getItem('uuid');
+          console.log("[UC-076] Session:", session ? '✓ Present' : '✗ Missing');
+          console.log("[UC-076] User UUID:", uuid ? '✓ Present' : '✗ Missing');
 
           // Create a temporary response object to pass to coaching service
           // We'll use the mock interview API since it has the coaching endpoint
@@ -85,8 +87,8 @@ function PracticeQuestion() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'authorization': `Bearer ${localStorage.getItem('token')}`,
-              'uuid': localStorage.getItem('user_uuid')
+              'authorization': `Bearer ${session}`,
+              'uuid': uuid
             },
             body: JSON.stringify({
               response_text: plainTextResponse,
