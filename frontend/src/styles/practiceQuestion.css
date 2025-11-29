@@ -459,15 +459,12 @@
   margin-bottom: 0;
 }
 
-/* Coaching Feedback Section */
-.coaching-feedback-section {
-  background: linear-gradient(135deg, #f0f8ff, #f9fafb);
-  padding: 25px;
-  border-radius: 12px;
-  margin-top: 20px;
-  border: 2px solid #4f8ef7;
-  animation: slideDown 0.5s ease-out;
-  box-shadow: 0 4px 12px rgba(79, 142, 247, 0.15);
+/* Coaching Feedback Card - Full Width Below Content */
+.coaching-feedback-card {
+  max-width: 1400px;
+  margin: 40px auto 0;
+  padding: 0;
+  animation: slideUp 0.6s ease-out;
 }
 
 /* Loading State for Coaching */
@@ -475,12 +472,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 30px 25px;
+  padding: 60px 25px;
   background: linear-gradient(135deg, #f0f8ff, #f9fafb);
-  border-radius: 12px;
-  margin-top: 20px;
+  border-radius: 15px;
   border: 2px dashed #4f8ef7;
-  animation: slideDown 0.5s ease-out;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  animation: slideUp 0.6s ease-out;
 }
 
 .coaching-loading p {
@@ -588,6 +585,12 @@
 
   .star-content {
     grid-template-columns: 1fr;
+  }
+
+  .coaching-feedback-card {
+    max-width: calc(100% - 40px);
+    margin-left: 20px;
+    margin-right: 20px;
   }
 }
 

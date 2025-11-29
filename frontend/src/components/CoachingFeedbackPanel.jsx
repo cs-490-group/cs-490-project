@@ -48,7 +48,6 @@ function CoachingFeedbackPanel({
   if (!feedback || feedback.error) {
     return (
       <div className="coaching-feedback-panel error">
-        <div className="error-icon">⚠️</div>
         <p>Unable to generate coaching feedback at this time.</p>
         <div className="fallback-suggestions">
           <h4>Self-Evaluation Tips:</h4>
@@ -182,7 +181,7 @@ function CoachingFeedbackPanel({
           className="section-header"
           onClick={() => toggleSection("strengths")}
         >
-          <h3>✓ Strengths</h3>
+          <h3>Strengths</h3>
           <span className="toggle-icon">{expandedSections.strengths ? "▼" : "▶"}</span>
         </div>
         {expandedSections.strengths && (
@@ -203,20 +202,20 @@ function CoachingFeedbackPanel({
         )}
       </div>
 
-      {/* Areas for Improvement */}
-      <div
-        className={`feedback-section improvements ${expandedSections.improvements ? "expanded" : ""}`}
-      >
+      {/* Areas for Improvement - Only show if there are substantive suggestions */}
+      {recommended_improvements.length > 0 && (
         <div
-          className="section-header"
-          onClick={() => toggleSection("improvements")}
+          className={`feedback-section improvements ${expandedSections.improvements ? "expanded" : ""}`}
         >
-          <h3>→ Areas for Improvement</h3>
-          <span className="toggle-icon">{expandedSections.improvements ? "▼" : "▶"}</span>
-        </div>
-        {expandedSections.improvements && (
-          <div className="section-content">
-            {recommended_improvements.length > 0 ? (
+          <div
+            className="section-header"
+            onClick={() => toggleSection("improvements")}
+          >
+            <h3>Areas for Improvement</h3>
+            <span className="toggle-icon">{expandedSections.improvements ? "▼" : "▶"}</span>
+          </div>
+          {expandedSections.improvements && (
+            <div className="section-content">
               <div className="improvements-list">
                 {recommended_improvements.map((improvement, idx) => (
                   <div key={idx} className="improvement-item">
@@ -225,17 +224,18 @@ function CoachingFeedbackPanel({
                   </div>
                 ))}
               </div>
-            ) : (
-              <p>Great job! Your response addresses key areas well.</p>
-            )}
-          </div>
-        )}
-      </div>
+              <p style={{marginTop: '15px', fontSize: '0.9rem', color: '#666', fontStyle: 'italic'}}>
+                Note: These suggestions are AI-generated. Apply only the ones relevant to your question type.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* AI Commentary */}
       {ai_commentary && (
         <div className="feedback-section ai-commentary">
-          <h3>💡 AI Coach's Insight</h3>
+          <h3>AI Coach's Insight</h3>
           <p className="commentary-text">{ai_commentary}</p>
         </div>
       )}
@@ -249,7 +249,7 @@ function CoachingFeedbackPanel({
             className="section-header"
             onClick={() => toggleSection("star")}
           >
-            <h3>⭐ STAR Framework Analysis</h3>
+            <h3>STAR Framework Analysis</h3>
             <span className="toggle-icon">{expandedSections.star ? "▼" : "▶"}</span>
           </div>
           {expandedSections.star && (
@@ -261,7 +261,7 @@ function CoachingFeedbackPanel({
       )}
 
       {/* Language Quality */}
-      {detailed_feedback.language && (
+      {detailed_feedback.language && detailed_feedback.language.weak_phrases?.length > 0 && (
         <div
           className={`feedback-section language ${expandedSections.language ? "expanded" : ""}`}
         >
@@ -269,12 +269,15 @@ function CoachingFeedbackPanel({
             className="section-header"
             onClick={() => toggleSection("language")}
           >
-            <h3>🎯 Language & Tone</h3>
+            <h3>Language & Tone</h3>
             <span className="toggle-icon">{expandedSections.language ? "▼" : "▶"}</span>
           </div>
           {expandedSections.language && (
             <div className="section-content">
               {renderLanguageAnalysis(detailed_feedback.language)}
+              <p style={{marginTop: '15px', fontSize: '0.9rem', color: '#666', fontStyle: 'italic'}}>
+                Note: Review these suggestions carefully. Only apply changes that genuinely improve your response.
+              </p>
             </div>
           )}
         </div>
@@ -289,7 +292,7 @@ function CoachingFeedbackPanel({
             className="section-header"
             onClick={() => toggleSection("alternative")}
           >
-            <h3>✨ Suggested Stronger Response</h3>
+            <h3>Suggested Stronger Response</h3>
             <span className="toggle-icon">{expandedSections.alternative ? "▼" : "▶"}</span>
           </div>
           {expandedSections.alternative && (
@@ -314,7 +317,7 @@ function CoachingFeedbackPanel({
             className="section-header"
             onClick={() => toggleSection("detailed")}
           >
-            <h3>📊 Detailed Analysis</h3>
+            <h3>Detailed Analysis</h3>
             <span className="toggle-icon">{expandedSections.detailed ? "▼" : "▶"}</span>
           </div>
           {expandedSections.detailed && (
@@ -332,14 +335,14 @@ function CoachingFeedbackPanel({
             className="btn btn-save"
             onClick={() => onSaveToLibrary(feedback)}
           >
-            💾 Save Feedback
+            Save Feedback
           </button>
         )}
         <button
           className="btn btn-print"
           onClick={() => window.print()}
         >
-          🖨️ Print Feedback
+          Print Feedback
         </button>
       </div>
     </div>

@@ -250,30 +250,53 @@ class ResponseQualityAnalyzer:
         response_text: str,
         question_text: str,
         expected_skills: List[str],
-        interviewer_guidance: str
+        interviewer_guidance: str,
+        question_category: str = "behavioral"
     ) -> Dict[str, Any]:
         """
-        Analyze content quality against question requirements.
+        Analyze content quality against question requirements, adapted to question type.
 
         Args:
             response_text: User's response
             question_text: The question asked
             expected_skills: Skills the question tests
             interviewer_guidance: What interviewer should look for
+            question_category: Type of question (behavioral, technical, design, etc.)
 
         Returns:
             Dict with content quality analysis
         """
         response_lower = response_text.lower()
 
-        # Simple heuristic: check if response addresses key terms from guidance
-        quality_indicators = {
-            "addresses_question": len(response_text) > 20,
-            "provides_examples": any(phrase in response_lower for phrase in ["for example", "example", "specifically", "instance", "when"]),
-            "shows_learning": any(phrase in response_lower for phrase in ["learned", "discovered", "realized", "improved", "growth"]),
-            "demonstrates_skills": len([skill for skill in expected_skills if skill.lower() in response_lower]) > 0 if expected_skills else False,
-            "measurable_results": any(phrase in response_lower for phrase in ["increased", "improved", "reduced", "achieved", "delivered", "%", "x2", "doubled"]),
-        }
+        # Adapt quality assessment based on question type
+        if question_category in ["technical", "design"]:
+            # For technical/design questions, look for architecture, implementation details, tradeoffs
+            quality_indicators = {
+                "addresses_question": len(response_text) > 30,
+                "provides_technical_details": any(phrase in response_lower for phrase in
+                    ["api", "database", "cache", "queue", "service", "component", "architecture",
+                     "framework", "protocol", "algorithm", "microservice", "sql", "nosql", "rest", "graphql",
+                     "docker", "kubernetes", "load", "server", "client", "frontend", "backend"]),
+                "discusses_tradeoffs": any(phrase in response_lower for phrase in
+                    ["tradeoff", "trade-off", "vs ", "versus", "alternative", "approach", "rather than",
+                     "advantage", "disadvantage", "pro", "con", "benefit", "drawback"]),
+                "demonstrates_skills": len([skill for skill in expected_skills if skill.lower() in response_lower]) > 0 if expected_skills else False,
+                "considers_scalability": any(phrase in response_lower for phrase in
+                    ["scale", "scalability", "performance", "concurrent", "distributed", "load",
+                     "bottleneck", "throughput", "latency", "consistency", "availability"]),
+            }
+        else:
+            # For behavioral and other questions, look for examples, learning, outcomes
+            quality_indicators = {
+                "addresses_question": len(response_text) > 20,
+                "provides_examples": any(phrase in response_lower for phrase in
+                    ["for example", "example", "specifically", "instance", "when", "case", "situation"]),
+                "shows_learning": any(phrase in response_lower for phrase in
+                    ["learned", "discovered", "realized", "improved", "growth", "development", "takeaway"]),
+                "demonstrates_skills": len([skill for skill in expected_skills if skill.lower() in response_lower]) > 0 if expected_skills else False,
+                "measurable_results": any(phrase in response_lower for phrase in
+                    ["increased", "improved", "reduced", "achieved", "delivered", "%", "x2", "doubled", "amount", "number"]),
+            }
 
         # Calculate content score
         content_score = sum(quality_indicators.values()) / len(quality_indicators) * 100
@@ -281,29 +304,50 @@ class ResponseQualityAnalyzer:
         strengths = []
         if quality_indicators["addresses_question"]:
             strengths.append("Directly addresses the question")
-        if quality_indicators["provides_examples"]:
-            strengths.append("Uses concrete examples")
-        if quality_indicators["shows_learning"]:
-            strengths.append("Demonstrates growth mindset")
-        if quality_indicators["demonstra tes_skills"]:
-            strengths.append("Relevant to required skills")
-        if quality_indicators["measurable_results"]:
-            strengths.append("Includes measurable outcomes")
 
+        if question_category in ["technical", "design"]:
+            if quality_indicators.get("provides_technical_details"):
+                strengths.append("Includes specific technical details and technologies")
+            if quality_indicators.get("discusses_tradeoffs"):
+                strengths.append("Discusses design tradeoffs and alternative approaches")
+            if quality_indicators.get("demonstrates_skills"):
+                strengths.append("Demonstrates relevant technical knowledge")
+            if quality_indicators.get("considers_scalability"):
+                strengths.append("Considers scalability, performance, and system constraints")
+        else:
+            if quality_indicators.get("provides_examples"):
+                strengths.append("Uses concrete examples")
+            if quality_indicators.get("shows_learning"):
+                strengths.append("Demonstrates growth mindset")
+            if quality_indicators.get("demonstrates_skills"):
+                strengths.append("Relevant to required skills")
+            if quality_indicators.get("measurable_results"):
+                strengths.append("Includes measurable outcomes")
+
+        # Only suggest improvements if response is weak
         improvements = []
-        if not quality_indicators["provides_examples"]:
-            improvements.append("Add specific examples or stories")
-        if not quality_indicators["shows_learning"]:
-            improvements.append("Show what you learned from the experience")
-        if not quality_indicators["measurable_results"]:
-            improvements.append("Quantify the impact or results")
+        if content_score < 50:
+            if question_category in ["technical", "design"]:
+                if not quality_indicators.get("provides_technical_details"):
+                    improvements.append("Add more specific technical details about the architecture and implementation")
+                if not quality_indicators.get("discusses_tradeoffs"):
+                    improvements.append("Discuss potential tradeoffs and why you chose this approach")
+                if not quality_indicators.get("considers_scalability"):
+                    improvements.append("Consider how the system would scale and handle edge cases")
+            else:
+                if not quality_indicators.get("provides_examples"):
+                    improvements.append("Add specific examples from your experience")
+                if not quality_indicators.get("shows_learning"):
+                    improvements.append("Explain what you learned from the situation")
+                if not quality_indicators.get("measurable_results"):
+                    improvements.append("Quantify the impact or business outcomes")
 
         return {
             "content_score": round(content_score, 1),
             "quality_indicators": quality_indicators,
             "strengths": strengths,
             "areas_for_improvement": improvements,
-            "overall_assessment": "Strong content" if content_score > 70 else "Needs development"
+            "overall_assessment": "Strong response" if content_score > 70 else "Solid response" if content_score > 50 else "Needs development"
         }
 
     @staticmethod
@@ -437,7 +481,7 @@ class InterviewCoachingService:
             )
 
             content_quality = self.quality_analyzer.analyze_content_quality(
-                response_text, question_text, expected_skills or [], interviewer_guidance
+                response_text, question_text, expected_skills or [], interviewer_guidance, question_category
             )
 
             structure_clarity = self.quality_analyzer.analyze_structure_and_clarity(response_text)

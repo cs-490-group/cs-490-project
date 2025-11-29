@@ -66,7 +66,7 @@ function PracticeQuestion() {
         response_html: userResponse,
         is_marked_practiced: false,
       });
-      setSavedFeedback("Response saved successfully! ✓");
+      setSavedFeedback("Response saved successfully");
 
       // UC-076: Generate AI coaching feedback after saving
       if (question) {
@@ -78,12 +78,12 @@ function PracticeQuestion() {
           console.log("[UC-076] Starting coaching feedback generation...");
           const session = localStorage.getItem('session');
           const uuid = localStorage.getItem('uuid');
-          console.log("[UC-076] Session:", session ? '✓ Present' : '✗ Missing');
-          console.log("[UC-076] User UUID:", uuid ? '✓ Present' : '✗ Missing');
+          console.log("[UC-076] Session:", session ? 'Present' : 'Missing');
+          console.log("[UC-076] User UUID:", uuid ? 'Present' : 'Missing');
 
           // Create a temporary response object to pass to coaching service
           // We'll use the mock interview API since it has the coaching endpoint
-          const coachingResponse = await fetch('/api/coaching/analyze', {
+          const coachingResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/coaching/analyze`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -106,15 +106,15 @@ function PracticeQuestion() {
 
           if (coachingResponse.ok) {
             const feedbackData = await coachingResponse.json();
-            console.log("[UC-076] ✓ Coaching feedback received:", feedbackData);
+            console.log("[UC-076] Coaching feedback received:", feedbackData);
             setCoachingFeedback(feedbackData);
           } else {
             const errorText = await coachingResponse.text();
-            console.error("[UC-076] ✗ API Error Status:", coachingResponse.status);
-            console.error("[UC-076] ✗ API Error Response:", errorText);
+            console.error("[UC-076] API Error Status:", coachingResponse.status);
+            console.error("[UC-076] API Error Response:", errorText);
           }
         } catch (coachingError) {
-          console.error("[UC-076] ✗ Network/Parse Error:", coachingError);
+          console.error("[UC-076] Network/Parse Error:", coachingError);
           // Don't show error to user - coaching is optional
         } finally {
           setLoadingCoaching(false);
@@ -369,37 +369,20 @@ function PracticeQuestion() {
                 onClick={handleSaveResponse}
                 disabled={saving || !userResponse.trim()}
               >
-                {saving ? "Saving..." : "💾 Save Response"}
+                {saving ? "Saving..." : "Save Response"}
               </button>
               <button
                 className="practiced-btn"
                 onClick={handleMarkPracticed}
               >
-                ✓ Mark as Practiced
+                Mark as Practiced
               </button>
             </div>
-
-            {/* UC-076: AI Coaching Feedback */}
-            {coachingFeedback && (
-              <div className="coaching-feedback-section">
-                <CoachingFeedbackPanel
-                  feedback={coachingFeedback}
-                  loading={loadingCoaching}
-                  questionCategory={question?.category || 'behavioral'}
-                />
-              </div>
-            )}
-
-            {loadingCoaching && !coachingFeedback && (
-              <div className="coaching-loading">
-                <p>🤖 Generating AI coaching feedback...</p>
-              </div>
-            )}
 
             {/* Tips */}
             {!coachingFeedback && (
               <div className="tips-box">
-                <h5>💬 Tips</h5>
+                <h5>Tips</h5>
                 <ul>
                   <li>Be specific with examples and metrics</li>
                   <li>Use the STAR framework for structure</li>
@@ -412,6 +395,25 @@ function PracticeQuestion() {
           </div>
         </div>
       </div>
+
+      {/* UC-076: AI Coaching Feedback - Separate Card Below */}
+      {(coachingFeedback || loadingCoaching) && (
+        <div className="coaching-feedback-card">
+          {coachingFeedback && (
+            <CoachingFeedbackPanel
+              feedback={coachingFeedback}
+              loading={loadingCoaching}
+              questionCategory={question?.category || 'behavioral'}
+            />
+          )}
+
+          {loadingCoaching && !coachingFeedback && (
+            <div className="coaching-loading">
+              <p>Generating AI coaching feedback...</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
