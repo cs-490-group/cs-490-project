@@ -9,15 +9,20 @@ export default function JobDetailsModal({
   selectedJob,
   setSelectedJob,
   setReminderJob,
-  updateJob,
+  updateJob,    
   archiveJob,
   restoreJob,
   deleteJob,
   setEditingJob,
   setView
 }) {
+
+  console.log("SELECTED JOB:", selectedJob);
+
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const [downloading, setDownloading] = useState(null);
+  const [activeTab, setActiveTab] = useState("details");
+
 
   if (!selectedJob) return null;
 
@@ -192,74 +197,376 @@ export default function JobDetailsModal({
           </button>
         </div>
 
-        {/* --- BASIC FIELDS --- */}
-        <div style={{ marginBottom: "16px", color: "#000" }}>
+        {/* ========================= */}
+        {/*       TABS NAVIGATION     */}
+        {/* ========================= */}
+          <div style={{
+              display: "flex",
+              gap: "10px",
+              marginBottom: "20px",
+              borderBottom: "1px solid #ddd",
+              paddingBottom: "10px"
+            }}>
+          {[
+          
+          { id: "details", label: "Details" },
+          { id: "research", label: "Research" },
+          { id: "news", label: "News" },
+          { id: "materials", label: "Materials" },
+          { id: "history", label: "History" },
+          ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: "8px 16px",
+              background: activeTab === tab.id ? "#1565c0" : "transparent",
+              color: activeTab === tab.id ? "white" : "#333",
+              border: "1px solid #ccc",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: activeTab === tab.id ? "600" : "500"
+            }}
+            >
+            {tab.label}
+          </button>
+          ))}
+          </div>
+
+        {/* ---------------- DETAILS TAB ---------------- */}
+        {activeTab === "details" && (
+  <>
+
+    {/* COMPANY INFORMATION BOX */}
+    {selectedJob.company_research?.basic_info && (
+      <div
+        style={{
+          background: "#f0f7ff",
+          padding: "16px",
+          borderRadius: "6px",
+          border: "1px solid #d0e4ff",
+          marginBottom: "16px",
+        }}
+      >
+        <h3>🏢 Company Information</h3>
+
+        {/* Company Name */}
+        <p>
           <strong>Company:</strong> {selectedJob.company}
-        </div>
+        </p>
 
-        {selectedJob.companyData && (
-          <div style={{ marginBottom: "16px", background: "#f0f7ff", padding: "16px", borderRadius: "6px", border: "1px solid #d0e4ff" }}>
-            <h3 style={{ margin: "0 0 12px 0", color: "#1976d2", fontSize: "16px" }}>🏢 Company Information</h3>
+        <p>
+          <strong>Industry:</strong>{" "}
+          {selectedJob.company_research.basic_info.industry}
+        </p>
 
-            {selectedJob.companyData.image && (
-              <div style={{ marginBottom: "12px", textAlign: "center" }}>
-                <img
-                  src={
-                    selectedJob.companyData.image.startsWith("http") 
-                      ? selectedJob.companyData.image 
-                      : `data:image/png;base64,${selectedJob.companyData.image}`
-                  }
-                  alt={`${selectedJob.company} logo`}
-                  style={{ maxWidth: "150px", maxHeight: "80px", objectFit: "contain", borderRadius: "4px" }}
-                />
-              </div>
-            )}
+        <p>
+          <strong>Size:</strong>{" "}
+          {selectedJob.company_research.basic_info.size}
+        </p>
 
-            {selectedJob.companyData.size && (
-              <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
-                <strong>👥 Company Size:</strong> {selectedJob.companyData.size}
-              </div>
-            )}
+        <p>
+          <strong>Headquarters:</strong>{" "}
+          {selectedJob.company_research.basic_info.headquarters}
+        </p>
 
-            {selectedJob.companyData.industry && (
-              <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
-                <strong>🏭 Industry:</strong> {selectedJob.companyData.industry}
-              </div>
-            )}
+        <p>
+          <strong>Founded:</strong>{" "}
+          {selectedJob.company_research.basic_info.founded}
+        </p>
 
-            {selectedJob.companyData.location && (
-              <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
-                <strong>📍 Headquarters:</strong> {selectedJob.companyData.location}
-              </div>
-            )}
+        <p>
+        <strong>Location:</strong> {selectedJob.location}
+        </p>
 
-            {selectedJob.companyData.website && (
-              <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
-                <strong>🌐 Website:</strong>{" "}
-                <a
-                  href={selectedJob.companyData.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "#4f8ef7", textDecoration: "underline" }}
-                >
-                  {selectedJob.companyData.website}
-                </a>
-              </div>
-            )}
+        <p>
+          <strong>Website:</strong>{" "}
+          <a
+            href={selectedJob.company_research.basic_info.website}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {selectedJob.company_research.basic_info.website}
+          </a>
+        </p>
+      </div>
+    )}
 
-            {selectedJob.companyData.description && (
-              <div style={{ marginTop: "12px", color: "#000", fontSize: "14px" }}>
-                <strong>About:</strong>
-                <div style={{ marginTop: "6px", color: "#555", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
-                  {selectedJob.companyData.description}
+
+    {/* SALARY */}
+    {selectedJob.salary && (
+      <p>
+        <strong>Salary:</strong> {selectedJob.salary}
+      </p>
+    )}
+
+    {/* JOB LINK */}
+    {selectedJob.url && (
+      <p>
+        <strong>Job Link:</strong>{" "}
+        <a href={selectedJob.url} target="_blank" rel="noreferrer">
+          View Posting →
+        </a>
+      </p>
+    )}
+
+    {/* DESCRIPTION */}
+    {selectedJob.description && (
+      <div style={{ marginTop: "10px" }}>
+        <strong>Description:</strong>
+        <div
+          style={{
+            background: "#f9f9f9",
+            padding: "12px",
+            borderRadius: "4px",
+            whiteSpace: "pre-wrap",
+            marginTop: "8px",
+          }}
+        >
+          {selectedJob.description}
                 </div>
               </div>
+            )}
+          </>
+        )}
+
+        {/* ---------------- RESEARCH TAB ---------------- */}
+        {activeTab === "research" && (
+          <div style={{ padding: "15px" }}>
+
+            {/* BASIC INFORMATION */}
+            <div style={{
+              background: "#eef7ff",
+              padding: "16px",
+              borderRadius: "10px",
+              marginBottom: "20px",
+              border: "1px solid #d4e9ff"
+            }}>
+              <h2 style={{ color: "#1976d2", marginBottom: "10px" }}>📊 Basic Information</h2>
+
+              <p><strong>Industry:</strong> {selectedJob.company_research?.basic_info?.industry}</p>
+              <p><strong>Size:</strong> {selectedJob.company_research?.basic_info?.size}</p>
+              <p><strong>Headquarters:</strong> {selectedJob.company_research?.basic_info?.headquarters}</p>
+              <p><strong>Founded:</strong> {selectedJob.company_research?.basic_info?.founded}</p>
+              <p>
+                <strong>Website:</strong>{" "}
+                <a href={selectedJob.company_research?.basic_info?.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ marginLeft: "6px" }}>
+                  {selectedJob.company_research?.basic_info?.website}
+                </a>
+              </p>
+            </div>
+
+
+            {/* MISSION & VALUES */}
+            <div style={{
+              background: "#f0fff4",
+              padding: "16px",
+              borderRadius: "10px",
+              marginBottom: "20px",
+              border: "1px solid #c6f6d5"
+            }}>
+              <h2 style={{ color: "#2f855a", marginBottom: "10px" }}>🌱 Mission & Values</h2>
+
+              <p><strong>Mission:</strong> {selectedJob.company_research?.mission_values?.mission}</p>
+
+              <p><strong>Values:</strong></p>
+              <ul>
+                {selectedJob.company_research?.mission_values?.values?.map((v, i) => (
+                  <li key={i}>{v}</li>
+                ))}
+              </ul>
+
+              <p><strong>Culture:</strong> {selectedJob.company_research?.mission_values?.culture}</p>
+            </div>
+
+
+            {/* PRODUCTS & SERVICES */}
+            <div style={{
+              background: "#fff8e1",
+              padding: "16px",
+              borderRadius: "10px",
+              marginBottom: "20px",
+              border: "1px solid #ffecb3"
+            }}>
+              <h2 style={{ color: "#ff8f00", marginBottom: "10px" }}>🛠 Products & Services</h2>
+
+              {selectedJob.company_research?.products_services?.map((p, i) => (
+                <p key={i}>• {p}</p>
+              ))}
+            </div>
+
+
+            {/* LEADERSHIP */}
+            <div style={{
+              background: "#e9f7ef",
+              padding: "16px",
+              borderRadius: "10px",
+              marginBottom: "20px",
+              border: "1px solid #c8e6c9"
+            }}>
+              <h2 style={{ color: "#2e7d32", marginBottom: "10px" }}>💼 Leadership Team</h2>
+
+              <p><strong>CEO:</strong> {selectedJob.company_research?.leadership?.ceo}</p>
+
+              <p><strong>Key Executives:</strong></p>
+              {selectedJob.company_research?.leadership?.key_executives?.map((exec, i) => (
+                <p key={i}>• {exec.name} — {exec.title}</p>
+              ))}
+            </div>
+
+
+            {/* COMPETITIVE LANDSCAPE */}
+            <div style={{
+              background: "#e3f2fd",
+              padding: "16px",
+              borderRadius: "10px",
+              marginBottom: "20px",
+              border: "1px solid #bbdefb"
+            }}>
+              <h2 style={{ color: "#1565c0", marginBottom: "10px" }}>⚔️ Competitive Landscape</h2>
+
+              <p><strong>Top Competitors:</strong></p>
+              {selectedJob.company_research?.competitive_landscape?.top_competitors?.map((c, i) => (
+                <p key={i}>• {c}</p>
+              ))}
+            </div>
+
+
+            {/* SOCIAL MEDIA */}
+            <div style={{
+              background: "#e8f4ff",
+              padding: "16px",
+              borderRadius: "10px",
+              marginBottom: "20px",
+              border: "1px solid #b3dbff"
+            }}>
+              <h2 style={{ color: "#1e88e5", marginBottom: "10px" }}>🧩 Social Media Presence</h2>
+
+              {selectedJob.company_research?.social_media?.map((sm, i) => (
+                <p key={i}>
+                  <strong>{sm.platform}:</strong>{" "}
+                  <a href={sm.url} target="_blank" rel="noreferrer">{sm.url}</a>
+                </p>
+              ))}
+            </div>
+
+
+            {/* INTERVIEW PREP */}
+            <div style={{
+              background: "#ffebee",
+              padding: "16px",
+              borderRadius: "10px",
+              border: "1px solid #ffcdd2"
+            }}>
+              <h2 style={{ color: "#c62828", marginBottom: "10px" }}>💬 Interview Prep Summary</h2>
+
+              <h4>Strengths:</h4>
+              {selectedJob.company_research?.interview_prep?.strengths?.map((s, i) =>
+                <p key={i}>• {s}</p>
+              )}
+
+              <h4>Challenges:</h4>
+              {selectedJob.company_research?.interview_prep?.challenges?.map((c, i) =>
+                <p key={i}>• {c}</p>
+              )}
+
+              <h4>Questions to Ask:</h4>
+              {selectedJob.company_research?.interview_prep?.questions_to_ask?.map((q, i) =>
+                <p key={i}>• {q}</p>
+              )}
+            </div>
+
+          </div>
+        )} 
+
+
+
+        {/* ---------------- NEWS TAB ---------------- */}
+        {activeTab === "news" && (
+          <div style={{ padding: "15px" }}>
+
+            <h2 style={{ color: "#1565c0", marginBottom: "20px" }}>📰 Latest Company News</h2>
+
+            {!selectedJob.company_news?.items?.length ? (
+              <p>No news available.</p>
+            ) : (
+              selectedJob.company_news.items.map((item, i) => (
+                <div 
+                  key={i}
+                  style={{
+                    marginBottom: "20px",
+                    padding: "18px",
+                    borderRadius: "10px",
+                    border: "1px solid #d0e2ff",
+                    background: "#f7faff",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
+                  }}
+                >
+          
+                  {/* Title */}
+                  <h3 style={{ margin: "0 0 6px", color: "#003f8c" }}>
+                    {item.title}
+                  </h3>
+
+                  {/* Meta */}
+                  <p style={{ fontSize: "13px", color: "#555" }}>
+                    <strong>Source:</strong> {item.source}  
+                    &nbsp;•&nbsp;  
+                    <strong>Date:</strong> {item.date}
+                    &nbsp;•&nbsp;  
+                    <strong>Category:</strong> {item.category}
+                    &nbsp;•&nbsp;
+                    <strong>Relevance:</strong> {item.relevance_score}/100
+                  </p>
+
+                  {/* Summary */}
+                  <p style={{ marginTop: "10px", fontSize: "14px", color: "#333" }}>
+                    {item.summary}
+                  </p>
+
+                  {/* Key Points */}
+                  <div style={{ marginTop: "10px" }}>
+                    <strong style={{ fontSize: "14px" }}>Key Points:</strong>
+                    <ul style={{ paddingLeft: "20px", marginTop: "6px" }}>
+                      {item.key_points?.map((kp, index) => (
+                        <li key={index} style={{ marginBottom: "4px" }}>
+                          {kp}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                  {/* Link */}
+                  <a 
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ 
+                      display: "inline-block",
+                      marginTop: "10px",
+                      background: "#1565c0",
+                      color: "white",
+                      padding: "8px 14px",
+                      borderRadius: "6px",
+                      textDecoration: "none"
+                    }}
+                  >
+                    Read Article →
+                  </a>
+                </div>
+              ))
             )}
           </div>
         )}
 
+
+
+
         {/* --- BASIC JOB DETAILS --- */}
-        {selectedJob.location && (
+        {/*selectedJob.location && (
           <div style={{ marginBottom: "16px", color: "#000" }}>
             <strong>Location:</strong> {selectedJob.location}
           </div>
@@ -349,10 +656,12 @@ export default function JobDetailsModal({
             <strong>Notes:</strong>
             <div style={{ marginTop: "8px", whiteSpace: "pre-wrap" }}>{selectedJob.notes}</div>
           </div>
-        )}
+        )*/}
+
+          
 
         {/* --- APPLICATION MATERIALS SECTION --- */}
-        {selectedJob.materials && (
+        {activeTab === "materials" && selectedJob.materials && (
           <div style={{ marginBottom: "16px", background: "#f3e5f5", padding: "16px", borderRadius: "6px", border: "1px solid #e1bee7" }}>
             <h3 style={{ margin: "0 0 12px 0", color: "#7b1fa2", fontSize: "16px" }}>📄 Application Materials</h3>
             
@@ -485,7 +794,7 @@ export default function JobDetailsModal({
         )}
 
         {/* --- STATUS HISTORY SECTION --- */}
-        {selectedJob.status_history && selectedJob.status_history.length > 0 && (
+        {activeTab === "history" && selectedJob.status_history && selectedJob.status_history.length > 0 && (
           <div style={{ marginBottom: "16px", background: "#e8f5e9", padding: "16px", borderRadius: "6px", border: "1px solid #c8e6c9" }}>
             <h3 style={{ margin: "0 0 12px 0", color: "#2e7d32", fontSize: "16px" }}>📋 Status History</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
