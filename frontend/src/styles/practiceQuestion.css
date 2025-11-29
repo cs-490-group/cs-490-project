@@ -459,6 +459,57 @@
   margin-bottom: 0;
 }
 
+/* Coaching Feedback Section */
+.coaching-feedback-section {
+  background: linear-gradient(135deg, #f0f8ff, #f9fafb);
+  padding: 25px;
+  border-radius: 12px;
+  margin-top: 20px;
+  border: 2px solid #4f8ef7;
+  animation: slideDown 0.5s ease-out;
+  box-shadow: 0 4px 12px rgba(79, 142, 247, 0.15);
+}
+
+/* Loading State for Coaching */
+.coaching-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 25px;
+  background: linear-gradient(135deg, #f0f8ff, #f9fafb);
+  border-radius: 12px;
+  margin-top: 20px;
+  border: 2px dashed #4f8ef7;
+  animation: slideDown 0.5s ease-out;
+}
+
+.coaching-loading p {
+  font-size: 1rem;
+  color: #4f8ef7;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.coaching-loading p::before {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 3px solid rgba(79, 142, 247, 0.3);
+  border-top-color: #4f8ef7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Error State */
 .practice-question-error {
   display: flex;

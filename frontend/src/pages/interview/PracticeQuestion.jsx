@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import QuestionBankAPI from "../../api/questionBank";
+import MockInterviewAPI from "../../api/mockInterview";
+import CoachingFeedbackPanel from "../../components/CoachingFeedbackPanel";
 import "../../styles/practiceQuestion.css";
 
 
@@ -17,6 +19,10 @@ function PracticeQuestion() {
     samples: false,
     guidance: false,
   });
+
+  // UC-076: AI Coaching feedback state
+  const [coachingFeedback, setCoachingFeedback] = useState(null);
+  const [loadingCoaching, setLoadingCoaching] = useState(false);
 
   useEffect(() => {
     loadQuestion();
@@ -61,6 +67,58 @@ function PracticeQuestion() {
         is_marked_practiced: false,
       });
       setSavedFeedback("Response saved successfully! ✓");
+
+      // UC-076: Generate AI coaching feedback after saving
+      if (question) {
+        setLoadingCoaching(true);
+        try {
+          // Strip HTML tags for plain text analysis
+          const plainTextResponse = userResponse.replace(/<[^>]*>/g, '');
+
+          console.log("[UC-076] Starting coaching feedback generation...");
+          console.log("[UC-076] Token:", localStorage.getItem('token') ? '✓ Present' : '✗ Missing');
+          console.log("[UC-076] User UUID:", localStorage.getItem('user_uuid') ? '✓ Present' : '✗ Missing');
+
+          // Create a temporary response object to pass to coaching service
+          // We'll use the mock interview API since it has the coaching endpoint
+          const coachingResponse = await fetch('/api/coaching/analyze', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'authorization': `Bearer ${localStorage.getItem('token')}`,
+              'uuid': localStorage.getItem('user_uuid')
+            },
+            body: JSON.stringify({
+              response_text: plainTextResponse,
+              response_duration_seconds: 120, // Default for practice questions
+              question_text: question.prompt,
+              question_category: question.category || 'behavioral',
+              question_difficulty: question.difficulty || 'mid',
+              expected_skills: question.expected_skills || [],
+              interviewer_guidance: question.interviewer_guidance || '',
+              question_id: questionId
+            })
+          });
+
+          console.log("[UC-076] API Response Status:", coachingResponse.status);
+
+          if (coachingResponse.ok) {
+            const feedbackData = await coachingResponse.json();
+            console.log("[UC-076] ✓ Coaching feedback received:", feedbackData);
+            setCoachingFeedback(feedbackData);
+          } else {
+            const errorText = await coachingResponse.text();
+            console.error("[UC-076] ✗ API Error Status:", coachingResponse.status);
+            console.error("[UC-076] ✗ API Error Response:", errorText);
+          }
+        } catch (coachingError) {
+          console.error("[UC-076] ✗ Network/Parse Error:", coachingError);
+          // Don't show error to user - coaching is optional
+        } finally {
+          setLoadingCoaching(false);
+        }
+      }
+
       setTimeout(() => setSavedFeedback(""), 3000);
     } catch (error) {
       console.error("Error saving response:", error);
@@ -319,17 +377,36 @@ function PracticeQuestion() {
               </button>
             </div>
 
+            {/* UC-076: AI Coaching Feedback */}
+            {coachingFeedback && (
+              <div className="coaching-feedback-section">
+                <CoachingFeedbackPanel
+                  feedback={coachingFeedback}
+                  loading={loadingCoaching}
+                  questionCategory={question?.category || 'behavioral'}
+                />
+              </div>
+            )}
+
+            {loadingCoaching && !coachingFeedback && (
+              <div className="coaching-loading">
+                <p>🤖 Generating AI coaching feedback...</p>
+              </div>
+            )}
+
             {/* Tips */}
-            <div className="tips-box">
-              <h5>💬 Tips</h5>
-              <ul>
-                <li>Be specific with examples and metrics</li>
-                <li>Use the STAR framework for structure</li>
-                <li>Highlight relevant skills</li>
-                <li>Practice out loud before typing</li>
-                <li>Keep answers to 2-3 minutes of speaking time</li>
-              </ul>
-            </div>
+            {!coachingFeedback && (
+              <div className="tips-box">
+                <h5>💬 Tips</h5>
+                <ul>
+                  <li>Be specific with examples and metrics</li>
+                  <li>Use the STAR framework for structure</li>
+                  <li>Highlight relevant skills</li>
+                  <li>Practice out loud before typing</li>
+                  <li>Keep answers to 2-3 minutes of speaking time</li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>

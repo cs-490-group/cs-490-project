@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import MockInterviewAPI from "../../api/mockInterview";
 import QuestionBankAPI from "../../api/questionBank";
 import { useFlash } from "../../context/flashContext";
-import CoachingFeedbackPanel from "../../components/CoachingFeedbackPanel";
 import "../../styles/mockInterview.css";
 
 function MockInterviewQuestion() {
@@ -27,10 +26,9 @@ function MockInterviewQuestion() {
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [previewTimeRemaining, setPreviewTimeRemaining] = useState(5);
 
-  // UC-076: Coaching feedback state
+  // UC-076: Coaching feedback state (stored but not shown during interview)
+  // Feedback is shown at the end in MockInterviewSummary
   const [coachingFeedback, setCoachingFeedback] = useState(null);
-  const [showCoachingFeedback, setShowCoachingFeedback] = useState(false);
-  const [loadingCoachingFeedback, setLoadingCoachingFeedback] = useState(false);
 
   // Timer
   const [responseTimer, setResponseTimer] = useState(0);
@@ -177,10 +175,10 @@ function MockInterviewQuestion() {
       if (response.data) {
         showFlash("Response saved successfully", "success");
 
-        // UC-076: Extract and display coaching feedback if available
+        // UC-076: Store coaching feedback for summary display (but don't show during interview)
+        // It will be shown at the end in MockInterviewSummary
         if (response.data.coaching_feedback) {
           setCoachingFeedback(response.data.coaching_feedback);
-          setShowCoachingFeedback(true);
         }
 
         if (response.data.next_question) {
@@ -341,24 +339,7 @@ function MockInterviewQuestion() {
       </div>
 
       {/* Main Content */}
-      {showCoachingFeedback ? (
-        // COACHING FEEDBACK MODE - Show AI feedback for submitted response
-        <div className="mock-interview-coaching-section">
-          <div className="coaching-header">
-            <h2>AI Coach Feedback</h2>
-            <p className="coaching-subtitle">Review your response and prepare for the next question</p>
-          </div>
-          <CoachingFeedbackPanel
-            feedback={coachingFeedback}
-            loading={loadingCoachingFeedback}
-            questionCategory={currentQuestion.question_category}
-            onSaveToLibrary={(feedback) => {
-              console.log("Saving feedback to library:", feedback);
-              showFlash("Feedback saved to your library", "success");
-            }}
-          />
-        </div>
-      ) : isPreviewMode ? (
+      {isPreviewMode ? (
         // PREVIEW MODE - Show question for 5 seconds
         <div className="mock-interview-preview-screen">
           <div className="preview-content">
@@ -502,28 +483,8 @@ function MockInterviewQuestion() {
         </div>
       )}
 
-      {/* Actions */}
-      {showCoachingFeedback ? (
-        // UC-076: Show next question button after reviewing feedback
-        <div className="mock-interview-question-actions">
-          <button
-            onClick={() => {
-              // Reset coaching feedback and prepare for next question
-              setShowCoachingFeedback(false);
-              setCoachingFeedback(null);
-              setResponseText("");
-              setResponseStartTime(new Date());
-              setShowGuidance(false);
-              setIsPreviewMode(true);
-              setPreviewTimeRemaining(5);
-              setResponseTimer(0);
-            }}
-            className="btn btn-primary"
-          >
-            Continue to Next Question
-          </button>
-        </div>
-      ) : !isPreviewMode && (
+      {/* Actions - Only show in answer mode */}
+      {!isPreviewMode && (
         <div className="mock-interview-question-actions">
           <button
             onClick={handleAbandonInterview}

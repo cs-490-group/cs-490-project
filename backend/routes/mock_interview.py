@@ -2,6 +2,9 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
 
+# IMPORTANT: Load environment variables first (before importing coaching service)
+from mongo.dao_setup import db_client
+
 from schema.MockInterview import (
     CreateMockInterviewSessionRequest,
     CreateMockInterviewSessionResponse,
@@ -14,7 +17,6 @@ from schema.MockInterview import (
 from mongo.mock_interview_dao import MockInterviewSessionDAO
 from services.interview_scenario_service import InterviewScenarioService
 from services.interview_coaching_service import InterviewCoachingService
-from mongo.dao_setup import db_client
 from sessions.session_authorizer import authorize
 
 # Initialize router
