@@ -15,6 +15,7 @@ from mongo.employment_dao import employment_dao
 from mongo.jobs_dao import jobs_dao
 from mongo.projects_dao import projects_dao
 from mongo.skills_dao import skills_dao
+from mongo.teams_dao import teams_dao
 from sessions.session_manager import session_manager
 from sessions.session_authorizer import authorize
 from schema.Profile import Profile, DeletePassword
@@ -100,6 +101,12 @@ async def delete_profile(passSchema: DeletePassword, uuid: str = Depends(authori
         for id in media_ids:
             await media_dao.delete_media(id)
         await profiles_dao.delete_profile(uuid)
+
+        user_team = await teams_dao.get_user_team(uuid)
+        if user_team:
+            team_id = user_team.get("_id")
+            # Just remove user from team (don't delete the entire team)
+            await teams_dao.remove_member_from_team(team_id, uuid)
 
         session_manager.kill_session(uuid)
 
