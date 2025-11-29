@@ -15,15 +15,15 @@ class CoverLettersDAO:
         """Get a specific cover letter if it belongs to the user."""
         return await self.collection.find_one({"_id": letter_id, "uuid": uuid})
 
-    async def get_all_cover_letters(self, user_uuid: str) -> list[dict]:
+    async def get_all_cover_letters(self, uuid: str) -> list[dict]:
         """Get all cover letters for a user, sorted by creation date (newest first)."""
-        cursor = self.collection.find({"uuid": user_uuid}).sort("created_at", -1)
+        cursor = self.collection.find({"uuid": uuid}).sort("created_at", -1)
         return [doc async for doc in cursor]
 
-    async def update_cover_letter(self, letter_id: str, user_uuid: str, updates: dict) -> int:
+    async def update_cover_letter(self, letter_id: str, uuid: str, updates: dict) -> int:
         """Update a cover letter if it belongs to the user."""
         result = await self.collection.update_one(
-            {"_id": letter_id, "uuid": user_uuid},
+            {"_id": letter_id, "uuid": uuid},
             {"$set": updates}
         )
         return result.modified_count
