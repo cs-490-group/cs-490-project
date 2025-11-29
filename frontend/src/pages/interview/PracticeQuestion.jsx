@@ -44,7 +44,6 @@ function PracticeQuestion() {
       const response = await QuestionBankAPI.getQuestion(questionId);
       setQuestion(response.data || response);
     } catch (error) {
-      console.error("Failed to load question:", error);
       setQuestion(null);
     } finally {
       setLoading(false);
@@ -85,14 +84,10 @@ function PracticeQuestion() {
           // Strip HTML tags for plain text analysis
           const plainTextResponse = userResponse.replace(/<[^>]*>/g, '');
 
-          console.log("[UC-076] Starting coaching feedback generation...");
           const session = localStorage.getItem('session');
           const uuid = localStorage.getItem('uuid');
-          console.log("[UC-076] Session:", session ? 'Present' : 'Missing');
-          console.log("[UC-076] User UUID:", uuid ? 'Present' : 'Missing');
 
-          // Create a temporary response object to pass to coaching service
-          // We'll use the mock interview API since it has the coaching endpoint
+          // Call coaching endpoint to generate AI feedback
           const coachingResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/coaching/analyze`, {
             method: 'POST',
             headers: {
@@ -102,7 +97,7 @@ function PracticeQuestion() {
             },
             body: JSON.stringify({
               response_text: plainTextResponse,
-              response_duration_seconds: 120, // Default for practice questions
+              response_duration_seconds: 120,
               question_text: question.prompt,
               question_category: question.category || 'behavioral',
               question_difficulty: question.difficulty || 'mid',
@@ -112,20 +107,12 @@ function PracticeQuestion() {
             })
           });
 
-          console.log("[UC-076] API Response Status:", coachingResponse.status);
-
           if (coachingResponse.ok) {
             const feedbackData = await coachingResponse.json();
-            console.log("[UC-076] Coaching feedback received:", feedbackData);
             setCoachingFeedback(feedbackData);
-          } else {
-            const errorText = await coachingResponse.text();
-            console.error("[UC-076] API Error Status:", coachingResponse.status);
-            console.error("[UC-076] API Error Response:", errorText);
           }
         } catch (coachingError) {
-          console.error("[UC-076] Network/Parse Error:", coachingError);
-          // Don't show error to user - coaching is optional
+          // Coaching is optional, fail silently
         } finally {
           setLoadingCoaching(false);
         }
@@ -133,7 +120,6 @@ function PracticeQuestion() {
 
       setTimeout(() => setSavedFeedback(""), 3000);
     } catch (error) {
-      console.error("Error saving response:", error);
       setSavedFeedback("Error saving response. Please try again.");
       setTimeout(() => setSavedFeedback(""), 3000);
     } finally {
@@ -147,7 +133,6 @@ function PracticeQuestion() {
       setSavedFeedback("Question marked as practiced! 🎉");
       setTimeout(() => setSavedFeedback(""), 3000);
     } catch (error) {
-      console.error("Error marking as practiced:", error);
       setSavedFeedback("Error. Please try again.");
       setTimeout(() => setSavedFeedback(""), 3000);
     }

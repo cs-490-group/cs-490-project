@@ -61,10 +61,6 @@ async def analyze_response(
     - Alternative response suggestion
     """
     try:
-        print(f"[UC-076] /analyze endpoint called for user: {uuid_val}")
-        print(f"[UC-076] Question category: {request_data.question_category}")
-        print(f"[UC-076] Response length: {len(request_data.response_text)} chars")
-
         # Generate coaching feedback
         coaching_feedback = await coaching_service.generate_response_feedback(
             response_text=request_data.response_text,
@@ -77,13 +73,9 @@ async def analyze_response(
             question_id=request_data.question_id
         )
 
-        print(f"[UC-076] ✓ Coaching feedback generated. Overall score: {coaching_feedback.get('overall_score')}")
         return coaching_feedback
 
     except Exception as e:
-        print(f"[UC-076] ✗ Error generating coaching feedback: {str(e)}")
-        import traceback
-        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Error generating coaching feedback: {str(e)}"

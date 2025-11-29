@@ -536,7 +536,6 @@ class InterviewCoachingService:
 
         except Exception as e:
             # Return error feedback instead of crashing
-            print(f"Error generating coaching feedback: {str(e)}")
             return self._generate_error_feedback(str(e))
 
     def _calculate_overall_score(
@@ -581,7 +580,6 @@ Keep feedback to 2-3 sentences, positive but direct."""
 
             return ai_response
         except Exception as e:
-            print(f"Error generating AI feedback: {str(e)}")
             return "Unable to generate AI feedback at this time."
 
     async def _generate_alternative_response(
@@ -610,7 +608,6 @@ Rewritten response (same length, more compelling):"""
 
             return improved.strip() if improved else response_text
         except Exception as e:
-            print(f"Error generating alternative response: {str(e)}")
             return response_text
 
     def _compile_recommendations(
