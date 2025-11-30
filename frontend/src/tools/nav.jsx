@@ -18,6 +18,7 @@ const Nav = () => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
+  const [showInterviewDropdown, setShowInterviewDropdown] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState(localStorage.getItem("avatarUrl") || null);
   const [username, setUsername] = React.useState(localStorage.getItem("username") || "");
   const hasValidated = React.useRef(false);
@@ -296,6 +297,9 @@ const Nav = () => {
                   }
                   id="interview-dropdown"
                   className="mx-3"
+                  show={showInterviewDropdown}
+                  onMouseEnter={() => setShowInterviewDropdown(true)}
+                  onMouseLeave={() => setShowInterviewDropdown(false)}
                 >
                   <NavDropdown.Item as={NavLink} to="/interview/question-library">
                     Question Library

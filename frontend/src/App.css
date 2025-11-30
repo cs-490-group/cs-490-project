@@ -53,3 +53,7 @@
 #profile-dropdown::after {
   display: none;
 }
+
+#interview-dropdown::after {
+  display: none;
+}
