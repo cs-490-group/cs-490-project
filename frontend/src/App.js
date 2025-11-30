@@ -46,6 +46,8 @@ import FollowUpManager from './pages/interview/FollowUpManager';
 import WritingPractice from './pages/interview/WritingPractice';
 import SuccessProbability from './pages/interview/SuccessProbability';
 import CompleteInterview from './pages/interview/CompleteInterview';
+import InterviewCalendar from './pages/interview/InterviewCalendar';
+import InterviewPerformanceTracking from './pages/interview/InterviewPerformanceTracking';
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -122,6 +124,8 @@ export function App() {
               <Route path="/interview/writing-practice" element={<WritingPractice />} />
               <Route path="/interview/success-probability" element={<SuccessProbability />} />
               <Route path="/interview/complete/:scheduleId" element={<CompleteInterview />} />
+              <Route path="/interview/calendar" element={<InterviewCalendar />} />
+              <Route path="/interview/performance" element={<InterviewPerformanceTracking />} />
               </Routes>
             </JobProvider>
             </FlashProvider>

@@ -306,6 +306,18 @@ const Nav = () => {
                   <NavDropdown.Item as={NavLink} to="/interview/progress">
                     Progress
                   </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/calendar">
+                    Interview Calendar
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/performance">
+                    Performance Analytics
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/writing-practice">
+                    Writing Practice
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/success-probability">
+                    Success Predictor
+                  </NavDropdown.Item>
                 </NavDropdown>
 
                 <NavDropdown
