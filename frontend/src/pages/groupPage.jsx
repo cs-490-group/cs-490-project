@@ -1,405 +1,646 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { useFlash } from "../context/flashContext";
-import groupAPI from "../api/groups";
-import postsAPI from "../api/posts";
-import profilesAPI from "../api/profiles";
+import React, { useState, useEffect } from "react";
+import { ChevronDown, Plus, Mail, Edit2, Trash2, TrendingUp, CheckCircle, AlertCircle, MessageSquare } from "lucide-react";
+import teamsAPI from "../api/teams";
 
-function GroupPage() {
-  const { groupId } = useParams();
-  const { showFlash } = useFlash();
-  const uuid = localStorage.getItem('uuid');
+const ChartPlaceholder = ({ title }) => (
+  <div style={{ border: "1px solid #e5e7eb", padding: "20px", marginBottom: "16px", borderRadius: "8px", backgroundColor: "#f9fafb" }}>
+    <strong className="text-gray-700">{title}</strong>
+    <div style={{ height: "200px", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", marginTop: "12px" }}>
+      [Chart visualization]
+    </div>
+  </div>
+);
 
-  const [activeTab, setActiveTab] = useState('feed');
-  const [group, setGroup] = useState(null);
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [postTitle, setPostTitle] = useState('');
-  const [postContent, setPostContent] = useState('');
-  const [postType, setPostType] = useState('insight');
-  const [isAnonymous, setIsAnonymous] = useState(false);
-  const [commentTexts, setCommentTexts] = useState({});
-  const [username, setUsername] = useState('');
-
-
-  const [webinarTitle, setWebinarTitle] = useState('');
-  const [webinarLink, setWebinarLink] = useState('');
-  const [webinars, setWebinars] = useState([]);
-
-  const isUserInGroup = () => group?.members?.some(m => m.uuid === uuid);
-  const isUserAdmin = () => group?.members?.some(m => m.uuid === uuid && m.role === 'admin');
-
-  
-  const postTypeMap = {
-    insight: 'insight',
-    strategy: 'strategy',
-    success_story: 'success_story',
-    challenge: 'challenge',
-    opportunity: 'opportunity',
-  };
+function TeamsDashboard() {
+  const [team, setTeam] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [filterRole, setFilterRole] = useState("all");
+  const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [newInvite, setNewInvite] = useState({ email: "", role: "candidate" });
+  const [planModalOpen, setPlanModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reports, setReports] = useState(null);
 
   useEffect(() => {
-    if (!groupId) return;
-    fetchGroupData();
-    fetchPosts();
-    fetchUserProfile();
-  }, [groupId]);
+    fetchTeamData();
+  }, []);
 
-  const fetchGroupData = async () => {
+  const fetchTeamData = async () => {
     try {
-      const data = await groupAPI.getGroup(groupId);
-      setGroup(data);
-    } catch (error) {
-      console.error('Error fetching group:', error);
-      showFlash('Failed to load group', 'error');
+      setLoading(true);
+      const teamId = localStorage.getItem("teamId") || "TEAM_ID";
+      const teamData = await teamsAPI.getTeam(teamId);
+      setTeam(teamData);
+      setMembers(teamData.members || []);
+      setSelectedPlan(teamData.billing?.plan || "basic");
+      
+      // Fetch reports if user is mentor or admin
+      if (teamData.currentUserRole === "mentor" || teamData.currentUserRole === "admin") {
+        const reportsData = await teamsAPI.getTeamReports(teamId);
+        setReports(reportsData);
+      }
+      setError(null);
+    } catch (err) {
+      console.error("Failed to fetch team data", err);
+      setError("Failed to load team data");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchUserProfile = async () => {
-    try {
-      const response = await profilesAPI.get();
-      const user = response.data;
-      if (user?.username) setUsername(user.username);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
+  const filteredMembers = members.filter((m) => {
+    const roleMatch = filterRole === "all" || m.role === filterRole;
+    const textMatch = m.name?.toLowerCase().includes(search.toLowerCase()) || 
+                      m.email?.toLowerCase().includes(search.toLowerCase());
+    return roleMatch && textMatch;
+  });
+
+  const isAdmin = () => team?.currentUserRole === "admin";
+  const isMentor = () => team?.currentUserRole === "mentor";
+
+  const getEngagementStatus = (engagement) => {
+    if (engagement >= 90) return { label: "Excellent", color: "text-green-600", bg: "bg-green-50" };
+    if (engagement >= 70) return { label: "Good", color: "text-blue-600", bg: "bg-blue-50" };
+    return { label: "Needs Attention", color: "text-orange-600", bg: "bg-orange-50" };
   };
 
-  const fetchPosts = async () => {
-    setLoading(true);
-    try {
-      const data = await postsAPI.getGroupPosts(groupId);
-      const sorted = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setPosts(sorted);
-      setWebinars(sorted.filter(p => p.postType === 'coaching'));
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-      showFlash('Failed to load posts', 'error');
-    }
-    setLoading(false);
-  };
+  // ============ OVERVIEW TAB ============
+  const renderOverview = () => (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">{team?.name || "Team"} Dashboard</h1>
+      
+      {team && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="text-gray-600 text-sm">Total Members</div>
+              <div className="text-2xl font-bold">{team.memberCount || 0}</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="text-gray-600 text-sm">Admins</div>
+              <div className="text-2xl font-bold">{team.admins || 0}</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="text-gray-600 text-sm">Mentors</div>
+              <div className="text-2xl font-bold">{team.mentors || 0}</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="text-gray-600 text-sm">Candidates</div>
+              <div className="text-2xl font-bold">{team.candidates || 0}</div>
+            </div>
+          </div>
 
-  const handleCreatePost = async () => {
-    if (!isUserInGroup()) return showFlash('You must be a member of this group to post', 'error');
-    if (!postTitle.trim() || !postContent.trim()) return showFlash('Please fill in all fields', 'error');
+          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+            <h2 className="text-xl font-bold mb-4">Aggregate KPIs</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <div className="text-gray-600 text-sm mb-1">Progress</div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                  <span className="text-xl font-bold">{team.progress || 0}%</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-gray-600 text-sm mb-1">Goals Completed</div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span className="text-xl font-bold">{team.goalsCompleted || 0}</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-gray-600 text-sm mb-1">Applications Sent</div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-purple-600" />
+                  <span className="text-xl font-bold">{team.applicationsSent || 0}</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-gray-600 text-sm mb-1">Avg Engagement</div>
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-orange-600" />
+                  <span className="text-xl font-bold">{team.avgEngagement || 0}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-    setLoading(true);
-    try {
-      await postsAPI.createPost({
-        groupId,
-        uuid,
-        title: postTitle,
-        content: postContent,
-        postType,
-        isAnonymous,
-        username: isAnonymous ? "Anonymous" : username,
-      });
-      showFlash('Post created successfully!', 'success');
-      setPostTitle('');
-      setPostContent('');
-      setPostType('insight');
-      setIsAnonymous(false);
-      fetchPosts();
-    } catch (error) {
-      showFlash(error.message, 'error');
-    }
-    setLoading(false);
-  };
+          <ChartPlaceholder title="Goals Completion Over Time" />
+          <ChartPlaceholder title="Applications Submitted Over Time" />
+          <ChartPlaceholder title="Team Engagement Score" />
+        </>
+      )}
+    </div>
+  );
 
-  const handleCreateWebinar = async () => {
-    if (!isUserInGroup()) return showFlash('You must join the group to post webinars', 'error');
-    if (!webinarTitle.trim() || !webinarLink.trim()) return showFlash('Please fill in both fields', 'error');
+  // ============ BILLING TAB ============
+  const renderBilling = () => (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">Billing & Subscription</h1>
+      
+      {!team?.billing ? (
+        <p className="text-gray-600">No billing data found.</p>
+      ) : (
+        <>
+          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+            <h3 className="text-lg font-bold mb-4">Current Plan</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-gray-600 text-sm">Plan</div>
+                <div className="text-lg font-semibold capitalize">{team.billing.plan}</div>
+              </div>
+              <div>
+                <div className="text-gray-600 text-sm">Status</div>
+                <div className="text-lg font-semibold capitalize text-green-600">{team.billing.status}</div>
+              </div>
+              <div>
+                <div className="text-gray-600 text-sm">Price</div>
+                <div className="text-lg font-semibold">${team.billing.price}/month</div>
+              </div>
+              <div>
+                <div className="text-gray-600 text-sm">Renews On</div>
+                <div className="text-lg font-semibold">{team.billing.renewalDate}</div>
+              </div>
+            </div>
+          </div>
 
-    try {
-      await postsAPI.createPost({
-        groupId,
-        uuid,
-        title: webinarTitle,
-        content: webinarLink,
-        postType: 'coaching',
-        isAnonymous: false,
-        username,
-      });
-      showFlash('Webinar posted!', 'success');
-      setWebinarTitle('');
-      setWebinarLink('');
-      fetchPosts();
-    } catch (error) {
-      showFlash('Failed to post webinar', 'error');
-    }
-  };
+          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+            <h3 className="text-lg font-bold mb-4">Payment Method</h3>
+            <div className="space-y-2">
+              <div className="text-sm"><span className="text-gray-600">Card:</span> {team.billing.cardBrand} •••• {team.billing.last4}</div>
+              <div className="text-sm"><span className="text-gray-600">Expires:</span> {team.billing.expMonth}/{team.billing.expYear}</div>
+            </div>
+          </div>
 
-  const handleLikePost = async (postId) => {
-    try {
-      await postsAPI.likePost(groupId, postId, uuid);
-      fetchPosts();
-    } catch (error) {
-      showFlash('Failed to like post', 'error');
-    }
-  };
+          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+            <h3 className="text-lg font-bold mb-4">Invoices</h3>
+            {team.billing.invoices?.length > 0 ? (
+              <ul className="space-y-2">
+                {team.billing.invoices.map((inv) => (
+                  <li key={inv.id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                    <div>
+                      <strong>${inv.amount}</strong> — {inv.date}
+                    </div>
+                    <span className="text-sm bg-gray-100 px-2 py-1 rounded capitalize">{inv.status}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-600">No invoices found.</p>
+            )}
+          </div>
 
-  const handleUnlikePost = async (postId) => {
-    try {
-      await postsAPI.unlikePost(groupId, postId, uuid);
-      fetchPosts();
-    } catch (error) {
-      showFlash('Failed to unlike post', 'error');
-    }
-  };
+          {isAdmin() && (
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setPlanModalOpen(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
+                Update Plan
+              </button>
+              <button 
+                onClick={async () => {
+                  if (!window.confirm("Are you sure you want to cancel the subscription?")) return;
+                  try {
+                    await teamsAPI.cancelSubscription(team.id);
+                    alert("Subscription cancelled!");
+                    fetchTeamData();
+                  } catch (err) {
+                    console.error(err);
+                    alert("Failed to cancel subscription");
+                  }
+                }}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+              >
+                Cancel Subscription
+              </button>
+            </div>
+          )}
 
-  const handleAddComment = async (postId) => {
-    if (!isUserInGroup()) return showFlash('You must be a member of this group to comment', 'error');
-    const commentText = commentTexts[postId];
-    if (!commentText?.trim()) return showFlash('Comment cannot be empty', 'error');
+          {planModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                <h3 className="text-lg font-bold mb-4">Update Plan</h3>
+                <select 
+                  value={selectedPlan} 
+                  onChange={(e) => setSelectedPlan(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg mb-4"
+                >
+                  <option value="basic">Basic</option>
+                  <option value="standard">Standard</option>
+                  <option value="premium">Premium</option>
+                </select>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={async () => {
+                      if (selectedPlan === team.billing.plan) {
+                        alert("Selected plan is the same as current.");
+                        return;
+                      }
+                      try {
+                        await teamsAPI.updateBilling(team.id, { plan: selectedPlan });
+                        alert(`Plan updated to ${selectedPlan}`);
+                        setPlanModalOpen(false);
+                        fetchTeamData();
+                      } catch (err) {
+                        console.error(err);
+                        alert("Failed to update plan");
+                      }
+                    }}
+                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Confirm
+                  </button>
+                  <button 
+                    onClick={() => setPlanModalOpen(false)}
+                    className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 
-    try {
-      await postsAPI.addComment(groupId, postId, commentText, uuid, isAnonymous ? "Anonymous" : username);
-      setCommentTexts({ ...commentTexts, [postId]: '' });
-      fetchPosts();
-      showFlash('Comment added!', 'success');
-    } catch (error) {
-      showFlash('Failed to add comment', 'error');
-    }
-  };
+  // ============ MEMBERS TAB ============
+  const renderMembers = () => (
+    <div className="p-6">
+      <div className="grid grid-cols-3 gap-6 h-[calc(100vh-120px)]">
+        {/* LEFT: Member List */}
+        <div className="col-span-1 border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto">
+          <h2 className="text-lg font-bold mb-4">Team Members</h2>
+          
+          <div className="space-y-3 mb-4">
+            <input
+              type="text"
+              placeholder="Search members..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+            />
+            <select 
+              value={filterRole} 
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admins</option>
+              <option value="mentor">Mentors</option>
+              <option value="candidate">Candidates</option>
+            </select>
+          </div>
 
-  const handleDeletePost = async (postId) => {
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
-    try {
-      await postsAPI.deletePost(groupId, postId, uuid);
-      showFlash('Post deleted successfully', 'success');
-      fetchPosts();
-    } catch (error) {
-      console.error(error);
-      showFlash('Failed to delete post', 'error');
-    }
-  };
+          {isAdmin() && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <h4 className="font-bold text-sm mb-2">Invite Member</h4>
+              <input
+                type="email"
+                placeholder="Email"
+                value={newInvite.email}
+                onChange={(e) => setNewInvite({ ...newInvite, email: e.target.value })}
+                className="w-full p-2 border border-gray-300 rounded text-sm mb-2"
+              />
+              <select
+                value={newInvite.role}
+                onChange={(e) => setNewInvite({ ...newInvite, role: e.target.value })}
+                className="w-full p-2 border border-gray-300 rounded text-sm mb-2"
+              >
+                <option value="admin">Admin</option>
+                <option value="mentor">Mentor</option>
+                <option value="candidate">Candidate</option>
+              </select>
+              <button 
+                onClick={async () => {
+                  if (!newInvite.email) {
+                    alert("Email is required.");
+                    return;
+                  }
+                  try {
+                    await teamsAPI.inviteMember(team.id, newInvite);
+                    alert(`Invitation sent to ${newInvite.email}`);
+                    setNewInvite({ email: "", role: "candidate" });
+                    fetchTeamData();
+                  } catch (err) {
+                    console.error(err);
+                    alert("Failed to invite member");
+                  }
+                }}
+                className="w-full bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
+              >
+                Send Invite
+              </button>
+            </div>
+          )}
 
-  const handleDeleteComment = async (postId, commentId, commentUuid) => {
-    if (commentUuid !== uuid && !isUserAdmin()) return showFlash('You can only delete your own comment unless you are an admin', 'error');
-    if (!window.confirm('Are you sure you want to delete this comment?')) return;
+          <div className="space-y-2">
+            {filteredMembers.map((member) => (
+              <div
+                key={member.uuid}
+                onClick={() => setSelectedMember(member)}
+                className={`p-3 rounded-lg cursor-pointer transition ${
+                  selectedMember?.uuid === member.uuid 
+                    ? "bg-blue-100 border border-blue-300" 
+                    : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                }`}
+              >
+                <div className="font-semibold text-sm">{member.name}</div>
+                <div className="text-xs text-gray-600">{member.role}</div>
+                <div className="text-xs text-gray-600 mt-1">Progress: {member.progress?.overall || 0}%</div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-    try {
-      await postsAPI.deleteComment(groupId, postId, commentId, uuid);
-      showFlash('Comment deleted successfully', 'success');
-      fetchPosts();
-    } catch (error) {
-      showFlash('Failed to delete comment', 'error');
-    }
-  };
+        {/* RIGHT: Member Detail */}
+        <div className="col-span-2 border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto">
+          {!selectedMember ? (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              Select a team member to view details
+            </div>
+          ) : (
+            <>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2">{selectedMember.name}</h2>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <div>Email: {selectedMember.email}</div>
+                  <div>Role: <span className="font-semibold capitalize">{selectedMember.role}</span></div>
+                </div>
+              </div>
 
-  if (!group) return <div style={{ padding: '20px' }}>Loading group...</div>;
+              {/* KPIs */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold mb-3">Key Performance Indicators</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                    <div className="text-gray-600 text-sm">Completed Goals</div>
+                    <div className="text-2xl font-bold">{selectedMember.kpis?.completedGoals || 0}</div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                    <div className="text-gray-600 text-sm">Pending Goals</div>
+                    <div className="text-2xl font-bold">{selectedMember.kpis?.pendingGoals || 0}</div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                    <div className="text-gray-600 text-sm">Engagement</div>
+                    <div className="text-2xl font-bold">{selectedMember.kpis?.engagement || 0}%</div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                    <div className="text-gray-600 text-sm">Applications Sent</div>
+                    <div className="text-2xl font-bold">{selectedMember.kpis?.applications || 0}</div>
+                  </div>
+                </div>
+                <div className="mt-3 text-sm text-gray-600">
+                  Last Login: {selectedMember.kpis?.lastLogin || "Never"}
+                </div>
+              </div>
 
+              {/* Goals */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold mb-3">Goals & Milestones</h3>
+                {selectedMember.goals?.length > 0 ? (
+                  <ul className="space-y-2">
+                    {selectedMember.goals.map((goal) => (
+                      <li key={goal.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                        <span className={goal.completed ? "text-green-600" : "text-orange-600"}>
+                          {goal.completed ? "✅" : "⏳"}
+                        </span>
+                        <span className={goal.completed ? "line-through text-gray-500" : ""}>
+                          {goal.title}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-600 text-sm">No goals yet.</p>
+                )}
+              </div>
 
-  let displayedPosts = [];
-  if (activeTab === 'feed') {
-    displayedPosts = posts.filter(p => p.postType !== 'coaching');
-  } else if (postTypeMap[activeTab]) {
-    displayedPosts = posts.filter(p => p.postType === postTypeMap[activeTab]);
+              {/* Applications */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold mb-3">Job Applications</h3>
+                {selectedMember.applications?.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedMember.applications.map((app) => (
+                      <div key={app.id} className="border border-gray-200 rounded p-3 bg-gray-50">
+                        <div className="font-semibold">{app.position}</div>
+                        <div className="text-sm text-gray-600">@ {app.company}</div>
+                        <div className="text-sm mt-1">
+                          Status: <span className="font-semibold capitalize">{app.status}</span>
+                        </div>
+                        {app.materials?.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {app.materials.map((m, idx) => (
+                              <a 
+                                key={idx} 
+                                href={m.link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:underline block"
+                              >
+                                📎 {m.name}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 text-sm">No applications yet.</p>
+                )}
+              </div>
+
+              {/* Mentor Feedback */}
+              {isMentor() && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    Provide Feedback
+                  </h3>
+                  <textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="Enter coaching feedback, recommendations, or encouragement..."
+                    className="w-full p-2 border border-gray-300 rounded-lg text-sm mb-2 h-24"
+                  />
+                  <button 
+                    onClick={async () => {
+                      if (!feedback.trim()) {
+                        alert("Please enter feedback");
+                        return;
+                      }
+                      try {
+                        await teamsAPI.sendFeedback(team.id, selectedMember.uuid, {
+                          feedback: feedback,
+                          mentorId: team.members[0]?.uuid
+                        });
+                        alert("Feedback sent successfully!");
+                        setFeedback("");
+                      } catch (err) {
+                        console.error(err);
+                        alert("Failed to send feedback");
+                      }
+                    }}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
+                  >
+                    Send Feedback
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ============ REPORTS TAB ============
+  const renderReports = () => (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">Team Reports & Coaching Insights</h1>
+      
+      {reports ? (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="text-gray-600 text-sm">Overall Progress</div>
+              <div className="text-2xl font-bold">{reports.overallProgress || 0}%</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="text-gray-600 text-sm">Goals Completed</div>
+              <div className="text-2xl font-bold">{reports.totalGoalsCompleted || 0}</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="text-gray-600 text-sm">Applications Sent</div>
+              <div className="text-2xl font-bold">{reports.totalApplicationsSent || 0}</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="text-gray-600 text-sm">Avg Engagement</div>
+              <div className="text-2xl font-bold">{reports.averageEngagement || 0}%</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <ChartPlaceholder title="Team Progress Chart" />
+            <ChartPlaceholder title="Engagement by Role" />
+          </div>
+          
+          <ChartPlaceholder title="Applications vs Goals Achievement" />
+          
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold mb-4">Top Performers</h3>
+              <div className="space-y-3">
+                {reports.topPerformers?.map((member, idx) => (
+                  <div key={idx} className="flex justify-between items-center p-3 bg-green-50 rounded border border-green-200">
+                    <div>
+                      <div className="font-semibold">{member.name}</div>
+                      <div className="text-xs text-gray-600 capitalize">{member.role}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-green-600">{member.engagement}%</div>
+                      <div className="text-xs text-gray-600">engagement</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold mb-4">Needs Attention</h3>
+              <div className="space-y-3">
+                {reports.needsAttention?.map((member, idx) => (
+                  <div key={idx} className="flex justify-between items-center p-3 bg-orange-50 rounded border border-orange-200">
+                    <div>
+                      <div className="font-semibold">{member.name}</div>
+                      <div className="text-xs text-gray-600 capitalize">{member.role}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-orange-600">{member.engagement}%</div>
+                      <div className="text-xs text-gray-600">engagement</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-bold mb-4">Coaching Insights & Recommendations</h3>
+            <div className="space-y-4">
+              <div className="border-l-4 border-blue-500 pl-4">
+                <div className="font-semibold text-blue-900">Engagement by Role</div>
+                <div className="text-gray-700 text-sm space-y-1 mt-2">
+                  {Object.entries(reports.engagementByRole || {}).map(([role, engagement]) => (
+                    <div key={role}><span className="capitalize font-medium">{role}:</span> {Math.round(engagement)}%</div>
+                  ))}
+                </div>
+              </div>
+              <div className="border-l-4 border-green-500 pl-4">
+                <div className="font-semibold text-green-900">High Performers</div>
+                <p className="text-gray-700 text-sm">Consider recognizing and providing peer-mentoring opportunities for top performers.</p>
+              </div>
+              <div className="border-l-4 border-orange-500 pl-4">
+                <div className="font-semibold text-orange-900">Goal Completion Rate</div>
+                <p className="text-gray-700 text-sm">Focus mentoring efforts on candidates falling behind on milestone targets.</p>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="text-center text-gray-500">
+          {isMentor() || isAdmin() ? "Loading reports..." : "Reports not available for your role."}
+        </div>
+      )}
+    </div>
+  );
+
+  // ============ RENDER ============
+  if (loading) {
+    return <div className="p-6 text-center">Loading team data...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-center text-red-600">{error}</div>;
   }
 
   return (
-    <div style={{ width: '100%', backgroundColor: '#f3f4f6', minHeight: '100vh', padding: '32px' }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-
-  
-        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '24px', marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, marginBottom: '8px' }}>{group.name}</h1>
-          <p style={{ color: '#666', margin: 0, marginBottom: '16px' }}>{group.category}</p>
-          <p style={{ fontSize: '14px', color: '#999', margin: 0 }}>
-            {group.members?.length || 0} / {group.maxMembers} members
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid #ddd', backgroundColor: '#ffffff', borderRadius: '12px 12px 0 0', padding: '16px' }}>
-          {['feed', 'insight', 'strategy', 'success_story', 'challenge', 'opportunity', 'coaching', 'privacy'].map(tab => (
+    <div className="min-h-screen bg-gray-100">
+      {/* Tab Navigation */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="flex gap-4 px-6">
+          {["overview", "members", "reports", "billing"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              style={{
-                paddingBottom: '12px',
-                paddingLeft: '16px',
-                paddingRight: '16px',
-                fontWeight: 'bold',
-                borderBottom: activeTab === tab ? '2px solid #14b8a6' : 'none',
-                color: activeTab === tab ? '#14b8a6' : '#666',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '14px',
-                textTransform: 'capitalize'
-              }}
+              className={`py-4 px-2 font-semibold transition ${
+                activeTab === tab
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
             >
-              {tab === 'feed' ? 'All Posts' : tab.replace('_', ' ')}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
+      </div>
 
- 
-        {activeTab !== 'coaching' && (
-          <>
-  
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '24px', marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginTop: 0 }}>Share with Your Community</h3>
-              {!isUserInGroup() && (
-                <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
-                  <p style={{ color: '#92400e', margin: 0 }}>⚠️ You must join this group to post and comment</p>
-                </div>
-              )}
-              <input
-                type="text"
-                value={postTitle}
-                onChange={(e) => setPostTitle(e.target.value)}
-                placeholder="Post Title"
-                style={{ width: '100%', padding: '10px', marginBottom: '16px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
-              />
-              <textarea
-                value={postContent}
-                onChange={(e) => setPostContent(e.target.value)}
-                placeholder="Content..."
-                style={{ width: '100%', padding: '10px', marginBottom: '16px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', minHeight: '100px' }}
-              />
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                <select value={postType} onChange={(e) => setPostType(e.target.value)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}>
-                  <option value="insight">Insight</option>
-                  <option value="strategy">Strategy</option>
-                  <option value="success_story">Success Story</option>
-                  <option value="challenge">Challenge</option>
-                  <option value="opportunity">Opportunity</option>
-                </select>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <input type="checkbox" checked={isAnonymous} onChange={(e) => setIsAnonymous(e.target.checked)} />
-                  Post Anonymously
-                </label>
-              </div>
-              <button
-                onClick={handleCreatePost}
-                disabled={loading || !isUserInGroup()}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold', cursor: loading || !isUserInGroup() ? 'not-allowed' : 'pointer', opacity: loading || !isUserInGroup() ? 0.5 : 1 }}
-              >
-                {loading ? 'Posting...' : 'Post'}
-              </button>
-            </div>
-
-
-            <div>
-              {loading ? (
-                <p>Loading posts...</p>
-              ) : displayedPosts.length === 0 ? (
-                <p>No posts yet.</p>
-              ) : (
-                displayedPosts.map(post => (
-                  <div key={post.id} style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '20px', marginBottom: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                      <div>
-                        <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>
-                          <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '4px', marginRight: '8px' }}>{post.postType}</span>
-                          {post.isAnonymous ? 'Anonymous' : post.username}
-                        </div>
-                        <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>{post.title}</h3>
-                      </div>
-                      {(post.uuid === uuid || isUserAdmin()) && (
-                        <button onClick={() => handleDeletePost(post.id)} style={{ backgroundColor: '#ef4444', color: 'white', padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px' }}>Delete</button>
-                      )}
-                    </div>
-                    <p>{post.content}</p>
-
-                    <div style={{ marginBottom: '12px' }}>
-                      <button
-                        onClick={() => post.likes?.includes(uuid) ? handleUnlikePost(post.id) : handleLikePost(post.id)}
-                        style={{ marginRight: '8px', background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb' }}
-                      >
-                        {post.likes?.includes(uuid) ? '💙 Unlike' : '🤍 Like'} ({post.likes?.length || 0})
-                      </button>
-                    </div>
-
-                    <div style={{ marginTop: '12px' }}>
-                      {post.comments?.map(comment => (
-                        <div key={comment.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '13px', borderBottom: '1px solid #eee' }}>
-                          <span><strong>{comment.isAnonymous ? 'Anonymous' : comment.username}:</strong> {comment.text}</span>
-                          {(comment.uuid === uuid || isUserAdmin()) && (
-                            <button onClick={() => handleDeleteComment(post.id, comment.id, comment.uuid)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>Delete</button>
-                          )}
-                        </div>
-                      ))}
-                      {isUserInGroup() && (
-                        <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-                          <input
-                            type="text"
-                            placeholder="Add a comment..."
-                            value={commentTexts[post.id] || ''}
-                            onChange={(e) => setCommentTexts({ ...commentTexts, [post.id]: e.target.value })}
-                            style={{ flex: 1, padding: '6px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '13px' }}
-                          />
-                          <button onClick={() => handleAddComment(post.id)} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: 'white', cursor: 'pointer', fontSize: '13px' }}>Comment</button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </>
-        )}
-
-{activeTab === 'coaching' && (
-  <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Post a Webinar</h3>
-
-    {!isUserInGroup() && <p style={{ color: '#92400e' }}>⚠️ Join this group to post webinars.</p>}
-
-    {isUserInGroup() && (
-      <>
-        <input
-          type="text"
-          placeholder="Webinar Title"
-          value={webinarTitle}
-          onChange={(e) => setWebinarTitle(e.target.value)}
-          style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #ddd' }}
-        />
-        <input
-          type="text"
-          placeholder="Webinar Link (Webex, Zoom, etc.)"
-          value={webinarLink}
-          onChange={(e) => setWebinarLink(e.target.value)}
-          style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #ddd' }}
-        />
-        <button
-          onClick={handleCreateWebinar}
-          style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold', cursor: 'pointer', marginBottom: '16px' }}
-        >
-          Post Webinar
-        </button>
-      </>
-    )}
-
-    <div>
-      {webinars.length === 0 ? (
-        <p>No webinars posted yet.</p>
-      ) : (
-        webinars.map(webinar => (
-          <div key={webinar.id} style={{ borderTop: '1px solid #eee', padding: '12px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 'bold', marginRight: '12px' }}>{webinar.title}</span>
-              {(webinar.uuid === uuid || isUserAdmin()) && (
-                <button onClick={() => handleDeletePost(webinar.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>Delete</button>
-              )}
-            </div>
-            <div style={{ marginTop: '4px' }}>
-              <a href={webinar.content} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>
-                {webinar.content}
-              </a>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  </div>
-)}
-
-
+      {/* Tab Content */}
+      <div>
+        {activeTab === "overview" && renderOverview()}
+        {activeTab === "members" && renderMembers()}
+        {activeTab === "reports" && renderReports()}
+        {activeTab === "billing" && renderBilling()}
       </div>
     </div>
   );
 }
 
-export default GroupPage;
+export default TeamsDashboard;

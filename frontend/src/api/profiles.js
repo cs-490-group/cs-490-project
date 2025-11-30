@@ -2,7 +2,8 @@ import api from "./base";
 
 const BASE_URL = "/users";
 
-class ProfilesAPI { // we don't require uuid as a query param, since it is now a header for privacy and easy auth
+class ProfilesAPI {
+    // Current user endpoints
     get() {
         return api.get(`${BASE_URL}/me`);
     }
@@ -11,7 +12,7 @@ class ProfilesAPI { // we don't require uuid as a query param, since it is now a
         return api.put(`${BASE_URL}/me`, data);
     }
 
-    deleteAllData(passBody) { // should just contain the password field in the json body
+    deleteAllData(passBody) {
         console.log("PASSBODY ", passBody)
         return api.post(`${BASE_URL}/me`, passBody);
     }
@@ -34,6 +35,15 @@ class ProfilesAPI { // we don't require uuid as a query param, since it is now a
 
     deleteAvatar(avatarId) {
         return api.delete(`${BASE_URL}/me/avatar?media_id=${avatarId}`);
+    }
+
+    // Other user endpoints (for viewing profiles)
+    getById(userId) {
+        return api.get(`${BASE_URL}/${userId}`);
+    }
+
+    getAvatarById(userId) {
+        return api.get(`${BASE_URL}/${userId}/avatar`, {responseType: "blob"});
     }
 }
 

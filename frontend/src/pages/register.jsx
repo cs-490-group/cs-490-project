@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useFlash } from "../context/flashContext";
@@ -19,6 +19,7 @@ function Register() {
   const navigate = useNavigate();
   const { flash, showFlash } = useFlash();
   const { instance } = useMsal();
+  const [setupTeam, setSetupTeam] = useState(false);
 
   const onSubmit = async (data) => {
     const payload = {
@@ -34,17 +35,23 @@ function Register() {
 
       localStorage.setItem("session", res.data.session_token);
       localStorage.setItem("uuid", res.data.uuid);
+      localStorage.setItem("email", data.email);
 
-      navigate(`/profile`);
+      // Route based on user choice
+      if (setupTeam) {
+        navigate(`/setup-team`);
+      } else {
+        navigate(`/profile`);
+      }
       return;
     } catch (error) {
-  const msg =
-    error.response?.data?.detail ||
-    error.response?.data?.message ||
-    error.message ||
-    "Registration failed.";
-  showFlash(msg, "error");
-}
+      const msg =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Registration failed.";
+      showFlash(msg, "error");
+    }
   };
 
   const OAuthSubmit = async (data) => {
@@ -53,23 +60,31 @@ function Register() {
 
       localStorage.setItem("session", res.data.session_token);
       localStorage.setItem("uuid", res.data.uuid);
+      localStorage.setItem("email", res.data.email);
 
       if (!res.data.has_password){
         navigate(`/set-password`);
         return;
       }
 
-      navigate(`/profile`);
+      // If user already has a team, go to teams
+      if (res.data.teamId) {
+        localStorage.setItem("teamId", res.data.teamId);
+        navigate(`/teams`);
+        return;
+      }
+
+      // If new user, go to setup-team
+      navigate(`/setup-team`);
       return;
     } catch (error) {
-  const msg =
-    error.response?.data?.detail ||
-    error.response?.data?.message ||
-    error.message ||
-    "Google login failed.";
-  showFlash(msg, "error");
-}
-
+      const msg =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Google login failed.";
+      showFlash(msg, "error");
+    }
   };
 
   async function handleMicrosoftLogin() {
@@ -103,14 +118,22 @@ function Register() {
 
       localStorage.setItem("session", res.data.session_token);
       localStorage.setItem("uuid", res.data.uuid);
-
+      localStorage.setItem("email", res.data.email);
 
       if (!res.data.has_password){
         navigate(`/set-password`);
         return;
       }
 
-      navigate("/profile");
+      // If user already has a team, go to teams
+      if (res.data.teamId) {
+        localStorage.setItem("teamId", res.data.teamId);
+        navigate("/teams");
+        return;
+      }
+
+      // If new user, go to setup-team
+      navigate("/setup-team");
       return;
     } catch (err) {
       console.error("Microsoft login failed:", err);
@@ -207,6 +230,26 @@ function Register() {
           >
             <i className="fab fa-microsoft me-2"></i> Login with Microsoft
           </button>
+        </div>
+
+        {/* Team Setup Option */}
+        <div className="alert alert-info mt-4 mb-0" style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
+          <input
+            className="form-check-input"
+            type="checkbox"
+            id="setupTeamCheckbox"
+            checked={setupTeam}
+            onChange={(e) => setSetupTeam(e.target.checked)}
+            style={{ marginTop: "0.25rem", cursor: "pointer", width: "1.25rem", height: "1.25rem" }}
+          />
+          <label className="form-check-label" htmlFor="setupTeamCheckbox" style={{ cursor: "pointer", flex: 1 }}>
+            <strong>Set up a team account</strong>
+            <p className="text-muted small mb-0" style={{ marginTop: "0.25rem" }}>
+              {setupTeam 
+                ? "✓ You'll be prompted to create or join a team after registration" 
+                : "You can skip team setup and add it later from your profile"}
+            </p>
+          </label>
         </div>
       </div>
     </div>

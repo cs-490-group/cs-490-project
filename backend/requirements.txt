@@ -49,6 +49,7 @@ pyasn1_modules==0.4.2
 pycparser==2.23
 pydantic==2.12.3
 pydantic_core==2.41.4
+pydantic[email]>=2.0.0
 pydyf==0.11.0
 pyee==13.0.0
 pymongo==4.15.3

@@ -10,7 +10,7 @@ export default function PerformanceDashboard({ jobs }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [goals, setGoals] = useState(() => {
     try {
-      const saved = localStorage.getItem('jobSearchGoals');
+      const saved = localStorage.getItem('userGoals'); 
       return saved ? JSON.parse(saved) : {
         weeklyApplications: 10,
         monthlyInterviews: 5,
@@ -67,14 +67,10 @@ export default function PerformanceDashboard({ jobs }) {
   // Calculate comprehensive metrics
   const metrics = useMetricsCalculator(filteredJobs);
 
-  const saveGoals = () => {
-    try {
-      localStorage.setItem('jobSearchGoals', JSON.stringify(goals));
-      setShowGoalSettings(false);
-      //alert('✅ Goals saved successfully!');
-    } catch (error) {
-      alert('Failed to save goals. Please try again.');
-    }
+
+  const saveGoals = (savedGoals) => {
+    setGoals(savedGoals);
+    setShowGoalSettings(false);
   };
 
   return (
@@ -161,8 +157,8 @@ export default function PerformanceDashboard({ jobs }) {
       {/* Goal Settings Modal */}
       <GoalSettingsModal
         show={showGoalSettings}
-        goals={goals}
-        setGoals={setGoals}
+        memberUuid={localStorage.getItem("uuid")}
+        teamId={localStorage.getItem("teamId")}
         onClose={() => setShowGoalSettings(false)}
         onSave={saveGoals}
       />

@@ -15,6 +15,7 @@ from mongo.employment_dao import employment_dao
 from mongo.jobs_dao import jobs_dao
 from mongo.projects_dao import projects_dao
 from mongo.skills_dao import skills_dao
+from mongo.teams_dao import teams_dao
 from sessions.session_manager import session_manager
 from sessions.session_authorizer import authorize
 from schema.Profile import Profile, DeletePassword
@@ -101,6 +102,12 @@ async def delete_profile(passSchema: DeletePassword, uuid: str = Depends(authori
             await media_dao.delete_media(id)
         await profiles_dao.delete_profile(uuid)
 
+        user_team = await teams_dao.get_user_team(uuid)
+        if user_team:
+            team_id = user_team.get("_id")
+            # Just remove user from team (don't delete the entire team)
+            await teams_dao.remove_member_from_team(team_id, uuid)
+
         session_manager.kill_session(uuid)
 
         await auth_dao.delete_user(uuid)
@@ -185,3 +192,61 @@ async def delete_pfp(media_id: str, uuid: str = Depends(authorize)):
         raise HTTPException(500, "Unable to delete profile picture")
     
     return {"detail": "Sucessfully deleted profile picture"}
+
+# These get *other* user's profiles.
+
+@profiles_router.get("/{user_id}", tags = ["profiles"])
+async def get_user_profile(user_id: str, uuid: str = Depends(authorize)):
+    """Get another user's profile (for mentors/admins viewing candidate profiles)"""
+    try:
+        profile = await profiles_dao.get_profile(user_id)
+    except Exception as e:
+        raise HTTPException(500, "Encountered internal service error")
+
+    if profile:
+        return profile
+    else:
+        raise HTTPException(400, "User profile not found")
+
+
+@profiles_router.get("/{user_id}/avatar", tags = ["profiles"])
+async def retrieve_user_pfp(user_id: str, uuid: str = Depends(authorize)):
+    """Get another user's profile picture"""
+    try:
+        media_ids = await media_dao.get_all_associated_media_ids(user_id)
+    except Exception as e:
+        raise HTTPException(500, "Encountered internal service error")
+
+    if not media_ids:
+        # Return default profile picture if user hasn't set one
+        default_image_path = Path(__file__).parent.parent.parent / "frontend" / "public" / "default.png"
+
+        if not default_image_path.exists():
+            raise HTTPException(500, "Default profile picture not found")
+
+        try:
+            with open(default_image_path, "rb") as f:
+                default_image_content = f.read()
+
+            return StreamingResponse(
+                BytesIO(default_image_content),
+                media_type="image/png",
+                headers={
+                    "Content-Disposition": 'inline; filename="default.png"'
+                }
+            )
+        except Exception as e:
+            raise HTTPException(500, "Could not load default profile picture")
+
+    try:
+        media = await media_dao.get_media(media_ids[-1])
+    except:
+        raise HTTPException(500, "Encountered internal server error")
+
+    return StreamingResponse(
+        BytesIO(media["contents"]),
+        media_type = media["content_type"],
+        headers = {
+            "Content-Disposition": f"inline; filename=\"{media['filename']}\""
+        }
+    )
