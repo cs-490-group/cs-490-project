@@ -487,13 +487,14 @@ export default function JobDetailsModal({
         {/* ---------------- NEWS TAB ---------------- */}
         {activeTab === "news" && (
           <div style={{ padding: "15px" }}>
+            <h2 style={{ color: "#1565c0", marginBottom: "20px" }}>
+              📰 Latest Company News
+            </h2>
 
-            <h2 style={{ color: "#1565c0", marginBottom: "20px" }}>📰 Latest Company News</h2>
-
-            {!selectedJob.company_news?.items?.length ? (
+            {(!selectedJob.company_news || selectedJob.company_news.length === 0) ? (
               <p>No news available.</p>
             ) : (
-              selectedJob.company_news.items.map((item, i) => (
+              selectedJob.company_news.map((item, i) => (
                 <div 
                   key={i}
                   style={{
@@ -505,7 +506,7 @@ export default function JobDetailsModal({
                     boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
                   }}
                 >
-          
+
                   {/* Title */}
                   <h3 style={{ margin: "0 0 6px", color: "#003f8c" }}>
                     {item.title}
@@ -513,10 +514,10 @@ export default function JobDetailsModal({
 
                   {/* Meta */}
                   <p style={{ fontSize: "13px", color: "#555" }}>
-                    <strong>Source:</strong> {item.source}  
-                    &nbsp;•&nbsp;  
+                    <strong>Source:</strong> {item.source}
+                    &nbsp;•&nbsp;
                     <strong>Date:</strong> {item.date}
-                    &nbsp;•&nbsp;  
+                    &nbsp;•&nbsp;
                     <strong>Category:</strong> {item.category}
                     &nbsp;•&nbsp;
                     <strong>Relevance:</strong> {item.relevance_score}/100
@@ -534,17 +535,17 @@ export default function JobDetailsModal({
                       {item.key_points?.map((kp, index) => (
                         <li key={index} style={{ marginBottom: "4px" }}>
                           {kp}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
                   {/* Link */}
-                  <a 
+                  <a
                     href={item.url}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ 
+                    style={{
                       display: "inline-block",
                       marginTop: "10px",
                       background: "#1565c0",
@@ -561,7 +562,6 @@ export default function JobDetailsModal({
             )}
           </div>
         )}
-
 
 
 
