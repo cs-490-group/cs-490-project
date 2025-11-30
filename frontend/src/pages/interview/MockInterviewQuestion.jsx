@@ -26,6 +26,10 @@ function MockInterviewQuestion() {
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [previewTimeRemaining, setPreviewTimeRemaining] = useState(5);
 
+  // UC-076: Coaching feedback state (stored but not shown during interview)
+  // Feedback is shown at the end in MockInterviewSummary
+  const [coachingFeedback, setCoachingFeedback] = useState(null);
+
   // Timer
   const [responseTimer, setResponseTimer] = useState(0);
   const timerRef = useRef(null);
@@ -170,6 +174,12 @@ function MockInterviewQuestion() {
 
       if (response.data) {
         showFlash("Response saved successfully", "success");
+
+        // UC-076: Store coaching feedback for summary display (but don't show during interview)
+        // It will be shown at the end in MockInterviewSummary
+        if (response.data.coaching_feedback) {
+          setCoachingFeedback(response.data.coaching_feedback);
+        }
 
         if (response.data.next_question) {
           // More questions to go
