@@ -10,7 +10,7 @@ from mongo.jobs_dao import jobs_dao
 from schema.teams import (
     CreateTeamRequest, UpdateTeamRequest, InviteMemberRequest,
     UpdateMemberRequest, UpdateBillingRequest, SendFeedbackRequest,
-    AcceptInvitationRequest
+    AcceptInvitationRequest,UpdateGoalsRequest
 )
 
 load_dotenv()
@@ -103,9 +103,18 @@ async def create_team(request: CreateTeamRequest):
 @teams_router.get("/{team_id}")
 async def get_team(team_id: str):
     try:
-        team = await teams_dao.get_team(team_id)
+        print(f"Route received team_id: {team_id}")
+        try:
+            team_id_obj = ObjectId(team_id)
+        except Exception as e:
+            print(f"Failed to convert ObjectId: {e}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid team ID format: {e}")
+        
+        team = await teams_dao.get_team_by_id(team_id_obj)
+        print(f"Query result: {team is not None}")
         if not team:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
+
         
         members = team.get("members", [])
         member_count = len(members)
@@ -334,7 +343,7 @@ async def remove_team_member(team_id: str, member_uuid: str):
 @teams_router.post("/{team_id}/members/{member_uuid}/feedback")
 async def send_mentor_feedback(team_id: str, member_uuid: str, request: SendFeedbackRequest):
     try:
-        team_id = ObjectId(team_id)
+        team_id_obj = ObjectId(team_id)
         
         feedback_data = {
             "mentor_id": request.mentorId,
@@ -342,11 +351,176 @@ async def send_mentor_feedback(team_id: str, member_uuid: str, request: SendFeed
             "created_at": datetime.utcnow()
         }
         
-        result = await teams_dao.add_member_feedback(team_id, member_uuid, feedback_data)
+        result = await teams_dao.add_member_feedback(team_id_obj, member_uuid, feedback_data)
         if result == 0:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to save feedback")
         
+        # Log feedback activity for engagement tracking
+        await teams_dao.update_member_activity(team_id_obj, member_uuid, "feedback_received")
+        
         return {"message": "Feedback sent successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@teams_router.post("/{team_id}/members/{member_uuid}/log-activity")
+async def log_member_activity(team_id: str, member_uuid: str, activity_type: str):
+    """Log member activity (login, goal_completed, application_sent, feedback_received)"""
+    try:
+        team_id_obj = ObjectId(team_id)
+        
+        valid_activities = ["login", "goal_completed", "application_sent", "feedback_received"]
+        if activity_type not in valid_activities:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid activity type. Must be one of: {', '.join(valid_activities)}"
+            )
+        
+        result = await teams_dao.update_member_activity(team_id_obj, member_uuid, activity_type)
+        if result == 0:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        
+        return {"message": f"Activity logged: {activity_type}", "engagement_updated": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@teams_router.get("/{team_id}/members/{member_uuid}/activity-summary")
+async def get_activity_summary(team_id: str, member_uuid: str):
+    """Get member's activity summary for the last 30 days"""
+    try:
+        team_id_obj = ObjectId(team_id)
+        summary = await teams_dao.get_member_activity_summary(team_id_obj, member_uuid)
+        
+        if not summary:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        
+        return summary
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+@teams_router.get("/{team_id}/members/{member_uuid}/goals")
+async def get_member_goals(team_id: str, member_uuid: str):
+    """Get member's goals"""
+    try:
+        team_id_obj = ObjectId(team_id)
+        team = await teams_dao.get_team_by_id(team_id_obj)
+        
+        if not team:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
+        
+        member = next((m for m in team.get("members", []) if m.get("uuid") == member_uuid), None)
+        if not member:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        
+        return member.get("goals", [])
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@teams_router.post("/{team_id}/members/{member_uuid}/log-login")
+async def log_member_login(team_id: str, member_uuid: str):
+    """Convenience endpoint to log a member login"""
+    try:
+        team_id_obj = ObjectId(team_id)
+        result = await teams_dao.update_member_activity(team_id_obj, member_uuid, "login")
+        if result == 0:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        
+        return {"message": "Login logged successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# ============ GOALS & ENGAGEMENT ============
+
+@teams_router.put("/{team_id}/members/{member_uuid}/goals")
+async def update_member_goals(team_id: str, member_uuid: str, request: UpdateGoalsRequest):
+    """Update member goals and track completion activity"""
+    try:
+        team_id_obj = ObjectId(team_id)
+        goals = request.goals
+        
+        # Get the previous goals to detect completions
+        team = await teams_dao.get_team_by_id(team_id_obj)
+        if not team:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
+        
+        member = next((m for m in team.get("members", []) if m.get("uuid") == member_uuid), None)
+        if not member:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        
+        previous_goals = member.get("goals", [])
+        previous_completed = len([g for g in previous_goals if g.get("completed")])
+        new_completed = len([g for g in goals if g.get("completed")])
+        
+        # If new goals were completed, log the activity
+        if new_completed > previous_completed:
+            goals_completed = new_completed - previous_completed
+            for _ in range(goals_completed):
+                await teams_dao.update_member_activity(team_id_obj, member_uuid, "goal_completed")
+        
+        # Update the goals
+        result = await teams_dao.update_member_goals(team_id_obj, member_uuid, goals)
+        if result == 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update goals")
+        
+        return {
+            "message": "Goals updated successfully",
+            "goalsCompleted": new_completed,
+            "engagementUpdated": new_completed > previous_completed
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+# ============ APPLICATIONS & ENGAGEMENT ============
+
+@teams_router.put("/{team_id}/members/{member_uuid}/applications")
+async def update_member_applications(team_id: str, member_uuid: str, applications: list):
+    """Update member applications and track application sent activity"""
+    try:
+        team_id_obj = ObjectId(team_id)
+        
+        # Get the previous applications to detect new submissions
+        team = await teams_dao.get_team_by_id(team_id_obj)
+        if not team:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
+        
+        member = next((m for m in team.get("members", []) if m.get("uuid") == member_uuid), None)
+        if not member:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        
+        previous_applications = member.get("applications", [])
+        previous_count = len(previous_applications)
+        new_count = len(applications)
+        
+        # If new applications were added, log the activity
+        if new_count > previous_count:
+            new_applications = new_count - previous_count
+            for _ in range(new_applications):
+                await teams_dao.update_member_activity(team_id_obj, member_uuid, "application_sent")
+        
+        # Update the applications
+        result = await teams_dao.update_member_applications(team_id_obj, member_uuid, applications)
+        if result == 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update applications")
+        
+        return {
+            "message": "Applications updated successfully",
+            "applicationsCount": new_count,
+            "engagementUpdated": new_count > previous_count
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -440,46 +614,42 @@ async def get_team_progress(team_id: str):
 @teams_router.get("/{team_id}/reports")
 async def get_team_reports(team_id: str):
     try:
-        team_id = ObjectId(team_id)
-        reports = await teams_dao.get_team_reports(team_id)
+        print(f"Fetching reports for team_id: {team_id}")
+        team_id_obj = ObjectId(team_id)
+        
+        reports = await teams_dao.get_team_reports(team_id_obj, jobs_dao)
+        print(f"Reports generated successfully")
         
         return {
-            "teamId": str(team_id),
+            "teamId": str(team_id_obj),
             "overallProgress": reports.get("overallProgress", 0),
             "totalGoalsCompleted": reports.get("totalGoalsCompleted", 0),
             "totalApplicationsSent": reports.get("totalApplicationsSent", 0),
             "averageEngagement": reports.get("averageEngagement", 0),
             "memberBreakdown": reports.get("memberBreakdown", {}),
             "engagementByRole": reports.get("engagementByRole", {}),
+            "applicationStatusBreakdown": reports.get("applicationStatusBreakdown", []),
+            "engagementDistribution": reports.get("engagementDistribution", []),
             "topPerformers": reports.get("topPerformers", []),
-            "needsAttention": reports.get("needsAttention", [])
+            "needsAttention": reports.get("needsAttention", []),
+            "applicationMetrics": reports.get("applicationMetrics", {})
         }
     except Exception as e:
+        print(f"Error in get_team_reports: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
-
+    
 @teams_router.get("/{team_id}/members/{member_uuid}/report")
 async def get_member_report(team_id: str, member_uuid: str):
     try:
         team_id = ObjectId(team_id)
-        member_report = await teams_dao.get_member_report(team_id, member_uuid)
+        member_report = await teams_dao.get_member_report(team_id, member_uuid, jobs_dao)
         
         if not member_report:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
         
-        return {
-            "memberId": member_uuid,
-            "memberName": member_report.get("name"),
-            "role": member_report.get("role"),
-            "progressScore": member_report.get("progressScore", 0),
-            "completedGoals": member_report.get("completedGoals", 0),
-            "pendingGoals": member_report.get("pendingGoals", 0),
-            "applications": member_report.get("applications", 0),
-            "engagement": member_report.get("engagement", 0),
-            "lastActive": member_report.get("lastActive"),
-            "coachingInsights": member_report.get("coachingInsights", []),
-            "recommendations": member_report.get("recommendations", [])
-        }
+        return member_report
     except HTTPException:
         raise
     except Exception as e:

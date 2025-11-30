@@ -192,3 +192,61 @@ async def delete_pfp(media_id: str, uuid: str = Depends(authorize)):
         raise HTTPException(500, "Unable to delete profile picture")
     
     return {"detail": "Sucessfully deleted profile picture"}
+
+# These get *other* user's profiles.
+
+@profiles_router.get("/{user_id}", tags = ["profiles"])
+async def get_user_profile(user_id: str, uuid: str = Depends(authorize)):
+    """Get another user's profile (for mentors/admins viewing candidate profiles)"""
+    try:
+        profile = await profiles_dao.get_profile(user_id)
+    except Exception as e:
+        raise HTTPException(500, "Encountered internal service error")
+
+    if profile:
+        return profile
+    else:
+        raise HTTPException(400, "User profile not found")
+
+
+@profiles_router.get("/{user_id}/avatar", tags = ["profiles"])
+async def retrieve_user_pfp(user_id: str, uuid: str = Depends(authorize)):
+    """Get another user's profile picture"""
+    try:
+        media_ids = await media_dao.get_all_associated_media_ids(user_id)
+    except Exception as e:
+        raise HTTPException(500, "Encountered internal service error")
+
+    if not media_ids:
+        # Return default profile picture if user hasn't set one
+        default_image_path = Path(__file__).parent.parent.parent / "frontend" / "public" / "default.png"
+
+        if not default_image_path.exists():
+            raise HTTPException(500, "Default profile picture not found")
+
+        try:
+            with open(default_image_path, "rb") as f:
+                default_image_content = f.read()
+
+            return StreamingResponse(
+                BytesIO(default_image_content),
+                media_type="image/png",
+                headers={
+                    "Content-Disposition": 'inline; filename="default.png"'
+                }
+            )
+        except Exception as e:
+            raise HTTPException(500, "Could not load default profile picture")
+
+    try:
+        media = await media_dao.get_media(media_ids[-1])
+    except:
+        raise HTTPException(500, "Encountered internal server error")
+
+    return StreamingResponse(
+        BytesIO(media["contents"]),
+        media_type = media["content_type"],
+        headers = {
+            "Content-Disposition": f"inline; filename=\"{media['filename']}\""
+        }
+    )

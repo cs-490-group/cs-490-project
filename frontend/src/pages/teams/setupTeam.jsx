@@ -46,7 +46,7 @@ function SetupTeam() {
       
       const response = await teamsAPI.createTeam({
         uuid: uuid,
-        email: null, // We don't store email in localStorage
+        email: null, 
         name: teamName,
         description: teamDescription,
       });
@@ -83,66 +83,46 @@ function SetupTeam() {
   };
 
   const handleJoinTeam = async (e) => {
-  e.preventDefault();
-  
-  if (!inviteCode.trim()) {
-    showFlash("Invite code is required", "error");
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const teamId = inviteCode;
-    const uuid = localStorage.getItem("uuid");
+    e.preventDefault();
     
-    // Fetch email from user profile using proper API
-    const profileResponse = await ProfilesAPI.get();
-    const email = profileResponse.data.email;
-    
-    console.log("Join team data:", { teamId, uuid, email });
-    
-    // First verify team exists
-    const teamResponse = await teamsAPI.getTeam(teamId);
-    
-    if (!teamResponse) {
-      showFlash("Invalid invite code", "error");
+    if (!inviteCode.trim()) {
+      showFlash("Invite code is required", "error");
       return;
     }
 
-    // NOW accept the invitation to become an active member
-    const acceptResponse = await teamsAPI.acceptInvitation(teamId, {
-      email: email,
-      uuid: uuid
-    });
-
-    localStorage.setItem("teamId", teamId);
-    showFlash("Successfully joined team!", "success");
-    navigate("/teams");
-  } catch (error) {
-    console.error("Join error:", error);
-    
-    let msg = "Failed to join team";
-    
-    if (error.response?.data) {
-      const data = error.response.data;
-      if (Array.isArray(data)) {
-        msg = data[0]?.msg || "Validation error";
-      } else if (data.detail) {
-        msg = data.detail;
-      } else if (data.message) {
-        msg = data.message;
-      } else if (typeof data === "string") {
-        msg = data;
+    setLoading(true);
+    try {
+      const teamId = inviteCode;
+      const uuid = localStorage.getItem("uuid");
+      
+      // First verify team exists
+      const teamResponse = await teamsAPI.getTeam(teamId);
+      
+      if (!teamResponse) {
+        showFlash("Invalid invite code", "error");
+        return;
       }
-    } else if (error.message) {
-      msg = error.message;
+
+      //accept the invitation to become an active member
+      const acceptResponse = await teamsAPI.acceptInvitation(teamId, {
+        email: localStorage.getItem("email"), // Make sure email is stored
+        uuid: uuid
+      });
+
+      localStorage.setItem("teamId", teamId);
+      showFlash("Successfully joined team!", "success");
+      navigate("/teams");
+    } catch (error) {
+      const msg =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to join team";
+      showFlash(msg, "error");
+    } finally {
+      setLoading(false);
     }
-    
-    showFlash(msg, "error");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(to bottom right, #eff6ff, #e0e7ff)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>

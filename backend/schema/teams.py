@@ -14,8 +14,14 @@ class MemberKPIs(BaseModel):
 class Goal(BaseModel):
     id: str
     title: str
+    description: Optional[str] = None
+    dueDate: Optional[str] = None
     completed: bool
-
+    createdAt: Optional[str] = None
+    completedAt: Optional[str] = None
+    
+class UpdateGoalsRequest(BaseModel):
+    goals: List[dict]
 
 class Material(BaseModel):
     name: str
