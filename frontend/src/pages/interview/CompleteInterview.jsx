@@ -1,6 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { InterviewScheduleAPI } from '../../api/interviewSchedule';
 
 function CompleteInterview() {
+  const { scheduleId } = useParams();
+  const navigate = useNavigate();
+  
+  const [interview, setInterview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [showFollowUpSuggestion, setShowFollowUpSuggestion] = useState(false);
+  
   const [formData, setFormData] = useState({
     outcome: 'pending',
     outcome_notes: '',
@@ -11,17 +22,36 @@ function CompleteInterview() {
     what_to_improve: ''
   });
   
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [showFollowUpSuggestion, setShowFollowUpSuggestion] = useState(false);
+  useEffect(() => {
+    if (scheduleId) {
+      loadInterview();
+    }
+  }, [scheduleId]);
   
-  // Mock interview data
-  const interview = {
-    uuid: '123',
-    position: 'Software Engineer',
-    company: 'TechCorp',
-    interviewer_name: 'Jane Smith',
-    interview_datetime: '2025-11-25T14:00:00'
+  const loadInterview = async () => {
+    setLoading(true);
+    try {
+      console.log('[CompleteInterview] Loading interview:', scheduleId);
+      
+      const response = await InterviewScheduleAPI.getSchedule(scheduleId);
+      console.log('[CompleteInterview] API Response:', response.data);
+      
+      // Handle both response formats
+      const interviewData = response.data?.interview || response.data;
+      
+      if (!interviewData) {
+        throw new Error('Interview not found');
+      }
+      
+      console.log('[CompleteInterview] Interview data:', interviewData);
+      setInterview(interviewData);
+      setMessage('');
+    } catch (error) {
+      console.error('[CompleteInterview] Failed to load interview:', error);
+      setMessage('Failed to load interview details');
+    } finally {
+      setLoading(false);
+    }
   };
   
   const outcomes = [
@@ -45,29 +75,76 @@ function CompleteInterview() {
       return;
     }
     
-    setLoading(true);
+    setSubmitting(true);
     setMessage('');
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('[CompleteInterview] Submitting:', formData);
       
+      // Call the API to complete the interview
+      await InterviewScheduleAPI.completeInterview(scheduleId, {
+        outcome: formData.outcome,
+        outcome_notes: formData.outcome_notes,
+        interviewer_feedback: formData.interviewer_feedback
+      });
+      
+      console.log('[CompleteInterview] Successfully completed interview');
       setMessage('Interview completed successfully!');
       
-      // Show follow-up suggestion after a moment
       setTimeout(() => {
         setShowFollowUpSuggestion(true);
       }, 1500);
     } catch (error) {
-      setMessage('Failed to complete interview');
+      console.error('[CompleteInterview] Error:', error);
+      setMessage('Failed to complete interview: ' + (error.response?.data?.detail || error.message || 'Unknown error'));
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
   
-  const getSelectedOutcome = () => {
-    return outcomes.find(o => o.value === formData.outcome);
-  };
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}>
+        <p>Loading interview details...</p>
+      </div>
+    );
+  }
+  
+  if (!interview) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <p>Interview not found</p>
+          <button 
+            onClick={() => navigate('/interview/calendar')}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            Back to Calendar
+          </button>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -75,6 +152,22 @@ function CompleteInterview() {
         <>
           {/* Header */}
           <div style={{ marginBottom: '2rem' }}>
+            <button
+              onClick={() => navigate('/interview/calendar')}
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'white',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              ← Back to Calendar
+            </button>
             <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '2rem' }}>Complete Interview</h1>
             <p style={{ color: '#666', margin: 0 }}>Record the outcome and your experience</p>
           </div>
@@ -88,13 +181,13 @@ function CompleteInterview() {
             marginBottom: '2rem'
           }}>
             <div style={{ fontSize: '1.3rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-              {interview.position}
+              {interview.scenario_name || interview.job_title || 'Interview'}
             </div>
             <div style={{ fontSize: '1rem', opacity: 0.9, marginBottom: '0.25rem' }}>
-              {interview.company}
+              {interview.company_name || 'Company'}
             </div>
             <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-              Interviewed with {interview.interviewer_name} on {new Date(interview.interview_datetime).toLocaleDateString()}
+              Interviewed with {interview.interviewer_name || 'Interviewer'} on {new Date(interview.interview_datetime).toLocaleDateString()}
             </div>
           </div>
           
@@ -193,7 +286,8 @@ function CompleteInterview() {
                   borderRadius: '8px',
                   resize: 'vertical',
                   fontSize: '1rem',
-                  lineHeight: '1.5'
+                  lineHeight: '1.5',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -216,7 +310,8 @@ function CompleteInterview() {
                   borderRadius: '8px',
                   resize: 'vertical',
                   fontSize: '1rem',
-                  lineHeight: '1.5'
+                  lineHeight: '1.5',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -239,7 +334,8 @@ function CompleteInterview() {
                   borderRadius: '8px',
                   resize: 'vertical',
                   fontSize: '1rem',
-                  lineHeight: '1.5'
+                  lineHeight: '1.5',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -263,7 +359,8 @@ function CompleteInterview() {
                     borderRadius: '8px',
                     resize: 'vertical',
                     fontSize: '1rem',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
@@ -284,7 +381,8 @@ function CompleteInterview() {
                     borderRadius: '8px',
                     resize: 'vertical',
                     fontSize: '1rem',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
@@ -293,7 +391,7 @@ function CompleteInterview() {
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
               <button
-                onClick={() => window.history.back()}
+                onClick={() => navigate('/interview/calendar')}
                 style={{
                   padding: '0.75rem 1.5rem',
                   border: '1px solid #ddd',
@@ -308,20 +406,20 @@ function CompleteInterview() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={loading || !formData.outcome}
+                disabled={submitting || !formData.outcome}
                 style={{
                   padding: '0.75rem 2rem',
                   border: 'none',
                   borderRadius: '8px',
-                  background: loading || !formData.outcome ? '#ccc' : '#667eea',
+                  background: submitting || !formData.outcome ? '#ccc' : '#667eea',
                   color: 'white',
-                  cursor: loading || !formData.outcome ? 'not-allowed' : 'pointer',
+                  cursor: submitting || !formData.outcome ? 'not-allowed' : 'pointer',
                   fontWeight: '600',
                   fontSize: '1rem',
                   flex: 2
                 }}
               >
-                {loading ? 'Saving...' : 'Complete Interview'}
+                {submitting ? 'Saving...' : 'Complete Interview'}
               </button>
             </div>
           </div>
@@ -361,7 +459,7 @@ function CompleteInterview() {
             )}
             
             <button
-              onClick={() => window.location.href = '/interview/follow-up'}
+              onClick={() => navigate(`/interview/follow-up`)}
               style={{
                 padding: '0.75rem 2rem',
                 background: '#667eea',
@@ -380,7 +478,7 @@ function CompleteInterview() {
           
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
             <button
-              onClick={() => window.location.href = '/interview/calendar'}
+              onClick={() => navigate('/interview/calendar')}
               style={{
                 padding: '0.75rem 1.5rem',
                 background: 'white',
@@ -395,7 +493,7 @@ function CompleteInterview() {
               Back to Calendar
             </button>
             <button
-              onClick={() => window.location.href = '/interview/analytics'}
+              onClick={() => navigate('/interview/analytics')}
               style={{
                 padding: '0.75rem 1.5rem',
                 background: 'white',

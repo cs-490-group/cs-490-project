@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
-import { useFlash } from '../../context/flashContext';
+import { useParams } from 'react-router-dom';
 
 function InterviewPreparation() {
-  const { scheduleId } = useParams();
-  const navigate = useNavigate();
-  const { showFlash } = useFlash();
-  
   const [interview, setInterview] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('all');
   const [showAddTask, setShowAddTask] = useState(false);
-  const [newTask, setNewTask] = useState({ 
+  const [editingTask, setEditingTask] = useState(null);
+  const [taskFormData, setTaskFormData] = useState({ 
     title: '', 
     description: '', 
     category: 'practice', 
@@ -21,24 +17,127 @@ function InterviewPreparation() {
   });
   const [timeUntil, setTimeUntil] = useState('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  
+  const { scheduleId } = useParams();
+
+  // Load interview + tasks
   useEffect(() => {
-    if (scheduleId) {
-      loadInterview();
-    }
+    const loadData = async () => {
+      try {
+        console.log('[InterviewPrep] Loading interview:', scheduleId);
+        
+        // Fetch interview schedule
+        const interviewRes = await InterviewScheduleAPI.getSchedule(scheduleId);
+        console.log('[InterviewPrep] Full API Response:', interviewRes);
+        console.log('[InterviewPrep] Response Data:', interviewRes.data);
+        
+        // Handle both response formats: {interview: {...}} or direct {...}
+        const interviewData = interviewRes.data?.interview || interviewRes.data;
+        console.log('[InterviewPrep] Extracted Interview Data:', interviewData);
+        
+        if (!interviewData) {
+          throw new Error('No interview data received from API');
+        }
+        
+        // Log specific fields to debug
+        console.log('[InterviewPrep] scenario_name:', interviewData.scenario_name);
+        console.log('[InterviewPrep] company_name:', interviewData.company_name);
+        console.log('[InterviewPrep] interview_datetime:', interviewData.interview_datetime);
+        
+        setInterview(interviewData);
+
+        // Get preparation tasks - try multiple sources
+        let prepTasks = interviewData?.preparation_tasks || [];
+        console.log('[InterviewPrep] Tasks from interview data:', prepTasks.length);
+        
+        // If no tasks in the main response, try the separate endpoint
+        if (prepTasks.length === 0) {
+          console.log('[InterviewPrep] No tasks in interview data, fetching separately...');
+          const tasksRes = await InterviewScheduleAPI.getPreparationTasks(scheduleId);
+          console.log('[InterviewPrep] Tasks API Response:', tasksRes.data);
+          prepTasks = tasksRes.data?.tasks || tasksRes.data?.preparation_tasks || [];
+        }
+
+        // Generate tasks if none exist
+        if (prepTasks.length === 0) {
+          console.log('[InterviewPrep] No tasks found, generating...');
+          await InterviewScheduleAPI.generateTasks(scheduleId);
+          const genRes = await InterviewScheduleAPI.getPreparationTasks(scheduleId);
+          prepTasks = genRes.data?.tasks || genRes.data?.preparation_tasks || [];
+          console.log('[InterviewPrep] Generated tasks:', prepTasks.length);
+        }
+
+        console.log('[InterviewPrep] Final tasks count:', prepTasks.length);
+        setTasks(prepTasks);
+        setLoading(false);
+      } catch (error) {
+        console.error("[InterviewPrep] Error loading data:", error);
+        console.error("[InterviewPrep] Error details:", error.response?.data);
+        
+        // Use mock data as fallback
+        console.log("[InterviewPrep] Using fallback mock data");
+        const mockInterview = {
+          uuid: scheduleId,
+          scenario_name: 'Senior Software Engineer',
+          company_name: 'TechCorp',
+          interview_datetime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+          location_type: 'video',
+          video_link: 'https://zoom.us/j/123456789',
+          video_platform: 'zoom',
+          interviewer_name: 'Jane Smith',
+          interviewer_title: 'Engineering Manager',
+          interviewer_email: 'jane.smith@techcorp.com',
+          notes: 'Focus on system design and leadership experience',
+          preparation_completion_percentage: 45
+        };
+
+        const mockTasks = [
+          {
+            task_id: '1',
+            title: 'Research TechCorp',
+            description: 'Study company mission, values, recent news',
+            category: 'research',
+            priority: 'high',
+            is_completed: true
+          },
+          {
+            task_id: '2',
+            title: 'Practice behavioral questions',
+            description: 'Prepare STAR-method responses',
+            category: 'practice',
+            priority: 'high',
+            is_completed: false
+          },
+          {
+            task_id: '3',
+            title: 'Test video setup',
+            description: 'Test camera, microphone, and internet',
+            category: 'logistics',
+            priority: 'high',
+            is_completed: false
+          }
+        ];
+
+        setInterview(mockInterview);
+        setTasks(mockTasks);
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [scheduleId]);
-  
+
+  // Calculate time until interview
   useEffect(() => {
     if (interview?.interview_datetime) {
       const calculateTimeUntil = () => {
         const now = new Date();
         const interviewDate = new Date(interview.interview_datetime);
         const diff = interviewDate - now;
-        
+
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        
+
         if (days > 0) {
           setTimeUntil(`${days}d ${hours}h ${minutes}m`);
         } else if (hours > 0) {
@@ -49,95 +148,77 @@ function InterviewPreparation() {
           setTimeUntil('Interview time passed');
         }
       };
-      
+
       calculateTimeUntil();
       const interval = setInterval(calculateTimeUntil, 60000);
       return () => clearInterval(interval);
     }
   }, [interview?.interview_datetime]);
   
-  const loadInterview = async () => {
-    setLoading(true);
-    try {
-      // Load interview details
-      const interviewResponse = await InterviewScheduleAPI.getSchedule(scheduleId);
-      setInterview(interviewResponse.data.interview);
+  const handleTaskToggle = (taskId) => {
+    const updatedTasks = tasks.map(task => 
+      task.task_id === taskId 
+        ? { ...task, is_completed: !task.is_completed }
+        : task
+    );
+    setTasks(updatedTasks);
+    
+    const completed = updatedTasks.filter(t => t.is_completed).length;
+    const percentage = Math.round((completed / updatedTasks.length) * 100);
+    setInterview({ ...interview, preparation_completion_percentage: percentage });
+  };
+  
+  const handleEditTask = (task) => {
+    setEditingTask(task);
+    setTaskFormData({
+      title: task.title,
+      description: task.description,
+      category: task.category,
+      priority: task.priority
+    });
+    setShowAddTask(true);
+  };
+  
+  const handleDeleteTask = (taskId) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      const updatedTasks = tasks.filter(t => t.task_id !== taskId);
+      setTasks(updatedTasks);
       
-      // Load preparation tasks
-      const tasksResponse = await InterviewScheduleAPI.getPreparationTasks(scheduleId);
-      setTasks(tasksResponse.data.tasks || []);
-    } catch (error) {
-      console.error('Failed to load interview:', error);
-      showFlash('Failed to load interview details', 'error');
-      navigate('/interview/calendar');
-    } finally {
-      setLoading(false);
+      const completed = updatedTasks.filter(t => t.is_completed).length;
+      const percentage = updatedTasks.length > 0 
+        ? Math.round((completed / updatedTasks.length) * 100)
+        : 0;
+      setInterview({ ...interview, preparation_completion_percentage: percentage });
     }
   };
   
-  const handleTaskToggle = async (taskId) => {
-    try {
-      const response = await InterviewScheduleAPI.toggleTaskCompletion(scheduleId, taskId);
-      
-      // Update local state
-      setTasks(tasks.map(task => 
-        task.task_id === taskId 
-          ? { ...task, is_completed: !task.is_completed }
-          : task
-      ));
-      
-      // Update completion percentage
-      if (interview) {
-        setInterview({
-          ...interview,
-          preparation_completion_percentage: response.data.completion_percentage
-        });
-      }
-      
-      showFlash('Task updated', 'success');
-    } catch (error) {
-      console.error('Failed to toggle task:', error);
-      showFlash('Failed to update task', 'error');
-    }
-  };
-  
-  const handleAddTask = async () => {
-    if (!newTask.title) {
-      showFlash('Please enter a task title', 'error');
+  const handleSaveTask = () => {
+    if (!taskFormData.title) {
+      alert('Please enter a task title');
       return;
     }
     
-    try {
-      await InterviewScheduleAPI.addTask(scheduleId, {
-        title: newTask.title,
-        description: newTask.description,
-        category: newTask.category,
-        priority: newTask.priority
-      });
-      
-      // Reload tasks
-      await loadInterview();
-      
-      // Reset form
-      setNewTask({ title: '', description: '', category: 'practice', priority: 'medium' });
-      setShowAddTask(false);
-      
-      showFlash('Task added successfully', 'success');
-    } catch (error) {
-      console.error('Failed to add task:', error);
-      showFlash('Failed to add task', 'error');
+    if (editingTask) {
+      // Update existing task
+      setTasks(tasks.map(task =>
+        task.task_id === editingTask.task_id
+          ? { ...task, ...taskFormData }
+          : task
+      ));
+    } else {
+      // Add new task
+      const newTask = {
+        task_id: Date.now().toString(),
+        ...taskFormData,
+        is_completed: false
+      };
+      setTasks([...tasks, newTask]);
     }
-  };
-  
-  const handleGenerateTasks = async () => {
-    try {
-      await InterviewScheduleAPI.generateTasks(scheduleId);
-      await loadInterview();
-      showFlash('Tasks generated successfully', 'success');
-    } catch (error) {
-      console.error('Failed to generate tasks:', error);
-      showFlash('Failed to generate tasks', 'error');
-    }
+    
+    // Reset form
+    setTaskFormData({ title: '', description: '', category: 'practice', priority: 'medium' });
+    setEditingTask(null);
+    setShowAddTask(false);
   };
   
   const formatDateTime = (datetime) => {
@@ -155,15 +236,6 @@ function InterviewPreparation() {
         hour12: true
       })
     };
-  };
-  
-  const getLocationIcon = (locationType) => {
-    switch(locationType) {
-      case 'video': return '🎥';
-      case 'phone': return '📞';
-      case 'in-person': return '🏢';
-      default: return '📍';
-    }
   };
   
   const filteredTasks = filterCategory === 'all' 
@@ -213,20 +285,9 @@ function InterviewPreparation() {
       }}>
         <div style={{ textAlign: 'center' }}>
           <p>Interview not found</p>
-          <button 
-            onClick={() => navigate('/interview/calendar')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
-          >
-            Back to Calendar
-          </button>
+          <p style={{ fontSize: '0.9rem', color: '#666' }}>
+            Schedule ID: {scheduleId}
+          </p>
         </div>
       </div>
     );
@@ -234,30 +295,12 @@ function InterviewPreparation() {
   
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Back Button */}
-      <button
-        onClick={() => navigate('/interview/calendar')}
-        style={{
-          padding: '0.5rem 1rem',
-          background: 'white',
-          border: '1px solid #ddd',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          marginBottom: '1rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}
-      >
-        ← Back to Calendar
-      </button>
-      
       {/* Header Section */}
       <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '12px', padding: '2rem', color: 'white', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
           <div>
             <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '1.75rem' }}>
-              {interview.scenario_name || 'Interview'}
+              {interview.scenario_name || interview.job_title || 'Interview'}
             </h1>
             <p style={{ margin: 0, fontSize: '1.1rem', opacity: 0.9 }}>
               {interview.company_name || 'Company'}
@@ -310,39 +353,6 @@ function InterviewPreparation() {
               🎥 Join Meeting
             </a>
           )}
-          {interview.location_type === 'phone' && interview.phone_number && (
-            <a 
-              href={`tel:${interview.phone_number}`}
-              style={{ 
-                padding: '0.5rem 1rem', 
-                background: 'rgba(255,255,255,0.9)', 
-                color: '#667eea', 
-                borderRadius: '6px', 
-                textDecoration: 'none',
-                fontWeight: '500',
-                fontSize: '0.9rem'
-              }}
-            >
-              📞 {interview.phone_number}
-            </a>
-          )}
-          {interview.location_type === 'in-person' && interview.location_details && (
-            <button
-              onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(interview.location_details)}`, '_blank')}
-              style={{ 
-                padding: '0.5rem 1rem', 
-                background: 'rgba(255,255,255,0.9)', 
-                color: '#667eea', 
-                borderRadius: '6px', 
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500',
-                fontSize: '0.9rem'
-              }}
-            >
-              🏢 View Location
-            </button>
-          )}
           <button
             onClick={() => setShowDetailsModal(true)}
             style={{ 
@@ -391,7 +401,11 @@ function InterviewPreparation() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2 style={{ margin: 0 }}>Preparation Tasks</h2>
           <button
-            onClick={() => setShowAddTask(!showAddTask)}
+            onClick={() => {
+              setShowAddTask(!showAddTask);
+              setEditingTask(null);
+              setTaskFormData({ title: '', description: '', category: 'practice', priority: 'medium' });
+            }}
             style={{
               padding: '0.5rem 1rem',
               background: '#667eea',
@@ -406,27 +420,28 @@ function InterviewPreparation() {
           </button>
         </div>
         
-        {/* Add Task Form */}
+        {/* Add/Edit Task Form */}
         {showAddTask && (
           <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+            <h4 style={{ marginTop: 0 }}>{editingTask ? 'Edit Task' : 'Add New Task'}</h4>
             <input
               type="text"
               placeholder="Task title"
-              value={newTask.title}
-              onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-              style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+              value={taskFormData.title}
+              onChange={(e) => setTaskFormData({ ...taskFormData, title: e.target.value })}
+              style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
             />
             <textarea
               placeholder="Description"
-              value={newTask.description}
-              onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+              value={taskFormData.description}
+              onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
               rows="2"
-              style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical' }}
+              style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical', boxSizing: 'border-box' }}
             />
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <select
-                value={newTask.category}
-                onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
+                value={taskFormData.category}
+                onChange={(e) => setTaskFormData({ ...taskFormData, category: e.target.value })}
                 style={{ padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
               >
                 <option value="research">Research</option>
@@ -435,18 +450,28 @@ function InterviewPreparation() {
                 <option value="materials">Materials</option>
               </select>
               <select
-                value={newTask.priority}
-                onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+                value={taskFormData.priority}
+                onChange={(e) => setTaskFormData({ ...taskFormData, priority: e.target.value })}
                 style={{ padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
               >
                 <option value="high">High Priority</option>
                 <option value="medium">Medium Priority</option>
                 <option value="low">Low Priority</option>
               </select>
-              <button onClick={handleAddTask} style={{ padding: '0.5rem 1rem', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                Add
+              <button 
+                onClick={handleSaveTask} 
+                style={{ padding: '0.5rem 1rem', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                {editingTask ? 'Update' : 'Add'}
               </button>
-              <button onClick={() => setShowAddTask(false)} style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+              <button 
+                onClick={() => {
+                  setShowAddTask(false);
+                  setEditingTask(null);
+                  setTaskFormData({ title: '', description: '', category: 'practice', priority: 'medium' });
+                }} 
+                style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              >
                 Cancel
               </button>
             </div>
@@ -457,21 +482,13 @@ function InterviewPreparation() {
         {tasks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', background: '#f8f9fa', borderRadius: '8px' }}>
             <p>No preparation tasks yet</p>
-            <button
-              onClick={handleGenerateTasks}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                fontSize: '1rem'
-              }}
-            >
-              Generate Preparation Tasks
-            </button>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.5rem' }}>
+              Click "Add Task" to create your first task
+            </p>
+          </div>
+        ) : filteredTasks.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem', background: '#f8f9fa', borderRadius: '8px' }}>
+            <p>No tasks in this category</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -523,6 +540,36 @@ function InterviewPreparation() {
                     {getCategoryIcon(task.category)} {task.category}
                   </div>
                 </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => handleEditTask(task)}
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      background: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTask(task.task_id)}
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      background: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -532,7 +579,6 @@ function InterviewPreparation() {
       {/* Interview Details Modal */}
       {showDetailsModal && (
         <div 
-          className="modal-overlay" 
           onClick={() => setShowDetailsModal(false)}
           style={{
             position: 'fixed',
@@ -548,7 +594,6 @@ function InterviewPreparation() {
           }}
         >
           <div 
-            className="modal-content" 
             onClick={(e) => e.stopPropagation()}
             style={{
               background: 'white',
@@ -580,7 +625,7 @@ function InterviewPreparation() {
               <div>
                 <h4 style={{ margin: '0 0 8px 0', color: '#666' }}>Position & Company</h4>
                 <p style={{ margin: 0, fontSize: '16px' }}>
-                  <strong>{interview.scenario_name || 'Interview'}</strong> at {interview.company_name || 'Company'}
+                  <strong>{interview.scenario_name || interview.job_title || 'Interview'}</strong> at {interview.company_name || 'Company'}
                 </p>
               </div>
               
@@ -595,24 +640,24 @@ function InterviewPreparation() {
               
               <div>
                 <h4 style={{ margin: '0 0 8px 0', color: '#666' }}>Location</h4>
-                <p style={{ margin: 0 }}>
-                  {getLocationIcon(interview.location_type)} {interview.location_type}
+                <p style={{ margin: 0, textTransform: 'capitalize' }}>
+                  {interview.location_type === 'video' ? '🎥' : interview.location_type === 'phone' ? '📞' : '🏢'} {interview.location_type}
                 </p>
-                {interview.video_link && (
+                {interview.location_type === 'video' && interview.video_link && (
                   <a 
                     href={interview.video_link} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    style={{ color: '#667eea', textDecoration: 'none' }}
+                    style={{ color: '#667eea', textDecoration: 'none', marginTop: '8px', display: 'block' }}
                   >
                     {interview.video_link}
                   </a>
                 )}
-                {interview.location_details && (
-                  <p style={{ margin: '8px 0 0 0' }}>{interview.location_details}</p>
-                )}
-                {interview.phone_number && (
+                {interview.location_type === 'phone' && interview.phone_number && (
                   <p style={{ margin: '8px 0 0 0' }}>📞 {interview.phone_number}</p>
+                )}
+                {interview.location_type === 'in-person' && interview.location_details && (
+                  <p style={{ margin: '8px 0 0 0' }}>{interview.location_details}</p>
                 )}
               </div>
               

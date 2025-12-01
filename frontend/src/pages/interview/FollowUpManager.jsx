@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api';
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  const uuid = localStorage.getItem('uuid');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'uuid': uuid,
-    'Content-Type': 'application/json'
-  };
-};
+import { InterviewScheduleAPI, FollowUpAPI } from '../../api/interviewSchedule';
 
 function FollowUpManager() {
   const [interviews, setInterviews] = useState([]);
@@ -39,23 +28,29 @@ function FollowUpManager() {
   
   const loadCompletedInterviews = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/interview-schedule/upcoming`, {
-        headers: getAuthHeaders()
-      });
+      console.log('[FollowUpManager] Loading completed interviews...');
       
-      if (!response.ok) throw new Error('Failed to load interviews');
+      const response = await InterviewScheduleAPI.getUpcomingInterviews();
+      console.log('[FollowUpManager] API Response:', response.data);
       
-      const data = await response.json();
+      const data = response.data;
       
       // Filter to completed interviews and sort by date
-      const completed = (data.upcoming_interviews || [])
+      const allInterviews = [
+        ...(data.upcoming_interviews || []),
+        ...(data.past_interviews || [])
+      ];
+      
+      const completed = allInterviews
         .filter(i => i.status === 'completed')
         .sort((a, b) => new Date(b.interview_datetime) - new Date(a.interview_datetime));
       
+      console.log('[FollowUpManager] Completed interviews:', completed.length);
       setInterviews(completed);
+      setError('');
     } catch (err) {
-      console.error('Error loading interviews:', err);
-      setError('Failed to load interviews');
+      console.error('[FollowUpManager] Error loading interviews:', err);
+      setError('Failed to load interviews: ' + (err.response?.data?.detail || err.message));
     }
   };
   
@@ -69,25 +64,20 @@ function FollowUpManager() {
     setError('');
     
     try {
+      console.log('[FollowUpManager] Generating template for:', selectedInterview.uuid || selectedInterview._id);
+      
       const topics = specificTopics.split(',').map(t => t.trim()).filter(t => t);
       
-      const response = await fetch(`${API_BASE_URL}/interview-followup/generate`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          interview_uuid: selectedInterview.uuid,
-          template_type: templateType,
-          custom_notes: customNotes || null,
-          specific_topics: topics.length > 0 ? topics : null
-        })
-      });
+      const response = await FollowUpAPI.generateTemplate(
+        selectedInterview.uuid || selectedInterview._id,
+        templateType,
+        customNotes || null,
+        topics.length > 0 ? topics : null
+      );
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to generate template');
-      }
+      console.log('[FollowUpManager] Generated template:', response.data);
       
-      const data = await response.json();
+      const data = response.data;
       
       setGeneratedTemplate({
         template_uuid: data.template_uuid,
@@ -101,8 +91,8 @@ function FollowUpManager() {
       setEditedBody(data.body);
       setIsEditing(false);
     } catch (err) {
-      console.error('Error generating template:', err);
-      setError(err.message || 'Failed to generate template');
+      console.error('[FollowUpManager] Error generating template:', err);
+      setError(err.response?.data?.detail || err.message || 'Failed to generate template');
     } finally {
       setLoading(false);
     }
@@ -115,21 +105,14 @@ function FollowUpManager() {
     setError('');
     
     try {
+      console.log('[FollowUpManager] Marking template as sent:', generatedTemplate.template_uuid);
+      
       // Mark template as sent in the backend
-      const response = await fetch(
-        `${API_BASE_URL}/interview-followup/${generatedTemplate.template_uuid}/send`,
-        {
-          method: 'POST',
-          headers: getAuthHeaders()
-        }
-      );
+      await FollowUpAPI.markAsSent(generatedTemplate.template_uuid);
       
-      if (!response.ok) throw new Error('Failed to mark template as sent');
+      console.log('[FollowUpManager] Template marked as sent');
       
-      const data = await response.json();
-      
-      // In production, this would actually send the email via SendGrid, etc.
-      // For now, we'll open the user's email client
+      // Open the user's email client
       const mailtoLink = `mailto:${generatedTemplate.interviewer_email || ''}?subject=${encodeURIComponent(editedSubject)}&body=${encodeURIComponent(editedBody)}`;
       window.location.href = mailtoLink;
       
@@ -145,8 +128,8 @@ function FollowUpManager() {
       // Reload interviews to update status
       await loadCompletedInterviews();
     } catch (err) {
-      console.error('Error sending follow-up:', err);
-      setError(err.message || 'Failed to send follow-up');
+      console.error('[FollowUpManager] Error sending follow-up:', err);
+      setError(err.response?.data?.detail || err.message || 'Failed to send follow-up');
     } finally {
       setSendingEmail(false);
     }
@@ -211,26 +194,30 @@ function FollowUpManager() {
             }}>
               <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📭</div>
               <p>No completed interviews yet</p>
+              <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                Complete an interview first to generate follow-ups
+              </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {interviews.map(interview => {
                 const days = daysSince(interview.interview_datetime);
+                const interviewId = interview.uuid || interview._id;
                 return (
                   <div
-                    key={interview.uuid}
+                    key={interviewId}
                     onClick={() => setSelectedInterview(interview)}
                     style={{
                       padding: '1rem',
-                      border: selectedInterview?.uuid === interview.uuid ? '2px solid #667eea' : '1px solid #e0e0e0',
+                      border: selectedInterview?.uuid === interview.uuid || selectedInterview?._id === interview._id ? '2px solid #667eea' : '1px solid #e0e0e0',
                       borderRadius: '8px',
                       cursor: 'pointer',
-                      background: selectedInterview?.uuid === interview.uuid ? '#f0f4ff' : 'white',
+                      background: selectedInterview?.uuid === interview.uuid || selectedInterview?._id === interview._id ? '#f0f4ff' : 'white',
                       transition: 'all 0.2s ease'
                     }}
                   >
                     <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
-                      {interview.scenario_name || 'Interview'}
+                      {interview.scenario_name || interview.job_title || 'Interview'}
                     </div>
                     <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.25rem' }}>
                       {interview.company_name || 'Company'}
@@ -277,209 +264,191 @@ function FollowUpManager() {
             </div>
           ) : !generatedTemplate ? (
             <div>
-              <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Generate Follow-Up</h3>
+              <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Generate Follow-Up</h3>          
               
-              {/* Template Type Selection */}
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '500' }}>
-                  Template Type
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
-                  {templateTypes.map(type => (
-                    <div
-                      key={type.value}
-                      onClick={() => setTemplateType(type.value)}
-                      style={{
-                        padding: '1rem',
-                        border: templateType === type.value ? '2px solid #667eea' : '1px solid #e0e0e0',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        background: templateType === type.value ? '#f0f4ff' : 'white',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{type.label}</div>
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>{type.description}</div>
-                    </div>
-                  ))}
+            {/* Template Type Selection */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '500' }}>
+              Template Type
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+              {templateTypes.map(type => (
+                <div
+                  key={type.value}
+                  onClick={() => setTemplateType(type.value)}
+                  style={{
+                    padding: '1rem',
+                    border: templateType === type.value ? '2px solid #667eea' : '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    background: templateType === type.value ? '#f0f4ff' : 'white',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{type.label}</div>
+                  <div style={{ fontSize: '0.85rem', color: '#666' }}>{type.description}</div>
                 </div>
-              </div>
-              
-              {/* Specific Topics */}
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                  Specific Topics Discussed (optional)
-                </label>
-                <input
-                  type="text"
-                  value={specificTopics}
-                  onChange={(e) => setSpecificTopics(e.target.value)}
-                  placeholder="e.g., microservices architecture, team culture, growth opportunities"
-                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1rem' }}
-                />
-                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
-                  Separate multiple topics with commas
-                </div>
-              </div>
-              
-              {/* Custom Notes */}
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                  Custom Notes to Include (optional)
-                </label>
-                <textarea
-                  value={customNotes}
-                  onChange={(e) => setCustomNotes(e.target.value)}
-                  rows="4"
-                  placeholder="Add any personal notes or specific points you want to mention..."
-                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', resize: 'vertical', fontSize: '1rem' }}
-                />
-              </div>
-              
+              ))}
+            </div>
+          </div>          {/* Specific Topics */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+              Specific Topics Discussed (optional)
+            </label>
+            <input
+              type="text"
+              value={specificTopics}
+              onChange={(e) => setSpecificTopics(e.target.value)}
+              placeholder="e.g., microservices architecture, team culture, growth opportunities"
+              style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1rem', boxSizing: 'border-box' }}
+            />
+            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+              Separate multiple topics with commas
+            </div>
+          </div>          {/* Custom Notes */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+              Custom Notes to Include (optional)
+            </label>
+            <textarea
+              value={customNotes}
+              onChange={(e) => setCustomNotes(e.target.value)}
+              rows="4"
+              placeholder="Add any personal notes or specific points you want to mention..."
+              style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', resize: 'vertical', fontSize: '1rem', boxSizing: 'border-box' }}
+            />
+          </div>          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            style={{
+              padding: '0.75rem 2rem',
+              background: loading ? '#ccc' : '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontWeight: '500',
+              fontSize: '1rem',
+              width: '100%'
+            }}
+          >
+            {loading ? 'Generating...' : 'Generate Template'}
+          </button>
+        </div>
+      ) : (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0 }}>Generated Follow-Up</h3>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
-                onClick={handleGenerate}
-                disabled={loading}
+                onClick={handleCopyToClipboard}
                 style={{
-                  padding: '0.75rem 2rem',
-                  background: loading ? '#ccc' : '#667eea',
-                  color: 'white',
-                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  background: 'white',
+                  color: '#667eea',
+                  border: '1px solid #667eea',
                   borderRadius: '6px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontWeight: '500',
-                  fontSize: '1rem',
-                  width: '100%'
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
                 }}
               >
-                {loading ? 'Generating...' : 'Generate Template'}
+                📋 Copy
+              </button>
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: 'white',
+                  color: '#667eea',
+                  border: '1px solid #667eea',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}
+              >
+                {isEditing ? '👁 Preview' : '✏️ Edit'}
               </button>
             </div>
-          ) : (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0 }}>Generated Follow-Up</h3>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    onClick={handleCopyToClipboard}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      background: 'white',
-                      color: '#667eea',
-                      border: '1px solid #667eea',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    📋 Copy
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(!isEditing)}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      background: 'white',
-                      color: '#667eea',
-                      border: '1px solid #667eea',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    {isEditing ? '👁 Preview' : '✏️ Edit'}
-                  </button>
-                </div>
-              </div>
-              
-              <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', marginBottom: '1rem' }}>
-                <div style={{ padding: '1rem', borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedSubject}
-                      onChange={(e) => setEditedSubject(e.target.value)}
-                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', fontSize: '1rem', fontWeight: '600' }}
-                    />
-                  ) : (
-                    <div style={{ fontWeight: '600', fontSize: '1rem' }}>Subject: {editedSubject}</div>
-                  )}
-                </div>
-                
-                <div style={{ padding: '1.5rem' }}>
-                  {isEditing ? (
-                    <textarea
-                      value={editedBody}
-                      onChange={(e) => setEditedBody(e.target.value)}
-                      rows="15"
-                      style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical', fontSize: '1rem', lineHeight: '1.6', fontFamily: 'inherit' }}
-                    />
-                  ) : (
-                    <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', fontSize: '1rem' }}>
-                      {editedBody}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {generatedTemplate.suggested_send_time && (
-                <div style={{
-                  padding: '0.75rem 1rem',
-                  background: '#e7f3ff',
-                  borderRadius: '6px',
-                  fontSize: '0.9rem',
-                  marginBottom: '1rem',
-                  border: '1px solid #b3d9ff'
-                }}>
-                  <strong>💡 Recommended timing:</strong> Send by {new Date(generatedTemplate.suggested_send_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+          </div>          <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', marginBottom: '1rem' }}>
+            <div style={{ padding: '1rem', borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editedSubject}
+                  onChange={(e) => setEditedSubject(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', fontSize: '1rem', fontWeight: '600', boxSizing: 'border-box' }}
+                />
+              ) : (
+                <div style={{ fontWeight: '600', fontSize: '1rem' }}>Subject: {editedSubject}</div>
+              )}
+            </div>            <div style={{ padding: '1.5rem' }}>
+              {isEditing ? (
+                <textarea
+                  value={editedBody}
+                  onChange={(e) => setEditedBody(e.target.value)}
+                  rows="15"
+                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical', fontSize: '1rem', lineHeight: '1.6', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              ) : (
+                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', fontSize: '1rem' }}>
+                  {editedBody}
                 </div>
               )}
-              
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <button
-                  onClick={() => {
-                    setGeneratedTemplate(null);
-                    setError('');
-                  }}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: 'white',
-                    color: '#666',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    flex: 1
-                  }}
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleSend}
-                  disabled={sendingEmail}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: sendingEmail ? '#ccc' : '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: sendingEmail ? 'not-allowed' : 'pointer',
-                    fontWeight: '500',
-                    fontSize: '1rem',
-                    flex: 2
-                  }}
-                >
-                  {sendingEmail ? 'Sending...' : '📧 Send Email'}
-                </button>
-              </div>
-              
-              <div style={{ marginTop: '1rem', padding: '1rem', background: '#fff3cd', borderRadius: '6px', fontSize: '0.9rem' }}>
-                <strong>💡 Tip:</strong> Review and personalize the template before sending for best results. This will open your email client with the template pre-filled.
-              </div>
             </div>
-          )}
+          </div>          {generatedTemplate.suggested_send_time && (
+            <div style={{
+              padding: '0.75rem 1rem',
+              background: '#e7f3ff',
+              borderRadius: '6px',
+              fontSize: '0.9rem',
+              marginBottom: '1rem',
+              border: '1px solid #b3d9ff'
+            }}>
+              <strong>💡 Recommended timing:</strong> Send by {new Date(generatedTemplate.suggested_send_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            </div>
+          )}          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={() => {
+                setGeneratedTemplate(null);
+                setError('');
+              }}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'white',
+                color: '#666',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                flex: 1
+              }}
+            >
+              Back
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={sendingEmail}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: sendingEmail ? '#ccc' : '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: sendingEmail ? 'not-allowed' : 'pointer',
+                fontWeight: '500',
+                fontSize: '1rem',
+                flex: 2
+              }}
+            >
+              {sendingEmail ? 'Sending...' : '📧 Send Email'}
+            </button>
+          </div>          <div style={{ marginTop: '1rem', padding: '1rem', background: '#fff3cd', borderRadius: '6px', fontSize: '0.9rem' }}>
+            <strong>💡 Tip:</strong> Review and personalize the template before sending for best results. This will open your email client with the template pre-filled.
+          </div>
         </div>
-      </div>
+      )}
     </div>
-  );
-}
-
-export default FollowUpManager;
+  </div>
+</div>
+);
+}export default FollowUpManager;

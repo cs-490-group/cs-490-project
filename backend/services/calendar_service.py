@@ -410,7 +410,11 @@ class PreparationTaskGenerator:
         job_title: str,
         company_name: str,
         location_type: str,
-        interviewer_name: Optional[str] = None
+        interviewer_name: Optional[str] = None,
+        interviewer_title: Optional[str] = None,
+        industry: Optional[str] = None,
+        job_description: Optional[str] = None,
+        company_info: Optional[Dict] = None
     ) -> List[Dict[str, Any]]:
         """Generate customized preparation checklist"""
         tasks = []
@@ -545,10 +549,11 @@ class PreparationTaskGenerator:
         
         # Interviewer research
         if interviewer_name:
+            title_context = f" ({interviewer_title})" if interviewer_title else ""
             tasks.append({
                 "task_id": str(uuid.uuid4()),
                 "title": f"Research {interviewer_name}",
-                "description": f"Look up {interviewer_name} on LinkedIn to understand their background",
+                "description": f"Look up {interviewer_name}{title_context} on LinkedIn to understand their background and experience",
                 "category": "research",
                 "is_completed": False,
                 "priority": "medium"
