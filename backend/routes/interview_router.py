@@ -82,21 +82,31 @@ async def get_upcoming_interviews(request: Request):
             
             interview_time = interview.get('interview_datetime')
             if interview_time:
-                # Handle both datetime objects and strings, and ensure timezone awareness
+                # Handle both datetime objects and strings
                 if isinstance(interview_time, str):
                     interview_time = datetime.fromisoformat(interview_time.replace('Z', '+00:00'))
                 
                 # Make sure both datetimes are timezone-aware for comparison
                 interview_time = make_aware(interview_time)
+                now_aware = make_aware(now)
                 
-                if interview_time > now:
+                # Compare timezone-aware datetimes
+                if interview_time > now_aware:
                     upcoming.append(interview)
                 else:
                     past.append(interview)
         
         # Sort by date
-        upcoming.sort(key=lambda x: make_aware(x.get('interview_datetime', now)))
-        past.sort(key=lambda x: make_aware(x.get('interview_datetime', now)), reverse=True)
+        upcoming.sort(key=lambda x: make_aware(
+            datetime.fromisoformat(x.get('interview_datetime').replace('Z', '+00:00')) 
+            if isinstance(x.get('interview_datetime'), str) 
+            else x.get('interview_datetime')
+        ))
+        past.sort(key=lambda x: make_aware(
+            datetime.fromisoformat(x.get('interview_datetime').replace('Z', '+00:00')) 
+            if isinstance(x.get('interview_datetime'), str) 
+            else x.get('interview_datetime')
+        ), reverse=True)
         
         print(f"[Get Upcoming] Returning {len(upcoming)} upcoming, {len(past)} past")
         
@@ -112,7 +122,6 @@ async def get_upcoming_interviews(request: Request):
         import traceback
         traceback.print_exc()
         raise HTTPException(500, f"Failed to load interviews: {str(e)}")
-
 
 @interview_router.get("/schedule/{schedule_id}")
 async def get_interview_details(schedule_id: str, request: Request):
@@ -148,14 +157,12 @@ async def create_interview_schedule(request: Request):
         uuid_val = get_uuid_from_headers(request)
         print(f"\n[Create Schedule] Called for uuid: {uuid_val}")
         
-        # Get the request body as dict
         schedule_data = await request.json()
         print(f"[Create Schedule] Received data: {list(schedule_data.keys())}")
         
-        # Add user UUID to the schedule data
         schedule_data["uuid"] = uuid_val
         
-        # Parse datetime if it's a string and make it timezone-aware
+        # Parse datetime
         if isinstance(schedule_data.get("interview_datetime"), str):
             dt_str = schedule_data["interview_datetime"]
             dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
@@ -163,22 +170,25 @@ async def create_interview_schedule(request: Request):
         elif schedule_data.get("interview_datetime"):
             schedule_data["interview_datetime"] = make_aware(schedule_data["interview_datetime"])
         
-        # Auto-generate video link if needed and not provided
+        # ALWAYS auto-generate video link if needed (not provided AND location type is video)
         if schedule_data.get("location_type") == "video" and not schedule_data.get("video_link"):
             video_data = calendar_service.generate_video_conference_link(
                 schedule_data.get("video_platform", "zoom")
             )
             schedule_data["video_link"] = video_data["link"]
+            print(f"[Create Schedule] Auto-generated video link: {video_data['link']}")
         
-        # Auto-generate preparation tasks if requested
-        if schedule_data.get("auto_generate_prep_tasks", False):
-            tasks = PreparationTaskGenerator.generate_tasks(
-                job_title=schedule_data.get("scenario_name") or schedule_data.get("job_title", "Position"),
-                company_name=schedule_data.get("company_name", "Company"),
-                location_type=schedule_data.get("location_type", "video"),
-                interviewer_name=schedule_data.get("interviewer_name")
-            )
-            schedule_data["preparation_tasks"] = tasks
+        # ALWAYS auto-generate preparation tasks (remove the checkbox logic)
+        # Generate tasks based on available information
+        tasks = PreparationTaskGenerator.generate_tasks(
+            job_title=schedule_data.get("scenario_name") or schedule_data.get("job_title", "Position"),
+            company_name=schedule_data.get("company_name", "Company"),
+            location_type=schedule_data.get("location_type", "video"),
+            interviewer_name=schedule_data.get("interviewer_name"),
+            interviewer_title=schedule_data.get("interviewer_title")
+        )
+        schedule_data["preparation_tasks"] = tasks
+        print(f"[Create Schedule] Generated {len(tasks)} preparation tasks")
         
         # Initialize reminder tracking
         schedule_data["reminders_sent"] = {}
@@ -207,7 +217,6 @@ async def create_interview_schedule(request: Request):
         import traceback
         traceback.print_exc()
         raise HTTPException(500, f"Failed to create schedule: {str(e)}")
-
 
 @interview_router.put("/schedule/{schedule_id}")
 async def update_interview_schedule(schedule_id: str, request: Request):
@@ -437,7 +446,95 @@ async def toggle_task_completion(schedule_id: str, task_id: str, request: Reques
         traceback.print_exc()
         raise HTTPException(500, f"Failed to update task: {str(e)}")
 
+@interview_router.post("/schedule/{schedule_id}/preparation-tasks/add")
+async def add_preparation_task(schedule_id: str, request: Request):
+    """Add a custom preparation task to an interview"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        interview = await schedule_dao.get_schedule(schedule_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        # Get task data
+        task_data = await request.json()
+        
+        # Generate task ID
+        import uuid
+        task = {
+            "task_id": str(uuid.uuid4()),
+            "title": task_data.get("title"),
+            "description": task_data.get("description", ""),
+            "category": task_data.get("category", "practice"),
+            "priority": task_data.get("priority", "medium"),
+            "is_completed": False
+        }
+        
+        # Add the task
+        matched = await schedule_dao.add_preparation_task(schedule_id, task)
+        
+        if matched == 0:
+            raise HTTPException(404, "Interview not found")
+        
+        return {
+            "detail": "Task added successfully",
+            "task": task
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Add Task] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to add task: {str(e)}")
 
+
+@interview_router.post("/schedule/{schedule_id}/preparation-tasks/generate")
+async def generate_preparation_tasks(schedule_id: str, request: Request):
+    """Generate or regenerate preparation tasks for an interview"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        interview = await schedule_dao.get_schedule(schedule_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        # Generate new tasks
+        tasks = PreparationTaskGenerator.generate_tasks(
+            job_title=interview.get("scenario_name") or interview.get("job_title", "Position"),
+            company_name=interview.get("company_name", "Company"),
+            location_type=interview.get("location_type", "video"),
+            interviewer_name=interview.get("interviewer_name"),
+            interviewer_title=interview.get("interviewer_title")
+        )
+        
+        # Replace existing tasks
+        matched = await schedule_dao.update_schedule(schedule_id, {
+            "preparation_tasks": tasks,
+            "preparation_completion_percentage": 0
+        })
+        
+        if matched == 0:
+            raise HTTPException(404, "Interview not found")
+        
+        return {
+            "detail": "Tasks generated successfully",
+            "tasks": tasks,
+            "count": len(tasks)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Generate Tasks] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to generate tasks: {str(e)}")
 # ============================================================================
 # CALENDAR INTEGRATION ENDPOINTS
 # ============================================================================

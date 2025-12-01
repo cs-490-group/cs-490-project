@@ -173,8 +173,25 @@ const InterviewAnalyticsAPI = {
       : `${API_BASE_URL}/interview/analytics/comparison`;
     
     return axios.get(url, { headers: getAuthHeaders() });
+  },
+
+  addTask: (scheduleId, task) => {
+    return axios.post(
+      `${API_BASE_URL}/interview/schedule/${scheduleId}/preparation-tasks/add`,
+      task,
+      { headers: getAuthHeaders() }
+    );
+  },
+  
+  generateTasks: (scheduleId) => {
+    return axios.post(
+      `${API_BASE_URL}/interview/schedule/${scheduleId}/preparation-tasks/generate`,
+      {},
+      { headers: getAuthHeaders() }
+    );
   }
 };
+
 
 const FollowUpAPI = {
   // ============================================================================

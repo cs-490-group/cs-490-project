@@ -27,7 +27,6 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
     interviewer_phone: '',
     interviewer_title: '',
     calendar_provider: '',
-    auto_generate_prep_tasks: true,
     notes: '',
     scenario_name: '',
     company_name: ''
@@ -137,6 +136,7 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
     setError('');
 
     try {
+      // Removed auto_generate_prep_tasks - always generate tasks on backend
       const response = await InterviewScheduleAPI.createSchedule(formData);
       
       onSuccess?.({ 
@@ -448,14 +448,14 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
               
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                  Meeting Link
+                  Meeting Link (Optional - will auto-generate if empty)
                 </label>
                 <input
                   type="url"
                   name="video_link"
                   value={formData.video_link}
                   onChange={handleChange}
-                  placeholder="https://..."
+                  placeholder="Leave empty to auto-generate"
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -463,6 +463,9 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
                     borderRadius: '8px'
                   }}
                 />
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                  💡 If left empty, a meeting link will be automatically generated
+                </p>
               </div>
             </>
           )}
@@ -633,25 +636,6 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
             )}
           </div>
 
-          {/* Preparation Tasks */}
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer'
-            }}>
-              <input
-                type="checkbox"
-                name="auto_generate_prep_tasks"
-                checked={formData.auto_generate_prep_tasks}
-                onChange={handleChange}
-                style={{ width: '18px', height: '18px' }}
-              />
-              <span style={{ fontWeight: '500' }}>Auto-generate preparation tasks</span>
-            </label>
-          </div>
-
           {/* Notes */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
@@ -671,6 +655,18 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
                 resize: 'vertical'
               }}
             />
+          </div>
+
+          {/* Info about auto-generated tasks */}
+          <div style={{
+            padding: '12px',
+            background: '#e7f3ff',
+            border: '1px solid #b3d9ff',
+            borderRadius: '8px',
+            marginBottom: '24px',
+            fontSize: '14px'
+          }}>
+            💡 Preparation tasks will be automatically generated based on your job details and interview information
           </div>
 
           {/* Actions */}
