@@ -26,7 +26,7 @@ from routes.templates import templates_router
 from routes.AI import ai_router
 from routes.question_bank import question_bank_router
 from routes.mock_interview import mock_interview_router
-from routes.interview_schedule_routes import interview_schedule_router
+from routes.interview_router import (interview_router, start_reminder_scheduler, stop_reminder_scheduler)
 from routes.interview_analytics_routes import (
     analytics_router,
     followup_router,
@@ -79,7 +79,7 @@ app.include_router(pdf_router, prefix = api_prefix)
 app.include_router(templates_router, prefix = api_prefix)
 app.include_router(question_bank_router, prefix = api_prefix)
 app.include_router(mock_interview_router, prefix = api_prefix)
-app.include_router(interview_schedule_router, prefix=api_prefix)
+app.include_router(interview_router)
 app.include_router(analytics_router, prefix=api_prefix)
 app.include_router(followup_router, prefix=api_prefix)
 app.include_router(writing_router, prefix=api_prefix)
@@ -89,7 +89,13 @@ app.include_router(prediction_router, prefix=api_prefix)
 async def startup_event():
     """Backend startup initialization"""
     print("[Startup] Backend ready!")
+    start_reminder_scheduler()
 app.include_router(ai_router,prefix=api_prefix)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    stop_reminder_scheduler()
 
 # TODO: add user deletion services (deletes all data, requires password authentication)
 # Where to put it though?

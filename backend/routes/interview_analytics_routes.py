@@ -8,7 +8,7 @@ from schema.InterviewSchedule import (
     WritingAnalysisResult
 )
 from mongo.interview_schedule_dao import FollowUpTemplateDAO, WritingPracticeDAO
-from services.followup_template_service import FollowUpTemplateService
+from services.followup_service import FollowUpService
 from services.interview_analytics_service import InterviewAnalyticsService
 from services.writing_practice_service import WritingPracticeService
 from services.success_prediction_service import SuccessPredictionService
@@ -23,7 +23,7 @@ prediction_router = APIRouter(prefix="/success-prediction", tags=["success-predi
 
 # Initialize services
 analytics_service = InterviewAnalyticsService(db_client)
-followup_service = FollowUpTemplateService()
+followup_service = FollowUpService()
 writing_service = WritingPracticeService()
 prediction_service = SuccessPredictionService(db_client)
 followup_dao = FollowUpTemplateDAO(db_client)

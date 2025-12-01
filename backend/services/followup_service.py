@@ -1,5 +1,5 @@
 """
-Follow-Up Template Service
+Combined Follow-Up Template Service
 Generates personalized follow-up communication templates
 """
 
@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, List
 
 
-class FollowUpTemplateService:
+class FollowUpService:
     """Service for generating interview follow-up templates"""
     
     @staticmethod
@@ -19,35 +19,14 @@ class FollowUpTemplateService:
         specific_topics: Optional[List[str]] = None,
         custom_notes: Optional[str] = None
     ) -> Dict[str, str]:
-        """
-        Generate a personalized thank you email template
-        
-        Args:
-            interviewer_name: Name of the interviewer
-            company_name: Company name
-            job_title: Position title
-            interview_date: Date of interview
-            specific_topics: Topics discussed during interview
-            custom_notes: User's custom notes to include
-        
-        Returns:
-            Dict with subject and body
-        """
-        # Format interview date
+        """Generate a personalized thank you email template"""
         date_str = interview_date.strftime("%B %d")
-        
-        # Build subject line
         subject = f"Thank You - {job_title} Interview"
         
-        # Build email body
         body_parts = []
         
         # Opening
-        if interviewer_name:
-            body_parts.append(f"Dear {interviewer_name},")
-        else:
-            body_parts.append("Dear Hiring Team,")
-        
+        body_parts.append(f"Dear {interviewer_name}," if interviewer_name else "Dear Hiring Team,")
         body_parts.append("")
         
         # Main paragraph
@@ -56,10 +35,9 @@ class FollowUpTemplateService:
             f"{job_title} position at {company_name}. I truly enjoyed our conversation and "
             f"learning more about the role and your team."
         )
-        
         body_parts.append("")
         
-        # Specific topics discussed
+        # Specific topics
         if specific_topics and len(specific_topics) > 0:
             if len(specific_topics) == 1:
                 body_parts.append(
@@ -76,7 +54,7 @@ class FollowUpTemplateService:
                 )
             body_parts.append("")
         
-        # Custom notes if provided
+        # Custom notes
         if custom_notes:
             body_parts.append(custom_notes)
             body_parts.append("")
@@ -87,7 +65,6 @@ class FollowUpTemplateService:
             f"and believe my experience would enable me to make an immediate impact on your team. "
             f"I'm confident that I would be a strong addition to your organization."
         )
-        
         body_parts.append("")
         
         # Closing
@@ -96,7 +73,6 @@ class FollowUpTemplateService:
             f"from you about the next steps in the process. Please don't hesitate to reach "
             f"out if you need any additional information."
         )
-        
         body_parts.append("")
         body_parts.append("Best regards,")
         body_parts.append("[Your Name]")
@@ -115,49 +91,27 @@ class FollowUpTemplateService:
         interview_date: datetime,
         days_since_interview: int
     ) -> Dict[str, str]:
-        """
-        Generate a status inquiry email for delayed response
-        
-        Args:
-            interviewer_name: Name of the interviewer
-            company_name: Company name
-            job_title: Position title
-            interview_date: Date of interview
-            days_since_interview: Days since the interview
-        
-        Returns:
-            Dict with subject and body
-        """
+        """Generate a status inquiry email for delayed response"""
         subject = f"Following Up - {job_title} Position"
         
         body_parts = []
-        
-        if interviewer_name:
-            body_parts.append(f"Dear {interviewer_name},")
-        else:
-            body_parts.append("Dear Hiring Team,")
-        
+        body_parts.append(f"Dear {interviewer_name}," if interviewer_name else "Dear Hiring Team,")
         body_parts.append("")
         
-        # Opening with timeline
         date_str = interview_date.strftime("%B %d")
         body_parts.append(
             f"I hope this email finds you well. I wanted to follow up regarding the "
             f"{job_title} position we discussed during our interview on {date_str}."
         )
-        
         body_parts.append("")
         
-        # Express continued interest
         body_parts.append(
             f"I remain very interested in joining {company_name} and contributing to "
             f"your team's success. Our conversation further confirmed that this role "
             f"aligns well with my skills and career goals."
         )
-        
         body_parts.append("")
         
-        # Polite inquiry
         if days_since_interview < 10:
             body_parts.append(
                 "I understand that these decisions take time. I wanted to check in to see "
@@ -171,12 +125,7 @@ class FollowUpTemplateService:
             )
         
         body_parts.append("")
-        
-        # Closing
-        body_parts.append(
-            "Thank you again for considering my application. I look forward to hearing from you."
-        )
-        
+        body_parts.append("Thank you again for considering my application. I look forward to hearing from you.")
         body_parts.append("")
         body_parts.append("Best regards,")
         body_parts.append("[Your Name]")
@@ -193,34 +142,14 @@ class FollowUpTemplateService:
         job_title: str,
         was_selected: bool
     ) -> Dict[str, str]:
-        """
-        Generate a feedback request email
-        
-        Args:
-            interviewer_name: Name of the interviewer
-            company_name: Company name
-            job_title: Position title
-            was_selected: Whether the candidate was selected
-        
-        Returns:
-            Dict with subject and body
-        """
-        if was_selected:
-            subject = f"Thank You - {job_title} Offer"
-        else:
-            subject = f"Feedback Request - {job_title} Interview"
+        """Generate a feedback request email"""
+        subject = f"Thank You - {job_title} Offer" if was_selected else f"Feedback Request - {job_title} Interview"
         
         body_parts = []
-        
-        if interviewer_name:
-            body_parts.append(f"Dear {interviewer_name},")
-        else:
-            body_parts.append("Dear Hiring Team,")
-        
+        body_parts.append(f"Dear {interviewer_name}," if interviewer_name else "Dear Hiring Team,")
         body_parts.append("")
         
         if was_selected:
-            # Accepted offer - ask for onboarding feedback
             body_parts.append(
                 f"I'm excited to have accepted the {job_title} position at {company_name}. "
                 f"As I prepare to join the team, I would appreciate any feedback or insights "
@@ -228,15 +157,12 @@ class FollowUpTemplateService:
                 f"smooth start."
             )
         else:
-            # Rejected - ask for interview feedback
             body_parts.append(
                 f"Thank you for taking the time to interview me for the {job_title} position. "
                 f"While I'm disappointed not to be moving forward, I appreciate the opportunity "
                 f"to learn about {company_name}."
             )
-            
             body_parts.append("")
-            
             body_parts.append(
                 "I'm committed to continuous improvement and would greatly appreciate any "
                 "feedback you could provide about my interview performance. Understanding "
@@ -245,12 +171,10 @@ class FollowUpTemplateService:
             )
         
         body_parts.append("")
-        
         body_parts.append(
             "Any insights you can share would be greatly appreciated. Thank you again for "
             "your time and consideration."
         )
-        
         body_parts.append("")
         body_parts.append("Best regards,")
         body_parts.append("[Your Name]")
@@ -267,27 +191,11 @@ class FollowUpTemplateService:
         job_title: str,
         connection_request: bool = True
     ) -> Dict[str, str]:
-        """
-        Generate a networking follow-up for rejected applications
-        
-        Args:
-            interviewer_name: Name of the interviewer
-            company_name: Company name
-            job_title: Position title
-            connection_request: Whether to request ongoing connection
-        
-        Returns:
-            Dict with subject and body
-        """
-        subject = f"Thank You and Staying Connected"
+        """Generate a networking follow-up for rejected applications"""
+        subject = "Thank You and Staying Connected"
         
         body_parts = []
-        
-        if interviewer_name:
-            body_parts.append(f"Dear {interviewer_name},")
-        else:
-            body_parts.append("Dear Hiring Team,")
-        
+        body_parts.append(f"Dear {interviewer_name}," if interviewer_name else "Dear Hiring Team,")
         body_parts.append("")
         
         body_parts.append(
@@ -296,7 +204,6 @@ class FollowUpTemplateService:
             f"be joining the team at this time, I truly enjoyed learning about your work "
             f"and the culture at {company_name}."
         )
-        
         body_parts.append("")
         
         if connection_request and interviewer_name:
@@ -305,9 +212,7 @@ class FollowUpTemplateService:
                 "that might be a good fit. I've been following your work and would be "
                 "interested in keeping in touch as our careers progress."
             )
-            
             body_parts.append("")
-            
             body_parts.append(
                 "If you're open to it, I'd appreciate the opportunity to connect on LinkedIn "
                 "and stay in touch."
@@ -319,11 +224,7 @@ class FollowUpTemplateService:
             )
         
         body_parts.append("")
-        
-        body_parts.append(
-            "Wishing you and the team continued success."
-        )
-        
+        body_parts.append("Wishing you and the team continued success.")
         body_parts.append("")
         body_parts.append("Best regards,")
         body_parts.append("[Your Name]")
@@ -335,35 +236,24 @@ class FollowUpTemplateService:
     
     @staticmethod
     def get_recommended_timing(template_type: str, interview_date: datetime) -> datetime:
-        """
-        Get recommended send time for different template types
+        """Get recommended send time for different template types"""
+        from datetime import datetime, timezone
         
-        Args:
-            template_type: Type of follow-up template
-            interview_date: Date of the interview
-        
-        Returns:
-            Recommended datetime to send the email
-        """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         if template_type == "thank_you":
-            # Send within 24 hours
             recommended = interview_date + timedelta(hours=24)
             return max(recommended, now)
-        
         elif template_type == "status_inquiry":
-            # Send 7-10 days after interview if no response
             recommended = interview_date + timedelta(days=8)
             return max(recommended, now)
-        
         elif template_type == "feedback_request":
-            # Send 2-3 days after decision notification
             return now + timedelta(days=2)
-        
         elif template_type == "networking":
-            # Send 1 week after rejection
             return now + timedelta(days=7)
-        
         else:
             return now
+
+
+# Singleton instance
+followup_service = FollowUpService()

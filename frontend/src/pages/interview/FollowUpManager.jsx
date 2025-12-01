@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api';
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  const uuid = localStorage.getItem('uuid');
+  return {
+    'Authorization': `Bearer ${token}`,
+    'uuid': uuid,
+    'Content-Type': 'application/json'
+  };
+};
 
 function FollowUpManager() {
-  const [interviews, setInterviews] = useState([
-    { uuid: '1', company: 'TechCorp', position: 'Software Engineer', interviewer_name: 'Jane Smith', interview_datetime: '2025-11-25T14:00:00', status: 'completed', outcome: null },
-    { uuid: '2', company: 'StartupXYZ', position: 'Product Manager', interviewer_name: 'John Doe', interview_datetime: '2025-11-20T10:00:00', status: 'completed', outcome: 'rejected' },
-    { uuid: '3', company: 'BigCo', position: 'Data Scientist', interviewer_name: 'Alice Johnson', interview_datetime: '2025-11-15T15:30:00', status: 'completed', outcome: 'passed' }
-  ]);
-  
+  const [interviews, setInterviews] = useState([]);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [templateType, setTemplateType] = useState('thank_you');
   const [customNotes, setCustomNotes] = useState('');
@@ -15,6 +22,9 @@ function FollowUpManager() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState('');
   const [editedBody, setEditedBody] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
   
   const templateTypes = [
     { value: 'thank_you', label: '✉️ Thank You Note', description: 'Send within 24 hours of interview' },
@@ -23,83 +33,129 @@ function FollowUpManager() {
     { value: 'networking', label: '🤝 Networking Follow-up', description: 'Maintain professional relationship' }
   ];
   
-  const handleGenerate = () => {
+  useEffect(() => {
+    loadCompletedInterviews();
+  }, []);
+  
+  const loadCompletedInterviews = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/interview-schedule/upcoming`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (!response.ok) throw new Error('Failed to load interviews');
+      
+      const data = await response.json();
+      
+      // Filter to completed interviews and sort by date
+      const completed = (data.upcoming_interviews || [])
+        .filter(i => i.status === 'completed')
+        .sort((a, b) => new Date(b.interview_datetime) - new Date(a.interview_datetime));
+      
+      setInterviews(completed);
+    } catch (err) {
+      console.error('Error loading interviews:', err);
+      setError('Failed to load interviews');
+    }
+  };
+  
+  const handleGenerate = async () => {
     if (!selectedInterview) {
-      alert('Please select an interview');
+      setError('Please select an interview');
       return;
     }
     
-    const topics = specificTopics.split(',').map(t => t.trim()).filter(t => t);
+    setLoading(true);
+    setError('');
     
-    // Simulate template generation
-    const templates = {
-      thank_you: {
-        subject: `Thank You - ${selectedInterview.position} Interview`,
-        body: `Dear ${selectedInterview.interviewer_name},
-
-Thank you for taking the time to meet with me on ${new Date(selectedInterview.interview_datetime).toLocaleDateString()} to discuss the ${selectedInterview.position} position at ${selectedInterview.company}. I truly enjoyed our conversation and learning more about the role and your team.
-
-${topics.length > 0 ? `I was particularly interested in our discussion about ${topics.join(', ')}. It reinforced my enthusiasm for this opportunity and how my skills align with the team's needs.\n\n` : ''}${customNotes ? customNotes + '\n\n' : ''}I'm excited about the possibility of contributing to ${selectedInterview.company}'s success and believe my experience would enable me to make an immediate impact on your team.
-
-Thank you again for the opportunity to interview. I look forward to hearing from you about the next steps in the process.
-
-Best regards,
-[Your Name]`
-      },
-      status_inquiry: {
-        subject: `Following Up - ${selectedInterview.position} Position`,
-        body: `Dear ${selectedInterview.interviewer_name},
-
-I hope this email finds you well. I wanted to follow up regarding the ${selectedInterview.position} position we discussed during our interview on ${new Date(selectedInterview.interview_datetime).toLocaleDateString()}.
-
-I remain very interested in joining ${selectedInterview.company} and contributing to your team's success. I wanted to check in to see if there are any updates on the hiring timeline or if you need any additional information from me.
-
-Thank you for considering my application. I look forward to hearing from you.
-
-Best regards,
-[Your Name]`
-      },
-      feedback_request: {
-        subject: `Feedback Request - ${selectedInterview.position} Interview`,
-        body: `Dear ${selectedInterview.interviewer_name},
-
-Thank you for taking the time to interview me for the ${selectedInterview.position} position${selectedInterview.outcome === 'passed' ? '. I\'m excited to have received the offer' : ''}${selectedInterview.outcome === 'rejected' ? '. While I\'m disappointed not to be moving forward' : ''}.
-
-I'm committed to continuous improvement and would greatly appreciate any feedback you could provide about my interview performance. Understanding areas where I could strengthen my candidacy would be invaluable for my professional development.
-
-Any insights you can share would be greatly appreciated.
-
-Best regards,
-[Your Name]`
-      },
-      networking: {
-        subject: 'Thank You and Staying Connected',
-        body: `Dear ${selectedInterview.interviewer_name},
-
-I wanted to reach out one more time to thank you for the opportunity to interview for the ${selectedInterview.position} position at ${selectedInterview.company}. Although I won't be joining the team at this time, I truly enjoyed learning about your work and the culture at ${selectedInterview.company}.
-
-I would love to stay connected and hear about any future opportunities that might be a good fit. If you're open to it, I'd appreciate the opportunity to connect on LinkedIn and stay in touch.
-
-Wishing you and the team continued success.
-
-Best regards,
-[Your Name]`
+    try {
+      const topics = specificTopics.split(',').map(t => t.trim()).filter(t => t);
+      
+      const response = await fetch(`${API_BASE_URL}/interview-followup/generate`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          interview_uuid: selectedInterview.uuid,
+          template_type: templateType,
+          custom_notes: customNotes || null,
+          specific_topics: topics.length > 0 ? topics : null
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to generate template');
       }
-    };
-    
-    const template = templates[templateType];
-    setGeneratedTemplate(template);
-    setEditedSubject(template.subject);
-    setEditedBody(template.body);
-    setIsEditing(false);
+      
+      const data = await response.json();
+      
+      setGeneratedTemplate({
+        template_uuid: data.template_uuid,
+        subject: data.subject,
+        body: data.body,
+        suggested_send_time: data.suggested_send_time,
+        interviewer_email: data.interviewer_email
+      });
+      
+      setEditedSubject(data.subject);
+      setEditedBody(data.body);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Error generating template:', err);
+      setError(err.message || 'Failed to generate template');
+    } finally {
+      setLoading(false);
+    }
   };
   
-  const handleSend = () => {
-    alert('Follow-up email sent successfully!\n\nIn production, this would:\n1. Send the email via your email client\n2. Track the sent status\n3. Set reminder for response follow-up');
-    setGeneratedTemplate(null);
-    setSelectedInterview(null);
-    setCustomNotes('');
-    setSpecificTopics('');
+  const handleSend = async () => {
+    if (!generatedTemplate) return;
+    
+    setSendingEmail(true);
+    setError('');
+    
+    try {
+      // Mark template as sent in the backend
+      const response = await fetch(
+        `${API_BASE_URL}/interview-followup/${generatedTemplate.template_uuid}/send`,
+        {
+          method: 'POST',
+          headers: getAuthHeaders()
+        }
+      );
+      
+      if (!response.ok) throw new Error('Failed to mark template as sent');
+      
+      const data = await response.json();
+      
+      // In production, this would actually send the email via SendGrid, etc.
+      // For now, we'll open the user's email client
+      const mailtoLink = `mailto:${generatedTemplate.interviewer_email || ''}?subject=${encodeURIComponent(editedSubject)}&body=${encodeURIComponent(editedBody)}`;
+      window.location.href = mailtoLink;
+      
+      // Show success message
+      alert('Follow-up tracked successfully!\n\nYour email client has been opened. The follow-up has been marked as sent in your tracking system.');
+      
+      // Reset form
+      setGeneratedTemplate(null);
+      setSelectedInterview(null);
+      setCustomNotes('');
+      setSpecificTopics('');
+      
+      // Reload interviews to update status
+      await loadCompletedInterviews();
+    } catch (err) {
+      console.error('Error sending follow-up:', err);
+      setError(err.message || 'Failed to send follow-up');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+  
+  const handleCopyToClipboard = () => {
+    const fullEmail = `Subject: ${editedSubject}\n\n${editedBody}`;
+    navigator.clipboard.writeText(fullEmail);
+    alert('Email template copied to clipboard!');
   };
   
   const daysSince = (datetime) => {
@@ -114,48 +170,101 @@ Best regards,
         <p style={{ color: '#666', margin: 0 }}>Generate and send professional follow-up communications</p>
       </div>
       
+      {error && (
+        <div style={{
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          background: '#fee',
+          color: '#c33',
+          borderRadius: '8px',
+          border: '1px solid #fcc'
+        }}>
+          {error}
+          <button
+            onClick={() => setError('')}
+            style={{
+              float: 'right',
+              background: 'none',
+              border: 'none',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
+              color: '#c33'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+      
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
         {/* Left Panel - Interview Selection */}
         <div>
           <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Select Interview</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {interviews.map(interview => {
-              const days = daysSince(interview.interview_datetime);
-              return (
-                <div
-                  key={interview.uuid}
-                  onClick={() => setSelectedInterview(interview)}
-                  style={{
-                    padding: '1rem',
-                    border: selectedInterview?.uuid === interview.uuid ? '2px solid #667eea' : '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: selectedInterview?.uuid === interview.uuid ? '#f0f4ff' : 'white',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{interview.position}</div>
-                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.25rem' }}>{interview.company}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#999' }}>
-                    Interviewed {days} day{days !== 1 ? 's' : ''} ago
-                  </div>
-                  {interview.outcome && (
-                    <div style={{
-                      marginTop: '0.5rem',
-                      fontSize: '0.75rem',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '12px',
-                      background: interview.outcome === 'passed' ? '#d4edda' : interview.outcome === 'rejected' ? '#f8d7da' : '#fff3cd',
-                      color: interview.outcome === 'passed' ? '#155724' : interview.outcome === 'rejected' ? '#721c24' : '#856404',
-                      display: 'inline-block'
-                    }}>
-                      {interview.outcome === 'passed' ? '✓ Offer Received' : interview.outcome === 'rejected' ? '✗ Not Selected' : 'Pending'}
+          
+          {interviews.length === 0 ? (
+            <div style={{
+              padding: '2rem',
+              textAlign: 'center',
+              background: '#f8f9fa',
+              borderRadius: '8px',
+              color: '#666'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📭</div>
+              <p>No completed interviews yet</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {interviews.map(interview => {
+                const days = daysSince(interview.interview_datetime);
+                return (
+                  <div
+                    key={interview.uuid}
+                    onClick={() => setSelectedInterview(interview)}
+                    style={{
+                      padding: '1rem',
+                      border: selectedInterview?.uuid === interview.uuid ? '2px solid #667eea' : '1px solid #e0e0e0',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      background: selectedInterview?.uuid === interview.uuid ? '#f0f4ff' : 'white',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
+                      {interview.scenario_name || 'Interview'}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                    <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.25rem' }}>
+                      {interview.company_name || 'Company'}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#999' }}>
+                      {days === 0 ? 'Today' : `${days} day${days !== 1 ? 's' : ''} ago`}
+                    </div>
+                    {interview.outcome && (
+                      <div style={{
+                        marginTop: '0.5rem',
+                        fontSize: '0.75rem',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '12px',
+                        background: interview.outcome === 'passed' ? '#d4edda' : interview.outcome === 'rejected' ? '#f8d7da' : '#fff3cd',
+                        color: interview.outcome === 'passed' ? '#155724' : interview.outcome === 'rejected' ? '#721c24' : '#856404',
+                        display: 'inline-block'
+                      }}>
+                        {interview.outcome === 'passed' ? '✓ Offer Received' : interview.outcome === 'rejected' ? '✗ Not Selected' : 'Pending'}
+                      </div>
+                    )}
+                    {interview.thank_you_note_sent && (
+                      <div style={{
+                        marginTop: '0.5rem',
+                        fontSize: '0.75rem',
+                        color: '#28a745'
+                      }}>
+                        ✓ Thank you sent
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
         
         {/* Right Panel - Template Generation */}
@@ -229,42 +338,59 @@ Best regards,
               
               <button
                 onClick={handleGenerate}
+                disabled={loading}
                 style={{
                   padding: '0.75rem 2rem',
-                  background: '#667eea',
+                  background: loading ? '#ccc' : '#667eea',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
                   fontWeight: '500',
                   fontSize: '1rem',
                   width: '100%'
                 }}
               >
-                Generate Template
+                {loading ? 'Generating...' : 'Generate Template'}
               </button>
             </div>
           ) : (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ margin: 0 }}>Generated Follow-Up</h3>
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: 'white',
-                    color: '#667eea',
-                    border: '1px solid #667eea',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  {isEditing ? '👁 Preview' : '✏️ Edit'}
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={handleCopyToClipboard}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: 'white',
+                      color: '#667eea',
+                      border: '1px solid #667eea',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    📋 Copy
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: 'white',
+                      color: '#667eea',
+                      border: '1px solid #667eea',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    {isEditing ? '👁 Preview' : '✏️ Edit'}
+                  </button>
+                </div>
               </div>
               
-              <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', marginBottom: '1rem' }}>
                 <div style={{ padding: '1rem', borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
                   {isEditing ? (
                     <input
@@ -284,7 +410,7 @@ Best regards,
                       value={editedBody}
                       onChange={(e) => setEditedBody(e.target.value)}
                       rows="15"
-                      style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical', fontSize: '1rem', lineHeight: '1.6' }}
+                      style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical', fontSize: '1rem', lineHeight: '1.6', fontFamily: 'inherit' }}
                     />
                   ) : (
                     <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', fontSize: '1rem' }}>
@@ -294,9 +420,25 @@ Best regards,
                 </div>
               </div>
               
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+              {generatedTemplate.suggested_send_time && (
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  background: '#e7f3ff',
+                  borderRadius: '6px',
+                  fontSize: '0.9rem',
+                  marginBottom: '1rem',
+                  border: '1px solid #b3d9ff'
+                }}>
+                  <strong>💡 Recommended timing:</strong> Send by {new Date(generatedTemplate.suggested_send_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', gap: '1rem' }}>
                 <button
-                  onClick={() => setGeneratedTemplate(null)}
+                  onClick={() => {
+                    setGeneratedTemplate(null);
+                    setError('');
+                  }}
                   style={{
                     padding: '0.75rem 1.5rem',
                     background: 'white',
@@ -312,24 +454,25 @@ Best regards,
                 </button>
                 <button
                   onClick={handleSend}
+                  disabled={sendingEmail}
                   style={{
                     padding: '0.75rem 1.5rem',
-                    background: '#28a745',
+                    background: sendingEmail ? '#ccc' : '#28a745',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
-                    cursor: 'pointer',
+                    cursor: sendingEmail ? 'not-allowed' : 'pointer',
                     fontWeight: '500',
                     fontSize: '1rem',
                     flex: 2
                   }}
                 >
-                  📧 Send Email
+                  {sendingEmail ? 'Sending...' : '📧 Send Email'}
                 </button>
               </div>
               
               <div style={{ marginTop: '1rem', padding: '1rem', background: '#fff3cd', borderRadius: '6px', fontSize: '0.9rem' }}>
-                <strong>💡 Tip:</strong> Review and personalize the template before sending for best results
+                <strong>💡 Tip:</strong> Review and personalize the template before sending for best results. This will open your email client with the template pre-filled.
               </div>
             </div>
           )}
