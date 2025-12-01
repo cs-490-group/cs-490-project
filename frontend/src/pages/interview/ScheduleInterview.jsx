@@ -1,8 +1,36 @@
 import React, { useState, useEffect } from 'react';
+import JobsAPI from '../../api/jobs';
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api';
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  const uuid = localStorage.getItem('uuid');
+  
+  if (!token || !uuid) {
+    console.error('[Auth] Missing credentials!');
+  }
+  
+  return {
+    'Authorization': `Bearer ${token}`,
+    'uuid': uuid,
+    'Content-Type': 'application/json'
+  };
+};
 
 function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
+  // Add safety check for onClose
+  const handleClose = () => {
+    if (onClose && typeof onClose === 'function') {
+      onClose();
+    } else {
+      // Fallback: navigate away or refresh
+      window.history.back();
+    }
+  };
+  
   const [formData, setFormData] = useState({
-    job_application_uuid: jobId,
+    job_application_uuid: jobId || '',
     interview_datetime: '',
     duration_minutes: 60,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -17,30 +45,106 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
     interviewer_title: '',
     calendar_provider: '',
     auto_generate_prep_tasks: true,
-    notes: ''
+    notes: '',
+    scenario_name: '',
+    company_name: ''
   });
   
   const [jobDetails, setJobDetails] = useState(null);
+  const [jobApplications, setJobApplications] = useState([]);
   const [calendarStatus, setCalendarStatus] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingJobs, setLoadingJobs] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Simulate loading job details
-    setJobDetails({
-      title: 'Senior Software Engineer',
-      company: 'TechCorp Inc.'
-    });
-    
-    // Simulate calendar status
-    setCalendarStatus({
-      connected: false,
-      provider: null
-    });
-  }, [jobId]);
+    loadJobApplications();
+    // Skip calendar status for now since it's causing auth issues
+    // loadCalendarStatus();
+    setCalendarStatus({ connected: false, provider: null });
+  }, []);
+
+  useEffect(() => {
+    if (jobId && jobApplications.length > 0) {
+      const job = jobApplications.find(j => j.id === jobId);
+      if (job) {
+        setJobDetails(job);
+        setFormData(prev => ({
+          ...prev,
+          scenario_name: job.title || '',
+          company_name: job.company || ''
+        }));
+      }
+    }
+  }, [jobId, jobApplications]);
+
+  const loadJobApplications = async () => {
+    setLoadingJobs(true);
+    try {
+      const response = await JobsAPI.getAll();
+      
+      // Transform the data and filter for only jobs in interview stage
+      const jobsList = (response.data || [])
+        .filter(job => job.status === 'Interview')
+        .map(job => ({
+          id: job._id,
+          title: job.title,
+          company: typeof job.company === 'string' ? job.company : job.company?.name || 'Unknown Company',
+          location: job.location,
+          status: job.status
+        }));
+      
+      setJobApplications(jobsList);
+      
+      // Alert if no jobs are in interview stage
+      if (jobsList.length === 0) {
+        alert('No jobs are currently set to "Interview" stage. Please update a job to Interview status first, or enter job details manually below.');
+      }
+    } catch (err) {
+      console.error('[Jobs] Error loading job applications:', err);
+      setJobApplications([]);
+    } finally {
+      setLoadingJobs(false);
+    }
+  };
+
+  const loadCalendarStatus = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/interview/calendar/status`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCalendarStatus(data);
+      } else {
+        // Calendar not connected or error - set default state
+        setCalendarStatus({ connected: false, provider: null });
+      }
+    } catch (err) {
+      console.error('Error loading calendar status:', err);
+      setCalendarStatus({ connected: false, provider: null });
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // If job_application_uuid changes, update company and position
+    if (name === 'job_application_uuid') {
+      const selectedJob = jobApplications.find(j => j.id === value);
+      if (selectedJob) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value,
+          scenario_name: selectedJob.title || '',
+          company_name: selectedJob.company || ''
+        }));
+        setJobDetails(selectedJob);
+        return;
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -55,41 +159,109 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
       return;
     }
 
+    if (!formData.scenario_name || !formData.company_name) {
+      setError('Please select a job application or enter job details manually');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
-    // Simulate API call
-    setTimeout(() => {
-      onSuccess?.({ message: 'Interview scheduled successfully!' });
-      onClose?.();
-    }, 1000);
+    try {
+      const headers = getAuthHeaders();
+      
+      const response = await fetch(`${API_BASE_URL}/interview/schedule`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { detail: errorText };
+        }
+        throw new Error(errorData.detail || 'Failed to schedule interview');
+      }
+
+      const data = await response.json();
+      
+      onSuccess?.({ 
+        message: 'Interview scheduled successfully!',
+        schedule_uuid: data.schedule_uuid 
+      });
+      handleClose();
+    } catch (err) {
+      console.error('[Submit] Error:', err);
+      setError(err.message || 'Failed to schedule interview');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const connectCalendar = (provider) => {
-    alert(`Connecting to ${provider} Calendar... (OAuth flow would open here)`);
-    setTimeout(() => {
-      setCalendarStatus({
-        connected: true,
-        provider: provider
-      });
-      setFormData(prev => ({ ...prev, calendar_provider: provider }));
-    }, 1000);
+  const connectCalendar = async (provider) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/interview/calendar/auth/${provider}`,
+        { headers: getAuthHeaders() }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Open OAuth URL in new window
+        window.open(data.auth_url, '_blank', 'width=600,height=700');
+        
+        // Poll for connection status
+        const checkInterval = setInterval(async () => {
+          const statusResponse = await fetch(
+            `${API_BASE_URL}/interview/calendar/status`,
+            { headers: getAuthHeaders() }
+          );
+          
+          if (statusResponse.ok) {
+            const status = await statusResponse.json();
+            if (status.connected) {
+              setCalendarStatus(status);
+              setFormData(prev => ({ ...prev, calendar_provider: status.provider }));
+              clearInterval(checkInterval);
+            }
+          }
+        }, 2000);
+        
+        // Stop polling after 2 minutes
+        setTimeout(() => clearInterval(checkInterval), 120000);
+      }
+    } catch (err) {
+      console.error('Calendar connection error:', err);
+      alert('Failed to connect calendar');
+    }
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '20px'
-    }}>
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '20px'
+      }}
+      onClick={(e) => {
+        // Close if clicking the backdrop
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+    >
       <div style={{
         background: 'white',
         borderRadius: '12px',
@@ -121,20 +293,30 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
             )}
           </div>
           <button
-            onClick={onClose}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleClose();
+            }}
+            type="button"
+            aria-label="Close"
             style={{
               background: 'none',
               border: 'none',
               fontSize: '28px',
               cursor: 'pointer',
               color: '#666',
-              padding: 0,
+              padding: '4px',
               width: '32px',
               height: '32px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              lineHeight: 1,
+              transition: 'color 0.2s'
             }}
+            onMouseOver={(e) => e.currentTarget.style.color = '#333'}
+            onMouseOut={(e) => e.currentTarget.style.color = '#666'}
           >
             ×
           </button>
@@ -151,6 +333,95 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
               fontSize: '14px'
             }}>
               {error}
+            </div>
+          )}
+
+          {/* Job Application Selection */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+              Job Application *
+            </label>
+            <select
+              name="job_application_uuid"
+              value={formData.job_application_uuid}
+              onChange={handleChange}
+              disabled={loadingJobs}
+              required
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                fontSize: '16px',
+                background: loadingJobs ? '#f5f5f5' : 'white'
+              }}
+            >
+              <option value="">
+                {loadingJobs ? 'Loading applications...' : 
+                 jobApplications.length === 0 ? 'No jobs in Interview stage' :
+                 'Select a job application'}
+              </option>
+              {jobApplications.map(job => (
+                <option key={job.id} value={job.id}>
+                  {job.title || 'Untitled'} at {job.company || 'Unknown Company'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Manual Job Details - Show if no job selected */}
+          {!formData.job_application_uuid && (
+            <div style={{
+              padding: '16px',
+              background: '#f8f9fa',
+              borderRadius: '8px',
+              marginBottom: '24px'
+            }}>
+              <h4 style={{ marginTop: 0, marginBottom: '12px', fontSize: '16px' }}>
+                Job Details
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                    Position/Role *
+                  </label>
+                  <input
+                    type="text"
+                    name="scenario_name"
+                    value={formData.scenario_name}
+                    onChange={handleChange}
+                    placeholder="Software Engineer"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '16px'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                    Company *
+                  </label>
+                  <input
+                    type="text"
+                    name="company_name"
+                    value={formData.company_name}
+                    onChange={handleChange}
+                    placeholder="TechCorp Inc."
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '16px'
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -569,7 +840,7 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
           }}>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               style={{
                 padding: '12px 24px',
                 border: '1px solid #ddd',

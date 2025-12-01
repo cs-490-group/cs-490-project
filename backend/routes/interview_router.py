@@ -3,7 +3,7 @@ Combined Interview Router
 Handles calendar integration, reminders, and follow-up templates
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -15,7 +15,7 @@ from mongo.interview_schedule_dao import (
     InterviewScheduleDAO,
     FollowUpTemplateDAO
 )
-from services.calendar_service import calendar_service
+from services.calendar_service import calendar_service, PreparationTaskGenerator
 from services.followup_service import followup_service
 from mongo.dao_setup import db_client
 from sessions.session_authorizer import authorize
@@ -32,6 +32,394 @@ calendar_credentials_store = {}
 
 # Background scheduler for reminders
 reminder_scheduler = AsyncIOScheduler()
+
+
+# ============================================================================
+# INTERVIEW SCHEDULE ENDPOINTS
+# ============================================================================
+
+@interview_router.get("/schedule/upcoming")
+async def get_upcoming_interviews(uuid_val: str = Depends(authorize)):
+    """Get all upcoming and completed interviews for the user"""
+    try:
+        # Get all interviews for the user using the correct method name
+        all_interviews = await schedule_dao.get_user_schedules(uuid_val)
+        
+        # Separate into upcoming and past
+        now = datetime.now(timezone.utc)
+        upcoming = []
+        past = []
+        
+        for interview in all_interviews:
+            interview_time = interview.get('interview_datetime')
+            if interview_time:
+                # Handle both datetime objects and strings
+                if isinstance(interview_time, str):
+                    # Parse ISO format datetime string
+                    interview_time = datetime.fromisoformat(interview_time.replace('Z', '+00:00'))
+                
+                if interview_time > now:
+                    upcoming.append(interview)
+                else:
+                    past.append(interview)
+        
+        # Sort by date
+        upcoming.sort(key=lambda x: x.get('interview_datetime', now))
+        past.sort(key=lambda x: x.get('interview_datetime', now), reverse=True)
+        
+        return {
+            "upcoming_interviews": upcoming,
+            "past_interviews": past,
+            "total_count": len(all_interviews)
+        }
+    except Exception as e:
+        print(f"[Get Upcoming] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to load interviews: {str(e)}")
+
+
+@interview_router.get("/schedule/{schedule_id}")
+async def get_interview_details(
+    schedule_id: str,
+    uuid_val: str = Depends(authorize)
+):
+    """Get details for a specific interview"""
+    try:
+        interview = await schedule_dao.get_schedule(schedule_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        return {"interview": interview}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Get Interview] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to load interview: {str(e)}")
+
+
+@interview_router.post("/schedule")
+async def create_interview_schedule(
+    request: Request,
+    uuid_val: str = Depends(authorize)
+):
+    """Create a new interview schedule"""
+    try:
+        print("[Create Schedule] Step 1: Getting request body...")
+        # Get the request body as dict
+        schedule_data = await request.json()
+        
+        print(f"[Create Schedule] Step 2: Received data: {schedule_data}")
+        
+        # Add user UUID to the schedule data
+        schedule_data["user_uuid"] = uuid_val
+        print(f"[Create Schedule] Step 3: Added user_uuid: {uuid_val}")
+        
+        # Parse datetime if it's a string
+        if isinstance(schedule_data.get("interview_datetime"), str):
+            print("[Create Schedule] Step 4: Parsing datetime...")
+            # Parse ISO format datetime string
+            dt_str = schedule_data["interview_datetime"]
+            schedule_data["interview_datetime"] = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+            print(f"[Create Schedule] Parsed datetime: {schedule_data['interview_datetime']}")
+        
+        # Auto-generate video link if needed and not provided
+        if schedule_data.get("location_type") == "video" and not schedule_data.get("video_link"):
+            print("[Create Schedule] Step 5: Generating video link...")
+            video_data = calendar_service.generate_video_conference_link(
+                schedule_data.get("video_platform", "zoom")
+            )
+            schedule_data["video_link"] = video_data["link"]
+            print(f"[Create Schedule] Auto-generated video link: {video_data['link']}")
+        
+        # Auto-generate preparation tasks if requested
+        if schedule_data.get("auto_generate_prep_tasks", False):
+            print("[Create Schedule] Step 6: Generating prep tasks...")
+            tasks = PreparationTaskGenerator.generate_tasks(
+                job_title=schedule_data.get("scenario_name") or schedule_data.get("job_title", "Position"),
+                company_name=schedule_data.get("company_name", "Company"),
+                location_type=schedule_data.get("location_type", "video"),
+                interviewer_name=schedule_data.get("interviewer_name")
+            )
+            schedule_data["preparation_tasks"] = tasks
+            print(f"[Create Schedule] Auto-generated {len(tasks)} preparation tasks")
+        
+        # Initialize reminder tracking
+        schedule_data["reminders_sent"] = {}
+        print("[Create Schedule] Step 7: Initialized reminder tracking")
+        
+        # Create the schedule
+        print("[Create Schedule] Step 8: About to call DAO.create_schedule()...")
+        schedule_uuid = await schedule_dao.create_schedule(schedule_data)
+        
+        print(f"[Create Schedule] Step 9: DAO returned UUID: {schedule_uuid}")
+        
+        # Sync to calendar if requested
+        if schedule_data.get("calendar_provider"):
+            try:
+                print("[Create Schedule] Step 10: Syncing to calendar...")
+                # This would be called after calendar is connected
+                # For now, just mark as pending sync
+                await schedule_dao.update_schedule(schedule_uuid, {
+                    "calendar_sync_pending": True
+                })
+                print(f"[Create Schedule] Marked for calendar sync")
+            except Exception as cal_error:
+                print(f"[Create Schedule] Calendar sync error: {cal_error}")
+                # Don't fail the whole request if calendar sync fails
+        
+        print("[Create Schedule] Step 11: Returning success response")
+        return {
+            "detail": "Interview scheduled successfully",
+            "schedule_uuid": schedule_uuid
+        }
+    except Exception as e:
+        print(f"[Create Schedule] ERROR at some step: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to create schedule: {str(e)}")
+
+
+@interview_router.put("/schedule/{schedule_id}")
+async def update_interview_schedule(
+    schedule_id: str,
+    request: Request,
+    uuid_val: str = Depends(authorize)
+):
+    """Update an existing interview schedule"""
+    try:
+        # Verify ownership
+        interview = await schedule_dao.get_schedule(schedule_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        # Get update data
+        update_data = await request.json()
+        
+        # Parse datetime if it's a string
+        if isinstance(update_data.get("interview_datetime"), str):
+            dt_str = update_data["interview_datetime"]
+            update_data["interview_datetime"] = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+        
+        # Update the schedule
+        matched = await schedule_dao.update_schedule(schedule_id, update_data)
+        
+        if matched == 0:
+            raise HTTPException(404, "Interview not found")
+        
+        return {"detail": "Interview updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Update Schedule] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to update schedule: {str(e)}")
+
+
+@interview_router.delete("/schedule/{schedule_id}")
+async def delete_interview_schedule(
+    schedule_id: str,
+    uuid_val: str = Depends(authorize)
+):
+    """Delete an interview schedule"""
+    try:
+        # Verify ownership
+        interview = await schedule_dao.get_schedule(schedule_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        # Delete the schedule
+        deleted = await schedule_dao.delete_schedule(schedule_id)
+        
+        if deleted == 0:
+            raise HTTPException(404, "Interview not found")
+        
+        return {"detail": "Interview deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Delete Schedule] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to delete schedule: {str(e)}")
+
+
+@interview_router.post("/schedule/{schedule_id}/complete")
+async def complete_interview(
+    schedule_id: str,
+    request: Request,
+    uuid_val: str = Depends(authorize)
+):
+    """Mark an interview as completed with outcome"""
+    try:
+        # Verify ownership
+        interview = await schedule_dao.get_schedule(schedule_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        # Get outcome data
+        outcome_data = await request.json()
+        
+        # Complete the interview
+        matched = await schedule_dao.complete_interview(schedule_id, outcome_data)
+        
+        if matched == 0:
+            raise HTTPException(404, "Interview not found")
+        
+        return {"detail": "Interview marked as completed"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Complete Interview] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to complete interview: {str(e)}")
+
+
+@interview_router.post("/schedule/{schedule_id}/cancel")
+async def cancel_interview(
+    schedule_id: str,
+    reason: Optional[str] = None,
+    uuid_val: str = Depends(authorize)
+):
+    """Cancel an interview"""
+    try:
+        # Verify ownership
+        interview = await schedule_dao.get_schedule(schedule_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        # Cancel the interview
+        matched = await schedule_dao.cancel_interview(schedule_id, reason)
+        
+        if matched == 0:
+            raise HTTPException(404, "Interview not found")
+        
+        return {"detail": "Interview cancelled"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Cancel Interview] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to cancel interview: {str(e)}")
+
+
+@interview_router.get("/schedule/{schedule_id}/preparation-tasks")
+async def get_preparation_tasks(
+    schedule_id: str,
+    uuid_val: str = Depends(authorize)
+):
+    """Get preparation tasks for an interview"""
+    try:
+        interview = await schedule_dao.get_schedule(schedule_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        tasks = interview.get("preparation_tasks", [])
+        
+        # Calculate completion percentage
+        if tasks:
+            completed = sum(1 for task in tasks if task.get("is_completed", False))
+            percentage = int((completed / len(tasks)) * 100)
+        else:
+            percentage = 0
+        
+        return {
+            "tasks": tasks,
+            "completion_percentage": percentage
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Get Prep Tasks] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to get preparation tasks: {str(e)}")
+
+
+@interview_router.post("/schedule/{schedule_id}/preparation-tasks/{task_id}/complete")
+async def toggle_task_completion(
+    schedule_id: str,
+    task_id: str,
+    uuid_val: str = Depends(authorize)
+):
+    """Toggle a preparation task completion status"""
+    try:
+        interview = await schedule_dao.get_schedule(schedule_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        # Find the task
+        tasks = interview.get("preparation_tasks", [])
+        task = next((t for t in tasks if t.get("task_id") == task_id), None)
+        
+        if not task:
+            raise HTTPException(404, "Task not found")
+        
+        # Toggle completion
+        is_completed = not task.get("is_completed", False)
+        
+        # Update the task
+        await schedule_dao.update_preparation_task(schedule_id, task_id, {
+            **task,
+            "is_completed": is_completed
+        })
+        
+        # Recalculate completion percentage
+        completed_count = sum(1 for t in tasks if t.get("task_id") == task_id or t.get("is_completed", False))
+        if task.get("task_id") == task_id and not is_completed:
+            completed_count -= 1
+        elif task.get("task_id") == task_id and is_completed:
+            completed_count += 1
+            
+        percentage = int((completed_count / len(tasks)) * 100) if tasks else 0
+        
+        await schedule_dao.update_preparation_completion(schedule_id, percentage)
+        
+        return {
+            "detail": "Task updated",
+            "is_completed": is_completed,
+            "completion_percentage": percentage
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Toggle Task] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to update task: {str(e)}")
 
 
 # ============================================================================

@@ -37,6 +37,10 @@
   }
 }
 
+.navbar {
+  z-index: 1 !important;
+}
+
 .navbar .dropdown:hover .dropdown-menu {
   display: block;
   margin-top: 0;
