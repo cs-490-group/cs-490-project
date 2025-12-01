@@ -322,6 +322,9 @@ const Nav = () => {
                   <NavDropdown.Item as={NavLink} to="/interview/success-probability">
                     Success Predictor
                   </NavDropdown.Item>
+                    <NavDropdown.Item as={NavLink} to="/interview/follow-up">
+                    Follow Up
+                  </NavDropdown.Item>
                 </NavDropdown>
 
                 <NavDropdown
