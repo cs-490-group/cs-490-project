@@ -1,7 +1,8 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from bson import ObjectId
 
 
 class InterviewScheduleDAO:
@@ -12,27 +13,32 @@ class InterviewScheduleDAO:
         self.collection = db_client["interview_schedules"]
 
     async def create_schedule(self, data: dict) -> str:
-        """Create a new interview schedule"""
-        data["uuid"] = str(uuid.uuid4())
-        data["date_created"] = datetime.now(timezone.utc)
-        data["date_updated"] = datetime.now(timezone.utc)
+        """Create a new interview schedule - returns MongoDB _id as string"""
+        time = datetime.now(timezone.utc)
+        data["date_created"] = time
+        data["date_updated"] = time
         data["status"] = data.get("status", "scheduled")
         data["calendar_synced"] = data.get("calendar_synced", False)
         data["preparation_completion_percentage"] = 0
         
-        await self.collection.insert_one(data)
-        return data["uuid"]
+        # Note: data should already have "uuid" field from user authorization
+        
+        result = await self.collection.insert_one(data)
+        return str(result.inserted_id)
 
-    async def get_schedule(self, schedule_uuid: str) -> Optional[dict]:
-        """Get a specific interview schedule by UUID"""
-        doc = await self.collection.find_one({"uuid": schedule_uuid})
-        if doc:
-            doc["_id"] = str(doc["_id"])
-        return doc
+    async def get_schedule(self, schedule_id: str) -> Optional[dict]:
+        """Get a specific interview schedule by MongoDB _id"""
+        try:
+            doc = await self.collection.find_one({"_id": ObjectId(schedule_id)})
+            if doc:
+                doc["_id"] = str(doc["_id"])
+            return doc
+        except:
+            return None
 
     async def get_user_schedules(self, user_uuid: str, status: Optional[str] = None) -> List[dict]:
         """Get all interview schedules for a user, optionally filtered by status"""
-        query = {"user_uuid": user_uuid}
+        query = {"uuid": user_uuid}  # Match the Jobs pattern
         if status:
             query["status"] = status
         
@@ -47,7 +53,7 @@ class InterviewScheduleDAO:
         """Get upcoming interviews for a user"""
         now = datetime.now(timezone.utc)
         cursor = self.collection.find({
-            "user_uuid": user_uuid,
+            "uuid": user_uuid,  # Match the Jobs pattern
             "status": "scheduled",
             "interview_datetime": {"$gte": now}
         }).sort("interview_datetime", 1)
@@ -70,66 +76,81 @@ class InterviewScheduleDAO:
             results.append(doc)
         return results
 
-    async def update_schedule(self, schedule_uuid: str, data: dict) -> int:
+    async def update_schedule(self, schedule_id: str, data: dict) -> int:
         """Update an interview schedule"""
         data["date_updated"] = datetime.now(timezone.utc)
-        result = await self.collection.update_one(
-            {"uuid": schedule_uuid},
-            {"$set": data}
-        )
-        return result.matched_count
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(schedule_id)},
+                {"$set": data}
+            )
+            return result.matched_count
+        except:
+            return 0
 
-    async def add_preparation_task(self, schedule_uuid: str, task: dict) -> int:
+    async def add_preparation_task(self, schedule_id: str, task: dict) -> int:
         """Add a preparation task to the schedule"""
-        result = await self.collection.update_one(
-            {"uuid": schedule_uuid},
-            {
-                "$push": {"preparation_tasks": task},
-                "$set": {"date_updated": datetime.now(timezone.utc)}
-            }
-        )
-        return result.matched_count
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(schedule_id)},
+                {
+                    "$push": {"preparation_tasks": task},
+                    "$set": {"date_updated": datetime.now(timezone.utc)}
+                }
+            )
+            return result.matched_count
+        except:
+            return 0
 
-    async def update_preparation_task(self, schedule_uuid: str, task_id: str, updates: dict) -> int:
+    async def update_preparation_task(self, schedule_id: str, task_id: str, updates: dict) -> int:
         """Update a specific preparation task"""
-        result = await self.collection.update_one(
-            {"uuid": schedule_uuid, "preparation_tasks.task_id": task_id},
-            {
-                "$set": {
-                    f"preparation_tasks.$": {**updates, "task_id": task_id},
-                    "date_updated": datetime.now(timezone.utc)
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(schedule_id), "preparation_tasks.task_id": task_id},
+                {
+                    "$set": {
+                        f"preparation_tasks.$": {**updates, "task_id": task_id},
+                        "date_updated": datetime.now(timezone.utc)
+                    }
                 }
-            }
-        )
-        return result.matched_count
+            )
+            return result.matched_count
+        except:
+            return 0
 
-    async def update_preparation_completion(self, schedule_uuid: str, percentage: int) -> int:
+    async def update_preparation_completion(self, schedule_id: str, percentage: int) -> int:
         """Update preparation completion percentage"""
-        result = await self.collection.update_one(
-            {"uuid": schedule_uuid},
-            {
-                "$set": {
-                    "preparation_completion_percentage": percentage,
-                    "date_updated": datetime.now(timezone.utc)
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(schedule_id)},
+                {
+                    "$set": {
+                        "preparation_completion_percentage": percentage,
+                        "date_updated": datetime.now(timezone.utc)
+                    }
                 }
-            }
-        )
-        return result.matched_count
+            )
+            return result.matched_count
+        except:
+            return 0
 
-    async def mark_reminder_sent(self, schedule_uuid: str, reminder_type: str) -> int:
+    async def mark_reminder_sent(self, schedule_id: str, reminder_type: str) -> int:
         """Mark a reminder as sent"""
-        result = await self.collection.update_one(
-            {"uuid": schedule_uuid},
-            {
-                "$set": {
-                    f"reminders_sent.{reminder_type}": True,
-                    "date_updated": datetime.now(timezone.utc)
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(schedule_id)},
+                {
+                    "$set": {
+                        f"reminders_sent.{reminder_type}": True,
+                        "date_updated": datetime.now(timezone.utc)
+                    }
                 }
-            }
-        )
-        return result.matched_count
+            )
+            return result.matched_count
+        except:
+            return 0
 
-    async def complete_interview(self, schedule_uuid: str, outcome_data: dict) -> int:
+    async def complete_interview(self, schedule_id: str, outcome_data: dict) -> int:
         """Mark interview as completed with outcome"""
         update_data = {
             "status": "completed",
@@ -139,13 +160,16 @@ class InterviewScheduleDAO:
             "date_updated": datetime.now(timezone.utc)
         }
         
-        result = await self.collection.update_one(
-            {"uuid": schedule_uuid},
-            {"$set": update_data}
-        )
-        return result.matched_count
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(schedule_id)},
+                {"$set": update_data}
+            )
+            return result.matched_count
+        except:
+            return 0
 
-    async def cancel_interview(self, schedule_uuid: str, reason: Optional[str] = None) -> int:
+    async def cancel_interview(self, schedule_id: str, reason: Optional[str] = None) -> int:
         """Cancel an interview"""
         update_data = {
             "status": "cancelled",
@@ -154,33 +178,37 @@ class InterviewScheduleDAO:
         if reason:
             update_data["notes"] = reason
         
-        result = await self.collection.update_one(
-            {"uuid": schedule_uuid},
-            {"$set": update_data}
-        )
-        return result.matched_count
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(schedule_id)},
+                {"$set": update_data}
+            )
+            return result.matched_count
+        except:
+            return 0
 
-    async def mark_thank_you_sent(self, schedule_uuid: str) -> int:
+    async def mark_thank_you_sent(self, schedule_id: str) -> int:
         """Mark thank you note as sent"""
-        result = await self.collection.update_one(
-            {"uuid": schedule_uuid},
-            {
-                "$set": {
-                    "thank_you_note_sent": True,
-                    "thank_you_note_sent_at": datetime.now(timezone.utc),
-                    "date_updated": datetime.now(timezone.utc)
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(schedule_id)},
+                {
+                    "$set": {
+                        "thank_you_note_sent": True,
+                        "thank_you_note_sent_at": datetime.now(timezone.utc),
+                        "date_updated": datetime.now(timezone.utc)
+                    }
                 }
-            }
-        )
-        return result.matched_count
+            )
+            return result.matched_count
+        except:
+            return 0
 
     async def get_interviews_needing_reminders(self, reminder_window_hours: int) -> List[dict]:
         """Get interviews that need reminders sent"""
-        from datetime import timedelta
         now = datetime.now(timezone.utc)
         target_time = now + timedelta(hours=reminder_window_hours)
         
-        # Find scheduled interviews within the reminder window
         cursor = self.collection.find({
             "status": "scheduled",
             "interview_datetime": {
@@ -192,17 +220,19 @@ class InterviewScheduleDAO:
         results = []
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])
-            # Check if reminder for this window hasn't been sent
             reminder_key = f"{reminder_window_hours}h"
             if not doc.get("reminders_sent", {}).get(reminder_key, False):
                 results.append(doc)
         
         return results
 
-    async def delete_schedule(self, schedule_uuid: str) -> int:
+    async def delete_schedule(self, schedule_id: str) -> int:
         """Delete an interview schedule"""
-        result = await self.collection.delete_one({"uuid": schedule_uuid})
-        return result.deleted_count
+        try:
+            result = await self.collection.delete_one({"_id": ObjectId(schedule_id)})
+            return result.deleted_count
+        except:
+            return 0
 
 
 class InterviewAnalyticsDAO:
@@ -217,20 +247,20 @@ class InterviewAnalyticsDAO:
         """Calculate performance metrics for a user"""
         # Get all completed interviews
         completed = await self.schedules_collection.count_documents({
-            "user_uuid": user_uuid,
+            "uuid": user_uuid,
             "status": "completed"
         })
         
         # Get interviews with offers
         offers = await self.schedules_collection.count_documents({
-            "user_uuid": user_uuid,
+            "uuid": user_uuid,
             "status": "completed",
             "outcome": "passed"
         })
         
         # Get all interviews
         total = await self.schedules_collection.count_documents({
-            "user_uuid": user_uuid
+            "uuid": user_uuid
         })
         
         # Calculate conversion rate
@@ -241,12 +271,12 @@ class InterviewAnalyticsDAO:
         format_performance = {}
         for fmt in formats:
             total_fmt = await self.schedules_collection.count_documents({
-                "user_uuid": user_uuid,
+                "uuid": user_uuid,
                 "location_type": fmt,
                 "status": "completed"
             })
             passed_fmt = await self.schedules_collection.count_documents({
-                "user_uuid": user_uuid,
+                "uuid": user_uuid,
                 "location_type": fmt,
                 "status": "completed",
                 "outcome": "passed"
@@ -263,11 +293,10 @@ class InterviewAnalyticsDAO:
 
     async def get_trend_analysis(self, user_uuid: str, days: int = 90) -> dict:
         """Analyze performance trends over time"""
-        from datetime import timedelta
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         cursor = self.schedules_collection.find({
-            "user_uuid": user_uuid,
+            "uuid": user_uuid,
             "status": "completed",
             "date_created": {"$gte": cutoff_date}
         }).sort("interview_datetime", 1)

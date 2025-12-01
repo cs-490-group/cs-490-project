@@ -1,30 +1,13 @@
+// src/components/Jobs/ScheduleInterviewFromJob.jsx
 import React, { useState, useEffect } from 'react';
 import JobsAPI from '../../api/jobs';
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api';
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  const uuid = localStorage.getItem('uuid');
-  
-  if (!token || !uuid) {
-    console.error('[Auth] Missing credentials!');
-  }
-  
-  return {
-    'Authorization': `Bearer ${token}`,
-    'uuid': uuid,
-    'Content-Type': 'application/json'
-  };
-};
+import { InterviewScheduleAPI } from '../../api/interviewSchedule';
 
 function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
-  // Add safety check for onClose
   const handleClose = () => {
     if (onClose && typeof onClose === 'function') {
       onClose();
     } else {
-      // Fallback: navigate away or refresh
       window.history.back();
     }
   };
@@ -52,16 +35,14 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
   
   const [jobDetails, setJobDetails] = useState(null);
   const [jobApplications, setJobApplications] = useState([]);
-  const [calendarStatus, setCalendarStatus] = useState(null);
+  const [calendarStatus, setCalendarStatus] = useState({ connected: false, provider: null });
   const [loading, setLoading] = useState(false);
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     loadJobApplications();
-    // Skip calendar status for now since it's causing auth issues
-    // loadCalendarStatus();
-    setCalendarStatus({ connected: false, provider: null });
+    loadCalendarStatus();
   }, []);
 
   useEffect(() => {
@@ -83,7 +64,6 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
     try {
       const response = await JobsAPI.getAll();
       
-      // Transform the data and filter for only jobs in interview stage
       const jobsList = (response.data || [])
         .filter(job => job.status === 'Interview')
         .map(job => ({
@@ -96,12 +76,11 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
       
       setJobApplications(jobsList);
       
-      // Alert if no jobs are in interview stage
       if (jobsList.length === 0) {
-        alert('No jobs are currently set to "Interview" stage. Please update a job to Interview status first, or enter job details manually below.');
+        console.warn('No jobs in Interview stage found');
       }
     } catch (err) {
-      console.error('[Jobs] Error loading job applications:', err);
+      console.error('Error loading jobs:', err);
       setJobApplications([]);
     } finally {
       setLoadingJobs(false);
@@ -110,17 +89,8 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
 
   const loadCalendarStatus = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/interview/calendar/status`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setCalendarStatus(data);
-      } else {
-        // Calendar not connected or error - set default state
-        setCalendarStatus({ connected: false, provider: null });
-      }
+      const response = await InterviewScheduleAPI.getCalendarStatus();
+      setCalendarStatus(response.data);
     } catch (err) {
       console.error('Error loading calendar status:', err);
       setCalendarStatus({ connected: false, provider: null });
@@ -130,7 +100,6 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     
-    // If job_application_uuid changes, update company and position
     if (name === 'job_application_uuid') {
       const selectedJob = jobApplications.find(j => j.id === value);
       if (selectedJob) {
@@ -168,35 +137,16 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
     setError('');
 
     try {
-      const headers = getAuthHeaders();
-      
-      const response = await fetch(`${API_BASE_URL}/interview/schedule`, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { detail: errorText };
-        }
-        throw new Error(errorData.detail || 'Failed to schedule interview');
-      }
-
-      const data = await response.json();
+      const response = await InterviewScheduleAPI.createSchedule(formData);
       
       onSuccess?.({ 
         message: 'Interview scheduled successfully!',
-        schedule_uuid: data.schedule_uuid 
+        schedule_uuid: response.data.schedule_uuid 
       });
       handleClose();
     } catch (err) {
-      console.error('[Submit] Error:', err);
-      setError(err.message || 'Failed to schedule interview');
+      console.error('Submit Error:', err);
+      setError(err.response?.data?.detail || err.message || 'Failed to schedule interview');
     } finally {
       setLoading(false);
     }
@@ -204,36 +154,26 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
 
   const connectCalendar = async (provider) => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/interview/calendar/auth/${provider}`,
-        { headers: getAuthHeaders() }
-      );
+      const response = provider === 'google'
+        ? await InterviewScheduleAPI.getGoogleAuthUrl()
+        : await InterviewScheduleAPI.getOutlookAuthUrl();
       
-      if (response.ok) {
-        const data = await response.json();
-        // Open OAuth URL in new window
-        window.open(data.auth_url, '_blank', 'width=600,height=700');
-        
-        // Poll for connection status
-        const checkInterval = setInterval(async () => {
-          const statusResponse = await fetch(
-            `${API_BASE_URL}/interview/calendar/status`,
-            { headers: getAuthHeaders() }
-          );
-          
-          if (statusResponse.ok) {
-            const status = await statusResponse.json();
-            if (status.connected) {
-              setCalendarStatus(status);
-              setFormData(prev => ({ ...prev, calendar_provider: status.provider }));
-              clearInterval(checkInterval);
-            }
+      window.open(response.data.auth_url, '_blank', 'width=600,height=700');
+      
+      const checkInterval = setInterval(async () => {
+        try {
+          const statusResponse = await InterviewScheduleAPI.getCalendarStatus();
+          if (statusResponse.data.connected) {
+            setCalendarStatus(statusResponse.data);
+            setFormData(prev => ({ ...prev, calendar_provider: statusResponse.data.provider }));
+            clearInterval(checkInterval);
           }
-        }, 2000);
-        
-        // Stop polling after 2 minutes
-        setTimeout(() => clearInterval(checkInterval), 120000);
-      }
+        } catch (err) {
+          // Ignore polling errors
+        }
+      }, 2000);
+      
+      setTimeout(() => clearInterval(checkInterval), 120000);
     } catch (err) {
       console.error('Calendar connection error:', err);
       alert('Failed to connect calendar');
@@ -242,6 +182,7 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
 
   return (
     <div 
+      className="modal-overlay"
       style={{
         position: 'fixed',
         top: 0,
@@ -255,14 +196,9 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
         zIndex: 1000,
         padding: '20px'
       }}
-      onClick={(e) => {
-        // Close if clicking the backdrop
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
-      <div style={{
+      <div className="modal-content" style={{
         background: 'white',
         borderRadius: '12px',
         maxWidth: '800px',
@@ -271,7 +207,8 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
         overflow: 'auto',
         boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
       }}>
-        <div style={{
+        {/* Header */}
+        <div className="modal-header" style={{
           padding: '24px',
           borderBottom: '1px solid #e0e0e0',
           display: 'flex',
@@ -311,18 +248,15 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
               height: '32px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              lineHeight: 1,
-              transition: 'color 0.2s'
+              justifyContent: 'center'
             }}
-            onMouseOver={(e) => e.currentTarget.style.color = '#333'}
-            onMouseOut={(e) => e.currentTarget.style.color = '#666'}
           >
             ×
           </button>
         </div>
 
-        <div style={{ padding: '24px' }}>
+        {/* Body */}
+        <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
           {error && (
             <div style={{
               padding: '12px 16px',
@@ -336,7 +270,7 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
             </div>
           )}
 
-          {/* Job Application Selection */}
+          {/* Job Selection */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
               Job Application *
@@ -346,30 +280,28 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
               value={formData.job_application_uuid}
               onChange={handleChange}
               disabled={loadingJobs}
-              required
               style={{
                 width: '100%',
                 padding: '12px',
                 border: '1px solid #ddd',
                 borderRadius: '8px',
-                fontSize: '16px',
-                background: loadingJobs ? '#f5f5f5' : 'white'
+                fontSize: '16px'
               }}
             >
               <option value="">
-                {loadingJobs ? 'Loading applications...' : 
-                 jobApplications.length === 0 ? 'No jobs in Interview stage' :
-                 'Select a job application'}
+                {loadingJobs ? 'Loading...' : 
+                 jobApplications.length === 0 ? 'No jobs in Interview stage - enter manually below' :
+                 'Select a job or enter manually below'}
               </option>
               {jobApplications.map(job => (
                 <option key={job.id} value={job.id}>
-                  {job.title || 'Untitled'} at {job.company || 'Unknown Company'}
+                  {job.title} at {job.company}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Manual Job Details - Show if no job selected */}
+          {/* Manual Entry */}
           {!formData.job_application_uuid && (
             <div style={{
               padding: '16px',
@@ -377,47 +309,37 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
               borderRadius: '8px',
               marginBottom: '24px'
             }}>
-              <h4 style={{ marginTop: 0, marginBottom: '12px', fontSize: '16px' }}>
-                Job Details
-              </h4>
+              <h4 style={{ marginTop: 0, marginBottom: '12px' }}>Job Details</h4>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    Position/Role *
-                  </label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Position *</label>
                   <input
                     type="text"
                     name="scenario_name"
                     value={formData.scenario_name}
                     onChange={handleChange}
-                    placeholder="Software Engineer"
                     required
                     style={{
                       width: '100%',
                       padding: '12px',
                       border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      fontSize: '16px'
+                      borderRadius: '8px'
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    Company *
-                  </label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Company *</label>
                   <input
                     type="text"
                     name="company_name"
                     value={formData.company_name}
                     onChange={handleChange}
-                    placeholder="TechCorp Inc."
                     required
                     style={{
                       width: '100%',
                       padding: '12px',
                       border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      fontSize: '16px'
+                      borderRadius: '8px'
                     }}
                   />
                 </div>
@@ -425,6 +347,7 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
             </div>
           )}
 
+          {/* Date & Time */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
               Interview Date & Time *
@@ -439,53 +362,33 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
                 width: '100%',
                 padding: '12px',
                 border: '1px solid #ddd',
-                borderRadius: '8px',
-                fontSize: '16px'
+                borderRadius: '8px'
               }}
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '24px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                Timezone
-              </label>
-              <input
-                type="text"
-                name="timezone"
-                value={formData.timezone}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                Duration (min)
-              </label>
-              <input
-                type="number"
-                name="duration_minutes"
-                value={formData.duration_minutes}
-                onChange={handleChange}
-                min="15"
-                step="15"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
-              />
-            </div>
+          {/* Duration */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+              Duration (minutes)
+            </label>
+            <input
+              type="number"
+              name="duration_minutes"
+              value={formData.duration_minutes}
+              onChange={handleChange}
+              min="15"
+              max="480"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '8px'
+              }}
+            />
           </div>
 
+          {/* Location Type */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
               Interview Format *
@@ -500,7 +403,6 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
                   borderRadius: '8px',
                   cursor: 'pointer',
                   textAlign: 'center',
-                  transition: 'all 0.2s',
                   background: formData.location_type === type ? '#f0f7ff' : 'white'
                 }}>
                   <input
@@ -511,70 +413,61 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
                     onChange={handleChange}
                     style={{ display: 'none' }}
                   />
-                  <div style={{ fontSize: '24px', marginBottom: '4px' }}>
-                    {type === 'video' ? '🎥' : type === 'phone' ? '📞' : '🏢'}
-                  </div>
-                  <div style={{ textTransform: 'capitalize', fontWeight: '500' }}>
-                    {type.replace('-', ' ')}
-                  </div>
+                  <div>{type === 'video' ? '🎥' : type === 'phone' ? '📞' : '🏢'}</div>
+                  <div style={{ textTransform: 'capitalize' }}>{type.replace('-', ' ')}</div>
                 </label>
               ))}
             </div>
           </div>
 
+          {/* Video Platform (conditional) */}
           {formData.location_type === 'video' && (
-            <div style={{
-              padding: '16px',
-              background: '#f8f9fa',
-              borderRadius: '8px',
-              marginBottom: '24px'
-            }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    Platform
-                  </label>
-                  <select
-                    name="video_platform"
-                    value={formData.video_platform}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      fontSize: '16px'
-                    }}
-                  >
-                    <option value="zoom">Zoom</option>
-                    <option value="google_meet">Google Meet</option>
-                    <option value="teams">Microsoft Teams</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    Meeting Link
-                  </label>
-                  <input
-                    type="url"
-                    name="video_link"
-                    value={formData.video_link}
-                    onChange={handleChange}
-                    placeholder="Auto-generated if left empty"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      fontSize: '16px'
-                    }}
-                  />
-                </div>
+            <>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  Video Platform
+                </label>
+                <select
+                  name="video_platform"
+                  value={formData.video_platform}
+                  onChange={handleChange}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px'
+                  }}
+                >
+                  <option value="zoom">Zoom</option>
+                  <option value="teams">Microsoft Teams</option>
+                  <option value="meet">Google Meet</option>
+                  <option value="webex">Webex</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
-            </div>
+              
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  Meeting Link
+                </label>
+                <input
+                  type="url"
+                  name="video_link"
+                  value={formData.video_link}
+                  onChange={handleChange}
+                  placeholder="https://..."
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px'
+                  }}
+                />
+              </div>
+            </>
           )}
 
+          {/* Phone Number (conditional) */}
           {formData.location_type === 'phone' && (
             <div style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
@@ -590,81 +483,73 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
                   width: '100%',
                   padding: '12px',
                   border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '16px'
+                  borderRadius: '8px'
                 }}
               />
             </div>
           )}
 
+          {/* Location Details (conditional) */}
           {formData.location_type === 'in-person' && (
             <div style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                Location Address
+                Address
               </label>
-              <input
-                type="text"
+              <textarea
                 name="location_details"
                 value={formData.location_details}
                 onChange={handleChange}
-                placeholder="123 Main St, City, State 12345"
+                rows="3"
+                placeholder="Enter the full address..."
                 style={{
                   width: '100%',
                   padding: '12px',
                   border: '1px solid #ddd',
                   borderRadius: '8px',
-                  fontSize: '16px'
+                  resize: 'vertical'
                 }}
               />
             </div>
           )}
 
+          {/* Interviewer Details */}
           <div style={{
-            border: '1px solid #e0e0e0',
-            borderRadius: '8px',
             padding: '16px',
+            background: '#f8f9fa',
+            borderRadius: '8px',
             marginBottom: '24px'
           }}>
-            <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '18px' }}>
-              Interviewer Information
-            </h3>
+            <h4 style={{ marginTop: 0, marginBottom: '12px' }}>Interviewer Information (Optional)</h4>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                  Name
-                </label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Name</label>
                 <input
                   type="text"
                   name="interviewer_name"
                   value={formData.interviewer_name}
                   onChange={handleChange}
-                  placeholder="Jane Smith"
                   style={{
                     width: '100%',
                     padding: '12px',
                     border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '16px'
+                    borderRadius: '8px'
                   }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                  Title
-                </label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Title</label>
                 <input
                   type="text"
                   name="interviewer_title"
                   value={formData.interviewer_title}
                   onChange={handleChange}
-                  placeholder="Engineering Manager"
+                  placeholder="e.g., Senior Engineer"
                   style={{
                     width: '100%',
                     padding: '12px',
                     border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '16px'
+                    borderRadius: '8px'
                   }}
                 />
               </div>
@@ -672,143 +557,102 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                  Email
-                </label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Email</label>
                 <input
                   type="email"
                   name="interviewer_email"
                   value={formData.interviewer_email}
                   onChange={handleChange}
-                  placeholder="jane@company.com"
                   style={{
                     width: '100%',
                     padding: '12px',
                     border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '16px'
+                    borderRadius: '8px'
                   }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                  Phone
-                </label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Phone</label>
                 <input
                   type="tel"
                   name="interviewer_phone"
                   value={formData.interviewer_phone}
                   onChange={handleChange}
-                  placeholder="+1 (555) 123-4567"
                   style={{
                     width: '100%',
                     padding: '12px',
                     border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '16px'
+                    borderRadius: '8px'
                   }}
                 />
               </div>
             </div>
           </div>
 
+          {/* Calendar Integration */}
           <div style={{
-            background: '#f0f7ff',
-            border: '1px solid #b3d9ff',
-            borderRadius: '8px',
             padding: '16px',
+            background: '#f8f9fa',
+            borderRadius: '8px',
             marginBottom: '24px'
           }}>
-            <h4 style={{ marginTop: 0, marginBottom: '12px', fontSize: '16px' }}>
-              📅 Calendar Sync
-            </h4>
-            {calendarStatus?.connected ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  padding: '8px 12px',
-                  background: '#d4edda',
-                  color: '#155724',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}>
-                  ✓ Connected to {calendarStatus.provider === 'google' ? 'Google Calendar' : 'Outlook'}
-                </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!formData.calendar_provider}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      calendar_provider: e.target.checked ? calendarStatus.provider : ''
-                    }))}
-                  />
-                  <span style={{ fontSize: '14px' }}>Add to calendar</span>
-                </label>
+            <h4 style={{ marginTop: 0, marginBottom: '12px' }}>Calendar Sync</h4>
+            {calendarStatus.connected ? (
+              <div style={{ color: '#28a745' }}>
+                ✓ Connected to {calendarStatus.provider}
               </div>
             ) : (
-              <div>
-                <p style={{ margin: '0 0 12px', fontSize: '14px', color: '#666' }}>
-                  Connect your calendar to automatically sync interviews
-                </p>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => connectCalendar('google')}
-                    style={{
-                      padding: '8px 16px',
-                      background: 'white',
-                      border: '1px solid #ddd',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    Connect Google Calendar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => connectCalendar('outlook')}
-                    style={{
-                      padding: '8px 16px',
-                      background: 'white',
-                      border: '1px solid #ddd',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    Connect Outlook
-                  </button>
-                </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => connectCalendar('google')}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    background: 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Connect Google Calendar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => connectCalendar('outlook')}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    background: 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Connect Outlook
+                </button>
               </div>
             )}
           </div>
 
+          {/* Preparation Tasks */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              cursor: 'pointer',
-              padding: '12px',
-              background: '#f8f9fa',
-              borderRadius: '8px'
+              cursor: 'pointer'
             }}>
               <input
                 type="checkbox"
                 name="auto_generate_prep_tasks"
                 checked={formData.auto_generate_prep_tasks}
                 onChange={handleChange}
+                style={{ width: '18px', height: '18px' }}
               />
-              <span style={{ fontWeight: '500' }}>
-                ✨ Automatically generate preparation checklist
-              </span>
+              <span style={{ fontWeight: '500' }}>Auto-generate preparation tasks</span>
             </label>
           </div>
 
+          {/* Notes */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
               Notes
@@ -817,27 +661,20 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
               name="notes"
               value={formData.notes}
               onChange={handleChange}
-              rows="3"
-              placeholder="Add any additional notes..."
+              rows="4"
+              placeholder="Add any additional notes about this interview..."
               style={{
                 width: '100%',
                 padding: '12px',
                 border: '1px solid #ddd',
                 borderRadius: '8px',
-                resize: 'vertical',
-                fontSize: '16px',
-                fontFamily: 'inherit'
+                resize: 'vertical'
               }}
             />
           </div>
 
-          <div style={{
-            display: 'flex',
-            gap: '12px',
-            justifyContent: 'flex-end',
-            paddingTop: '16px',
-            borderTop: '1px solid #e0e0e0'
-          }}>
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
             <button
               type="button"
               onClick={handleClose}
@@ -854,8 +691,7 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
               Cancel
             </button>
             <button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
               style={{
                 padding: '12px 32px',
@@ -871,7 +707,7 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
               {loading ? 'Scheduling...' : 'Schedule Interview'}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

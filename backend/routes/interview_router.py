@@ -1,8 +1,7 @@
 """
-Combined Interview Router
-Handles calendar integration, reminders, and follow-up templates
+Fixed Interview Router - Datetime Comparison Fix
+Handles both timezone-aware and timezone-naive datetime objects properly
 """
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from datetime import datetime, timezone, timedelta
@@ -27,11 +26,34 @@ interview_router = APIRouter(prefix="/interview", tags=["interview"])
 schedule_dao = InterviewScheduleDAO(db_client)
 followup_dao = FollowUpTemplateDAO(db_client)
 
-# In-memory storage for calendar credentials (replace with database in production)
+# In-memory storage for calendar credentials
 calendar_credentials_store = {}
 
 # Background scheduler for reminders
 reminder_scheduler = AsyncIOScheduler()
+
+def get_uuid_from_headers(request: Request) -> str:
+    """Extract UUID from request headers"""
+    uuid = request.headers.get("uuid")
+    if not uuid:
+        raise HTTPException(401, "Authentication required")
+    return uuid
+
+
+def make_aware(dt):
+    """
+    Convert a datetime to timezone-aware (UTC) if it's naive.
+    If already aware, return as-is.
+    """
+    if dt is None:
+        return None
+    
+    # If it's already aware, return it
+    if dt.tzinfo is not None and dt.tzinfo.utcoffset(dt) is not None:
+        return dt
+    
+    # If it's naive, assume it's UTC and make it aware
+    return dt.replace(tzinfo=timezone.utc)
 
 
 # ============================================================================
@@ -39,11 +61,15 @@ reminder_scheduler = AsyncIOScheduler()
 # ============================================================================
 
 @interview_router.get("/schedule/upcoming")
-async def get_upcoming_interviews(uuid_val: str = Depends(authorize)):
+async def get_upcoming_interviews(request: Request):
     """Get all upcoming and completed interviews for the user"""
     try:
-        # Get all interviews for the user using the correct method name
+        uuid_val = get_uuid_from_headers(request)
+        print(f"\n[Get Upcoming] Called for uuid: {uuid_val}")
+        
+        # Get all interviews for the user
         all_interviews = await schedule_dao.get_user_schedules(uuid_val)
+        print(f"[Get Upcoming] Found {len(all_interviews)} total interviews")
         
         # Separate into upcoming and past
         now = datetime.now(timezone.utc)
@@ -51,12 +77,17 @@ async def get_upcoming_interviews(uuid_val: str = Depends(authorize)):
         past = []
         
         for interview in all_interviews:
+            # Add uuid field for frontend compatibility
+            interview['uuid'] = interview.get('_id')
+            
             interview_time = interview.get('interview_datetime')
             if interview_time:
-                # Handle both datetime objects and strings
+                # Handle both datetime objects and strings, and ensure timezone awareness
                 if isinstance(interview_time, str):
-                    # Parse ISO format datetime string
                     interview_time = datetime.fromisoformat(interview_time.replace('Z', '+00:00'))
+                
+                # Make sure both datetimes are timezone-aware for comparison
+                interview_time = make_aware(interview_time)
                 
                 if interview_time > now:
                     upcoming.append(interview)
@@ -64,14 +95,18 @@ async def get_upcoming_interviews(uuid_val: str = Depends(authorize)):
                     past.append(interview)
         
         # Sort by date
-        upcoming.sort(key=lambda x: x.get('interview_datetime', now))
-        past.sort(key=lambda x: x.get('interview_datetime', now), reverse=True)
+        upcoming.sort(key=lambda x: make_aware(x.get('interview_datetime', now)))
+        past.sort(key=lambda x: make_aware(x.get('interview_datetime', now)), reverse=True)
+        
+        print(f"[Get Upcoming] Returning {len(upcoming)} upcoming, {len(past)} past")
         
         return {
             "upcoming_interviews": upcoming,
             "past_interviews": past,
             "total_count": len(all_interviews)
         }
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Get Upcoming] Error: {str(e)}")
         import traceback
@@ -80,19 +115,21 @@ async def get_upcoming_interviews(uuid_val: str = Depends(authorize)):
 
 
 @interview_router.get("/schedule/{schedule_id}")
-async def get_interview_details(
-    schedule_id: str,
-    uuid_val: str = Depends(authorize)
-):
+async def get_interview_details(schedule_id: str, request: Request):
     """Get details for a specific interview"""
     try:
+        uuid_val = get_uuid_from_headers(request)
         interview = await schedule_dao.get_schedule(schedule_id)
         
         if not interview:
             raise HTTPException(404, "Interview not found")
         
-        if interview["user_uuid"] != uuid_val:
+        # Verify ownership
+        if interview.get("uuid") != uuid_val:
             raise HTTPException(403, "Unauthorized")
+        
+        # Add uuid field for frontend compatibility
+        interview['uuid'] = interview.get('_id')
         
         return {"interview": interview}
     except HTTPException:
@@ -105,42 +142,36 @@ async def get_interview_details(
 
 
 @interview_router.post("/schedule")
-async def create_interview_schedule(
-    request: Request,
-    uuid_val: str = Depends(authorize)
-):
+async def create_interview_schedule(request: Request):
     """Create a new interview schedule"""
     try:
-        print("[Create Schedule] Step 1: Getting request body...")
+        uuid_val = get_uuid_from_headers(request)
+        print(f"\n[Create Schedule] Called for uuid: {uuid_val}")
+        
         # Get the request body as dict
         schedule_data = await request.json()
-        
-        print(f"[Create Schedule] Step 2: Received data: {schedule_data}")
+        print(f"[Create Schedule] Received data: {list(schedule_data.keys())}")
         
         # Add user UUID to the schedule data
-        schedule_data["user_uuid"] = uuid_val
-        print(f"[Create Schedule] Step 3: Added user_uuid: {uuid_val}")
+        schedule_data["uuid"] = uuid_val
         
-        # Parse datetime if it's a string
+        # Parse datetime if it's a string and make it timezone-aware
         if isinstance(schedule_data.get("interview_datetime"), str):
-            print("[Create Schedule] Step 4: Parsing datetime...")
-            # Parse ISO format datetime string
             dt_str = schedule_data["interview_datetime"]
-            schedule_data["interview_datetime"] = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
-            print(f"[Create Schedule] Parsed datetime: {schedule_data['interview_datetime']}")
+            dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+            schedule_data["interview_datetime"] = make_aware(dt)
+        elif schedule_data.get("interview_datetime"):
+            schedule_data["interview_datetime"] = make_aware(schedule_data["interview_datetime"])
         
         # Auto-generate video link if needed and not provided
         if schedule_data.get("location_type") == "video" and not schedule_data.get("video_link"):
-            print("[Create Schedule] Step 5: Generating video link...")
             video_data = calendar_service.generate_video_conference_link(
                 schedule_data.get("video_platform", "zoom")
             )
             schedule_data["video_link"] = video_data["link"]
-            print(f"[Create Schedule] Auto-generated video link: {video_data['link']}")
         
         # Auto-generate preparation tasks if requested
         if schedule_data.get("auto_generate_prep_tasks", False):
-            print("[Create Schedule] Step 6: Generating prep tasks...")
             tasks = PreparationTaskGenerator.generate_tasks(
                 job_title=schedule_data.get("scenario_name") or schedule_data.get("job_title", "Position"),
                 company_name=schedule_data.get("company_name", "Company"),
@@ -148,68 +179,61 @@ async def create_interview_schedule(
                 interviewer_name=schedule_data.get("interviewer_name")
             )
             schedule_data["preparation_tasks"] = tasks
-            print(f"[Create Schedule] Auto-generated {len(tasks)} preparation tasks")
         
         # Initialize reminder tracking
         schedule_data["reminders_sent"] = {}
-        print("[Create Schedule] Step 7: Initialized reminder tracking")
         
         # Create the schedule
-        print("[Create Schedule] Step 8: About to call DAO.create_schedule()...")
-        schedule_uuid = await schedule_dao.create_schedule(schedule_data)
-        
-        print(f"[Create Schedule] Step 9: DAO returned UUID: {schedule_uuid}")
+        schedule_id = await schedule_dao.create_schedule(schedule_data)
+        print(f"[Create Schedule] Created with ID: {schedule_id}")
         
         # Sync to calendar if requested
         if schedule_data.get("calendar_provider"):
             try:
-                print("[Create Schedule] Step 10: Syncing to calendar...")
-                # This would be called after calendar is connected
-                # For now, just mark as pending sync
-                await schedule_dao.update_schedule(schedule_uuid, {
+                await schedule_dao.update_schedule(schedule_id, {
                     "calendar_sync_pending": True
                 })
-                print(f"[Create Schedule] Marked for calendar sync")
             except Exception as cal_error:
                 print(f"[Create Schedule] Calendar sync error: {cal_error}")
-                # Don't fail the whole request if calendar sync fails
         
-        print("[Create Schedule] Step 11: Returning success response")
         return {
             "detail": "Interview scheduled successfully",
-            "schedule_uuid": schedule_uuid
+            "schedule_uuid": schedule_id
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"[Create Schedule] ERROR at some step: {str(e)}")
+        print(f"[Create Schedule] ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(500, f"Failed to create schedule: {str(e)}")
 
 
 @interview_router.put("/schedule/{schedule_id}")
-async def update_interview_schedule(
-    schedule_id: str,
-    request: Request,
-    uuid_val: str = Depends(authorize)
-):
+async def update_interview_schedule(schedule_id: str, request: Request):
     """Update an existing interview schedule"""
     try:
+        uuid_val = get_uuid_from_headers(request)
+        
         # Verify ownership
         interview = await schedule_dao.get_schedule(schedule_id)
         
         if not interview:
             raise HTTPException(404, "Interview not found")
         
-        if interview["user_uuid"] != uuid_val:
+        if interview.get("uuid") != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
         # Get update data
         update_data = await request.json()
         
-        # Parse datetime if it's a string
+        # Parse datetime if it's a string and make it timezone-aware
         if isinstance(update_data.get("interview_datetime"), str):
             dt_str = update_data["interview_datetime"]
-            update_data["interview_datetime"] = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+            dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+            update_data["interview_datetime"] = make_aware(dt)
+        elif update_data.get("interview_datetime"):
+            update_data["interview_datetime"] = make_aware(update_data["interview_datetime"])
         
         # Update the schedule
         matched = await schedule_dao.update_schedule(schedule_id, update_data)
@@ -228,19 +252,18 @@ async def update_interview_schedule(
 
 
 @interview_router.delete("/schedule/{schedule_id}")
-async def delete_interview_schedule(
-    schedule_id: str,
-    uuid_val: str = Depends(authorize)
-):
+async def delete_interview_schedule(schedule_id: str, request: Request):
     """Delete an interview schedule"""
     try:
+        uuid_val = get_uuid_from_headers(request)
+        
         # Verify ownership
         interview = await schedule_dao.get_schedule(schedule_id)
         
         if not interview:
             raise HTTPException(404, "Interview not found")
         
-        if interview["user_uuid"] != uuid_val:
+        if interview.get("uuid") != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
         # Delete the schedule
@@ -260,20 +283,18 @@ async def delete_interview_schedule(
 
 
 @interview_router.post("/schedule/{schedule_id}/complete")
-async def complete_interview(
-    schedule_id: str,
-    request: Request,
-    uuid_val: str = Depends(authorize)
-):
+async def complete_interview(schedule_id: str, request: Request):
     """Mark an interview as completed with outcome"""
     try:
+        uuid_val = get_uuid_from_headers(request)
+        
         # Verify ownership
         interview = await schedule_dao.get_schedule(schedule_id)
         
         if not interview:
             raise HTTPException(404, "Interview not found")
         
-        if interview["user_uuid"] != uuid_val:
+        if interview.get("uuid") != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
         # Get outcome data
@@ -298,18 +319,20 @@ async def complete_interview(
 @interview_router.post("/schedule/{schedule_id}/cancel")
 async def cancel_interview(
     schedule_id: str,
-    reason: Optional[str] = None,
-    uuid_val: str = Depends(authorize)
+    request: Request,
+    reason: Optional[str] = None
 ):
     """Cancel an interview"""
     try:
+        uuid_val = get_uuid_from_headers(request)
+        
         # Verify ownership
         interview = await schedule_dao.get_schedule(schedule_id)
         
         if not interview:
             raise HTTPException(404, "Interview not found")
         
-        if interview["user_uuid"] != uuid_val:
+        if interview.get("uuid") != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
         # Cancel the interview
@@ -329,18 +352,16 @@ async def cancel_interview(
 
 
 @interview_router.get("/schedule/{schedule_id}/preparation-tasks")
-async def get_preparation_tasks(
-    schedule_id: str,
-    uuid_val: str = Depends(authorize)
-):
+async def get_preparation_tasks(schedule_id: str, request: Request):
     """Get preparation tasks for an interview"""
     try:
+        uuid_val = get_uuid_from_headers(request)
         interview = await schedule_dao.get_schedule(schedule_id)
         
         if not interview:
             raise HTTPException(404, "Interview not found")
         
-        if interview["user_uuid"] != uuid_val:
+        if interview.get("uuid") != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
         tasks = interview.get("preparation_tasks", [])
@@ -366,19 +387,16 @@ async def get_preparation_tasks(
 
 
 @interview_router.post("/schedule/{schedule_id}/preparation-tasks/{task_id}/complete")
-async def toggle_task_completion(
-    schedule_id: str,
-    task_id: str,
-    uuid_val: str = Depends(authorize)
-):
+async def toggle_task_completion(schedule_id: str, task_id: str, request: Request):
     """Toggle a preparation task completion status"""
     try:
+        uuid_val = get_uuid_from_headers(request)
         interview = await schedule_dao.get_schedule(schedule_id)
         
         if not interview:
             raise HTTPException(404, "Interview not found")
         
-        if interview["user_uuid"] != uuid_val:
+        if interview.get("uuid") != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
         # Find the task
@@ -398,11 +416,9 @@ async def toggle_task_completion(
         })
         
         # Recalculate completion percentage
-        completed_count = sum(1 for t in tasks if t.get("task_id") == task_id or t.get("is_completed", False))
-        if task.get("task_id") == task_id and not is_completed:
-            completed_count -= 1
-        elif task.get("task_id") == task_id and is_completed:
-            completed_count += 1
+        completed_count = sum(1 for t in tasks if 
+                            (t.get("task_id") == task_id and is_completed) or 
+                            (t.get("task_id") != task_id and t.get("is_completed", False)))
             
         percentage = int((completed_count / len(tasks)) * 100) if tasks else 0
         
@@ -427,21 +443,27 @@ async def toggle_task_completion(
 # ============================================================================
 
 @interview_router.get("/calendar/auth/google")
-async def google_calendar_auth(uuid_val: str = Depends(authorize)):
+async def google_calendar_auth(request: Request):
     """Initiate Google Calendar OAuth flow"""
     try:
+        uuid_val = get_uuid_from_headers(request)
         auth_url = calendar_service.get_google_auth_url(uuid_val)
         return {"auth_url": auth_url}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Failed to initiate Google auth: {str(e)}")
 
 
 @interview_router.get("/calendar/auth/outlook")
-async def outlook_calendar_auth(uuid_val: str = Depends(authorize)):
+async def outlook_calendar_auth(request: Request):
     """Initiate Outlook Calendar OAuth flow"""
     try:
+        uuid_val = get_uuid_from_headers(request)
         auth_url = calendar_service.get_outlook_auth_url(uuid_val)
         return {"auth_url": auth_url}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Failed to initiate Outlook auth: {str(e)}")
 
@@ -472,18 +494,16 @@ async def calendar_callback(
 
 
 @interview_router.post("/calendar/sync/{schedule_id}")
-async def sync_interview_to_calendar(
-    schedule_id: str,
-    uuid_val: str = Depends(authorize)
-):
+async def sync_interview_to_calendar(schedule_id: str, request: Request):
     """Sync a specific interview to user's calendar"""
     try:
+        uuid_val = get_uuid_from_headers(request)
         schedule = await schedule_dao.get_schedule(schedule_id)
         
         if not schedule:
             raise HTTPException(404, "Schedule not found")
         
-        if schedule["user_uuid"] != uuid_val:
+        if schedule.get("uuid") != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
         if uuid_val not in calendar_credentials_store:
@@ -531,25 +551,40 @@ async def sync_interview_to_calendar(
 
 
 @interview_router.get("/calendar/status")
-async def get_calendar_status(uuid_val: str = Depends(authorize)):
+async def get_calendar_status(request: Request):
     """Get user's calendar connection status"""
-    if uuid_val in calendar_credentials_store:
-        credentials = calendar_credentials_store[uuid_val]
-        return {
-            "connected": True,
-            "provider": credentials["provider"],
-            "connected_at": datetime.now(timezone.utc).isoformat()
-        }
-    else:
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        
+        if uuid_val in calendar_credentials_store:
+            credentials = calendar_credentials_store[uuid_val]
+            return {
+                "connected": True,
+                "provider": credentials["provider"],
+                "connected_at": datetime.now(timezone.utc).isoformat()
+            }
+        else:
+            return {"connected": False, "provider": None}
+    except HTTPException:
+        raise
+    except Exception as e:
         return {"connected": False, "provider": None}
 
 
 @interview_router.delete("/calendar/disconnect")
-async def disconnect_calendar(uuid_val: str = Depends(authorize)):
+async def disconnect_calendar(request: Request):
     """Disconnect user's calendar"""
-    if uuid_val in calendar_credentials_store:
-        del calendar_credentials_store[uuid_val]
-    return {"detail": "Calendar disconnected successfully"}
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        
+        if uuid_val in calendar_credentials_store:
+            del calendar_credentials_store[uuid_val]
+        
+        return {"detail": "Calendar disconnected successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to disconnect calendar: {str(e)}")
 
 
 # ============================================================================
@@ -559,22 +594,23 @@ async def disconnect_calendar(uuid_val: str = Depends(authorize)):
 @interview_router.post("/followup/generate")
 async def generate_followup_template(
     request_data: GenerateFollowUpRequest,
-    uuid_val: str = Depends(authorize)
+    request: Request
 ):
     """Generate a personalized follow-up template"""
     try:
+        uuid_val = get_uuid_from_headers(request)
         interview = await schedule_dao.get_schedule(request_data.interview_uuid)
         
         if not interview:
             raise HTTPException(404, "Interview not found")
         
-        if interview["user_uuid"] != uuid_val:
+        if interview.get("uuid") != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
         interviewer_name = interview.get("interviewer_name", "Hiring Team")
         company_name = interview.get("company_name", "Company")
         job_title = interview.get("scenario_name", "Position")
-        interview_date = interview.get("interview_datetime")
+        interview_date = make_aware(interview.get("interview_datetime"))
         outcome = interview.get("outcome")
         
         days_since = (datetime.now(timezone.utc) - interview_date).days if interview_date else 0
@@ -652,103 +688,117 @@ async def generate_followup_template(
 
 
 @interview_router.get("/followup/{template_id}")
-async def get_followup_template(
-    template_id: str,
-    uuid_val: str = Depends(authorize)
-):
+async def get_followup_template(template_id: str, request: Request):
     """Get a specific follow-up template"""
-    template = await followup_dao.get_template(template_id)
-    
-    if not template:
-        raise HTTPException(404, "Template not found")
-    
-    if template["user_uuid"] != uuid_val:
-        raise HTTPException(403, "Unauthorized")
-    
-    return {"template": template}
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        template = await followup_dao.get_template(template_id)
+        
+        if not template:
+            raise HTTPException(404, "Template not found")
+        
+        if template["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        return {"template": template}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to get template: {str(e)}")
 
 
 @interview_router.get("/followup/interview/{interview_id}/templates")
-async def get_templates_by_interview(
-    interview_id: str,
-    uuid_val: str = Depends(authorize)
-):
+async def get_templates_by_interview(interview_id: str, request: Request):
     """Get all follow-up templates for a specific interview"""
-    interview = await schedule_dao.get_schedule(interview_id)
-    
-    if not interview:
-        raise HTTPException(404, "Interview not found")
-    
-    if interview["user_uuid"] != uuid_val:
-        raise HTTPException(403, "Unauthorized")
-    
-    templates = await followup_dao.get_templates_by_interview(interview_id)
-    
-    return {"templates": templates, "count": len(templates)}
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        interview = await schedule_dao.get_schedule(interview_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        templates = await followup_dao.get_templates_by_interview(interview_id)
+        
+        return {"templates": templates, "count": len(templates)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to get templates: {str(e)}")
 
 
 @interview_router.post("/followup/{template_id}/send")
-async def mark_template_sent(
-    template_id: str,
-    uuid_val: str = Depends(authorize)
-):
+async def mark_template_sent(template_id: str, request: Request):
     """Mark a follow-up template as sent"""
-    template = await followup_dao.get_template(template_id)
-    
-    if not template:
-        raise HTTPException(404, "Template not found")
-    
-    if template["user_uuid"] != uuid_val:
-        raise HTTPException(403, "Unauthorized")
-    
-    await followup_dao.mark_as_sent(template_id)
-    
-    interview_uuid = template["interview_uuid"]
-    interview = await schedule_dao.get_schedule(interview_uuid)
-    
-    if interview:
-        follow_up_actions = interview.get("follow_up_actions", [])
-        follow_up_actions.append({
-            "action": f"Sent {template['template_type']} email",
-            "timestamp": datetime.now(timezone.utc),
-            "template_id": template_id
-        })
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        template = await followup_dao.get_template(template_id)
         
-        await schedule_dao.update_schedule(interview_uuid, {
-            "follow_up_actions": follow_up_actions
-        })
+        if not template:
+            raise HTTPException(404, "Template not found")
         
-        if template["template_type"] == "thank_you":
-            await schedule_dao.mark_thank_you_sent(interview_uuid)
-    
-    return {
-        "detail": "Template marked as sent",
-        "sent_at": datetime.now(timezone.utc).isoformat()
-    }
+        if template["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        await followup_dao.mark_as_sent(template_id)
+        
+        interview_uuid = template["interview_uuid"]
+        interview = await schedule_dao.get_schedule(interview_uuid)
+        
+        if interview:
+            follow_up_actions = interview.get("follow_up_actions", [])
+            follow_up_actions.append({
+                "action": f"Sent {template['template_type']} email",
+                "timestamp": datetime.now(timezone.utc),
+                "template_id": template_id
+            })
+            
+            await schedule_dao.update_schedule(interview_uuid, {
+                "follow_up_actions": follow_up_actions
+            })
+            
+            if template["template_type"] == "thank_you":
+                await schedule_dao.mark_thank_you_sent(interview_uuid)
+        
+        return {
+            "detail": "Template marked as sent",
+            "sent_at": datetime.now(timezone.utc).isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to mark template as sent: {str(e)}")
 
 
 @interview_router.post("/followup/{template_id}/response-received")
 async def mark_response_received(
     template_id: str,
-    sentiment: Optional[str] = None,
-    uuid_val: str = Depends(authorize)
+    request: Request,
+    sentiment: Optional[str] = None
 ):
     """Track that a response was received to a follow-up"""
-    template = await followup_dao.get_template(template_id)
-    
-    if not template:
-        raise HTTPException(404, "Template not found")
-    
-    if template["user_uuid"] != uuid_val:
-        raise HTTPException(403, "Unauthorized")
-    
-    await followup_dao.mark_response_received(template_id, sentiment)
-    
-    return {
-        "detail": "Response recorded",
-        "received_at": datetime.now(timezone.utc).isoformat()
-    }
-
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        template = await followup_dao.get_template(template_id)
+        
+        if not template:
+            raise HTTPException(404, "Template not found")
+        
+        if template["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        await followup_dao.mark_response_received(template_id, sentiment)
+        
+        return {
+            "detail": "Response recorded",
+            "received_at": datetime.now(timezone.utc).isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to mark response: {str(e)}")
 
 # ============================================================================
 # REMINDER SCHEDULER

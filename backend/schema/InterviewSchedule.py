@@ -8,8 +8,7 @@ from datetime import datetime
 
 class InterviewSchedule(BaseModel):
     """Schema for an interview schedule with calendar integration"""
-    uuid: str = Field(..., description="Unique identifier for interview schedule")
-    user_uuid: str = Field(..., description="UUID of the user")
+    uuid: str = Field(..., description="User UUID who owns this schedule")
     job_application_uuid: str = Field(..., description="Link to job application")
     
     # Interview timing
@@ -106,6 +105,9 @@ class CreateInterviewScheduleRequest(BaseModel):
     calendar_provider: Optional[str] = None
     auto_generate_prep_tasks: bool = True
     notes: Optional[str] = None
+    # Add these for manual entry
+    scenario_name: Optional[str] = None
+    company_name: Optional[str] = None
 
 
 class UpdateInterviewScheduleRequest(BaseModel):
