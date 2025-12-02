@@ -56,7 +56,7 @@ async def check_and_send_reminders():
         
         for idx, interview in enumerate(all_scheduled, 1):
             try:
-                print(f"\n--- Interview {idx}/{len(all_scheduled)} ---")
+                #print(f"\n--- Interview {idx}/{len(all_scheduled)} ---")
                 
                 # Get interview datetime from database
                 interview_time_raw = interview.get('interview_datetime')
@@ -70,32 +70,32 @@ async def check_and_send_reminders():
                 scenario_name = interview.get('scenario_name', 'Interview')
                 company_name = interview.get('company_name', 'Company')
                 
-                print(f"📋 {scenario_name} at {company_name}")
-                print(f"🕐 Interview Time: {interview_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                print(f"🕐 Current Time:   {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                #print(f"📋 {scenario_name} at {company_name}")
+                #print(f"🕐 Interview Time: {interview_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                #print(f"🕐 Current Time:   {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
                 
                 # Calculate time difference
                 time_diff = interview_time - now
                 hours_until = time_diff.total_seconds() / 3600
                 minutes_until = time_diff.total_seconds() / 60
                 
-                print(f"⏱️  Time until: {hours_until:.2f} hours ({minutes_until:.1f} minutes)")
+                #print(f"⏱️  Time until: {hours_until:.2f} hours ({minutes_until:.1f} minutes)")
                 
                 # Skip past interviews
                 if hours_until < 0:
-                    print(f"⏭️  PAST - Skip")
+                #    print(f"⏭️  PAST - Skip")
                     continue
                 
                 # Get reminder status
                 reminders_sent_obj = interview.get('reminders_sent', {})
                 reminder_prefs = interview.get('reminder_preferences', {'email': True})
                 
-                print(f"📧 Email enabled: {reminder_prefs.get('email', True)}")
-                print(f"📨 Reminders sent: {reminders_sent_obj}")
+                #print(f"📧 Email enabled: {reminder_prefs.get('email', True)}")
+                #print(f"📨 Reminders sent: {reminders_sent_obj}")
                 
                 # Check if user wants email reminders
                 if not reminder_prefs.get('email', True):
-                    print("📧 User disabled email reminders - SKIP")
+                #    print("📧 User disabled email reminders - SKIP")
                     continue
                 
                 interview_id = str(interview['_id'])
@@ -107,14 +107,14 @@ async def check_and_send_reminders():
                 sent_24h = reminders_sent_obj.get('24h', False)
                 sent_2h = reminders_sent_obj.get('2h', False)
                 
-                print(f"\n🔍 Reminder Logic:")
-                print(f"   Hours until: {hours_until:.2f}")
-                print(f"   24h sent: {sent_24h}")
-                print(f"   2h sent: {sent_2h}")
+                #print(f"\n🔍 Reminder Logic:")
+                #print(f"   Hours until: {hours_until:.2f}")
+                #print(f"   24h sent: {sent_24h}")
+                #print(f"   2h sent: {sent_2h}")
                 
                 # Check 24h reminder
                 if hours_until <= 24 and not sent_24h and hours_until > 2:
-                    print(f"✅ SEND 24h reminder")
+                #    print(f"✅ SEND 24h reminder")
                     try:
                         await send_reminder_email(interview, 24)
                         await schedule_dao.mark_reminder_sent(interview_id, '24h')
@@ -126,7 +126,7 @@ async def check_and_send_reminders():
                 
                 # Check 2h reminder
                 if hours_until <= 2 and not sent_2h:
-                    print(f"✅ SEND 2h reminder")
+                 #   print(f"✅ SEND 2h reminder")
                     try:
                         await send_reminder_email(interview, 2)
                         await schedule_dao.mark_reminder_sent(interview_id, '2h')
@@ -236,13 +236,13 @@ def start_reminder_scheduler():
         )
         
         reminder_scheduler.start()
-        print("\n" + "="*80)
+    #    print("\n" + "="*80)
         print("✅ REMINDER SCHEDULER STARTED")
-        print("="*80)
-        print("   ⏰ Checking every 1 MINUTE")
-        print("   📧 Sends 24h reminder when ≤24h away (but >2h)")
-        print("   📧 Sends 2h reminder when ≤2h away")
-        print("="*80 + "\n")
+    #    print("="*80)
+    #    print("   ⏰ Checking every 1 MINUTE")
+    #    print("   📧 Sends 24h reminder when ≤24h away (but >2h)")
+    #    print("   📧 Sends 2h reminder when ≤2h away")
+    #    print("="*80 + "\n")
         
     except Exception as e:
         print(f"❌ Failed to start scheduler: {e}")
