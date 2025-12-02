@@ -454,14 +454,7 @@ async def create_interview_schedule(request: Request):
                 
                 schedule_data["interview_datetime"] = dt
                 print(f"[DateTime] Stored as UTC: {dt.isoformat()}")
-        
-        # ALWAYS auto-generate video link if needed
-        if schedule_data.get("location_type") == "video" and not schedule_data.get("video_link"):
-            video_data = calendar_service.generate_video_conference_link(
-                schedule_data.get("video_platform", "zoom")
-            )
-            schedule_data["video_link"] = video_data["link"]
-            print(f"[Create Schedule] Auto-generated video link: {video_data['link']}")
+
         
         # ============================================================
         # ENHANCED JOB DETAILS FETCHING WITH FULL DEBUGGING
