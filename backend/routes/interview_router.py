@@ -445,12 +445,20 @@ async def create_interview_schedule(request: Request):
         schedule_data["uuid"] = uuid_val
         
         # Parse datetime
-        if isinstance(schedule_data.get("interview_datetime"), str):
-            dt_str = schedule_data["interview_datetime"]
-            dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
-            schedule_data["interview_datetime"] = make_aware(dt)
-        elif schedule_data.get("interview_datetime"):
-            schedule_data["interview_datetime"] = make_aware(schedule_data["interview_datetime"])
+        if schedule_data.get("interview_datetime"):
+            datetime_raw = schedule_data["interview_datetime"]
+            print(f"[DateTime] Raw: {datetime_raw}")
+            
+            if isinstance(datetime_raw, str):   
+                dt = datetime.fromisoformat(datetime_raw.replace('Z', '+00:00'))
+                
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                else:
+                    dt = dt.astimezone(timezone.utc)
+                
+                schedule_data["interview_datetime"] = dt
+                print(f"[DateTime] Stored as UTC: {dt.isoformat()}")
         
         # ALWAYS auto-generate video link if needed
         if schedule_data.get("location_type") == "video" and not schedule_data.get("video_link"):
@@ -642,19 +650,37 @@ async def update_interview_schedule(schedule_id: str, request: Request):
         # Get update data
         update_data = await request.json()
         
-        # Parse datetime if it's a string and make it timezone-aware
-        if isinstance(update_data.get("interview_datetime"), str):
-            dt_str = update_data["interview_datetime"]
-            dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
-            update_data["interview_datetime"] = make_aware(dt)
-        elif update_data.get("interview_datetime"):
-            update_data["interview_datetime"] = make_aware(update_data["interview_datetime"])
+        print(f"\n[Update Schedule] Updating schedule: {schedule_id}")
+        print(f"[Update Schedule] Received datetime: {update_data.get('interview_datetime')}")
+        
+        # Parse datetime if it's a string and make it timezone-aware (UTC)
+        if update_data.get("interview_datetime"):
+            datetime_raw = update_data["interview_datetime"]
+            
+            if isinstance(datetime_raw, str):
+                # Parse ISO string (already in UTC from frontend conversion)
+                dt = datetime.fromisoformat(datetime_raw.replace('Z', '+00:00'))
+                
+                # Ensure it's UTC
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                else:
+                    dt = dt.astimezone(timezone.utc)
+                
+                update_data["interview_datetime"] = dt
+                print(f"[Update Schedule] Converted to UTC: {dt.isoformat()}")
+            else:
+                # If it's already a datetime object, make it aware
+                update_data["interview_datetime"] = make_aware(update_data["interview_datetime"])
+                print(f"[Update Schedule] Made aware: {update_data['interview_datetime'].isoformat()}")
         
         # Update the schedule
         matched = await schedule_dao.update_schedule(schedule_id, update_data)
         
         if matched == 0:
             raise HTTPException(404, "Interview not found")
+        
+        print(f"[Update Schedule] ✓ Successfully updated schedule")
         
         return {"detail": "Interview updated successfully"}
     except HTTPException:
@@ -664,7 +690,6 @@ async def update_interview_schedule(schedule_id: str, request: Request):
         import traceback
         traceback.print_exc()
         raise HTTPException(500, f"Failed to update schedule: {str(e)}")
-
 
 @interview_router.delete("/schedule/{schedule_id}")
 async def delete_interview_schedule(schedule_id: str, request: Request):

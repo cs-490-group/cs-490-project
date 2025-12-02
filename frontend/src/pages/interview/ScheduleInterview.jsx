@@ -12,6 +12,12 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
     }
   };
   
+function convertLocalDateTimeToUTC(localDateTimeString) {
+  if (!localDateTimeString) return null;
+  const localDate = new Date(localDateTimeString);
+  return localDate.toISOString(); // Returns UTC ISO string
+}
+
   const [formData, setFormData] = useState({
     job_application_uuid: jobId || '',
     interview_datetime: '',
@@ -136,10 +142,18 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
     setError('');
 
     try {
-      // Removed auto_generate_prep_tasks - always generate tasks on backend
-      const response = await InterviewScheduleAPI.createSchedule(formData);
-      
-      onSuccess?.({ 
+      const dataToSend = {
+          ...formData,
+          interview_datetime: convertLocalDateTimeToUTC(formData.interview_datetime)
+        };
+
+        console.log('📅 Datetime Debug:');
+        console.log('  Local:', formData.interview_datetime);
+        console.log('  UTC:', dataToSend.interview_datetime);
+
+        const response = await InterviewScheduleAPI.createSchedule(dataToSend);
+
+        onSuccess?.({ 
         message: 'Interview scheduled successfully!',
         schedule_uuid: response.data.schedule_uuid 
       });

@@ -48,30 +48,47 @@ class InterviewScheduleDAO:
             doc["_id"] = str(doc["_id"])
             results.append(doc)
         return results
-    
-    async def get_all_scheduled_interviews(self) -> List[dict]:
-        """Get ALL scheduled interviews across all users"""
-        now = datetime.now(timezone.utc)
-        
-        cursor = self.collection.find({
-            "status": "scheduled",
-            "interview_datetime": {"$gte": now}
-        }).sort("interview_datetime", 1)
-        
-        results = []
-        async for doc in cursor:
-            doc["_id"] = str(doc["_id"])
-            results.append(doc)
-        
-        return results
 
-    async def get_upcoming_interviews(self, user_uuid: str) -> List[dict]:
-        """Get upcoming interviews for a user"""
+    async def get_upcoming_interviews(self, user_uuid: str):
+        """Get interviews categorized as upcoming or past"""
+        
+        # Get current time in UTC
         now = datetime.now(timezone.utc)
+        
+        # Query ALL scheduled interviews for this user
+        all_interviews = await self.db.interview_schedules.find({
+            "uuid": user_uuid,
+            "status": {"$ne": "completed"}  # Exclude completed interviews
+        }).to_list(length=None)
+        
+        upcoming = []
+        past = []
+        
+        for interview in all_interviews:
+            interview_time = interview.get('interview_datetime')
+            
+            # Ensure interview_time is timezone-aware
+            if interview_time:
+                if interview_time.tzinfo is None:
+                    interview_time = interview_time.replace(tzinfo=timezone.utc)
+                
+                if interview_time >= now:
+                    upcoming.append(interview)
+                else:
+                    past.append(interview)
+        
+        upcoming.sort(key=lambda x: x['interview_datetime'])
+        past.sort(key=lambda x: x['interview_datetime'], reverse=True)
+        
+        return {
+            "upcoming_interviews": upcoming,
+            "past_interviews": past
+        }
+
+    async def get_all_scheduled_interviews(self) -> List[dict]:
+        """Get all scheduled interviews across all users (for reminder checking)"""
         cursor = self.collection.find({
-            "uuid": user_uuid,  # Match the Jobs pattern
-            "status": "scheduled",
-            "interview_datetime": {"$gte": now}
+            "status": "scheduled"
         }).sort("interview_datetime", 1)
         
         results = []

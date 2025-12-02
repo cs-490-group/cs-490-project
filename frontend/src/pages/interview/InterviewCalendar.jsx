@@ -23,10 +23,32 @@ function InterviewCalendar() {
   const loadInterviews = async () => {
     try {
       const response = await InterviewScheduleAPI.getUpcomingInterviews();
-      setAllInterviews({
-        upcoming: response.data.upcoming_interviews || [],
-        past: response.data.past_interviews || []
+      
+      // CLIENT-SIDE FILTERING FIX: Ensure correct categorization
+      const now = new Date();
+      const allInterviewsData = [
+        ...(response.data.upcoming_interviews || []),
+        ...(response.data.past_interviews || [])
+      ];
+      
+      // Re-categorize based on current time
+      const upcoming = [];
+      const past = [];
+      
+      allInterviewsData.forEach(interview => {
+        const interviewTime = new Date(interview.interview_datetime);
+        if (interviewTime >= now) {
+          upcoming.push(interview);
+        } else {
+          past.push(interview);
+        }
       });
+      
+      // Sort upcoming by soonest first, past by most recent first
+      upcoming.sort((a, b) => new Date(a.interview_datetime) - new Date(b.interview_datetime));
+      past.sort((a, b) => new Date(b.interview_datetime) - new Date(a.interview_datetime));
+      
+      setAllInterviews({ upcoming, past });
     } catch (error) {
       console.error('Failed to load interviews:', error);
       showFlash('Failed to load interviews', 'error');
@@ -62,8 +84,14 @@ function InterviewCalendar() {
   };
   
   const handleEditInterview = (interview) => {
+    // Convert UTC datetime back to local datetime-local format
+    const utcDate = new Date(interview.interview_datetime);
+    const localDatetimeString = new Date(utcDate.getTime() - utcDate.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+    
     setEditFormData({
-      interview_datetime: new Date(interview.interview_datetime).toISOString().slice(0, 16),
+      interview_datetime: localDatetimeString,
       duration_minutes: interview.duration_minutes || 60,
       location_type: interview.location_type || 'video',
       video_link: interview.video_link || '',
@@ -87,7 +115,20 @@ function InterviewCalendar() {
     if (!selectedInterview) return;
     
     try {
-      await InterviewScheduleAPI.updateSchedule(selectedInterview.uuid, editFormData);
+      // Convert local datetime back to UTC before sending
+      const localDate = new Date(editFormData.interview_datetime);
+      const utcDatetime = localDate.toISOString();
+      
+      const dataToSend = {
+        ...editFormData,
+        interview_datetime: utcDatetime
+      };
+      
+      console.log('📅 Edit DateTime Debug:');
+      console.log('  Local:', editFormData.interview_datetime);
+      console.log('  UTC:', utcDatetime);
+      
+      await InterviewScheduleAPI.updateSchedule(selectedInterview.uuid, dataToSend);
       showFlash('Interview updated successfully', 'success');
       setShowEditModal(false);
       setEditFormData(null);
@@ -116,7 +157,8 @@ function InterviewCalendar() {
   };
   
   const formatDateTime = (datetime) => {
-    const date = new Date(datetime);
+    // Parse UTC datetime and convert to local time
+    const date = new Date(datetime); // This automatically converts UTC to local
     return {
       date: date.toLocaleDateString('en-US', { 
         month: 'short', 
@@ -135,19 +177,35 @@ function InterviewCalendar() {
   const getTimeUntil = (datetime) => {
     const now = new Date();
     const interviewDate = new Date(datetime);
-    const diff = interviewDate - now;
+    const diff = interviewDate - now; // milliseconds
     
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
-    if (days > 0) {
-      return `in ${days} day${days > 1 ? 's' : ''}`;
-    } else if (hours > 0) {
-      return `in ${hours} hour${hours > 1 ? 's' : ''}`;
-    } else if (diff > 0) {
-      return 'today';
-    } else {
+    // FIXED: More accurate time calculation
+    if (diff < 0) {
       return 'past';
+    }
+    
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days > 7) {
+      return `in ${days} days`;
+    } else if (days > 2) {
+      return `in ${days} days`;
+    } else if (days === 2) {
+      return 'in 2 days';
+    } else if (days === 1) {
+      return 'tomorrow';
+    } else if (hours > 1) {
+      return `in ${hours} hours`;
+    } else if (hours === 1) {
+      return 'in 1 hour';
+    } else if (minutes > 30) {
+      return `in ${minutes} minutes`;
+    } else if (minutes > 0) {
+      return `in ${minutes} minutes`;
+    } else {
+      return 'now';
     }
   };
   
@@ -250,6 +308,12 @@ function InterviewCalendar() {
                 </div>
                 
                 <div className="interview-card-body">
+                  {interview.company_name && (
+                    <p className="company-info">
+                      <strong>Company:</strong> {interview.company_name}
+                    </p>
+                  )}
+                  
                   {interview.interviewer_name && (
                     <p className="interviewer-info">
                       <strong>Interviewer:</strong> {interview.interviewer_name}
@@ -282,15 +346,17 @@ function InterviewCalendar() {
                   >
                     Prepare
                   </button>
-                  <button 
-                    className="btn-action"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCompleteInterview(interview.uuid);
-                    }}
-                  >
-                    Complete
-                  </button>
+                  {timeUntil !== 'past' && (
+                    <button 
+                      className="btn-action"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCompleteInterview(interview.uuid);
+                      }}
+                    >
+                      Complete
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -316,6 +382,9 @@ function InterviewCalendar() {
               <div className="detail-section">
                 <h4>Date & Time</h4>
                 <p>{formatDateTime(selectedInterview.interview_datetime).dayOfWeek}, {formatDateTime(selectedInterview.interview_datetime).date} at {formatDateTime(selectedInterview.interview_datetime).time}</p>
+                <p className="time-until-detail">
+                  <strong>Status:</strong> {getTimeUntil(selectedInterview.interview_datetime)}
+                </p>
               </div>
               
               <div className="detail-section">
