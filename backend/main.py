@@ -75,7 +75,7 @@ app.include_router(coaching_router, prefix = api_prefix)
 
 app.include_router(ai_router, prefix=api_prefix)
 app.include_router(networks_router, prefix = api_prefix)
-app.include_router(referrals_router, prefix = api_prefix)
+# app.include_router(referrals_router, prefix = api_prefix)
 # app.include_router(network_events_router, prefix = api_prefix)
 # app.include_router(network_analytics, prefix = api_prefix)
 
