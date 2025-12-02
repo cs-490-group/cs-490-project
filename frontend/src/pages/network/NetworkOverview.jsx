@@ -279,49 +279,51 @@ export default function NetworkOverview() {
 						)}
 					</Row>
 					<Row className="py-4">
-						{contacts.length === 0 ? (
-							<p styles={{ marginTop: "1rem", width: "5rem" }} className="text-white">
-								{loadingMessage}
-							</p>
-						) : (
-							<Col className="contact-display">
-								{contacts.map(contact => (
-									<Card key={contact.id} className="contact-card">
-										<Card.Img contact={contact.id} className="contact-avatar" src={fetchAvatar(contact.id)}></Card.Img>
-										<Card.Body>
-                                            <Card.Title as="h3">{contact.name}</Card.Title>
-                                            <Card.Subtitle as="h5" className="mb-3">{contact.email}</Card.Subtitle>
-                                            
-                                            <div className="contact-section">
-                                                <h6 className="section-title">Phone Numbers</h6>
-                                                <p className="mb-1"><strong>Primary:</strong> {contact.phone_numbers.primary || "—"}</p>
-                                                <p className="mb-1"><strong>Home:</strong> {contact.phone_numbers.home || "—"}</p>
-                                                <p className="mb-1"><strong>Work:</strong> {contact.phone_numbers.work || "—"}</p>
-                                                <p className="mb-2"><strong>Mobile:</strong> {contact.phone_numbers.mobile || "—"}</p>
-                                            </div>
+						<Col>
+							{contacts.length === 0 ? (
+								<p styles={{ marginTop: "1rem", width: "5rem" }} className="text-white">
+									{loadingMessage}
+								</p>
+							) : (
+								<div className="contact-display">
+									{contacts.map(contact => (
+										<Card key={contact.id} className="contact-card">
+											<Card.Img contact={contact.id} className="contact-avatar" src={fetchAvatar(contact.id)}></Card.Img>
+											<Card.Body>
+												<Card.Title as="h3">{contact.name}</Card.Title>
+												<Card.Subtitle as="h5" className="mb-3">{contact.email}</Card.Subtitle>
 
-                                            <div className="contact-section">
-                                                <h6 className="section-title">Employment</h6>
-                                                <p className="mb-1"><strong>Position:</strong> {contact.employment.position || "—"}</p>
-                                                <p className="mb-1"><strong>Company:</strong> {contact.employment.company || "—"}</p>
-                                                <p className="mb-2"><strong>Location:</strong> {contact.employment.location || "—"}</p>
-                                            </div>
+												<div className="contact-section">
+													<h6 className="section-title">Phone Numbers</h6>
+													<p className="mb-1"><strong>Primary:</strong> {contact.phone_numbers.primary || "—"}</p>
+													<p className="mb-1"><strong>Home:</strong> {contact.phone_numbers.home || "—"}</p>
+													<p className="mb-1"><strong>Work:</strong> {contact.phone_numbers.work || "—"}</p>
+													<p className="mb-2"><strong>Mobile:</strong> {contact.phone_numbers.mobile || "—"}</p>
+												</div>
 
-                                            <div className="contact-section">
-                                                <h6 className="section-title">Websites</h6>
-                                                <p className="mb-1"><strong>LinkedIn:</strong> {contact.websites.linkedin || "—"}</p>
-                                                <p className="mb-2"><strong>Other:</strong> {contact.websites.other || "—"}</p>
-                                            </div>
+												<div className="contact-section">
+													<h6 className="section-title">Employment</h6>
+													<p className="mb-1"><strong>Position:</strong> {contact.employment.position || "—"}</p>
+													<p className="mb-1"><strong>Company:</strong> {contact.employment.company || "—"}</p>
+													<p className="mb-2"><strong>Location:</strong> {contact.employment.location || "—"}</p>
+												</div>
 
-                                            <div className="card-actions">
-                                                <Button className="action-button delete-btn" contact={contact.id} onClick={handleDelete}>🗑️ Delete</Button>
-                                                <Button className="action-button edit-btn" contact={contact.id} onClick={handleEdit}>✏️ Edit</Button>
-                                            </div>
-                                        </Card.Body>
-									</Card>
-								))}
-							</Col>
-						)}
+												<div className="contact-section">
+													<h6 className="section-title">Websites</h6>
+													<p className="mb-1"><strong>LinkedIn:</strong> {contact.websites.linkedin || "—"}</p>
+													<p className="mb-2"><strong>Other:</strong> {contact.websites.other || "—"}</p>
+												</div>
+
+												<div className="card-actions">
+													<Button className="action-button delete-btn" contact={contact.id} onClick={handleDelete}>🗑️ Delete</Button>
+													<Button className="action-button edit-btn" contact={contact.id} onClick={handleEdit}>✏️ Edit</Button>
+												</div>
+											</Card.Body>
+										</Card>
+									))}
+								</div>
+							)}
+						</Col>
 						{addFormVis ? (
 							<Col xs="auto">
 								<AddContact

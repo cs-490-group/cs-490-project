@@ -136,11 +136,11 @@ export default function AddContact({ editing, addData, data, setData }) {
                 <Form.Label className="form-section-title">Websites</Form.Label>
                 <Form.Group>
                     <Form.Label>LinkedIn</Form.Label>
-                    <Form.Control type="url" placeholder="LinkedIn URL" name="linkedin" value={data.linkedin || ""} onChange={updateData} />
+                    <Form.Control type="text" placeholder="LinkedIn URL" name="linkedin" value={data.linkedin || ""} onChange={updateData} />
                 </Form.Group>
                 <Form.Group>
                     <Form.Label>Other</Form.Label>
-                    <Form.Control type="url" placeholder="Other Website" name="other" value={data.other || ""} onChange={updateData} />
+                    <Form.Control type="text" placeholder="Other Website" name="other" value={data.other || ""} onChange={updateData} />
                 </Form.Group>
             </Form.Group>
 
