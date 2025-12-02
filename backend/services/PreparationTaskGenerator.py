@@ -1,6 +1,7 @@
 """
 Enhanced Preparation Task Generator with Industry-Specific Tasks
 Generates customized tasks based on job details, interview format, and industry
+Includes: role-specific tasks, company research, confidence-building, attire suggestions, and post-interview follow-up
 """
 import uuid
 from typing import List, Dict, Optional
@@ -233,7 +234,9 @@ class PreparationTaskGenerator:
                 company_research_desc += f" Start with their website: {company_info['website']}"
             if company_info.get('size'):
                 company_research_desc += f" They have approximately {company_info['size']} employees."
-        company_research_desc += " Check recent press releases, social media, and company reviews."
+            if company_info.get('industry'):
+                company_research_desc += f" Understand their position in the {company_info['industry']} industry."
+        company_research_desc += " Check recent press releases, social media, and company reviews on Glassdoor."
         
         tasks.append({
             "task_id": str(uuid.uuid4()),
@@ -326,10 +329,29 @@ class PreparationTaskGenerator:
             "is_completed": False
         })
         
-        # Questions to ask - customized
+        # Questions to ask - highly customized with examples
         questions_desc = f"Prepare 5-10 thoughtful questions about the {job_title} role, team structure, success metrics, and growth opportunities at {company_name}."
         if interviewer_title:
             questions_desc += f" Tailor some questions specifically for a {interviewer_title}."
+        
+        # Add role-specific question examples
+        question_examples = {
+            "Technology": "Consider asking about: tech stack evolution, code review process, deployment frequency, technical debt management, team's approach to innovation",
+            "Finance": "Consider asking about: key performance metrics, regulatory challenges, risk management approach, team structure, career progression paths",
+            "Healthcare": "Consider asking about: patient care philosophy, technology adoption, compliance protocols, team collaboration, quality improvement initiatives",
+            "Education": "Consider asking about: curriculum development process, student assessment methods, professional development opportunities, school culture, parent engagement",
+            "Marketing": "Consider asking about: campaign success metrics, creative process, cross-functional collaboration, brand positioning, growth strategies",
+            "Design": "Consider asking about: design system maturity, user research practices, design-engineering collaboration, feedback culture, design tools and workflow",
+            "Consulting": "Consider asking about: typical project lifecycle, client interaction expectations, professional development, work-life balance, specialization opportunities",
+            "Manufacturing": "Consider asking about: production efficiency goals, quality control processes, safety culture, continuous improvement initiatives, technology adoption",
+            "Retail": "Consider asking about: customer experience priorities, inventory management, team culture, growth plans, omnichannel strategy"
+        }
+        
+        if industry in question_examples:
+            questions_desc += f" {question_examples[industry]}."
+        else:
+            questions_desc += " Consider asking about: team dynamics, success metrics, biggest challenges, growth opportunities, company culture."
+        
         questions_desc += " Avoid questions easily answered by basic research."
         
         tasks.append({
@@ -358,6 +380,80 @@ class PreparationTaskGenerator:
             "description": "Practice answering difficult questions like 'Tell me about a time you failed' or 'What's your biggest weakness?' Focus on lessons learned and growth, not just the challenge itself.",
             "category": "practice",
             "priority": "medium",
+            "is_completed": False
+        })
+        
+        # ============================================================
+        # CONFIDENCE-BUILDING ACTIVITIES
+        # ============================================================
+        
+        tasks.append({
+            "task_id": str(uuid.uuid4()),
+            "title": "Practice power posing and visualization",
+            "description": "Spend 5 minutes before the interview doing confidence-building exercises: stand in a power pose (hands on hips, chest out) for 2 minutes, then visualize yourself succeeding in the interview. This has been shown to reduce stress hormones and boost confidence.",
+            "category": "practice",
+            "priority": "medium",
+            "is_completed": False
+        })
+        
+        tasks.append({
+            "task_id": str(uuid.uuid4()),
+            "title": "Review your accomplishments",
+            "description": f"Write down 5-7 major accomplishments from your career that you're proud of. Review these before the interview to remind yourself of your value and capabilities. Focus on quantifiable achievements relevant to the {job_title} role.",
+            "category": "practice",
+            "priority": "medium",
+            "is_completed": False
+        })
+        
+        tasks.append({
+            "task_id": str(uuid.uuid4()),
+            "title": "Conduct a mock interview",
+            "description": "Practice with a friend, mentor, or use online mock interview tools. Record yourself if possible. Focus on your body language, tone, and clarity of responses. Get feedback and adjust accordingly.",
+            "category": "practice",
+            "priority": "medium",
+            "is_completed": False
+        })
+        
+        # ============================================================
+        # ATTIRE & APPEARANCE - Based on industry and format
+        # ============================================================
+        
+        # Attire suggestions based on industry
+        attire_suggestions = {
+            "Technology": "Business casual is typically appropriate - collared shirt or blouse, no tie usually needed unless specified. For video, ensure colors contrast well with your background.",
+            "Finance": "Formal business attire is expected - suit and tie for men, professional suit or dress for women. Conservative colors (navy, black, gray) are safest.",
+            "Healthcare": "Business professional or scrubs depending on role - research the specific department's standards. Clean, pressed, and conservative is key.",
+            "Education": "Business casual to business professional - dress slightly more formal than typical school attire. Avoid overly casual items.",
+            "Marketing": "Business casual with some creative flair is often acceptable - you can show some personality while remaining professional.",
+            "Design": "Smart casual to business casual - creativity is valued but maintain professionalism. Your style can reflect your design sensibility.",
+            "Consulting": "Formal business attire is standard - well-tailored suit in conservative colors. Polished appearance is crucial.",
+            "Manufacturing": "Business casual, leaning toward practical - depending on role, may lean more casual if touring facilities. Safety-conscious appearance.",
+            "Retail": "Business casual aligned with brand aesthetic - research the company's style. Slightly more polished than typical store attire."
+        }
+        
+        if location_type == "in-person":
+            attire_desc = f"Choose and prepare appropriate professional clothing for your in-person interview at {company_name}. "
+            if industry in attire_suggestions:
+                attire_desc += attire_suggestions[industry]
+            else:
+                attire_desc += "Business casual to business professional is typically safe - when in doubt, dress slightly more formal. Research the company culture on their website or social media."
+            attire_desc += " Ensure clothes are clean, pressed, and fit well. Prepare everything the night before."
+        elif location_type == "video":
+            attire_desc = "Dress professionally from head to toe even for video interviews - you never know if you'll need to stand up. "
+            if industry in attire_suggestions:
+                attire_desc += attire_suggestions[industry]
+            else:
+                attire_desc += "Business casual is typically appropriate for video. Avoid busy patterns, all white, or colors that wash you out."
+            attire_desc += " Test your outfit on camera beforehand to ensure it looks good."
+        else:  # phone
+            attire_desc = "Even for phone interviews, dress professionally - it affects your mindset and confidence. Business casual at minimum. Stand or sit up straight during the call."
+        
+        tasks.append({
+            "task_id": str(uuid.uuid4()),
+            "title": "Prepare appropriate attire",
+            "description": attire_desc,
+            "category": "logistics",
+            "priority": "high" if location_type == "in-person" else "medium",
             "is_completed": False
         })
         
@@ -399,15 +495,6 @@ class PreparationTaskGenerator:
                 "task_id": str(uuid.uuid4()),
                 "title": "Plan your route and timing",
                 "description": f"Look up directions to {company_name}'s office and plan your route. Account for traffic and parking. Plan to arrive 10-15 minutes early (not too early). Consider doing a practice run if you're unfamiliar with the area.",
-                "category": "logistics",
-                "priority": "high",
-                "is_completed": False
-            })
-            
-            tasks.append({
-                "task_id": str(uuid.uuid4()),
-                "title": "Prepare professional attire",
-                "description": f"Choose and prepare appropriate professional clothing. Research {company_name}'s dress code if unsure - when in doubt, dress slightly more formal than the typical office attire. Ensure clothes are clean, pressed, and fit well.",
                 "category": "logistics",
                 "priority": "high",
                 "is_completed": False
@@ -458,6 +545,55 @@ class PreparationTaskGenerator:
             "title": "Morning of interview preparation",
             "description": "Eat a good breakfast, do a final check of your appearance/setup, review your elevator pitch one last time, and do a brief meditation or breathing exercise to calm nerves. Arrive with confidence and a positive mindset.",
             "category": "logistics",
+            "priority": "medium",
+            "is_completed": False
+        })
+        
+        # ============================================================
+        # POST-INTERVIEW FOLLOW-UP TASKS
+        # ============================================================
+        
+        tasks.append({
+            "task_id": str(uuid.uuid4()),
+            "title": "Send thank-you email (within 24 hours)",
+            "description": f"Draft and send a personalized thank-you email to {interviewer_name or 'your interviewer(s)'}. Reference specific topics discussed, reiterate your interest in the {job_title} role, and mention any points you'd like to clarify or expand on. Keep it concise (3-4 paragraphs).",
+            "category": "follow-up",
+            "priority": "high",
+            "is_completed": False
+        })
+        
+        tasks.append({
+            "task_id": str(uuid.uuid4()),
+            "title": "Document interview notes",
+            "description": "Write down key points from the interview while fresh in your memory: questions asked, your responses, interviewer reactions, company culture observations, concerns that arose, and details about next steps. This helps for future rounds and reflection.",
+            "category": "follow-up",
+            "priority": "medium",
+            "is_completed": False
+        })
+        
+        tasks.append({
+            "task_id": str(uuid.uuid4()),
+            "title": "Connect on LinkedIn",
+            "description": f"Send a LinkedIn connection request to {interviewer_name or 'your interviewer(s)'} with a brief personalized note mentioning your interview. This helps maintain the relationship regardless of outcome.",
+            "category": "follow-up",
+            "priority": "low",
+            "is_completed": False
+        })
+        
+        tasks.append({
+            "task_id": str(uuid.uuid4()),
+            "title": "Prepare additional materials (if requested)",
+            "description": "If the interviewer requested any additional information, work samples, references, or materials during the interview, prioritize preparing and sending these promptly. Follow up within 48 hours maximum.",
+            "category": "follow-up",
+            "priority": "high",
+            "is_completed": False
+        })
+        
+        tasks.append({
+            "task_id": str(uuid.uuid4()),
+            "title": "Follow up if no response (after 1 week)",
+            "description": f"If you haven't heard back within the timeframe they mentioned (or 1 week if none specified), send a polite follow-up email to {interviewer_name or 'the hiring manager'} expressing continued interest and asking about timeline. Keep it brief and professional.",
+            "category": "follow-up",
             "priority": "medium",
             "is_completed": False
         })

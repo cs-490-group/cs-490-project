@@ -107,6 +107,21 @@ const InterviewScheduleAPI = {
     );
   },
   
+  deletePreparationTask: (scheduleId, taskId) => {
+    return axios.delete(
+      `${API_BASE_URL}/interview/schedule/${scheduleId}/preparation-tasks/${taskId}`,
+      { headers: getAuthHeaders() }
+    );
+  },
+
+  updatePreparationTask: (scheduleId, taskId, taskData) => {
+    return axios.put(
+      `${API_BASE_URL}/interview/schedule/${scheduleId}/preparation-tasks/${taskId}/update`,
+      taskData,
+      { headers: getAuthHeaders() }
+    );
+  },
+
   // ============================================================================
   // CALENDAR INTEGRATION
   // ============================================================================

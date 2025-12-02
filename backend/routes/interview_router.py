@@ -16,7 +16,8 @@ from mongo.interview_schedule_dao import (
 )
 from mongo.jobs_dao import JobsDAO
 from mongo.profiles_dao import UserDataDAO
-from services.calendar_service import calendar_service, PreparationTaskGenerator
+from services.calendar_service import calendar_service
+from services.PreparationTaskGenerator import PreparationTaskGenerator
 from services.followup_service import followup_service
 from mongo.dao_setup import db_client
 from sessions.session_authorizer import authorize
@@ -439,10 +440,11 @@ async def create_interview_schedule(request: Request):
     """Create a new interview schedule"""
     try:
         uuid_val = get_uuid_from_headers(request)
-        #print(f"\n[Create Schedule] Called for uuid: {uuid_val}")
+        print(f"\n{'='*80}")
+        print(f"[Create Schedule] Called for uuid: {uuid_val}")
         
         schedule_data = await request.json()
-        #print(f"[Create Schedule] Received data: {list(schedule_data.keys())}")
+        print(f"[Create Schedule] Received data keys: {list(schedule_data.keys())}")
         
         schedule_data["uuid"] = uuid_val
         
@@ -454,49 +456,103 @@ async def create_interview_schedule(request: Request):
         elif schedule_data.get("interview_datetime"):
             schedule_data["interview_datetime"] = make_aware(schedule_data["interview_datetime"])
         
-        # ALWAYS auto-generate video link if needed (not provided AND location type is video)
+        # ALWAYS auto-generate video link if needed
         if schedule_data.get("location_type") == "video" and not schedule_data.get("video_link"):
             video_data = calendar_service.generate_video_conference_link(
                 schedule_data.get("video_platform", "zoom")
             )
             schedule_data["video_link"] = video_data["link"]
-            #print(f"[Create Schedule] Auto-generated video link: {video_data['link']}")
+            print(f"[Create Schedule] Auto-generated video link: {video_data['link']}")
         
+        # ============================================================
+        # ENHANCED JOB DETAILS FETCHING WITH FULL DEBUGGING
+        # ============================================================
         job_details = None
         industry = None
         job_description = None
         company_info = None
-
+        
+        print(f"\n[Job Details] Checking for job_application_uuid...")
         if schedule_data.get("job_application_uuid"):
+            print(f"[Job Details] Found job_application_uuid: {schedule_data['job_application_uuid']}")
             try:
-                job_details = await jobs_dao.get_job_by_id(schedule_data["job_application_uuid"])
+                job_details = await jobs_dao.get_job(schedule_data["job_application_uuid"])
+                
                 if job_details:
+                    print(f"[Job Details] ✓ Successfully fetched job details")
+                    print(f"[Job Details] Job keys: {list(job_details.keys())}")
+                    
+                    # Extract industry
                     industry = job_details.get("industry")
+                    print(f"[Job Details] Industry from job: '{industry}' (type: {type(industry)})")
+                    
+                    # Extract job description
                     job_description = job_details.get("description")
+                    if job_description:
+                        print(f"[Job Details] Job description length: {len(job_description)} chars")
+                    else:
+                        print(f"[Job Details] No job description found")
                     
                     # Extract company info
                     company = job_details.get("company")
+                    print(f"[Job Details] Company type: {type(company)}")
+                    
                     if isinstance(company, dict):
                         company_info = {
                             "name": company.get("name"),
                             "website": company.get("website"),
-                            "size": company.get("size")
+                            "size": company.get("size"),
+                            "industry": company.get("industry")
                         }
+                        print(f"[Job Details] Company info extracted: {company_info}")
+                        
+                        # Use company industry if job industry not available
+                        if not industry and company.get("industry"):
+                            industry = company.get("industry")
+                            print(f"[Job Details] Using company industry: '{industry}'")
+                    elif isinstance(company, str):
+                        company_info = {"name": company}
+                        print(f"[Job Details] Company is string: '{company}'")
                     
                     # Use job details if not manually provided
                     if not schedule_data.get("scenario_name"):
                         schedule_data["scenario_name"] = job_details.get("title", "Position")
+                        print(f"[Job Details] Set scenario_name: {schedule_data['scenario_name']}")
+                    
                     if not schedule_data.get("company_name"):
                         if isinstance(company, dict):
                             schedule_data["company_name"] = company.get("name", "Company")
                         else:
                             schedule_data["company_name"] = company or "Company"
+                        print(f"[Job Details] Set company_name: {schedule_data['company_name']}")
                     
-                    #print(f"[Create Schedule] Loaded job details - Industry: {industry}")
+                    print(f"[Job Details] ✓ FINAL INDUSTRY VALUE: '{industry}'")
+                else:
+                    print(f"[Job Details] ✗ No job details found for ID: {schedule_data['job_application_uuid']}")
+                    
             except Exception as e:
-                print(f"[Create Schedule] Could not load job details: {e}")
-
-        # ALWAYS auto-generate preparation tasks with enhanced context
+                print(f"[Job Details] ✗ ERROR fetching job details: {str(e)}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print(f"[Job Details] No job_application_uuid provided - using manual entry")
+            print(f"[Job Details] Manual scenario_name: {schedule_data.get('scenario_name')}")
+            print(f"[Job Details] Manual company_name: {schedule_data.get('company_name')}")
+        
+        # ============================================================
+        # TASK GENERATION WITH FULL DEBUGGING
+        # ============================================================
+        print(f"\n[Task Generation] Starting task generation...")
+        print(f"[Task Generation] Parameters:")
+        print(f"  - job_title: {schedule_data.get('scenario_name', 'Position')}")
+        print(f"  - company_name: {schedule_data.get('company_name', 'Company')}")
+        print(f"  - location_type: {schedule_data.get('location_type', 'video')}")
+        print(f"  - interviewer_name: {schedule_data.get('interviewer_name')}")
+        print(f"  - interviewer_title: {schedule_data.get('interviewer_title')}")
+        print(f"  - industry: '{industry}' ⭐")
+        print(f"  - has_job_description: {job_description is not None}")
+        print(f"  - has_company_info: {company_info is not None}")
+        
         tasks = PreparationTaskGenerator.generate_tasks(
             job_title=schedule_data.get("scenario_name") or schedule_data.get("job_title", "Position"),
             company_name=schedule_data.get("company_name", "Company"),
@@ -507,19 +563,55 @@ async def create_interview_schedule(request: Request):
             job_description=job_description,
             company_info=company_info
         )
+        
+        print(f"\n[Task Generation] ✓ Generated {len(tasks)} tasks")
+        print(f"[Task Generation] Task categories breakdown:")
+        
+        # Category breakdown
+        category_counts = {}
+        for task in tasks:
+            cat = task.get('category', 'unknown')
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+        
+        for cat, count in sorted(category_counts.items()):
+            print(f"  - {cat}: {count} tasks")
+        
+        # Show first 5 task titles
+        print(f"[Task Generation] First 5 task titles:")
+        for i, task in enumerate(tasks[:5], 1):
+            print(f"  {i}. [{task['category']}] {task['title']}")
+        
+        # Expected task count based on industry
+        if industry and industry in PreparationTaskGenerator.INDUSTRY_TASKS:
+            industry_specific = len(PreparationTaskGenerator.INDUSTRY_TASKS[industry])
+            print(f"[Task Generation] Expected ~{25 + industry_specific} tasks for {industry} industry")
+        else:
+            print(f"[Task Generation] Expected ~25 tasks for generic/no industry")
+        
         schedule_data["preparation_tasks"] = tasks
-        #print(f"[Create Schedule] Generated {len(tasks)} preparation tasks (Industry: {industry or 'Generic'})")
-
+        
         # Store industry in schedule for future reference
         if industry:
             schedule_data["industry"] = industry
+            print(f"[Task Generation] ✓ Stored industry in schedule: '{industry}'")
         
         # Initialize reminder tracking
         schedule_data["reminders_sent"] = {}
         
-        # Create the schedule
+        # ============================================================
+        # CREATE THE SCHEDULE
+        # ============================================================
+        print(f"\n[Create Schedule] Creating schedule in database...")
         schedule_id = await schedule_dao.create_schedule(schedule_data)
-        #print(f"[Create Schedule] Created with ID: {schedule_id}")
+        print(f"[Create Schedule] ✓ Created with ID: {schedule_id}")
+        
+        # Verify what was saved
+        saved_schedule = await schedule_dao.get_schedule(schedule_id)
+        if saved_schedule:
+            saved_task_count = len(saved_schedule.get("preparation_tasks", []))
+            print(f"[Create Schedule] ✓ Verification: Saved {saved_task_count} tasks to database")
+            if saved_task_count != len(tasks):
+                print(f"[Create Schedule] ⚠️  WARNING: Task count mismatch! Generated {len(tasks)} but saved {saved_task_count}")
         
         # Sync to calendar if requested
         if schedule_data.get("calendar_provider"):
@@ -530,18 +622,26 @@ async def create_interview_schedule(request: Request):
             except Exception as cal_error:
                 print(f"[Create Schedule] Calendar sync error: {cal_error}")
         
+        print(f"{'='*80}\n")
+        
         return {
             "detail": "Interview scheduled successfully",
-            "schedule_uuid": schedule_id
+            "schedule_uuid": schedule_id,
+            "debug_info": {
+                "tasks_generated": len(tasks),
+                "industry_detected": industry,
+                "has_job_description": job_description is not None,
+                "has_company_info": company_info is not None
+            }
         }
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[Create Schedule] ERROR: {str(e)}")
+        print(f"[Create Schedule] ✗ CRITICAL ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(500, f"Failed to create schedule: {str(e)}")
-
+    
 @interview_router.put("/schedule/{schedule_id}")
 async def update_interview_schedule(schedule_id: str, request: Request):
     """Update an existing interview schedule"""

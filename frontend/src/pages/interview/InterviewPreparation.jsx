@@ -155,17 +155,26 @@ function InterviewPreparation() {
     }
   }, [interview?.interview_datetime]);
   
-  const handleTaskToggle = (taskId) => {
-    const updatedTasks = tasks.map(task => 
-      task.task_id === taskId 
-        ? { ...task, is_completed: !task.is_completed }
-        : task
-    );
-    setTasks(updatedTasks);
-    
-    const completed = updatedTasks.filter(t => t.is_completed).length;
-    const percentage = Math.round((completed / updatedTasks.length) * 100);
-    setInterview({ ...interview, preparation_completion_percentage: percentage });
+  const handleTaskToggle = async (taskId) => {
+    try {
+      // Call API to toggle task completion
+      await InterviewScheduleAPI.toggleTaskCompletion(scheduleId, taskId);
+      
+      // Update local state after successful API call
+      const updatedTasks = tasks.map(task => 
+        task.task_id === taskId 
+          ? { ...task, is_completed: !task.is_completed }
+          : task
+      );
+      setTasks(updatedTasks);
+      
+      const completed = updatedTasks.filter(t => t.is_completed).length;
+      const percentage = Math.round((completed / updatedTasks.length) * 100);
+      setInterview({ ...interview, preparation_completion_percentage: percentage });
+    } catch (error) {
+      console.error('[InterviewPrep] Error toggling task:', error);
+      alert('Failed to update task. Please try again.');
+    }
   };
   
   const handleEditTask = (task) => {
@@ -243,7 +252,7 @@ function InterviewPreparation() {
     : tasks.filter(t => t.category === filterCategory);
   
   const completedCount = tasks.filter(t => t.is_completed).length;
-  const categories = ['all', 'research', 'practice', 'logistics', 'materials'];
+  const categories = ['all', 'research', 'practice', 'logistics', 'materials', 'follow-up'];
   
   const getCategoryIcon = (category) => {
     const icons = {
@@ -251,6 +260,7 @@ function InterviewPreparation() {
       practice: '💪',
       logistics: '📋',
       materials: '📄',
+      'follow-up': '📧',
       all: '📌'
     };
     return icons[category] || '📌';
@@ -448,6 +458,7 @@ function InterviewPreparation() {
                 <option value="practice">Practice</option>
                 <option value="logistics">Logistics</option>
                 <option value="materials">Materials</option>
+                <option value="follow-up">Follow-up</option>
               </select>
               <select
                 value={taskFormData.priority}
