@@ -32,7 +32,16 @@ export default function NetworkOverview() {
 		company: null,
 		position: null,
 		location: null,
-		avatar: null
+		avatar: null,
+		relationship_type: null,
+		relationship_strength: null,
+		industry: null,
+		professional_interests: null,
+		personal_interests: null,
+		interaction_history: [],
+		notes: null,
+		reminder_frequency: "none",
+		next_reminder_date: null
 	});
 	const [avatars, setAvatars] = useState({});
 	const [editingContactId, setEditingContactId] = useState(null);
@@ -54,6 +63,19 @@ export default function NetworkOverview() {
 				phone_numbers: contact.phone_numbers,
 				websites: contact.websites,
 				employment: contact.employment,
+				relationship_type: contact.relationship_type,
+				relationship_strength: contact.relationship_strength,
+				industry: contact.industry,
+				professional_interests: contact.professional_interests,
+				personal_interests: contact.personal_interests,
+				interaction_history: contact.interaction_history || [],
+				last_interaction_date: contact.last_interaction_date,
+				notes: contact.notes,
+				reminder_frequency: contact.reminder_frequency,
+				next_reminder_date: contact.next_reminder_date,
+				mutual_connections: contact.mutual_connections || [],
+				linked_job_opportunities: contact.linked_job_opportunities || [],
+				linked_companies: contact.linked_companies || []
 			}));
 
 			setContacts(transformedContacts);
@@ -99,7 +121,16 @@ export default function NetworkOverview() {
 					position: data.position !== "" ? data.position : null,
 					company: data.company !== "" ? data.company : null,
 					location: data.location !== "" ? data.location : null
-				}
+				},
+				relationship_type: data.relationship_type || null,
+				relationship_strength: data.relationship_strength || null,
+				industry: data.industry !== "" ? data.industry : null,
+				professional_interests: data.professional_interests !== "" ? data.professional_interests : null,
+				personal_interests: data.personal_interests !== "" ? data.personal_interests : null,
+				interaction_history: data.interaction_history || [],
+				notes: data.notes !== "" ? data.notes : null,
+				reminder_frequency: data.reminder_frequency || "none",
+				next_reminder_date: data.next_reminder_date || null
 			}
 
 			const res = await NetworksAPI.add(filteredData);
@@ -122,7 +153,16 @@ export default function NetworkOverview() {
 				company: null,
 				position: null,
 				location: null,
-				avatar: null
+				avatar: null,
+				relationship_type: null,
+				relationship_strength: null,
+				industry: null,
+				professional_interests: null,
+				personal_interests: null,
+				interaction_history: [],
+				notes: null,
+				reminder_frequency: "none",
+				next_reminder_date: null
 			});
 		}
 	};
@@ -157,7 +197,16 @@ export default function NetworkOverview() {
 					position: data.position !== "" ? data.position : null,
 					company: data.company !== "" ? data.company : null,
 					location: data.location !== "" ? data.location : null
-				}
+				},
+				relationship_type: data.relationship_type || null,
+				relationship_strength: data.relationship_strength || null,
+				industry: data.industry !== "" ? data.industry : null,
+				professional_interests: data.professional_interests !== "" ? data.professional_interests : null,
+				personal_interests: data.personal_interests !== "" ? data.personal_interests : null,
+				interaction_history: data.interaction_history || [],
+				notes: data.notes !== "" ? data.notes : null,
+				reminder_frequency: data.reminder_frequency || "none",
+				next_reminder_date: data.next_reminder_date || null
 			}
 
 			await NetworksAPI.update(contactId, filteredData);
@@ -191,7 +240,16 @@ export default function NetworkOverview() {
 				company: null,
 				position: null,
 				location: null,
-				avatar: null
+				avatar: null,
+				relationship_type: null,
+				relationship_strength: null,
+				industry: null,
+				professional_interests: null,
+				personal_interests: null,
+				interaction_history: [],
+				notes: null,
+				reminder_frequency: "none",
+				next_reminder_date: null
 			});
 		}
 	};
@@ -219,7 +277,16 @@ export default function NetworkOverview() {
 			company: contact.employment.company || "",
 			position: contact.employment.position || "",
 			location: contact.employment.location || "",
-			avatar: avatars[contactId] || "./default.png"
+			avatar: avatars[contactId] || "./default.png",
+			relationship_type: contact.relationship_type || "",
+			relationship_strength: contact.relationship_strength || "",
+			industry: contact.industry || "",
+			professional_interests: contact.professional_interests || "",
+			personal_interests: contact.personal_interests || "",
+			interaction_history: contact.interaction_history || [],
+			notes: contact.notes || "",
+			reminder_frequency: contact.reminder_frequency || "none",
+			next_reminder_date: contact.next_reminder_date || ""
 		});
 	}
 
@@ -245,7 +312,16 @@ export default function NetworkOverview() {
 			company: null,
 			position: null,
 			location: null,
-			avatar: null
+			avatar: null,
+			relationship_type: null,
+			relationship_strength: null,
+			industry: null,
+			professional_interests: null,
+			personal_interests: null,
+			interaction_history: [],
+			notes: null,
+			reminder_frequency: "none",
+			next_reminder_date: null
 		});
 	};
 
@@ -293,6 +369,15 @@ export default function NetworkOverview() {
 												<Card.Title as="h3">{contact.name}</Card.Title>
 												<Card.Subtitle as="h5" className="mb-3">{contact.email}</Card.Subtitle>
 
+												{contact.relationship_type && (
+													<div className="contact-section">
+														<h6 className="section-title">Relationship</h6>
+														<p className="mb-1"><strong>Type:</strong> {contact.relationship_type || "—"}</p>
+														<p className="mb-1"><strong>Strength:</strong> {contact.relationship_strength || "—"}</p>
+														<p className="mb-2"><strong>Industry:</strong> {contact.industry || "—"}</p>
+													</div>
+												)}
+
 												<div className="contact-section">
 													<h6 className="section-title">Phone Numbers</h6>
 													<p className="mb-1"><strong>Primary:</strong> {contact.phone_numbers.primary || "—"}</p>
@@ -313,6 +398,36 @@ export default function NetworkOverview() {
 													<p className="mb-1"><strong>LinkedIn:</strong> {contact.websites.linkedin || "—"}</p>
 													<p className="mb-2"><strong>Other:</strong> {contact.websites.other || "—"}</p>
 												</div>
+
+												{contact.professional_interests && (
+													<div className="contact-section">
+														<h6 className="section-title">Professional Interests</h6>
+														<p className="mb-0">{contact.professional_interests}</p>
+													</div>
+												)}
+
+												{contact.interaction_history && contact.interaction_history.length > 0 && (
+													<div className="contact-section">
+														<h6 className="section-title">Recent Interactions</h6>
+														<p className="mb-2"><strong>Last:</strong> {contact.last_interaction_date || "—"}</p>
+														<p className="mb-0"><strong>Count:</strong> {contact.interaction_history.length}</p>
+													</div>
+												)}
+
+												{contact.notes && (
+													<div className="contact-section">
+														<h6 className="section-title">Notes</h6>
+														<p className="mb-0">{contact.notes}</p>
+													</div>
+												)}
+
+												{contact.reminder_frequency !== "none" && (
+													<div className="contact-section">
+														<h6 className="section-title">Reminders</h6>
+														<p className="mb-1"><strong>Frequency:</strong> {contact.reminder_frequency || "—"}</p>
+														<p className="mb-0"><strong>Next:</strong> {contact.next_reminder_date || "—"}</p>
+													</div>
+												)}
 
 												<div className="card-actions">
 													<Button className="action-button delete-btn" contact={contact.id} onClick={handleDelete}>🗑️ Delete</Button>
