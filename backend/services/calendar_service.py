@@ -283,21 +283,33 @@ View details: {self.frontend_url}/interview/details/{interview_data.get('schedul
             return f"in {hours} hours"
     
     def _get_location_text(self, interview_data: Dict[str, Any]) -> str:
-        """Get location details text"""
+        """Get detailed location/logistics information"""
         location_type = interview_data.get('location_type', '').lower()
         
         if location_type == 'video':
-            video_link = interview_data.get('video_link', '')
             platform = interview_data.get('video_platform', 'Video').title()
-            return f"{platform} Link: {video_link}" if video_link else "Video interview (link TBD)"
+            video_link = interview_data.get('video_link', '')
+            
+            if video_link:
+                return f"🎥 {platform} Meeting\n{video_link}"
+            else:
+                return f"🎥 {platform} Meeting (link will be provided)"
+                
         elif location_type == 'phone':
             phone = interview_data.get('phone_number', '')
-            return f"Phone: {phone}" if phone else "Phone interview"
+            if phone:
+                return f"📞 Phone Interview\nCall: {phone}"
+            else:
+                return "📞 Phone Interview (number will be provided)"
+                
         elif location_type == 'in-person':
             location = interview_data.get('location_details', '')
-            return f"Location: {location}" if location else "In-person interview"
+            if location:
+                return f"🏢 In-Person Interview\n📍 {location}"
+            else:
+                return "🏢 In-Person Interview (location will be provided)"
         else:
-            return ""
+            return "Interview"
     
     def _build_reminder_html(
         self,
@@ -306,100 +318,190 @@ View details: {self.frontend_url}/interview/details/{interview_data.get('schedul
         formatted_date: str,
         formatted_time: str
     ) -> str:
-        """Build HTML email reminder"""
+        """Build enhanced HTML email reminder with logistics"""
         completion = interview_data.get('preparation_completion_percentage', 0)
+        location_type = interview_data.get('location_type', 'interview').lower()
         
+        # Urgency styling
         if hours_until <= 2:
             urgency_color = "#dc3545"
-            urgency_text = "SOON"
+            urgency_text = "🚨 SOON"
+            urgency_message = f"Your interview starts in {hours_until} hour{'s' if hours_until > 1 else ''}!"
         elif hours_until <= 24:
             urgency_color = "#ffc107"
-            urgency_text = "TOMORROW"
+            urgency_text = "📅 TOMORROW"
+            urgency_message = "Your interview is tomorrow!"
         else:
             urgency_color = "#007bff"
-            urgency_text = "UPCOMING"
+            urgency_text = "📌 UPCOMING"
+            urgency_message = f"Your interview is in {int(hours_until)} hours"
         
-        return f"""
-<!DOCTYPE html>
-<html>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background-color: #f5f5f5;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
+        # Build logistics section with icons
+        logistics_html = ""
+        
+        if location_type == 'video':
+            platform = interview_data.get('video_platform', 'Video').title()
+            video_link = interview_data.get('video_link', '')
+            
+            logistics_html = f"""
+            <tr>
+                <td style="padding: 15px 0; border-top: 1px solid #e0e0e0;">
+                    <strong style="color: #6c757d; font-size: 14px;">🎥 Video Interview</strong><br>
+                    <span style="color: #333; font-size: 16px;">Platform: {platform}</span><br>
+                    {f'<a href="{video_link}" style="color: #007bff; text-decoration: none; font-weight: 600;">Join Meeting</a>' if video_link else '<span style="color: #666;">Link will be provided</span>'}
+                </td>
+            </tr>
+            """
+            
+        elif location_type == 'phone':
+            phone = interview_data.get('phone_number', '')
+            logistics_html = f"""
+            <tr>
+                <td style="padding: 15px 0; border-top: 1px solid #e0e0e0;">
+                    <strong style="color: #6c757d; font-size: 14px;">📞 Phone Interview</strong><br>
+                    <span style="color: #333; font-size: 16px;">{phone if phone else 'Number will be provided'}</span>
+                </td>
+            </tr>
+            """
+            
+        elif location_type == 'in-person':
+            location = interview_data.get('location_details', '')
+            logistics_html = f"""
+            <tr>
+                <td style="padding: 15px 0; border-top: 1px solid #e0e0e0;">
+                    <strong style="color: #6c757d; font-size: 14px;">🏢 In-Person Interview</strong><br>
+                    <span style="color: #333; font-size: 16px;">📍 {location if location else 'Location will be provided'}</span>
+                    {f'<br><a href="https://www.google.com/maps/search/?api=1&query={location.replace(" ", "+")}" style="color: #007bff; text-decoration: none; font-size: 14px;">📍 Open in Maps</a>' if location else ''}
+                </td>
+            </tr>
+            """
+        
+        # Interviewer info section
+        interviewer_html = ""
+        interviewer_name = interview_data.get('interviewer_name')
+        interviewer_title = interview_data.get('interviewer_title')
+        
+        if interviewer_name:
+            interviewer_html = f"""
+            <tr>
+                <td style="padding: 15px 0; border-top: 1px solid #e0e0e0;">
+                    <strong style="color: #6c757d; font-size: 14px;">👤 Interviewer</strong><br>
+                    <span style="color: #333; font-size: 16px;">{interviewer_name}</span>
+                    {f'<br><span style="color: #666; font-size: 14px;">{interviewer_title}</span>' if interviewer_title else ''}
+                </td>
+            </tr>
+            """
+        
+        # Duration
+        duration = interview_data.get('duration_minutes', 60)
+        duration_html = f"""
         <tr>
-            <td align="center">
-                <table width="600" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);">
-                    <tr>
-                        <td style="background: linear-gradient(135deg, #004d7a, #008793, #00bf72); padding: 40px 20px; text-align: center;">
-                            <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 700;">📅 Interview Reminder</h1>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 30px 20px 20px 20px; text-align: center;">
-                            <div style="display: inline-block; background-color: {urgency_color}; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 18px;">
-                                {urgency_text}
-                            </div>
-                            <p style="margin: 15px 0 0 0; font-size: 16px; color: #333; font-weight: 600;">
-                                Your interview is {self._format_time_until(hours_until)}!
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0 30px 30px 30px;">
-                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9f9f9; border-radius: 8px; padding: 25px;">
-                                <tr>
-                                    <td style="padding: 10px 0;">
-                                        <strong style="color: #6c757d; font-size: 14px;">Position:</strong><br>
-                                        <span style="color: #004d7a; font-size: 18px; font-weight: 600;">{interview_data.get('job_title', 'Position')}</span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 10px 0;">
-                                        <strong style="color: #6c757d; font-size: 14px;">Company:</strong><br>
-                                        <span style="color: #333; font-size: 16px;">{interview_data.get('company_name', 'Company')}</span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 10px 0;">
-                                        <strong style="color: #6c757d; font-size: 14px;">Date & Time:</strong><br>
-                                        <span style="color: #333; font-size: 16px;">📅 {formatted_date} at {formatted_time}</span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 10px 0;">
-                                        <strong style="color: #6c757d; font-size: 14px;">Format:</strong><br>
-                                        <span style="color: #333; font-size: 16px;">{self._get_location_text(interview_data)}</span>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0 30px 20px 30px;">
-                            <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px;">
-                                <div style="margin-bottom: 10px;">
-                                    <strong style="color: #6c757d; font-size: 14px;">Preparation Progress:</strong>
-                                    <span style="color: #004d7a; font-weight: 600; float: right;">{completion}%</span>
-                                </div>
-                                <div style="width: 100%; height: 8px; background-color: #e0e0e0; border-radius: 4px; overflow: hidden;">
-                                    <div style="width: {completion}%; height: 100%; background-color: #00bf72;"></div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0 30px 40px 30px; text-align: center;">
-                            <a href="{self.frontend_url}/interview/prepare/{interview_data.get('schedule_uuid')}" 
-                               style="display: inline-block; background-color: #00bf72; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                                Prepare Now
-                            </a>
-                        </td>
-                    </tr>
-                </table>
+            <td style="padding: 15px 0; border-top: 1px solid #e0e0e0;">
+                <strong style="color: #6c757d; font-size: 14px;">⏱️ Duration</strong><br>
+                <span style="color: #333; font-size: 16px;">{duration} minutes</span>
             </td>
         </tr>
-    </table>
-</body>
-</html>
-"""
+        """
+        
+        return f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #004d7a, #008793, #00bf72); padding: 40px 20px; text-align: center;">
+                                <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 700;">📅 Interview Reminder</h1>
+                            </td>
+                        </tr>
+                        
+                        <!-- Urgency Banner -->
+                        <tr>
+                            <td style="padding: 30px 20px 20px 20px; text-align: center;">
+                                <div style="display: inline-block; background-color: {urgency_color}; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 18px;">
+                                    {urgency_text}
+                                </div>
+                                <p style="margin: 15px 0 0 0; font-size: 16px; color: #333; font-weight: 600;">
+                                    {urgency_message}
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Interview Details -->
+                        <tr>
+                            <td style="padding: 0 30px 30px 30px;">
+                                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9f9f9; border-radius: 8px; padding: 25px;">
+                                    <tr>
+                                        <td style="padding: 10px 0;">
+                                            <strong style="color: #6c757d; font-size: 14px;">💼 Position</strong><br>
+                                            <span style="color: #004d7a; font-size: 18px; font-weight: 600;">{interview_data.get('job_title', 'Position')}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 10px 0;">
+                                            <strong style="color: #6c757d; font-size: 14px;">🏢 Company</strong><br>
+                                            <span style="color: #333; font-size: 16px;">{interview_data.get('company_name', 'Company')}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 15px 0; border-top: 1px solid #e0e0e0;">
+                                            <strong style="color: #6c757d; font-size: 14px;">📅 Date & Time</strong><br>
+                                            <span style="color: #333; font-size: 16px;">{formatted_date}</span><br>
+                                            <span style="color: #007bff; font-size: 20px; font-weight: 600;">🕐 {formatted_time}</span><br>
+                                            <span style="color: #666; font-size: 14px;">{interview_data.get('timezone', 'UTC')}</span>
+                                        </td>
+                                    </tr>
+                                    {duration_html}
+                                    {logistics_html}
+                                    {interviewer_html}
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <!-- Preparation Progress -->
+                        <tr>
+                            <td style="padding: 0 30px 20px 30px;">
+                                <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px;">
+                                    <div style="margin-bottom: 10px;">
+                                        <strong style="color: #6c757d; font-size: 14px;">📚 Preparation Progress</strong>
+                                        <span style="color: #004d7a; font-weight: 600; float: right;">{completion}%</span>
+                                    </div>
+                                    <div style="width: 100%; height: 8px; background-color: #e0e0e0; border-radius: 4px; overflow: hidden;">
+                                        <div style="width: {completion}%; height: 100%; background-color: {'#00bf72' if completion > 70 else '#ffc107' if completion > 30 else '#dc3545'};"></div>
+                                    </div>
+                                    {f'<p style="margin: 10px 0 0 0; font-size: 14px; color: #dc3545;">⚠️ Only {completion}% complete - review your prep tasks!</p>' if completion < 50 else ''}
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Action Button -->
+                        <tr>
+                            <td style="padding: 0 30px 40px 30px; text-align: center;">
+                                <a href="{self.frontend_url}/interview/prepare/{interview_data.get('schedule_uuid')}" 
+                                style="display: inline-block; background-color: #00bf72; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                    📝 Review Preparation
+                                </a>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+                                <p style="margin: 0; font-size: 12px; color: #666;">
+                                    Good luck with your interview! 🍀
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
 
 
 class PreparationTaskGenerator:

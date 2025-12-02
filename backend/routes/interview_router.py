@@ -6,8 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from datetime import datetime, timezone, timedelta
 from typing import Optional
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
 
 from schema.InterviewSchedule import GenerateFollowUpRequest
 from mongo.interview_schedule_dao import (
@@ -21,6 +19,7 @@ from services.PreparationTaskGenerator import PreparationTaskGenerator
 from services.followup_service import followup_service
 from mongo.dao_setup import db_client
 from sessions.session_authorizer import authorize
+import services.reminder_scheduler
 
 # Initialize router
 interview_router = APIRouter(prefix="/interview", tags=["interview"])
@@ -33,9 +32,6 @@ profile_dao = UserDataDAO()
 
 # In-memory storage for calendar credentials
 calendar_credentials_store = {}
-
-# Background scheduler for reminders
-reminder_scheduler = AsyncIOScheduler()
 
 def get_uuid_from_headers(request: Request) -> str:
     """Extract UUID from request headers"""
@@ -540,19 +536,8 @@ async def create_interview_schedule(request: Request):
             print(f"[Job Details] Manual company_name: {schedule_data.get('company_name')}")
         
         # ============================================================
-        # TASK GENERATION WITH FULL DEBUGGING
+        # TASK GENERATION
         # ============================================================
-        print(f"\n[Task Generation] Starting task generation...")
-        print(f"[Task Generation] Parameters:")
-        print(f"  - job_title: {schedule_data.get('scenario_name', 'Position')}")
-        print(f"  - company_name: {schedule_data.get('company_name', 'Company')}")
-        print(f"  - location_type: {schedule_data.get('location_type', 'video')}")
-        print(f"  - interviewer_name: {schedule_data.get('interviewer_name')}")
-        print(f"  - interviewer_title: {schedule_data.get('interviewer_title')}")
-        print(f"  - industry: '{industry}' ⭐")
-        print(f"  - has_job_description: {job_description is not None}")
-        print(f"  - has_company_info: {company_info is not None}")
-        
         tasks = PreparationTaskGenerator.generate_tasks(
             job_title=schedule_data.get("scenario_name") or schedule_data.get("job_title", "Position"),
             company_name=schedule_data.get("company_name", "Company"),
@@ -563,9 +548,6 @@ async def create_interview_schedule(request: Request):
             job_description=job_description,
             company_info=company_info
         )
-        
-        print(f"\n[Task Generation] ✓ Generated {len(tasks)} tasks")
-        print(f"[Task Generation] Task categories breakdown:")
         
         # Category breakdown
         category_counts = {}
@@ -1460,89 +1442,3 @@ async def mark_response_received(
     except Exception as e:
         raise HTTPException(500, f"Failed to mark response: {str(e)}")
     
-# ============================================================================
-# REMINDER SCHEDULER
-# ============================================================================
-
-async def check_and_send_reminders():
-    """Check for interviews needing reminders and send them"""
-    try:
-        print(f"[{datetime.now(timezone.utc)}] Checking for reminder candidates...")
-        
-        # Check for 24-hour reminders
-        interviews_24h = await schedule_dao.get_interviews_needing_reminders(24)
-        for interview in interviews_24h:
-            await send_reminder(interview, 24, "24h")
-        
-        # Check for 2-hour reminders
-        interviews_2h = await schedule_dao.get_interviews_needing_reminders(2)
-        for interview in interviews_2h:
-            await send_reminder(interview, 2, "2h")
-        
-        # Check for 1-hour reminders
-        interviews_1h = await schedule_dao.get_interviews_needing_reminders(1)
-        for interview in interviews_1h:
-            await send_reminder(interview, 1, "1h")
-        
-        total = len(interviews_24h) + len(interviews_2h) + len(interviews_1h)
-        print(f"Reminder check complete. Sent {total} reminders")
-    except Exception as e:
-        print(f"Error in reminder check: {e}")
-
-
-async def send_reminder(interview: dict, hours_until: int, reminder_type: str):
-    """Send a reminder for a specific interview"""
-    try:
-        interview_data = {
-            'schedule_uuid': interview['uuid'],
-            'interview_datetime': interview['interview_datetime'],
-            'job_title': interview.get('scenario_name', 'Interview'),
-            'company_name': interview.get('company_name', 'Company'),
-            'timezone': interview.get('timezone', 'UTC'),
-            'location_type': interview.get('location_type', 'Interview'),
-            'location_details': interview.get('location_details'),
-            'video_link': interview.get('video_link'),
-            'video_platform': interview.get('video_platform'),
-            'phone_number': interview.get('phone_number'),
-            'interviewer_name': interview.get('interviewer_name'),
-            'interviewer_title': interview.get('interviewer_title'),
-            'preparation_completion_percentage': interview.get('preparation_completion_percentage', 0),
-            'notes': interview.get('notes')
-        }
-        
-        reminder_prefs = interview.get('reminder_preferences', {'email': True})
-        
-        if reminder_prefs.get('email'):
-            user_email = "user@example.com"  # TODO: Fetch from user profile
-            
-            email_sent = calendar_service.send_email_reminder(
-                recipient_email=user_email,
-                interview_data=interview_data,
-                hours_until=hours_until
-            )
-            
-            if email_sent:
-                print(f"Sent {hours_until}h email reminder for interview {interview['uuid']}")
-        
-        await schedule_dao.mark_reminder_sent(interview['uuid'], reminder_type)
-    except Exception as e:
-        print(f"Error sending reminder for interview {interview['uuid']}: {e}")
-
-
-def start_reminder_scheduler():
-    """Start the reminder scheduler"""
-    reminder_scheduler.add_job(
-        check_and_send_reminders,
-        trigger=IntervalTrigger(minutes=30),
-        id='interview_reminders',
-        name='Check and send interview reminders',
-        replace_existing=True
-    )
-    reminder_scheduler.start()
-    print("✓ Reminder scheduler started - checking every 30 minutes")
-
-
-def stop_reminder_scheduler():
-    """Stop the reminder scheduler"""
-    reminder_scheduler.shutdown()
-    print("✓ Reminder scheduler stopped")

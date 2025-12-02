@@ -48,6 +48,22 @@ class InterviewScheduleDAO:
             doc["_id"] = str(doc["_id"])
             results.append(doc)
         return results
+    
+    async def get_all_scheduled_interviews(self) -> List[dict]:
+        """Get ALL scheduled interviews across all users"""
+        now = datetime.now(timezone.utc)
+        
+        cursor = self.collection.find({
+            "status": "scheduled",
+            "interview_datetime": {"$gte": now}
+        }).sort("interview_datetime", 1)
+        
+        results = []
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            results.append(doc)
+        
+        return results
 
     async def get_upcoming_interviews(self, user_uuid: str) -> List[dict]:
         """Get upcoming interviews for a user"""
