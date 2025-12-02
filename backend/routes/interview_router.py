@@ -783,7 +783,7 @@ async def cancel_interview(
         traceback.print_exc()
         raise HTTPException(500, f"Failed to cancel interview: {str(e)}")
 
-@interview_router.post("/schedule/{schedule_id}/preparation-tasks/{task_id}/update")
+@interview_router.put("/schedule/{schedule_id}/preparation-tasks/{task_id}/update")
 async def update_preparation_task(schedule_id: str, task_id: str, request: Request):
     """Update a specific preparation task"""
     try:

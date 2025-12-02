@@ -3,6 +3,8 @@ import { InterviewScheduleAPI } from '../../api/interviewSchedule';
 import { useParams } from 'react-router-dom';
 
 function InterviewPreparation() {
+  const { scheduleId } = useParams();
+  
   const [interview, setInterview] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,6 @@ function InterviewPreparation() {
   });
   const [timeUntil, setTimeUntil] = useState('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const { scheduleId } = useParams();
 
   // Load interview + tasks
   useEffect(() => {
@@ -157,10 +158,8 @@ function InterviewPreparation() {
   
   const handleTaskToggle = async (taskId) => {
     try {
-      // Call API to toggle task completion
       await InterviewScheduleAPI.toggleTaskCompletion(scheduleId, taskId);
       
-      // Update local state after successful API call
       const updatedTasks = tasks.map(task => 
         task.task_id === taskId 
           ? { ...task, is_completed: !task.is_completed }
@@ -188,46 +187,59 @@ function InterviewPreparation() {
     setShowAddTask(true);
   };
   
-  const handleDeleteTask = (taskId) => {
+  const handleDeleteTask = async (taskId) => {
     if (window.confirm('Are you sure you want to delete this task?')) {
-      const updatedTasks = tasks.filter(t => t.task_id !== taskId);
-      setTasks(updatedTasks);
-      
-      const completed = updatedTasks.filter(t => t.is_completed).length;
-      const percentage = updatedTasks.length > 0 
-        ? Math.round((completed / updatedTasks.length) * 100)
-        : 0;
-      setInterview({ ...interview, preparation_completion_percentage: percentage });
+      try {
+        await InterviewScheduleAPI.deletePreparationTask(scheduleId, taskId);
+        
+        const updatedTasks = tasks.filter(t => t.task_id !== taskId);
+        setTasks(updatedTasks);
+        
+        const completed = updatedTasks.filter(t => t.is_completed).length;
+        const percentage = updatedTasks.length > 0 
+          ? Math.round((completed / updatedTasks.length) * 100)
+          : 0;
+        setInterview({ ...interview, preparation_completion_percentage: percentage });
+      } catch (error) {
+        console.error('[InterviewPrep] Error deleting task:', error);
+        alert('Failed to delete task. Please try again.');
+      }
     }
   };
   
-  const handleSaveTask = () => {
+  const handleSaveTask = async () => {
     if (!taskFormData.title) {
       alert('Please enter a task title');
       return;
     }
     
-    if (editingTask) {
-      // Update existing task
-      setTasks(tasks.map(task =>
-        task.task_id === editingTask.task_id
-          ? { ...task, ...taskFormData }
-          : task
-      ));
-    } else {
-      // Add new task
-      const newTask = {
-        task_id: Date.now().toString(),
-        ...taskFormData,
-        is_completed: false
-      };
-      setTasks([...tasks, newTask]);
+    try {
+      if (editingTask) {
+        await InterviewScheduleAPI.updatePreparationTask(
+          scheduleId, 
+          editingTask.task_id, 
+          taskFormData
+        );
+        
+        setTasks(tasks.map(task =>
+          task.task_id === editingTask.task_id
+            ? { ...task, ...taskFormData }
+            : task
+        ));
+      } else {
+        const response = await InterviewScheduleAPI.addTask(scheduleId, taskFormData);
+        const newTask = response.data.task;
+        
+        setTasks([...tasks, newTask]);
+      }
+      
+      setTaskFormData({ title: '', description: '', category: 'practice', priority: 'medium' });
+      setEditingTask(null);
+      setShowAddTask(false);
+    } catch (error) {
+      console.error('[InterviewPrep] Error saving task:', error);
+      alert('Failed to save task. Please try again.');
     }
-    
-    // Reset form
-    setTaskFormData({ title: '', description: '', category: 'practice', priority: 'medium' });
-    setEditingTask(null);
-    setShowAddTask(false);
   };
   
   const formatDateTime = (datetime) => {
@@ -663,12 +675,6 @@ function InterviewPreparation() {
                   >
                     {interview.video_link}
                   </a>
-                )}
-                {interview.location_type === 'phone' && interview.phone_number && (
-                  <p style={{ margin: '8px 0 0 0' }}>📞 {interview.phone_number}</p>
-                )}
-                {interview.location_type === 'in-person' && interview.location_details && (
-                  <p style={{ margin: '8px 0 0 0' }}>{interview.location_details}</p>
                 )}
               </div>
               
