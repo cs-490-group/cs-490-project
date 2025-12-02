@@ -29,7 +29,7 @@ from routes.question_bank import question_bank_router
 from routes.mock_interview import mock_interview_router
 from routes.coaching import coaching_router
 from routes.networks import networks_router
-from routes.referrals import referrals_router
+# from routes.referrals import referrals_router
 # from routes.network_events import network_events_router
 # from routes.network_analytics import network_analytics_router
 
