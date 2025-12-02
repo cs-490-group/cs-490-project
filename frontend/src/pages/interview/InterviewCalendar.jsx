@@ -15,51 +15,11 @@ function InterviewCalendar() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState(null);
   const [viewMode, setViewMode] = useState('upcoming');
-  const [calendarStatus, setCalendarStatus] = useState({ connected: false, provider: null });
   
   useEffect(() => {
     loadInterviews();
-    loadCalendarStatus();
   }, []);
-  
-  const loadCalendarStatus = async () => {
-    try {
-      const response = await InterviewScheduleAPI.getCalendarStatus();
-      setCalendarStatus(response.data);
-    } catch (err) {
-      console.error('Error loading calendar status:', err);
-      setCalendarStatus({ connected: false, provider: null });
-    }
-  };
-  
-  const connectCalendar = async (provider) => {
-    try {
-      const response = provider === 'google'
-        ? await InterviewScheduleAPI.getGoogleAuthUrl()
-        : await InterviewScheduleAPI.getOutlookAuthUrl();
-      
-      window.open(response.data.auth_url, '_blank', 'width=600,height=700');
-      
-      const checkInterval = setInterval(async () => {
-        try {
-          const statusResponse = await InterviewScheduleAPI.getCalendarStatus();
-          if (statusResponse.data.connected) {
-            setCalendarStatus(statusResponse.data);
-            showFlash(`Connected to ${statusResponse.data.provider} calendar`, 'success');
-            clearInterval(checkInterval);
-          }
-        } catch (err) {
-          // Ignore polling errors
-        }
-      }, 2000);
-      
-      setTimeout(() => clearInterval(checkInterval), 120000);
-    } catch (err) {
-      console.error('Calendar connection error:', err);
-      showFlash('Failed to connect calendar', 'error');
-    }
-  };
-  
+
   // Helper function to parse UTC datetime and convert to local Date object
   const parseUTCDateTime = (datetimeStr) => {
     if (!datetimeStr) return null;
@@ -119,7 +79,7 @@ function InterviewCalendar() {
         return allInterviews.upcoming;
     }
   };
-  
+
   const handleInterviewClick = (interview) => {
     setSelectedInterview(interview);
     setShowDetails(true);
@@ -209,7 +169,194 @@ function InterviewCalendar() {
       showFlash('Failed to delete interview', 'error');
     }
   };
-  
+
+  // Generate Google Calendar URL
+  const generateGoogleCalendarUrl = (interview) => {
+    const startDate = parseUTCDateTime(interview.interview_datetime);
+    const endDate = new Date(startDate.getTime() + (interview.duration_minutes || 60) * 60000);
+    
+    // Format: YYYYMMDDTHHmmssZ
+    const formatDateForGoogle = (date) => {
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
+    
+    const title = encodeURIComponent(`Interview: ${interview.scenario_name || 'Position'}`);
+    
+    let detailsParts = [];
+    detailsParts.push(`Position: ${interview.scenario_name || 'N/A'}`);
+    
+    if (interview.company_name) {
+      detailsParts.push(`Company: ${interview.company_name}`);
+    }
+    
+    detailsParts.push(`Format: ${interview.location_type || 'N/A'}`);
+    
+    if (interview.location_type === 'video' && interview.video_link) {
+      detailsParts.push(`Video Platform: ${interview.video_platform || 'Video Call'}`);
+      detailsParts.push(`Join: ${interview.video_link}`);
+    } else if (interview.location_type === 'phone' && interview.phone_number) {
+      detailsParts.push(`Phone: ${interview.phone_number}`);
+    } else if (interview.location_type === 'in-person' && interview.location_details) {
+      detailsParts.push(`Location: ${interview.location_details}`);
+    }
+    
+    if (interview.interviewer_name) {
+      let interviewerLine = `Interviewer: ${interview.interviewer_name}`;
+      if (interview.interviewer_title) {
+        interviewerLine += ` (${interview.interviewer_title})`;
+      }
+      detailsParts.push(interviewerLine);
+      
+      if (interview.interviewer_email) {
+        detailsParts.push(`Email: ${interview.interviewer_email}`);
+      }
+      if (interview.interviewer_phone) {
+        detailsParts.push(`Phone: ${interview.interviewer_phone}`);
+      }
+    }
+    
+    if (interview.notes) {
+      detailsParts.push(`\nNotes: ${interview.notes}`);
+    }
+    
+    const details = encodeURIComponent(detailsParts.join('\n'));
+    
+    let location = '';
+    if (interview.location_type === 'video' && interview.video_link) {
+      location = interview.video_link;
+    } else if (interview.location_type === 'in-person' && interview.location_details) {
+      location = interview.location_details;
+    } else if (interview.location_type === 'phone' && interview.phone_number) {
+      location = interview.phone_number;
+    }
+    
+    const dates = `${formatDateForGoogle(startDate)}/${formatDateForGoogle(endDate)}`;
+    
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${dates}&location=${encodeURIComponent(location)}`;
+  };
+
+  // Generate ICS file content
+  const generateICSFile = (interview) => {
+    const startDate = parseUTCDateTime(interview.interview_datetime);
+    const endDate = new Date(startDate.getTime() + (interview.duration_minutes || 60) * 60000);
+    
+    // Format: YYYYMMDDTHHmmssZ
+    const formatDateForICS = (date) => {
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
+    
+    const escapeICS = (str) => {
+      if (!str) return '';
+      return str.replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+    };
+    
+    const summary = escapeICS(`Interview: ${interview.scenario_name || 'Position'}`);
+    
+    let descriptionParts = [];
+    descriptionParts.push(`Position: ${interview.scenario_name || 'N/A'}`);
+    
+    if (interview.company_name) {
+      descriptionParts.push(`Company: ${interview.company_name}`);
+    }
+    
+    descriptionParts.push(`Format: ${interview.location_type || 'N/A'}`);
+    
+    if (interview.location_type === 'video' && interview.video_link) {
+      descriptionParts.push(`Video Platform: ${interview.video_platform || 'Video Call'}`);
+      descriptionParts.push(`Join: ${interview.video_link}`);
+    } else if (interview.location_type === 'phone' && interview.phone_number) {
+      descriptionParts.push(`Phone: ${interview.phone_number}`);
+    } else if (interview.location_type === 'in-person' && interview.location_details) {
+      descriptionParts.push(`Location: ${interview.location_details}`);
+    }
+    
+    if (interview.interviewer_name) {
+      let interviewerLine = `Interviewer: ${interview.interviewer_name}`;
+      if (interview.interviewer_title) {
+        interviewerLine += ` (${interview.interviewer_title})`;
+      }
+      descriptionParts.push(interviewerLine);
+      
+      if (interview.interviewer_email) {
+        descriptionParts.push(`Email: ${interview.interviewer_email}`);
+      }
+      if (interview.interviewer_phone) {
+        descriptionParts.push(`Phone: ${interview.interviewer_phone}`);
+      }
+    }
+    
+    if (interview.notes) {
+      descriptionParts.push(`\\nNotes: ${interview.notes}`);
+    }
+    
+    const description = escapeICS(descriptionParts.join('\\n'));
+    
+    let location = '';
+    if (interview.location_type === 'video' && interview.video_link) {
+      location = escapeICS(interview.video_link);
+    } else if (interview.location_type === 'in-person' && interview.location_details) {
+      location = escapeICS(interview.location_details);
+    } else if (interview.location_type === 'phone' && interview.phone_number) {
+      location = escapeICS(interview.phone_number);
+    }
+    
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Interview Prep//Interview Calendar//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      `UID:${interview.uuid}@interviewprep.com`,
+      `DTSTAMP:${formatDateForICS(new Date())}`,
+      `DTSTART:${formatDateForICS(startDate)}`,
+      `DTEND:${formatDateForICS(endDate)}`,
+      `SUMMARY:${summary}`,
+      `DESCRIPTION:${description}`,
+      `LOCATION:${location}`,
+      'STATUS:CONFIRMED',
+      'SEQUENCE:0',
+      'BEGIN:VALARM',
+      'TRIGGER:-PT24H',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:Interview tomorrow',
+      'END:VALARM',
+      'BEGIN:VALARM',
+      'TRIGGER:-PT2H',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:Interview in 2 hours',
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+    
+    return icsContent;
+  };
+
+  // Download ICS file
+  const downloadICS = (interview) => {
+    const icsContent = generateICSFile(interview);
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    
+    // Create a clean filename
+    const company = interview.company_name ? interview.company_name.replace(/[^a-z0-9]/gi, '-') : 'company';
+    const position = interview.scenario_name ? interview.scenario_name.replace(/[^a-z0-9]/gi, '-') : 'interview';
+    link.download = `interview-${company}-${position}.ics`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showFlash('Calendar file downloaded', 'success');
+  };
+
+  // Open Google Calendar
+  const addToGoogleCalendar = (interview) => {
+    const url = generateGoogleCalendarUrl(interview);
+    window.open(url, '_blank');
+  };
+
   const formatDateTime = (datetime) => {
     const date = parseUTCDateTime(datetime);
     
@@ -299,7 +446,7 @@ function InterviewCalendar() {
   }
   
   const displayedInterviews = getDisplayedInterviews();
-  
+
   return (
     <div className="interview-calendar-container">
       <div className="interview-calendar-header">
@@ -431,7 +578,7 @@ function InterviewCalendar() {
           })
         )}
       </div>
-      
+
       {showDetails && selectedInterview && (
         <div className="modal-overlay" onClick={() => setShowDetails(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -482,6 +629,9 @@ function InterviewCalendar() {
                   {selectedInterview.interviewer_email && (
                     <p className="contact-info">📧 {selectedInterview.interviewer_email}</p>
                   )}
+                  {selectedInterview.interviewer_phone && (
+                    <p className="contact-info">📞 {selectedInterview.interviewer_phone}</p>
+                  )}
                 </div>
               )}
               
@@ -493,44 +643,52 @@ function InterviewCalendar() {
               )}
               
               <div className="detail-section">
-                <h4>Calendar Sync</h4>
-                {calendarStatus.connected ? (
-                  <div style={{ color: '#28a745', marginBottom: '12px' }}>
-                    ✓ Connected to {calendarStatus.provider}
-                  </div>
-                ) : (
-                  <div>
-                    <p style={{ marginBottom: '12px', color: '#666' }}>
-                      Connect your calendar to automatically sync interview schedules
-                    </p>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <button
-                        onClick={() => connectCalendar('google')}
-                        style={{
-                          padding: '10px 20px',
-                          border: '1px solid #ddd',
-                          borderRadius: '8px',
-                          background: 'white',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Connect Google Calendar
-                      </button>
-                      <button
-                        onClick={() => connectCalendar('outlook')}
-                        style={{
-                          padding: '10px 20px',
-                          border: '1px solid #ddd',
-                          borderRadius: '8px',
-                          background: 'white',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Connect Outlook
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <h4>Add to Calendar</h4>
+                <p style={{ marginBottom: '12px', color: '#666', fontSize: '14px' }}>
+                  Save this interview to your calendar
+                </p>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => addToGoogleCalendar(selectedInterview)}
+                    style={{
+                      padding: '10px 20px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      background: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                  >
+                    <span style={{ fontSize: '18px' }}>📅</span>
+                    Add to Google Calendar
+                  </button>
+                  <button
+                    onClick={() => downloadICS(selectedInterview)}
+                    style={{
+                      padding: '10px 20px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      background: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                  >
+                    <span style={{ fontSize: '18px' }}>⬇️</span>
+                    Download .ics (Outlook/Apple)
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -560,6 +718,7 @@ function InterviewCalendar() {
           </div>
         </div>
       )}
+
       {showEditModal && editFormData && selectedInterview && (
         <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflow: 'auto' }}>
