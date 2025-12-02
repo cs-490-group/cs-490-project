@@ -9,6 +9,9 @@ import Home from "./pages/home";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import Profile from "./pages/profile";
+import CreateGroup from "./pages/createGroup";
+import GroupPage from "./pages/groupPage";
+import SetupTeam from "./pages/teams/setupTeam";
 import EmploymentList from "./pages/employment/EmploymentList";
 import SetPassword from "./pages/setPassword";
 import ForgotPassword from "./pages/forgotPassword";
@@ -28,7 +31,17 @@ import SharingAndFeedbackPage from "./pages/resumes/SharingAndFeedbackPage";
 import PublicSharePage from "./pages/resumes/PublicSharePage";
 import ExportResumePage from "./pages/resumes/ExportResumePage";
 import TemplateLibraryPage from "./pages/resumes/TemplateLibraryPage";
+import QuestionLibrary from "./pages/interview/QuestionLibrary";
+import IndustryRoles from "./pages/interview/IndustryRoles";
+import RoleQuestions from "./pages/interview/RoleQuestions";
+import PracticeQuestion from "./pages/interview/PracticeQuestion";
+import MyPractice from "./pages/interview/MyPractice";
+import Progress from "./pages/interview/Progress";
+import MockInterviewStart from "./pages/interview/MockInterviewStart";
+import MockInterviewQuestion from "./pages/interview/MockInterviewQuestion";
+import MockInterviewSummary from "./pages/interview/MockInterviewSummary";
 import { FlashProvider, FlashMessage } from "./context/flashContext";
+import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
@@ -39,6 +52,7 @@ import NetworkOverview from "./pages/network/NetworkOverview";
 
 // import Dashboard from "./pages/dashboard";
 import Dashboard from "./pages/dashboard";
+import TeamsDashboard from "./pages/teamsDashboard";
 
 
 export function App() {
@@ -47,23 +61,28 @@ export function App() {
   return (
     <div className="App">
       <header>
-        
+
         <>
-    
+
           <FlashProvider>
             <FlashMessage />
+            <JobProvider>
               <Nav key={location.pathname} />
               <Routes>
                 <Route path = "/" element = {<Home />} />
                 <Route path = "/register" element = {<Register />} />
                 <Route path = "/login" element = {<Login />} />
                 <Route path = "/profile" element = {<Profile />} />
+                <Route path = "/newGroup" element = {<CreateGroup />} />
+                <Route path = "/group/:groupId" element = {<GroupPage />} />
+                <Route path="/setup-team" element={<SetupTeam />} />
+                <Route path="/teams" element={<TeamsDashboard />} />
                 <Route path="/employment-history" element={<EmploymentList />} />
                 <Route path = "/forgotPassword" element = {<ForgotPassword />} />
                 <Route path = "/set-password" element = {<SetPassword />} />
                 <Route path = "/dashboard" element = {<Dashboard />} />
                 <Route path = "/resetPassword/:token" element = {<ResetPassword />}/>
-                <Route path = "/coverLetter" element = {<CoverLetter />} />
+                <Route path = "/cover-Letter" element = {<CoverLetter />} />
                 <Route path="/cover-letter/edit/:id" element={<CoverLetterEditPage />} />
 
               <Route path="/skills" element={<SkillsList />} />
@@ -79,8 +98,22 @@ export function App() {
               <Route path="/resumes/feedback/:id" element={<SharingAndFeedbackPage />} />
               <Route path="/resumes/public/:token" element={<PublicSharePage />} />
               <Route path="/resumes/export/:id" element={<ExportResumePage />} />
+
+              {/* Interview Question Bank Routes */}
+              <Route path="/interview/question-library" element={<QuestionLibrary />} />
+              <Route path="/interview/industry/:industryId" element={<IndustryRoles />} />
+              <Route path="/interview/my-practice" element={<MyPractice />} />
+              <Route path="/interview/progress" element={<Progress />} />
+              <Route path="/interview/questions/practice/:questionId" element={<PracticeQuestion />} />
+              <Route path="/interview/questions/:roleId" element={<RoleQuestions />} />
+
+              {/* Mock Interview Routes */}
+              <Route path="/interview/mock-interview-start" element={<MockInterviewStart />} />
+              <Route path="/interview/mock-interview/:sessionId" element={<MockInterviewQuestion />} />
+              <Route path="/interview/mock-interview-summary/:sessionId" element={<MockInterviewSummary />} />
               <Route path="/network" element={<NetworkOverview />} />
               </Routes>
+            </JobProvider>
             </FlashProvider>
           </>
 

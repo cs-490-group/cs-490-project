@@ -13,6 +13,7 @@ const Nav = () => {
   const location = useLocation();
   const { showFlash } = useFlash();
   const token = localStorage.getItem("session");
+  const teamId = localStorage.getItem("teamId");
   
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -32,7 +33,6 @@ const Nav = () => {
 
     console.log("ENTERING EFFECT")
     
-    // Skip validation if already validated
     if (hasValidated.current) {
       return;
     }
@@ -61,24 +61,20 @@ const Nav = () => {
         if (response.status === 200) {
           setIsAuthenticated(true);
           
-          // Check if we have cached username
           const cachedUsername = localStorage.getItem("username");
           
           if (cachedUsername) {
             setUsername(cachedUsername);
           }
           
-          // Always fetch avatar since blob URLs don't persist
           try {
             if (!cachedUsername) {
-              // First time - also fetch username
               const profileRes = await ProfilesAPI.get();
               const newUsername = profileRes.data.username || "User";
               setUsername(newUsername);
               localStorage.setItem("username", newUsername);
             }
             
-            // Always fetch avatar
             const avatarRes = await ProfilesAPI.getAvatar();
             const blob = avatarRes.data;
             const url = URL.createObjectURL(blob);
@@ -89,7 +85,6 @@ const Nav = () => {
             }
           } catch (error) {
             console.error("Failed to load profile data:", error);
-            // Set defaults if profile loading fails
             setAvatarUrl("/default.png");
             if (!cachedUsername) {
               const defaultUsername = "User";
@@ -128,27 +123,23 @@ const Nav = () => {
     validateSession();
     
     return () => {
-      // Only revoke blob URLs created in this session, not cached ones
       if (avatarUrl?.startsWith("blob:") && avatarUrl !== localStorage.getItem("avatarUrl")) {
         URL.revokeObjectURL(avatarUrl);
       }
     };
   }, [token, navigate]);
 
-  // Listen for profile updates from the Profile page
   React.useEffect(() => {
     const handleProfileUpdate = async () => {
       const newUsername = localStorage.getItem("username");
       
       if (newUsername) setUsername(newUsername);
       
-      // Fetch fresh avatar
       try {
         const avatarRes = await ProfilesAPI.getAvatar();
         const blob = avatarRes.data;
         const url = URL.createObjectURL(blob);
         if (url) {
-          // Revoke old blob URL
           const oldUrl = avatarUrl;
           if (oldUrl?.startsWith("blob:")) {
             URL.revokeObjectURL(oldUrl);
@@ -181,7 +172,6 @@ const Nav = () => {
       console.error("Logout failed:", error);
     }
 
-    // Revoke blob URL if it exists
     const cachedAvatarUrl = localStorage.getItem("avatarUrl");
     if (cachedAvatarUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(cachedAvatarUrl);
@@ -190,6 +180,7 @@ const Nav = () => {
     localStorage.removeItem("uuid");
     localStorage.removeItem("session");
     localStorage.removeItem("username");
+    localStorage.removeItem("teamId");
     setIsAuthenticated(false);
     setAvatarUrl(null);
     setUsername("");
@@ -198,7 +189,6 @@ const Nav = () => {
     window.scrollTo({ top: 0, behavior: "smooth" }); 
   };
 
-  // Optional: Show loading state while validating
   if (isLoading) {
     return (
       <Navbar bg="dark" variant="dark" expand="lg" sticky="top">
@@ -277,13 +267,46 @@ const Nav = () => {
                   Resumes
                 </BootstrapNav.Link>
 
-                 <BootstrapNav.Link as={NavLink} to="/coverletter" className="mx-3">
+                <BootstrapNav.Link as={NavLink} to="/cover-letter" className="mx-3">
                   Cover Letters
                 </BootstrapNav.Link>
 
                 <BootstrapNav.Link as={NavLink} to="/network" className="mx-3">
                   Network
                 </BootstrapNav.Link>
+
+                <NavDropdown
+                  title={
+                    <span
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigate("/interview/question-library");
+                      }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Interview Prep
+                    </span>
+                  }
+                  id="interview-dropdown"
+                  className="mx-3"
+                >
+                  <NavDropdown.Item as={NavLink} to="/interview/question-library">
+                    Question Library
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/my-practice">
+                    My Practice
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/progress">
+                    Progress
+                  </NavDropdown.Item>
+                </NavDropdown>
+
+                {teamId && (
+                  <BootstrapNav.Link as={NavLink} to="/teams" className="mx-3">
+                    Teams
+                  </BootstrapNav.Link>
+                )}
 
                 <NavDropdown
                   title={

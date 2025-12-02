@@ -14,53 +14,59 @@ export default function SetPassword() {
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e) => {
-  e.preventDefault();
-  if (!password || !confirm) {
-    showFlash("Please fill out both fields.", "error");
-    return;
-  }
-  if (password.length < 8) {
-    showFlash("Password must be at least 8 characters.", "error");
-    return;
-  }
-  if (password !== confirm) {
-    showFlash("Passwords do not match.", "error");
-    return;
-  }
+    e.preventDefault();
+    if (!password || !confirm) {
+      showFlash("Please fill out both fields.", "error");
+      return;
+    }
+    if (password.length < 8) {
+      showFlash("Password must be at least 8 characters.", "error");
+      return;
+    }
+    if (password !== confirm) {
+      showFlash("Passwords do not match.", "error");
+      return;
+    }
 
-  setLoading(true);
-  try {
-    const token = localStorage.getItem("uuid"); // current UUID
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("uuid"); // current UUID
 
-    const res = await AuthAPI.updatePassword({
-      token: token,
-      password: password,
-      old_token: "GodIHopeNoOneChecksThis",
-    });
+      const res = await AuthAPI.updatePassword({
+        token: token,
+        password: password,
+        old_token: "GodIHopeNoOneChecksThis",
+      });
 
-    // ✅ store new session info
-    localStorage.setItem("uuid", res.data.uuid);
-    localStorage.setItem("session", res.data.session_token);
+      // ✅ store new session info
+      localStorage.setItem("uuid", res.data.uuid);
+      localStorage.setItem("session", res.data.session_token);
 
-    showFlash(
-      "Password set successfully! You can now manage your account normally.",
-      "success"
-    );
+      showFlash(
+        "Password set successfully! You can now manage your account normally.",
+        "success"
+      );
 
-    setPassword("");
-    setConfirm("");
-    navigate("/profile");
-  } catch (error) {
-    console.error(error);
-    showFlash(
-      error?.response?.data?.detail || "Failed to set password.",
-      "error"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      setPassword("");
+      setConfirm("");
 
+      // Check if user should go to setup-team or profile
+      const teamId = localStorage.getItem("teamId");
+      if (teamId) {
+        navigate("/teams");
+      } else {
+        navigate("/setup-team");
+      }
+    } catch (error) {
+      console.error(error);
+      showFlash(
+        error?.response?.data?.detail || "Failed to set password.",
+        "error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="register-page">
@@ -71,7 +77,7 @@ export default function SetPassword() {
 
         <h2 className="fw-bold mb-2">Set Your Password</h2>
         <p className="text-muted mb-4">
-        Please create a password to manage your account securely.
+          Please create a password to manage your account securely.
         </p>
 
         <form className="Register" onSubmit={onSubmit}>
