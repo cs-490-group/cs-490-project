@@ -4,6 +4,8 @@ import teamsAPI from "../api/teams";
 import UserProfile from "./otherProfile";
 import TeamReports from "./teams/TeamReports";
 import GoalTracker from "./teams/GoalTracker";
+import ProgressSharingHub from "./teams/ProgressSharingHub";
+import MilestoneCelebration from "./teams/MilestoneCelebration";
 
 function TeamsDashboard() {
   const [team, setTeam] = useState(null);
@@ -22,6 +24,7 @@ function TeamsDashboard() {
   const [progress, setProgress] = useState(null);
   const [currentUserUuid, setCurrentUserUuid] = useState(null);
   const [viewingUserProfile, setViewingUserProfile] = useState(null);
+  
 
   useEffect(() => {
     const userUuid = localStorage.getItem("uuid"); 
@@ -289,61 +292,111 @@ function TeamsDashboard() {
     )}
 
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px", marginBottom: "24px" }}>
-      {filteredMembers.map((member) => {
-        const memberProgress = getMemberProgressData(member.uuid);
-        const canView = canViewMemberDetails(member.uuid);
+  {filteredMembers.map((member) => {
+    const memberProgress = getMemberProgressData(member.uuid);
+    const canView = canViewMemberDetails(member.uuid);
+    const currentRole = getUserRole();
+    const canEditThisGoals = member.role === "candidate" && (getUserRole() === "mentor" || getUserRole() === "admin");
+    return (
+      <div
+        key={member.uuid}
+        style={{
+          padding: "16px",
+          borderRadius: "8px",
+          border: "1px solid #e0e0e0",
+          background: "white",
+          transition: "all 0.2s",
+          opacity: canView ? 1 : 0.6
+        }}
+      >
+        {/* Header with name and view button */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "12px" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: "bold", marginBottom: "4px", color: "#1a1a1a" }}>
+              {member.name}
+            </div>
+            <div style={{ fontSize: "12px", color: "#666" }}>
+              {member.role}
+            </div>
+          </div>
+          {canView && (
+            <button
+              onClick={() => setViewingUserProfile(member.uuid)}
+              style={{
+                padding: "4px 8px",
+                background: "#e3f2fd",
+                color: "#1976d2",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "11px",
+                fontWeight: "bold",
+                whiteSpace: "nowrap"
+              }}
+            >
+              View Profile
+            </button>
+          )}
+        </div>
 
-        return (
-          <div
-            key={member.uuid}
-            onClick={() => canView && setViewingUserProfile(member.uuid)}
+        {!canView && (
+          <div style={{ fontSize: "12px", color: "#ff9800", marginBottom: "8px", fontStyle: "italic" }}>
+            View only your own progress
+          </div>
+        )}
+
+        {memberProgress && (
+          <>
+            <div style={{ background: "#e0e0e0", height: "4px", borderRadius: "2px", marginBottom: "8px", overflow: "hidden" }}>
+              <div style={{ background: "#2196f3", height: "100%", width: `${memberProgress.progress}%` }} />
+            </div>
+            <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>
+              {memberProgress.completedGoals}/{memberProgress.totalGoals} goals
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px", marginBottom: "12px" }}>
+              <div style={{ background: "#e8f5e9", padding: "6px", borderRadius: "4px", textAlign: "center", fontSize: "11px" }}>
+                <div style={{ fontWeight: "bold", color: "#2e7d32" }}>{memberProgress.applications.successRate}%</div>
+                <div style={{ color: "#666", fontSize: "10px" }}>Success</div>
+              </div>
+              <div style={{ background: "#e3f2fd", padding: "6px", borderRadius: "4px", textAlign: "center", fontSize: "11px" }}>
+                <div style={{ fontWeight: "bold", color: "#1565c0" }}>{memberProgress.applications.interviewRate}%</div>
+                <div style={{ color: "#666", fontSize: "10px" }}>Interview</div>
+              </div>
+              <div style={{ background: "#f3e5f5", padding: "6px", borderRadius: "4px", textAlign: "center", fontSize: "11px" }}>
+                <div style={{ fontWeight: "bold", color: "#6a1b9a" }}>{memberProgress.applications.responseRate}%</div>
+                <div style={{ color: "#666", fontSize: "10px" }}>Response</div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Edit Goals Button */}
+        {canEditThisGoals && (
+          <button
+            onClick={() => {
+              setSelectedMember(member);
+              // This will show the GoalTracker component below
+            }}
             style={{
-              padding: "16px",
-              borderRadius: "8px",
-              border: "1px solid #e0e0e0",
-              background: "white",
-              cursor: canView ? "pointer" : "not-allowed",
-              transition: "all 0.2s",
-              opacity: canView ? 1 : 0.6
+              width: "100%",
+              padding: "8px",
+              background: "#4caf50",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "bold",
+              marginTop: "8px"
             }}
           >
-            <div style={{ fontWeight: "bold", marginBottom: "4px", color: "#1a1a1a" }}>{member.name}</div>
-            <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>{member.role}</div>
-            
-            {!canView && (
-              <div style={{ fontSize: "12px", color: "#ff9800", marginBottom: "8px", fontStyle: "italic" }}>
-                View only your own progress
-              </div>
-            )}
-
-            {memberProgress && (
-              <>
-                <div style={{ background: "#e0e0e0", height: "4px", borderRadius: "2px", marginBottom: "8px", overflow: "hidden" }}>
-                  <div style={{ background: "#2196f3", height: "100%", width: `${memberProgress.progress}%` }} />
-                </div>
-                <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>
-                  {memberProgress.completedGoals}/{memberProgress.totalGoals} goals
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
-                  <div style={{ background: "#e8f5e9", padding: "6px", borderRadius: "4px", textAlign: "center", fontSize: "11px" }}>
-                    <div style={{ fontWeight: "bold", color: "#2e7d32" }}>{memberProgress.applications.successRate}%</div>
-                    <div style={{ color: "#666", fontSize: "10px" }}>Success</div>
-                  </div>
-                  <div style={{ background: "#e3f2fd", padding: "6px", borderRadius: "4px", textAlign: "center", fontSize: "11px" }}>
-                    <div style={{ fontWeight: "bold", color: "#1565c0" }}>{memberProgress.applications.interviewRate}%</div>
-                    <div style={{ color: "#666", fontSize: "10px" }}>Interview</div>
-                  </div>
-                  <div style={{ background: "#f3e5f5", padding: "6px", borderRadius: "4px", textAlign: "center", fontSize: "11px" }}>
-                    <div style={{ fontWeight: "bold", color: "#6a1b9a" }}>{memberProgress.applications.responseRate}%</div>
-                    <div style={{ color: "#666", fontSize: "10px" }}>Response</div>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        );
-      })}
-    </div>
+            🎯 Edit Goals
+          </button>
+        )}
+      </div>
+    );
+  })}
+</div>
 
     {selectedMember && (
       <div style={{ background: "#f5f5f5", padding: "24px", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
@@ -477,6 +530,34 @@ function TeamsDashboard() {
     )}
   </div>
 );
+
+const renderSharing = () => {
+  const teamId = localStorage.getItem("teamId");
+  const userId = localStorage.getItem("uuid");
+  const userName = members.find(m => m.uuid === userId)?.name || "User";
+
+  return (
+    <ProgressSharingHub 
+      teamId={teamId}
+      memberId={userId}
+      memberName={userName}
+      baseAPI={{
+        post: (url, data) => fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          body: JSON.stringify(data)
+        }).then(r => r.json()),
+        get: (url, options) => fetch(url + (options?.params ? '?' + new URLSearchParams(options.params) : ''), {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }).then(r => r.json()),
+        delete: (url) => fetch(url, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }).then(r => r.json())
+      }}
+    />
+  );
+};
 
   const renderBilling = () => {
     const plans = [
@@ -806,6 +887,24 @@ function TeamsDashboard() {
               {tabId.charAt(0).toUpperCase() + tabId.slice(1)}
             </button>
           ))}
+                  {isCandidate() && (
+          <button
+            onClick={() => setActiveTab("sharing")}
+            style={{
+              padding: "16px 0",
+              background: "none",
+              border: "none",
+              borderBottom: activeTab === "sharing" ? "3px solid #2196f3" : "3px solid transparent",
+              color: activeTab === "sharing" ? "#2196f3" : "#666",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: activeTab === "sharing" ? "bold" : "normal",
+              transition: "all 0.2s"
+            }}
+          >
+            📤 Progress Sharing
+          </button>
+        )}
           {isAdmin() && (
             <button
               onClick={() => setActiveTab("billing")}
@@ -831,8 +930,11 @@ function TeamsDashboard() {
         {activeTab === "overview" && renderOverview()}
         {activeTab === "members" && renderMembers()}
         {activeTab === "reports" && renderReports()}
+        {activeTab === "sharing" && renderSharing()}
         {activeTab === "billing" && renderBilling()}
       </div>
+
+      
 
       {viewingUserProfile && (
             <UserProfile 

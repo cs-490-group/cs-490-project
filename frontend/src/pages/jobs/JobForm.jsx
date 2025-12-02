@@ -473,6 +473,48 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
         await addJob(jobData);
       }
 
+      // Log milestone if status indicates progress. UC-111
+      const teamId = localStorage.getItem("teamId");
+      const memberId = localStorage.getItem("uuid");
+      
+      if (teamId && memberId) {
+        try {
+          if (status === "Interview") {
+            await fetch(`/progress-sharing/${teamId}/members/${memberId}/milestones`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                id: `interview_${id || Date.now()}`,
+                title: "📞 Interview Scheduled",
+                description: `Interview at ${company}`,
+                category: "interview_scheduled",
+                impact_score: 7
+              })
+            });
+          } else if (status === "Offer") {
+            await fetch(`/progress-sharing/${teamId}/members/${memberId}/milestones`, { // replace fetch with api call later.
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                id: `offer_${id || Date.now()}`,
+                title: "💼 Offer Received",
+                description: `Offer from ${company}`,
+                category: "offer_received",
+                impact_score: 10
+              })
+            });
+          }
+        } catch (err) {
+          console.error("Failed to log milestone:", err);
+        }
+      }
+
       resetForm();
       cancelEdit && cancelEdit();
     } catch (error) {

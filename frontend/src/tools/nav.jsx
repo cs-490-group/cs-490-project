@@ -25,7 +25,7 @@ const Nav = () => {
 
   console.log(token)
   React.useEffect(() => {
-    const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword"];
+    const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword","/shared-progress"];
 
     const shouldSkip = excludedPaths.some(prefix =>
       location.pathname.startsWith(prefix)
