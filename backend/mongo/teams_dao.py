@@ -24,7 +24,7 @@ class TeamsDAO:
             team_id = ObjectId(team_id)
             print(f"Converted to ObjectId: {team_id}")
         except Exception as e:
-            print(f"❌ Failed to convert: {e}")
+            print(f" Failed to convert: {e}")
             return None
         result = await self.collection.find_one({"_id": team_id})
         print(f"Found team: {result is not None}")
@@ -74,7 +74,22 @@ class TeamsDAO:
                 "members.$.goals": [],
                 "members.$.applications": [],
                 "members.$.feedback": [],
-                "members.$.progress": {"overall": 0}
+                "members.$.progress": {"overall": 0},
+
+                "members.$.progress_sharing": {
+                "allow_sharing": True,
+                "default_privacy_settings": {
+                    "can_see_goals": True,
+                    "can_see_applications": True,
+                    "can_see_engagement": True,
+                    "can_see_full_progress": False,
+                    "can_see_milestones": True,
+                    "can_see_feedback": False
+                },
+                "shared_with": []
+            },
+            "members.$.milestones": [],
+            "members.$.celebrations": []
             }}
         )
         return result.modified_count
@@ -96,9 +111,27 @@ class TeamsDAO:
     
     async def add_member_to_team(self, team_id: ObjectId, member_data: Dict) -> int:
         """Add a member to a team"""
+
+        full_member_data = {
+        **member_data,
+        "progress_sharing": member_data.get("progress_sharing", {
+            "allow_sharing": True,
+            "default_privacy_settings": {
+                "can_see_goals": True,
+                "can_see_applications": True,
+                "can_see_engagement": True,
+                "can_see_full_progress": False,
+                "can_see_milestones": True,
+                "can_see_feedback": False
+            },
+            "shared_with": []
+        }),
+        "milestones": member_data.get("milestones", []),
+        "celebrations": member_data.get("celebrations", [])
+    }
         result = await self.collection.update_one(
             {"_id": team_id},
-            {"$push": {"members": member_data}}
+            {"$push": {"members": full_member_data}}
         )
         return result.modified_count
     
@@ -246,12 +279,6 @@ class TeamsDAO:
         
         engagement_score = int(login_score + goal_score + app_score + feedback_score)
         
-        print(f"📊 Engagement Calculation for {member.get('name')}:")
-        print(f"   Logins: {logins} ({login_score:.0f}pts)")
-        print(f"   Goals: {goals_completed} ({goal_score:.0f}pts)")
-        print(f"   Applications: {applications_sent} ({app_score:.0f}pts)")
-        print(f"   Feedback: {feedback_received} ({feedback_score:.0f}pts)")
-        print(f"   Total Engagement Score: {engagement_score}%")
         
         # Update member's engagement in the database
         result = await self.collection.update_one(
@@ -314,7 +341,6 @@ class TeamsDAO:
         
         # Only calculate progress for active members AND candidates
         active_members = [m for m in members if m.get("status") == "active" and m.get("role") == "candidate"]
-        print(f"👥 Active candidates: {len(active_members)}")
         
         if not active_members:
             return {
@@ -385,7 +411,7 @@ class TeamsDAO:
             member_uuid = member.get("uuid")
             member_goals = extract_goals_from_config(member.get("goals", []))
             
-            print(f"👤 Processing member: {member.get('name')} - {len(member_goals)} goals found")
+            print(f"Processing member: {member.get('name')} - {len(member_goals)} goals found")
             
             # Fetch job applications for this member
             member_applications = {
@@ -410,17 +436,12 @@ class TeamsDAO:
                     user_jobs = await jobs_dao.get_all_jobs(member_uuid)
                     member_applications["total"] = len(user_jobs)
                     
-                    print(f"   📊 Total jobs found: {len(user_jobs)}")
-                    
                     # Calculate time windows
                     now = datetime.utcnow()
                     week_ago = now - timedelta(days=7)
                     month_ago = now - timedelta(days=30)
                     
-                    print(f"   📅 Time windows:")
-                    print(f"      Now: {now}")
-                    print(f"      Week ago: {week_ago}")
-                    print(f"      Month ago: {month_ago}")
+
                     
                     # Count by status and time windows
                     for job in user_jobs:
@@ -428,26 +449,20 @@ class TeamsDAO:
                         # Use the helper function to parse date_created
                         created_at = self._parse_job_date(job.get("date_created"))
                         
-                        print(f"      🔍 Job: {job.get('title', 'Unknown')} | Status: {status}")
-                        print(f"         date_created: {job.get('date_created')} -> parsed: {created_at}")
                         
                         if created_at:
-                            print(f"         ✓ Parsed date: {created_at}")
                             
                             # Count applications this week
                             if created_at > week_ago:
                                 applications_this_week += 1
-                                print(f"         ✓ Counted in THIS WEEK")
                             
                             # Count applications this month
                             if created_at > month_ago:
                                 applications_this_month += 1
-                                print(f"         ✓ Counted in THIS MONTH")
                             
                             # Count interviews this month
                             if status == "Interview" and created_at > month_ago:
                                 interviews_this_month += 1
-                                print(f"         ✓ Counted as INTERVIEW THIS MONTH")
                         
                         # Count by status for rates
                         if status == "Offer":
@@ -465,36 +480,25 @@ class TeamsDAO:
                         member_applications["responseRate"] = int((member_applications["response"] / member_applications["total"]) * 100)
                         member_applications["interviewRate"] = int((member_applications["interview"] / member_applications["total"]) * 100)
                         member_applications["successRate"] = int((member_applications["success"] / member_applications["total"]) * 100)
-                    
-                    print(f"   📊 FINAL COUNTS:")
-                    print(f"      Applications this week: {applications_this_week}")
-                    print(f"      Applications this month: {applications_this_month}")
-                    print(f"      Interviews this month: {interviews_this_month}")
-                    print(f"      Response rate: {member_applications['responseRate']}%")
-                    print(f"      Interview rate: {member_applications['interviewRate']}%")
+          
                     
                     #  Update ALL 5 GOALS based on actual metrics
                     for goal in member_goals:
                         if goal.get("id") == "weekly_applications":
                             goal["actual"] = applications_this_week
                             goal["completed"] = applications_this_week >= goal.get("target", 0)
-                            print(f"      ✓ Weekly apps: {applications_this_week}/{goal.get('target')} = {goal['completed']}")
                         elif goal.get("id") == "monthly_applications":
                             goal["actual"] = applications_this_month
                             goal["completed"] = applications_this_month >= goal.get("target", 0)
-                            print(f"      ✓ Monthly apps: {applications_this_month}/{goal.get('target')} = {goal['completed']}")
                         elif goal.get("id") == "monthly_interviews":
                             goal["actual"] = interviews_this_month
                             goal["completed"] = interviews_this_month >= goal.get("target", 0)
-                            print(f"      ✓ Monthly interviews: {interviews_this_month}/{goal.get('target')} = {goal['completed']}")
                         elif goal.get("id") == "target_response_rate":
                             goal["actual"] = member_applications["responseRate"]
                             goal["completed"] = member_applications["responseRate"] >= goal.get("target", 0)
-                            print(f"      ✓ Response rate: {member_applications['responseRate']}%/{goal.get('target')}% = {goal['completed']}")
                         elif goal.get("id") == "target_interview_rate":
                             goal["actual"] = member_applications["interviewRate"]
                             goal["completed"] = member_applications["interviewRate"] >= goal.get("target", 0)
-                            print(f"      ✓ Interview rate: {member_applications['interviewRate']}%/{goal.get('target')}% = {goal['completed']}")
                                 
                 except Exception as e:
                     print(f"Error fetching jobs for member {member_uuid}: {e}")
@@ -505,7 +509,6 @@ class TeamsDAO:
             member_total = len(member_goals)
             member_pct = int((member_completed / member_total * 100) if member_total > 0 else 0)
 
-            print(f"Member progress: {member_completed}/{member_total} goals ({member_pct}%)")
 
             member_progress.append({
                 "uuid": member_uuid,
@@ -529,7 +532,6 @@ class TeamsDAO:
         
         overall_progress = int((completed_goals / total_goals * 100) if total_goals > 0 else 0)
         
-        print(f"🎯 TEAM TOTALS: {completed_goals}/{total_goals} goals ({overall_progress}%)")
         
         return {
             "overallProgress": overall_progress,
@@ -621,7 +623,6 @@ class TeamsDAO:
             
             if goals_config:
                 data = goals_config.get("data", {})
-                print(f"   📋 Goals config data: {data}")
                 
                 if data.get("weeklyApplications"):
                     member_goals.append({
@@ -738,23 +739,18 @@ class TeamsDAO:
                         if goal.get("id") == "weekly_applications":
                             goal["actual"] = applications_this_week
                             goal["completed"] = applications_this_week >= goal.get("target", 0)
-                            print(f"      ✓ Weekly apps: {applications_this_week} >= {goal.get('target')} = {goal['completed']}")
                         elif goal.get("id") == "monthly_applications":
                             goal["actual"] = applications_this_month
                             goal["completed"] = applications_this_month >= goal.get("target", 0)
-                            print(f"      ✓ Monthly apps: {applications_this_month} >= {goal.get('target')} = {goal['completed']}")
                         elif goal.get("id") == "monthly_interviews":
                             goal["actual"] = interviews_this_month
                             goal["completed"] = interviews_this_month >= goal.get("target", 0)
-                            print(f"      ✓ Monthly interviews: {interviews_this_month} >= {goal.get('target')} = {goal['completed']}")
                         elif goal.get("id") == "target_response_rate":
                             goal["actual"] = member_applications["responseRate"]
                             goal["completed"] = member_applications["responseRate"] >= goal.get("target", 0)
-                            print(f"      ✓ Response rate: {member_applications['responseRate']}% >= {goal.get('target')}% = {goal['completed']}")
                         elif goal.get("id") == "target_interview_rate":
                             goal["actual"] = member_applications["interviewRate"]
                             goal["completed"] = member_applications["interviewRate"] >= goal.get("target", 0)
-                            print(f"      ✓ Interview rate: {member_applications['interviewRate']}% >= {goal.get('target')}% = {goal['completed']}")
                                 
                 except Exception as e:
                     print(f" Error fetching jobs for member {member_uuid}: {e}")
@@ -781,8 +777,6 @@ class TeamsDAO:
             
             engagement_scores.append(engagement)
             
-            print(f" Member summary: {member_completed}/{member_total} goals completed ({member_progress}%)")
-            print(f" Engagement calculated: {engagement}%")
             
             # Store goals for later
             all_member_goals.extend(member_goals)
@@ -807,13 +801,7 @@ class TeamsDAO:
         # Calculate total and completed goals across ALL members
         total_goals = len(all_member_goals)
         completed_goals = len([g for g in all_member_goals if g.get("completed")])
-        
-        print(f"\n FINAL TEAM TOTALS:")
-        print(f"   Total goals: {total_goals}")
-        print(f"   Completed goals: {completed_goals}")
-        print(f"   Applications: {total_applications}")
-        print(f"   Average engagement: {avg_engagement}%")
-        
+
         # Build engagement distribution for chart
         engagement_buckets = {"0-20%": 0, "20-40%": 0, "40-60%": 0, "60-80%": 0, "80-100%": 0}
         for member in member_stats:
@@ -896,7 +884,6 @@ class TeamsDAO:
         if not member:
             return None
         
-        print(f"\n get_member_report started for member: {member.get('name')} (UUID: {member_uuid})")
         
         # Extract goals from goals_config
         member_goals = []
@@ -1012,31 +999,24 @@ class TeamsDAO:
                     job_metrics["interviewRate"] = int((job_metrics["interview"] / job_metrics["total"]) * 100)
                     job_metrics["successRate"] = int((job_metrics["success"] / job_metrics["total"]) * 100)
                 
-                print(f"  Stats - Week: {applications_this_week}, Month: {applications_this_month}, Interviews: {interviews_this_month}")
-                print(f"  Rates - Response: {job_metrics['responseRate']}%, Interview: {job_metrics['interviewRate']}%, Success: {job_metrics['successRate']}%")
-                
+                       
                 # UPDATE ALL 5 GOALS based on actual metrics
                 for goal in member_goals:
                     if goal.get("id") == "weekly_applications":
                         goal["actual"] = applications_this_week
                         goal["completed"] = applications_this_week >= goal.get("target", 0)
-                        print(f"      ✓ Weekly apps: {applications_this_week} >= {goal.get('target')} = {goal['completed']}")
                     elif goal.get("id") == "monthly_applications":
                         goal["actual"] = applications_this_month
                         goal["completed"] = applications_this_month >= goal.get("target", 0)
-                        print(f"      ✓ Monthly apps: {applications_this_month} >= {goal.get('target')} = {goal['completed']}")
                     elif goal.get("id") == "monthly_interviews":
                         goal["actual"] = interviews_this_month
                         goal["completed"] = interviews_this_month >= goal.get("target", 0)
-                        print(f"      ✓ Monthly interviews: {interviews_this_month} >= {goal.get('target')} = {goal['completed']}")
                     elif goal.get("id") == "target_response_rate":
                         goal["actual"] = job_metrics["responseRate"]
                         goal["completed"] = job_metrics["responseRate"] >= goal.get("target", 0)
-                        print(f"      ✓ Response rate: {job_metrics['responseRate']}% >= {goal.get('target')}% = {goal['completed']}")
                     elif goal.get("id") == "target_interview_rate":
                         goal["actual"] = job_metrics["interviewRate"]
                         goal["completed"] = job_metrics["interviewRate"] >= goal.get("target", 0)
-                        print(f"      ✓ Interview rate: {job_metrics['interviewRate']}% >= {goal.get('target')}% = {goal['completed']}")
                             
             except Exception as e:
                 print(f" Error fetching jobs for member {member_uuid}: {e}")
@@ -1061,8 +1041,6 @@ class TeamsDAO:
             logins_this_month=0  # Optional: could enhance later
         )
         
-        print(f"  Member summary: {completed_goals}/{total_goals} goals completed ({progress_score}%)")
-        print(f"  Engagement calculated: {engagement}%")
         
         # Generate intelligent insights based on data
         insights = self._generate_member_insights(
@@ -1247,12 +1225,6 @@ class TeamsDAO:
             (app_score * 0.30) +
             (login_score * 0.20)
         )
-        
-        print(f"📊 Engagement Calculation for member {member_uuid}:")
-        print(f"   Goal completion: {completed_goals}/{total_goals} = {goal_score:.0f}% (weight: 50%)")
-        print(f"   Applications: {applications_sent}/{target_applications} = {app_score:.0f}% (weight: 30%)")
-        print(f"   Logins: {logins_this_month}/{target_logins} = {login_score:.0f}% (weight: 20%)")
-        print(f"   Final Engagement: {engagement_score}%")
         
         # Update in database
         try:

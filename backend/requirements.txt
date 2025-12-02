@@ -13,6 +13,7 @@ click==8.3.0
 cohere==5.20.0
 cryptography==46.0.3
 cssselect2==0.8.0
+dateparser==1.2.0
 dnspython==2.8.0
 dotenv==0.9.9
 ecdsa==0.19.1
