@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 from pymongo import AsyncMongoClient
 
 # Load .env from the same directory as this file (mongo/)
-env_path = Path(__file__).parent / ".env"
+env_path = Path(__file__).parent.parent / ".env"
+print(env_path)
 load_dotenv(env_path)
 
 MONGO_CONNECTION_STRING = os.getenv("MONGO_CONNECTION_STRING")

@@ -7,13 +7,12 @@ It orchestrates the question bank to build a structured interview progression.
 
 import uuid
 from typing import Dict, List, Any, Optional
-from motor.motor_asyncio import AsyncIOMotorDatabase
-
+from mongo.dao_setup import db_client
 
 class InterviewScenarioService:
     """Service for generating interview scenarios and managing interview progression"""
 
-    def __init__(self, db_client: AsyncIOMotorDatabase):
+    def __init__(self):
         self.db = db_client
         self.question_collection = db_client["questions"]
         self.role_collection = db_client["question_roles"]

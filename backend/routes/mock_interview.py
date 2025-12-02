@@ -23,9 +23,9 @@ from sessions.session_authorizer import authorize
 mock_interview_router = APIRouter(prefix="/mock-interview", tags=["mock-interview"])
 
 # Initialize DAOs and services
-session_dao = MockInterviewSessionDAO(db_client)
-scenario_service = InterviewScenarioService(db_client)
-coaching_service = InterviewCoachingService(db_client)
+session_dao = MockInterviewSessionDAO()
+scenario_service = InterviewScenarioService()
+coaching_service = InterviewCoachingService()
 
 
 # ============================================================================
