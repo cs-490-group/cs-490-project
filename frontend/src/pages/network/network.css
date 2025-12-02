@@ -3,6 +3,61 @@
     margin:auto;
 }
 
+.filter-section {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.filter-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-input {
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.filter-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.filter-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(13, 110, 253, 0.5);
+    box-shadow: 0 0 10px rgba(13, 110, 253, 0.3);
+}
+
+.filter-clear-btn {
+    background: rgba(220, 53, 69, 0.8);
+    border: none;
+    color: white;
+    font-weight: 600;
+    transition: background 0.3s;
+    padding: 0.75rem 1.5rem;
+}
+
+.filter-clear-btn:hover {
+    background: rgba(220, 53, 69, 1);
+    color: white;
+}
+
 #add-contact-form {
     background-color: whitesmoke;
     width: 40rem;
