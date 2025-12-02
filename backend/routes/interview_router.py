@@ -27,7 +27,6 @@ interview_router = APIRouter(prefix="/interview", tags=["interview"])
 # Initialize DAOs
 schedule_dao = InterviewScheduleDAO(db_client)
 followup_dao = FollowUpTemplateDAO(db_client)
-followup_dao = FollowUpTemplateDAO(db_client)
 jobs_dao = JobsDAO()
 profile_dao = UserDataDAO()
 
@@ -63,99 +62,6 @@ def make_aware(dt):
 # ============================================================================
 # FOLLOW-UP TEMPLATE ENDPOINTS WITH EMAIL SENDING
 # ============================================================================
-
-import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-
-def send_followup_email(
-    recipient_email: str,
-    sender_name: str,
-    subject: str,
-    body: str,
-    template_type: str
-):
-    """Send a follow-up email using Gmail SMTP"""
-    sender_email = os.getenv("GMAIL_SENDER")
-    sender_password = os.getenv("GMAIL_APP_PASSWORD")
-    
-    if not sender_email or not sender_password:
-        raise ValueError("Email credentials not configured")
-    
-    # Create message
-    message = MIMEMultipart("alternative")
-    message["Subject"] = subject
-    message["From"] = f"{sender_name} <{sender_email}>"
-    message["To"] = recipient_email
-    message["Reply-To"] = sender_email  # User can reply to this email
-    
-    # Determine emoji based on template type
-    emoji_map = {
-        "thank_you": "✉️",
-        "status_inquiry": "❓",
-        "feedback_request": "📝",
-        "networking": "🤝"
-    }
-    emoji = emoji_map.get(template_type, "📧")
-    
-    # Plain text version (the actual email body)
-    text = body
-    
-    # HTML version with nice formatting
-    html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', 'Arial', sans-serif; background-color: #f5f5f5;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
-        <tr>
-            <td align="center">
-                <table width="650" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
-                    <!-- Content -->
-                    <tr>
-                        <td style="padding: 50px 40px;">
-                            <div style="white-space: pre-wrap; font-size: 16px; line-height: 1.8; color: #333;">
-{body}
-                            </div>
-                        </td>
-                    </tr>
-                    
-                    <!-- Footer -->
-                    <tr>
-                        <td style="background-color: #f9f9f9; padding: 20px 40px; text-align: center; border-top: 1px solid #e0e0e0;">
-                            <p style="margin: 0; color: #999; font-size: 12px; line-height: 1.6;">
-                                {emoji} This email was sent via <strong style="color: #004d7a;">Metamorphosis</strong> Interview Follow-Up Manager
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-"""
-    
-    # Attach both versions
-    part1 = MIMEText(text, "plain")
-    part2 = MIMEText(html, "html")
-    message.attach(part1)
-    message.attach(part2)
-    
-    # Send email
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(sender_email, sender_password)
-            server.sendmail(sender_email, recipient_email, message.as_string())
-        return True
-    except Exception as e:
-        print(f"Failed to send email: {e}")
-        raise
-
 
 @interview_router.post("/followup/generate")
 async def generate_followup_template(
@@ -291,10 +197,18 @@ async def mark_template_sent(template_id: str, request: Request):
         if template["user_uuid"] != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
-        # Check if interviewer email exists
-        interviewer_email = template.get("interviewer_email")
-        if not interviewer_email:
-            raise HTTPException(400, "No interviewer email available. Cannot send email.")
+        # Get the request body with recipient email AND edited content
+        body = await request.json()
+        recipient_email = body.get("recipient_email")
+        edited_subject = body.get("subject")  # Get edited subject
+        edited_body = body.get("body")        # Get edited body
+        
+        if not recipient_email:
+            raise HTTPException(400, "Recipient email is required")
+        
+        # Use edited content if provided, otherwise fall back to template
+        final_subject = edited_subject if edited_subject else template["subject_line"]
+        final_body = edited_body if edited_body else template["email_body"]
         
         # Get user name for "From" field
         user_name = "User"
@@ -307,23 +221,23 @@ async def mark_template_sent(template_id: str, request: Request):
         except Exception as e:
             print(f"Could not fetch profile: {e}")
         
-        # Send the actual email
+        # Send the actual email using the follow-up service with edited content
         try:
-            send_followup_email(
-                recipient_email=interviewer_email,
+            email_result = followup_service.send_followup_email(
+                recipient_email=recipient_email,
                 sender_name=user_name,
-                subject=template["subject_line"],
-                body=template["email_body"],
+                subject=final_subject,      # Use edited subject
+                body=final_body,            # Use edited body
                 template_type=template["template_type"]
             )
-            print(f"✅ Follow-up email sent to {interviewer_email}")
+            print(f"✅ Follow-up email sent to {recipient_email}")
         except ValueError as e:
             raise HTTPException(500, f"Email configuration error: {str(e)}")
         except Exception as e:
             print(f"❌ Failed to send email: {e}")
             raise HTTPException(500, f"Failed to send email: {str(e)}")
         
-        # Mark as sent in database
+        # Mark as sent in database (save the edited version)
         await followup_dao.mark_as_sent(template_id)
         
         # Update interview record
@@ -333,7 +247,7 @@ async def mark_template_sent(template_id: str, request: Request):
         if interview:
             follow_up_actions = interview.get("follow_up_actions", [])
             follow_up_actions.append({
-                "action": f"Sent {template['template_type']} email to {interviewer_email}",
+                "action": f"Sent {template['template_type']} email to {recipient_email}",
                 "timestamp": datetime.now(timezone.utc),
                 "template_id": template_id
             })
@@ -347,15 +261,14 @@ async def mark_template_sent(template_id: str, request: Request):
         
         return {
             "detail": "Email sent successfully",
-            "sent_to": interviewer_email,
-            "sent_from": user_email or "system",
-            "sent_at": datetime.now(timezone.utc).isoformat()
+            "sent_to": email_result["sent_to"],
+            "sent_from": user_email or email_result["sent_from"],
+            "sent_at": email_result["sent_at"]
         }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to send follow-up: {str(e)}")
-
 
 @interview_router.get("/followup/{template_id}")
 async def get_followup_template(template_id: str, request: Request):
@@ -1334,7 +1247,7 @@ async def get_templates_by_interview(interview_id: str, request: Request):
 
 @interview_router.post("/followup/{template_id}/send")
 async def mark_template_sent(template_id: str, request: Request):
-    """Mark a follow-up template as sent"""
+    """Send the follow-up email and mark template as sent"""
     try:
         uuid_val = get_uuid_from_headers(request)
         template = await followup_dao.get_template(template_id)
@@ -1345,15 +1258,57 @@ async def mark_template_sent(template_id: str, request: Request):
         if template["user_uuid"] != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
+        # Get the request body with recipient email AND edited content
+        body = await request.json()
+        recipient_email = body.get("recipient_email")
+        edited_subject = body.get("subject")  # Get edited subject
+        edited_body = body.get("body")        # Get edited body
+        
+        if not recipient_email:
+            raise HTTPException(400, "Recipient email is required")
+        
+        # Use edited content if provided, otherwise fall back to template
+        final_subject = edited_subject if edited_subject else template["subject_line"]
+        final_body = edited_body if edited_body else template["email_body"]
+        
+        # Get user name for "From" field
+        user_name = "User"
+        user_email = template.get("user_email")
+        try:
+            profile = await profile_dao.get_profile(uuid_val)
+            if profile and profile.get("full_name"):
+                user_name = profile.get("full_name")
+                user_email = profile.get("email")
+        except Exception as e:
+            print(f"Could not fetch profile: {e}")
+        
+        # Send the actual email using the follow-up service with edited content
+        try:
+            email_result = followup_service.send_followup_email(
+                recipient_email=recipient_email,
+                sender_name=user_name,
+                subject=final_subject,      # Use edited subject
+                body=final_body,            # Use edited body
+                template_type=template["template_type"]
+            )
+            print(f"✅ Follow-up email sent to {recipient_email}")
+        except ValueError as e:
+            raise HTTPException(500, f"Email configuration error: {str(e)}")
+        except Exception as e:
+            print(f"❌ Failed to send email: {e}")
+            raise HTTPException(500, f"Failed to send email: {str(e)}")
+        
+        # Mark as sent in database
         await followup_dao.mark_as_sent(template_id)
         
+        # Update interview record
         interview_uuid = template["interview_uuid"]
         interview = await schedule_dao.get_schedule(interview_uuid)
         
         if interview:
             follow_up_actions = interview.get("follow_up_actions", [])
             follow_up_actions.append({
-                "action": f"Sent {template['template_type']} email",
+                "action": f"Sent {template['template_type']} email to {recipient_email}",
                 "timestamp": datetime.now(timezone.utc),
                 "template_id": template_id
             })
@@ -1366,13 +1321,15 @@ async def mark_template_sent(template_id: str, request: Request):
                 await schedule_dao.mark_thank_you_sent(interview_uuid)
         
         return {
-            "detail": "Template marked as sent",
-            "sent_at": datetime.now(timezone.utc).isoformat()
+            "detail": "Email sent successfully",
+            "sent_to": email_result["sent_to"],
+            "sent_from": user_email or email_result["sent_from"],
+            "sent_at": email_result["sent_at"]
         }
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, f"Failed to mark template as sent: {str(e)}")
+        raise HTTPException(500, f"Failed to send follow-up: {str(e)}")
 
 
 @interview_router.post("/followup/{template_id}/response-received")

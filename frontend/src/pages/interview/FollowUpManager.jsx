@@ -12,16 +12,18 @@ function FollowUpManager() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState('');
   const [editedBody, setEditedBody] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [suggestedSendTime, setSuggestedSendTime] = useState(null);
   
   const templateTypes = [
-    { value: 'thank_you', label: '✉️ Thank You Note', description: 'Send within 24 hours of interview' },
-    { value: 'status_inquiry', label: '❓ Status Inquiry', description: 'Follow up on decision timeline' },
-    { value: 'feedback_request', label: '📝 Feedback Request', description: 'Ask for constructive feedback' },
-    { value: 'networking', label: '🤝 Networking Follow-up', description: 'Maintain professional relationship' }
+    { value: 'thank_you', label: '✉️ Thank You Note', description: 'Send within 24 hours of interview', timing: '4 hours after interview' },
+    { value: 'status_inquiry', label: '❓ Status Inquiry', description: 'Follow up on decision timeline', timing: '5-7 days after interview' },
+    { value: 'feedback_request', label: '📝 Feedback Request', description: 'Ask for constructive feedback', timing: '3 days after outcome' },
+    { value: 'networking', label: '🤝 Networking Follow-up', description: 'Maintain professional relationship', timing: '1 week after rejection' }
   ];
   
   useEffect(() => {
@@ -31,9 +33,7 @@ function FollowUpManager() {
   
   const loadUserProfile = async () => {
     try {
-      console.log('[FollowUpManager] Loading user profile...');
       const response = await ProfilesAPI.get();
-      console.log('[FollowUpManager] User profile:', response.data);
       setUserProfile(response.data);
     } catch (err) {
       console.error('[FollowUpManager] Error loading profile:', err);
@@ -42,11 +42,7 @@ function FollowUpManager() {
   
   const loadCompletedInterviews = async () => {
     try {
-      console.log('[FollowUpManager] Loading completed interviews...');
-      
       const response = await InterviewScheduleAPI.getUpcomingInterviews();
-      console.log('[FollowUpManager] API Response:', response.data);
-      
       const data = response.data;
       
       const allInterviews = [
@@ -58,8 +54,22 @@ function FollowUpManager() {
         .filter(i => i.status === 'completed')
         .sort((a, b) => new Date(b.interview_datetime) - new Date(a.interview_datetime));
       
-      console.log('[FollowUpManager] Completed interviews:', completed.length);
       setInterviews(completed);
+      
+      // Set default recipient email if an interview is selected
+      if (selectedInterview) {
+        const updatedInterview = completed.find(i => 
+          (i.uuid || i._id) === (selectedInterview.uuid || selectedInterview._id)
+        );
+        if (updatedInterview) {
+          setSelectedInterview(updatedInterview);
+          // Only set default email if current email is empty
+          if (!recipientEmail) {
+            setRecipientEmail(updatedInterview.interviewer_email || '');
+          }
+        }
+      }
+      
       setError('');
     } catch (err) {
       console.error('[FollowUpManager] Error loading interviews:', err);
@@ -73,12 +83,15 @@ function FollowUpManager() {
       return;
     }
     
+    if (!recipientEmail || !recipientEmail.includes('@')) {
+      setError('Please enter a valid recipient email address');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
     try {
-      console.log('[FollowUpManager] Generating template for:', selectedInterview.uuid || selectedInterview._id);
-      
       const topics = specificTopics.split(',').map(t => t.trim()).filter(t => t);
       
       const response = await FollowUpAPI.generateTemplate(
@@ -88,10 +101,9 @@ function FollowUpManager() {
         topics.length > 0 ? topics : null
       );
       
-      console.log('[FollowUpManager] Generated template:', response.data);
-      
       const data = response.data;
       
+      // Keep the recipient email they entered, don't override it
       setGeneratedTemplate({
         template_uuid: data.template_uuid,
         subject: data.subject,
@@ -100,8 +112,10 @@ function FollowUpManager() {
         user_email: data.user_email
       });
       
+      // recipientEmail is already set from the input field
       setEditedSubject(data.subject);
       setEditedBody(data.body);
+      setSuggestedSendTime(data.suggested_send_time);
       setIsEditing(false);
     } catch (err) {
       console.error('[FollowUpManager] Error generating template:', err);
@@ -114,8 +128,8 @@ function FollowUpManager() {
   const handleSend = async () => {
     if (!generatedTemplate) return;
     
-    if (!generatedTemplate.interviewer_email) {
-      setError('No interviewer email available. Cannot send email.');
+    if (!recipientEmail || !recipientEmail.includes('@')) {
+      setError('Please enter a valid email address');
       return;
     }
     
@@ -123,27 +137,46 @@ function FollowUpManager() {
     setError('');
     
     try {
-      console.log('[FollowUpManager] Sending email via backend:', generatedTemplate.template_uuid);
+      // Use the FollowUpAPI with edited subject and body
+      const response = await FollowUpAPI.sendEmail(
+        generatedTemplate.template_uuid,
+        recipientEmail,
+        editedSubject,
+        editedBody
+      );
       
-      const response = await FollowUpAPI.markAsSent(generatedTemplate.template_uuid);
+      const result = response.data;
       
-      console.log('[FollowUpManager] Email sent successfully:', response.data);
-      
-      const sentTo = response.data.sent_to || generatedTemplate.interviewer_email;
-      const sentFrom = response.data.sent_from || userProfile?.email || 'system';
+      const sentTo = result.sent_to || recipientEmail;
+      const sentFrom = result.sent_from || userProfile?.email || 'system';
       
       alert(`✅ Email sent successfully!\n\nFrom: ${sentFrom}\nTo: ${sentTo}\n\nThe follow-up has been sent and tracked in your system.`);
       
+      // Reset all state
       setGeneratedTemplate(null);
       setSelectedInterview(null);
       setCustomNotes('');
       setSpecificTopics('');
+      setRecipientEmail('');
+      setEditedSubject('');
+      setEditedBody('');
+      setIsEditing(false);
       
+      // Reload interviews to show updated status
       await loadCompletedInterviews();
     } catch (err) {
       console.error('[FollowUpManager] Error sending follow-up:', err);
-      const errorMsg = err.response?.data?.detail || err.message || 'Failed to send follow-up';
-      setError(errorMsg);
+      
+      // Better error handling
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.response?.data) {
+        setError(JSON.stringify(err.response.data));
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError('Failed to send follow-up. Please try again.');
+      }
     } finally {
       setSendingEmail(false);
     }
@@ -232,7 +265,11 @@ function FollowUpManager() {
                 return (
                   <div
                     key={interviewId}
-                    onClick={() => setSelectedInterview(interview)}
+                    onClick={() => {
+                      setSelectedInterview(interview);
+                      // Always set recipient email when selecting a new interview
+                      setRecipientEmail(interview.interviewer_email || '');
+                    }}
                     style={{
                       padding: '1rem',
                       border: selectedInterview?.uuid === interview.uuid || selectedInterview?._id === interview._id ? '2px solid #667eea' : '1px solid #e0e0e0',
@@ -281,6 +318,15 @@ function FollowUpManager() {
                         ✓ Thank you sent
                       </div>
                     )}
+                    {interview.follow_up_actions && interview.follow_up_actions.length > 0 && (
+                      <div style={{
+                        marginTop: '0.5rem',
+                        fontSize: '0.75rem',
+                        color: '#667eea'
+                      }}>
+                        📧 {interview.follow_up_actions.length} follow-up{interview.follow_up_actions.length !== 1 ? 's' : ''} sent
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -298,22 +344,6 @@ function FollowUpManager() {
           ) : !generatedTemplate ? (
             <div>
               <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Generate Follow-Up</h3>
-              
-              {selectedInterview.interviewer_name && (
-                <div style={{
-                  padding: '1rem',
-                  marginBottom: '1.5rem',
-                  background: '#f0f4ff',
-                  borderRadius: '8px',
-                  border: '1px solid #667eea',
-                  fontSize: '0.9rem'
-                }}>
-                  <strong>📨 Recipient:</strong> {selectedInterview.interviewer_name}
-                  {selectedInterview.interviewer_email && (
-                    <span style={{ color: '#666' }}> ({selectedInterview.interviewer_email})</span>
-                  )}
-                </div>
-              )}
               
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '500' }}>
@@ -335,6 +365,9 @@ function FollowUpManager() {
                     >
                       <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{type.label}</div>
                       <div style={{ fontSize: '0.85rem', color: '#666' }}>{type.description}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#667eea', marginTop: '0.5rem' }}>
+                        ⏰ Best timing: {type.timing}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -369,150 +402,226 @@ function FollowUpManager() {
                 />
               </div>
               
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Recipient Email <span style={{ color: '#c33' }}>*</span>
+                </label>
+                <input
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="interviewer@company.com"
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.75rem', 
+                    border: recipientEmail && !recipientEmail.includes('@') ? '2px solid #c33' : '1px solid #ddd', 
+                    borderRadius: '6px', 
+                    fontSize: '1rem', 
+                    boxSizing: 'border-box' 
+                  }}
+                />
+                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                  {selectedInterview?.interviewer_email && (
+                    <span>Default: {selectedInterview.interviewer_email}</span>
+                  )}
+                  {!recipientEmail && !selectedInterview?.interviewer_email && (
+                    <span style={{ color: '#c33' }}>Required: Enter the recipient's email address</span>
+                  )}
+                </div>
+              </div>
+              
               <button
                 onClick={handleGenerate}
-                disabled={loading}
+                disabled={loading || !recipientEmail || !recipientEmail.includes('@')}
                 style={{
                   padding: '0.75rem 2rem',
-                  background: loading ? '#ccc' : '#667eea',
+                  background: (loading || !recipientEmail || !recipientEmail.includes('@')) ? '#ccc' : '#667eea',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
+                  cursor: (loading || !recipientEmail || !recipientEmail.includes('@')) ? 'not-allowed' : 'pointer',
                   fontWeight: '500',
                   fontSize: '1rem',
-                  width:'100%'
-}}
->
-{loading ? 'Generating...' : 'Generate Template'}
-</button>
-</div>
-) : (
-<div>
-<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-<h3 style={{ margin: 0 }}>Generated Follow-Up</h3>
-<div style={{ display: 'flex', gap: '0.5rem' }}>
-<button
-onClick={handleCopyToClipboard}
-style={{
-padding: '0.5rem 1rem',
-background: 'white',
-color: '#667eea',
-border: '1px solid #667eea',
-borderRadius: '6px',
-cursor: 'pointer',
-fontSize: '0.9rem'
-}}
->
-📋 Copy
-</button>
-<button
-onClick={() => setIsEditing(!isEditing)}
-style={{
-padding: '0.5rem 1rem',
-background: 'white',
-color: '#667eea',
-border: '1px solid #667eea',
-borderRadius: '6px',
-cursor: 'pointer',
-fontSize: '0.9rem'
-}}
->
-{isEditing ? '👁 Preview' : '✏️ Edit'}
-</button>
-</div>
-</div>
-          <div style={{
-            padding: '0.75rem 1rem',
-            background: '#f8f9fa',
-            borderRadius: '6px',
-            fontSize: '0.9rem',
-            marginBottom: '1rem',
-            border: '1px solid #e0e0e0'
-          }}>
-            <div><strong>To:</strong> {generatedTemplate.interviewer_email || 'No email available'}</div>
-            {userProfile?.email && (
-              <div style={{ marginTop: '0.25rem' }}><strong>From:</strong> {userProfile.email}</div>
-            )}
-          </div>
-          
-          <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', marginBottom: '1rem' }}>
-            <div style={{ padding: '1rem', borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={editedSubject}
-                  onChange={(e) => setEditedSubject(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', fontSize: '1rem', fontWeight: '600', boxSizing: 'border-box' }}
-                />
-              ) : (
-                <div style={{ fontWeight: '600', fontSize: '1rem' }}>Subject: {editedSubject}</div>
-              )}
+                  width: '100%'
+                }}
+              >
+                {loading ? 'Generating...' : 'Generate Template'}
+              </button>
             </div>
-            
-            <div style={{ padding: '1.5rem' }}>
-              {isEditing ? (
-                <textarea
-                  value={editedBody}
-                  onChange={(e) => setEditedBody(e.target.value)}
-                  rows="15"
-                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical', fontSize: '1rem', lineHeight: '1.6', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                />
-              ) : (
-                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', fontSize: '1rem' }}>
-                  {editedBody}
+          ) : (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0 }}>Generated Follow-Up</h3>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={handleCopyToClipboard}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: 'white',
+                      color: '#667eea',
+                      border: '1px solid #667eea',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    📋 Copy
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: 'white',
+                      color: '#667eea',
+                      border: '1px solid #667eea',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    {isEditing ? '👁 Preview' : '✏️ Edit'}
+                  </button>
+                </div>
+              </div>
+              
+              {/* Recommended Timing */}
+              {suggestedSendTime && (
+                <div style={{
+                  padding: '1rem',
+                  marginBottom: '1rem',
+                  background: '#f0f4ff',
+                  borderRadius: '6px',
+                  border: '1px solid #667eea',
+                  fontSize: '0.9rem'
+                }}>
+                  <strong>⏰ Recommended Send Time:</strong> {new Date(suggestedSendTime).toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit'
+                  })}
+                  <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                    {templateType === 'thank_you' && 'Send within 24 hours for best results'}
+                    {templateType === 'status_inquiry' && 'Follow up after giving them time to decide'}
+                    {templateType === 'feedback_request' && 'Request feedback after processing the outcome'}
+                    {templateType === 'networking' && 'Maintain relationship after some time has passed'}
+                  </div>
                 </div>
               )}
+              
+              {/* Editable Recipient Email */}
+              <div style={{
+                padding: '1rem',
+                background: '#f8f9fa',
+                borderRadius: '6px',
+                marginBottom: '1rem',
+                border: '1px solid #e0e0e0'
+              }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                  📧 Recipient Email
+                </label>
+                <input
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="Enter recipient email address"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    fontSize: '1rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {userProfile?.email && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
+                    <strong>From:</strong> {userProfile.email}
+                  </div>
+                )}
+              </div>
+              
+              <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', marginBottom: '1rem' }}>
+                <div style={{ padding: '1rem', borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedSubject}
+                      onChange={(e) => setEditedSubject(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', fontSize: '1rem', fontWeight: '600', boxSizing: 'border-box' }}
+                    />
+                  ) : (
+                    <div style={{ fontWeight: '600', fontSize: '1rem' }}>Subject: {editedSubject}</div>
+                  )}
+                </div>
+                
+                <div style={{ padding: '1.5rem' }}>
+                  {isEditing ? (
+                    <textarea
+                      value={editedBody}
+                      onChange={(e) => setEditedBody(e.target.value)}
+                      rows="15"
+                      style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical', fontSize: '1rem', lineHeight: '1.6', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  ) : (
+                    <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', fontSize: '1rem' }}>
+                      {editedBody}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button
+                  onClick={() => {
+                    setGeneratedTemplate(null);
+                    setRecipientEmail('');
+                    setError('');
+                  }}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: 'white',
+                    color: '#666',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    flex: 1
+                  }}
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={sendingEmail || !recipientEmail || !recipientEmail.includes('@')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: sendingEmail || !recipientEmail || !recipientEmail.includes('@') ? '#ccc' : '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: sendingEmail || !recipientEmail || !recipientEmail.includes('@') ? 'not-allowed' : 'pointer',
+                    fontWeight: '500',
+                    fontSize: '1rem',
+                    flex: 2
+                  }}
+                  title={!recipientEmail || !recipientEmail.includes('@') ? 'Please enter a valid email address' : ''}
+                >
+                  {sendingEmail ? 'Sending Email...' : '📧 Send Email Now'}
+                </button>
+              </div>
+              
+              <div style={{ marginTop: '1rem', padding: '1rem', background: '#fff3cd', borderRadius: '6px', fontSize: '0.9rem' }}>
+                <strong>💡 Tip:</strong> You can edit the recipient email address above before sending. The email will be sent immediately when you click "Send Email Now".
+              </div>
             </div>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button
-              onClick={() => {
-                setGeneratedTemplate(null);
-                setError('');
-              }}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: 'white',
-                color: '#666',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                flex: 1
-              }}
-            >
-              Back
-            </button>
-            <button
-              onClick={handleSend}
-              disabled={sendingEmail || !generatedTemplate.interviewer_email}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: sendingEmail || !generatedTemplate.interviewer_email ? '#ccc' : '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: sendingEmail || !generatedTemplate.interviewer_email ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
-                fontSize: '1rem',
-                flex: 2
-              }}
-              title={!generatedTemplate.interviewer_email ? 'No interviewer email available' : ''}
-            >
-              {sendingEmail ? 'Sending Email...' : '📧 Send Email Now'}
-            </button>
-          </div>
-          
-          <div style={{ marginTop: '1rem', padding: '1rem', background: '#fff3cd', borderRadius: '6px', fontSize: '0.9rem' }}>
-            <strong>💡 Tip:</strong> Review and personalize the template before sending. This will send the email immediately to the interviewer.
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
-  </div>
-</div>
-);
+  );
 }
+
 export default FollowUpManager;

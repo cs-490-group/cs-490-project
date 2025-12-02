@@ -225,10 +225,15 @@ const FollowUpAPI = {
     );
   },
   
-  markAsSent: (templateId) => {
+  // Send email with edited subject and body
+  sendEmail: (templateId, recipientEmail, subject, body) => {
     return axios.post(
       `${API_BASE_URL}/interview/followup/${templateId}/send`,
-      {},
+      {
+        recipient_email: recipientEmail,
+        subject: subject,
+        body: body
+      },
       { headers: getAuthHeaders() }
     );
   },

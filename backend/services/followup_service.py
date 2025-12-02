@@ -1,14 +1,220 @@
 """
-Combined Follow-Up Template Service
-Generates personalized follow-up communication templates
+Combined Follow-Up Template Service with Email Sending
+Generates personalized follow-up communication templates and sends emails
 """
 
-from datetime import datetime, timedelta
-from typing import Dict, Optional, List
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Optional, List, Any
 
 
 class FollowUpService:
-    """Service for generating interview follow-up templates"""
+    """Service for generating interview follow-up templates and sending emails"""
+    
+    def __init__(self):
+        """Initialize email configuration"""
+        self.sender_email = os.getenv("GMAIL_SENDER")
+        self.sender_password = os.getenv("GMAIL_APP_PASSWORD")
+        self.smtp_host = "smtp.gmail.com"
+        self.smtp_port = 465
+    
+    # ========================================================================
+    # EMAIL SENDING METHODS
+    # ========================================================================
+    
+    def _validate_credentials(self) -> None:
+        """Validate that email credentials are configured"""
+        if not self.sender_email or not self.sender_password:
+            raise ValueError(
+                "Email credentials not configured. "
+                "Please set GMAIL_SENDER and GMAIL_APP_PASSWORD environment variables."
+            )
+    
+    def _get_emoji_for_template_type(self, template_type: str) -> str:
+        """Get the appropriate emoji for a template type"""
+        emoji_map = {
+            "thank_you": "✉️",
+            "status_inquiry": "❓",
+            "feedback_request": "📝",
+            "networking": "🤝",
+            "reminder": "⏰"
+        }
+        return emoji_map.get(template_type, "📧")
+    
+    def _create_html_body(self, body: str, template_type: str) -> str:
+        """Create formatted HTML email body"""
+        emoji = self._get_emoji_for_template_type(template_type)
+        
+        return f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', 'Arial', sans-serif; background-color: #f5f5f5;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
+        <tr>
+            <td align="center">
+                <table width="650" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 50px 40px;">
+                            <div style="white-space: pre-wrap; font-size: 16px; line-height: 1.8; color: #333;">
+{body}
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9f9f9; padding: 20px 40px; text-align: center; border-top: 1px solid #e0e0e0;">
+                            <p style="margin: 0; color: #999; font-size: 12px; line-height: 1.6;">
+                                {emoji} This email was sent via <strong style="color: #004d7a;">Metamorphosis</strong> Interview Follow-Up Manager
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+"""
+    
+    def send_followup_email(
+        self,
+        recipient_email: str,
+        sender_name: str,
+        subject: str,
+        body: str,
+        template_type: str
+    ) -> Dict[str, Any]:
+        """
+        Send a follow-up email using Gmail SMTP
+        
+        Args:
+            recipient_email: Email address of the recipient
+            sender_name: Name of the person sending the email
+            subject: Email subject line
+            body: Email body content (plain text)
+            template_type: Type of template (thank_you, status_inquiry, etc.)
+        
+        Returns:
+            Dict with success status and metadata
+        
+        Raises:
+            ValueError: If email credentials are not configured
+            Exception: If email sending fails
+        """
+        self._validate_credentials()
+        
+        # Create message
+        message = MIMEMultipart("alternative")
+        message["Subject"] = subject
+        message["From"] = f"{sender_name} <{self.sender_email}>"
+        message["To"] = recipient_email
+        message["Reply-To"] = self.sender_email
+        
+        # Create both plain text and HTML versions
+        text_part = MIMEText(body, "plain")
+        html_part = MIMEText(self._create_html_body(body, template_type), "html")
+        
+        # Attach both versions (email clients will prefer HTML if available)
+        message.attach(text_part)
+        message.attach(html_part)
+        
+        # Send email
+        try:
+            with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port) as server:
+                server.login(self.sender_email, self.sender_password)
+                server.sendmail(self.sender_email, recipient_email, message.as_string())
+            
+            return {
+                "success": True,
+                "sent_to": recipient_email,
+                "sent_from": self.sender_email,
+                "sent_at": datetime.now(timezone.utc).isoformat(),
+                "template_type": template_type
+            }
+        except smtplib.SMTPAuthenticationError as e:
+            raise Exception(f"Email authentication failed. Check credentials: {str(e)}")
+        except smtplib.SMTPException as e:
+            raise Exception(f"SMTP error occurred: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Failed to send email: {str(e)}")
+    
+    def send_interview_reminder(
+        self,
+        recipient_email: str,
+        recipient_name: str,
+        interview_data: Dict[str, Any],
+        hours_until: int
+    ) -> Dict[str, Any]:
+        """
+        Send an interview reminder email
+        
+        Args:
+            recipient_email: Email address of the recipient
+            recipient_name: Name of the recipient
+            interview_data: Dictionary with interview details
+            hours_until: Number of hours until the interview
+        
+        Returns:
+            Dict with success status and metadata
+        """
+        self._validate_credentials()
+        
+        # Format reminder message
+        subject = f"Interview Reminder: {interview_data.get('job_title')} at {interview_data.get('company_name')}"
+        
+        body = f"""Dear {recipient_name},
+
+This is a reminder that you have an interview coming up in {hours_until} hour(s).
+
+Interview Details:
+- Position: {interview_data.get('job_title')}
+- Company: {interview_data.get('company_name')}
+- Date & Time: {interview_data.get('interview_datetime')}
+- Format: {interview_data.get('location_type', 'TBD')}
+
+"""
+        
+        # Add location-specific details
+        if interview_data.get('location_type') == 'video' and interview_data.get('video_link'):
+            body += f"Video Link: {interview_data['video_link']}\n"
+        elif interview_data.get('location_details'):
+            body += f"Location: {interview_data['location_details']}\n"
+        
+        if interview_data.get('interviewer_name'):
+            body += f"Interviewer: {interview_data['interviewer_name']}"
+            if interview_data.get('interviewer_title'):
+                body += f" ({interview_data['interviewer_title']})"
+            body += "\n"
+        
+        body += f"""
+Preparation Status: {interview_data.get('preparation_completion_percentage', 0)}% complete
+
+Good luck with your interview!
+
+Best regards,
+Metamorphosis Interview Manager
+"""
+        
+        return self.send_followup_email(
+            recipient_email=recipient_email,
+            sender_name="Metamorphosis",
+            subject=subject,
+            body=body,
+            template_type="reminder"
+        )
+    
+    # ========================================================================
+    # TEMPLATE GENERATION METHODS
+    # ========================================================================
     
     @staticmethod
     def generate_thank_you_email(
@@ -240,8 +446,6 @@ class FollowUpService:
     @staticmethod
     def get_recommended_timing(template_type: str, interview_date: datetime) -> datetime:
         """Get recommended send time for different template types"""
-        from datetime import datetime, timezone
-        
         now = datetime.now(timezone.utc)
         
         if template_type == "thank_you":

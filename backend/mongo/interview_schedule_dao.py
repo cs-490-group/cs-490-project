@@ -372,6 +372,7 @@ class FollowUpTemplateDAO:
             {
                 "$set": {
                     "is_sent": True,
+                    "status": "sent",
                     "actual_sent_time": datetime.now(timezone.utc)
                 }
             }
