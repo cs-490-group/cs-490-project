@@ -15,19 +15,57 @@ function InterviewCalendar() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState(null);
   const [viewMode, setViewMode] = useState('upcoming');
+  const [calendarStatus, setCalendarStatus] = useState({ connected: false, provider: null });
   
   useEffect(() => {
     loadInterviews();
+    loadCalendarStatus();
   }, []);
+  
+  const loadCalendarStatus = async () => {
+    try {
+      const response = await InterviewScheduleAPI.getCalendarStatus();
+      setCalendarStatus(response.data);
+    } catch (err) {
+      console.error('Error loading calendar status:', err);
+      setCalendarStatus({ connected: false, provider: null });
+    }
+  };
+  
+  const connectCalendar = async (provider) => {
+    try {
+      const response = provider === 'google'
+        ? await InterviewScheduleAPI.getGoogleAuthUrl()
+        : await InterviewScheduleAPI.getOutlookAuthUrl();
+      
+      window.open(response.data.auth_url, '_blank', 'width=600,height=700');
+      
+      const checkInterval = setInterval(async () => {
+        try {
+          const statusResponse = await InterviewScheduleAPI.getCalendarStatus();
+          if (statusResponse.data.connected) {
+            setCalendarStatus(statusResponse.data);
+            showFlash(`Connected to ${statusResponse.data.provider} calendar`, 'success');
+            clearInterval(checkInterval);
+          }
+        } catch (err) {
+          // Ignore polling errors
+        }
+      }, 2000);
+      
+      setTimeout(() => clearInterval(checkInterval), 120000);
+    } catch (err) {
+      console.error('Calendar connection error:', err);
+      showFlash('Failed to connect calendar', 'error');
+    }
+  };
   
   // Helper function to parse UTC datetime and convert to local Date object
   const parseUTCDateTime = (datetimeStr) => {
     if (!datetimeStr) return null;
     
-    // Ensure the string has timezone info (Z for UTC or +00:00)
     let isoString = datetimeStr;
     if (!isoString.includes('Z') && !isoString.includes('+') && !isoString.includes('-', 10)) {
-      // If no timezone info, assume it's UTC and add 'Z'
       isoString = isoString + 'Z';
     }
     
@@ -38,7 +76,6 @@ function InterviewCalendar() {
     try {
       const response = await InterviewScheduleAPI.getUpcomingInterviews();
       
-      // CLIENT-SIDE FILTERING: Re-categorize based on current local time
       const now = new Date();
       const allInterviewsData = [
         ...(response.data.upcoming_interviews || []),
@@ -49,7 +86,6 @@ function InterviewCalendar() {
       const past = [];
       
       allInterviewsData.forEach(interview => {
-        // Parse UTC datetime from server and convert to local Date object
         const interviewTime = parseUTCDateTime(interview.interview_datetime);
         
         if (interviewTime && interviewTime >= now) {
@@ -59,7 +95,6 @@ function InterviewCalendar() {
         }
       });
       
-      // Sort upcoming by soonest first, past by most recent first
       upcoming.sort((a, b) => parseUTCDateTime(a.interview_datetime) - parseUTCDateTime(b.interview_datetime));
       past.sort((a, b) => parseUTCDateTime(b.interview_datetime) - parseUTCDateTime(a.interview_datetime));
       
@@ -71,7 +106,7 @@ function InterviewCalendar() {
       setLoading(false);
     }
   };
-  
+
   const getDisplayedInterviews = () => {
     switch(viewMode) {
       case 'upcoming':
@@ -99,7 +134,6 @@ function InterviewCalendar() {
   };
   
   const handleEditInterview = (interview) => {
-    // Parse the UTC datetime string from backend
     const utcDate = parseUTCDateTime(interview.interview_datetime);
     
     if (!utcDate) {
@@ -107,8 +141,6 @@ function InterviewCalendar() {
       return;
     }
     
-    // Format as local datetime string for datetime-local input
-    // This will show the CORRECT local time in the input field
     const year = utcDate.getFullYear();
     const month = String(utcDate.getMonth() + 1).padStart(2, '0');
     const day = String(utcDate.getDate()).padStart(2, '0');
@@ -116,11 +148,6 @@ function InterviewCalendar() {
     const minutes = String(utcDate.getMinutes()).padStart(2, '0');
     
     const localDatetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
-    
-    console.log('📅 Edit Setup:');
-    console.log('  UTC from backend:', interview.interview_datetime);
-    console.log('  Parsed to local Date:', utcDate.toString());
-    console.log('  Local datetime-local value:', localDatetimeString);
     
     setEditFormData({
       interview_datetime: localDatetimeString,
@@ -147,22 +174,13 @@ function InterviewCalendar() {
     if (!selectedInterview) return;
     
     try {
-      // The datetime-local input gives us a local datetime string like "2025-12-03T10:30"
-      // We need to convert this to UTC for the backend
       const localDate = new Date(editFormData.interview_datetime);
-      
-      // Convert to UTC ISO string
       const utcDatetime = localDate.toISOString();
       
       const dataToSend = {
         ...editFormData,
         interview_datetime: utcDatetime
       };
-      
-      console.log('📅 Save Edit:');
-      console.log('  Local input value:', editFormData.interview_datetime);
-      console.log('  Parsed as local Date:', localDate.toString());
-      console.log('  Converted to UTC ISO:', utcDatetime);
       
       await InterviewScheduleAPI.updateSchedule(selectedInterview.uuid, dataToSend);
       showFlash('Interview updated successfully', 'success');
@@ -193,7 +211,6 @@ function InterviewCalendar() {
   };
   
   const formatDateTime = (datetime) => {
-    // Parse UTC datetime string and automatically convert to local time
     const date = parseUTCDateTime(datetime);
     
     if (!date) {
@@ -285,7 +302,6 @@ function InterviewCalendar() {
   
   return (
     <div className="interview-calendar-container">
-      {/* Header */}
       <div className="interview-calendar-header">
         <div className="header-left">
           <h1>Interview Calendar</h1>
@@ -298,7 +314,6 @@ function InterviewCalendar() {
         </div>
       </div>
       
-      {/* View Mode Selector */}
       <div className="view-mode-selector">
         <button 
           className={`view-btn ${viewMode === 'upcoming' ? 'active' : ''}`}
@@ -320,7 +335,6 @@ function InterviewCalendar() {
         </button>
       </div>
       
-      {/* Interview List */}
       <div className="interview-list">
         {displayedInterviews.length === 0 ? (
           <div className="no-interviews">
@@ -376,7 +390,6 @@ function InterviewCalendar() {
                     </p>
                   )}
                   
-                  {/* Preparation Progress */}
                   <div className="prep-progress">
                     <div className="prep-header">
                       <span>Preparation</span>
@@ -419,7 +432,6 @@ function InterviewCalendar() {
         )}
       </div>
       
-      {/* Interview Details Modal */}
       {showDetails && selectedInterview && (
         <div className="modal-overlay" onClick={() => setShowDetails(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -479,6 +491,47 @@ function InterviewCalendar() {
                   <p>{selectedInterview.notes}</p>
                 </div>
               )}
+              
+              <div className="detail-section">
+                <h4>Calendar Sync</h4>
+                {calendarStatus.connected ? (
+                  <div style={{ color: '#28a745', marginBottom: '12px' }}>
+                    ✓ Connected to {calendarStatus.provider}
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ marginBottom: '12px', color: '#666' }}>
+                      Connect your calendar to automatically sync interview schedules
+                    </p>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button
+                        onClick={() => connectCalendar('google')}
+                        style={{
+                          padding: '10px 20px',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          background: 'white',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Connect Google Calendar
+                      </button>
+                      <button
+                        onClick={() => connectCalendar('outlook')}
+                        style={{
+                          padding: '10px 20px',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          background: 'white',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Connect Outlook
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="modal-footer">
@@ -507,8 +560,6 @@ function InterviewCalendar() {
           </div>
         </div>
       )}
-      
-      {/* Edit Modal */}
       {showEditModal && editFormData && selectedInterview && (
         <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflow: 'auto' }}>

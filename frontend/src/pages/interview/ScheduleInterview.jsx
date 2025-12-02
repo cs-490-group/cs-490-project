@@ -32,7 +32,6 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
     interviewer_email: '',
     interviewer_phone: '',
     interviewer_title: '',
-    calendar_provider: '',
     notes: '',
     scenario_name: '',
     company_name: ''
@@ -40,14 +39,12 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
   
   const [jobDetails, setJobDetails] = useState(null);
   const [jobApplications, setJobApplications] = useState([]);
-  const [calendarStatus, setCalendarStatus] = useState({ connected: false, provider: null });
   const [loading, setLoading] = useState(false);
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     loadJobApplications();
-    loadCalendarStatus();
   }, []);
 
   useEffect(() => {
@@ -89,16 +86,6 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
       setJobApplications([]);
     } finally {
       setLoadingJobs(false);
-    }
-  };
-
-  const loadCalendarStatus = async () => {
-    try {
-      const response = await InterviewScheduleAPI.getCalendarStatus();
-      setCalendarStatus(response.data);
-    } catch (err) {
-      console.error('Error loading calendar status:', err);
-      setCalendarStatus({ connected: false, provider: null });
     }
   };
 
@@ -163,34 +150,6 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
       setError(err.response?.data?.detail || err.message || 'Failed to schedule interview');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const connectCalendar = async (provider) => {
-    try {
-      const response = provider === 'google'
-        ? await InterviewScheduleAPI.getGoogleAuthUrl()
-        : await InterviewScheduleAPI.getOutlookAuthUrl();
-      
-      window.open(response.data.auth_url, '_blank', 'width=600,height=700');
-      
-      const checkInterval = setInterval(async () => {
-        try {
-          const statusResponse = await InterviewScheduleAPI.getCalendarStatus();
-          if (statusResponse.data.connected) {
-            setCalendarStatus(statusResponse.data);
-            setFormData(prev => ({ ...prev, calendar_provider: statusResponse.data.provider }));
-            clearInterval(checkInterval);
-          }
-        } catch (err) {
-          // Ignore polling errors
-        }
-      }, 2000);
-      
-      setTimeout(() => clearInterval(checkInterval), 120000);
-    } catch (err) {
-      console.error('Calendar connection error:', err);
-      alert('Failed to connect calendar');
     }
   };
 
@@ -462,14 +421,14 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
               
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                  Meeting Link (Optional - will auto-generate if empty)
+                  Meeting Link
                 </label>
                 <input
                   type="url"
                   name="video_link"
                   value={formData.video_link}
                   onChange={handleChange}
-                  placeholder="Leave empty to auto-generate"
+                  placeholder="https://..."
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -477,9 +436,6 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
                     borderRadius: '8px'
                   }}
                 />
-                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                  💡 If left empty, a meeting link will be automatically generated
-                </p>
               </div>
             </>
           )}
@@ -604,50 +560,6 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
                 />
               </div>
             </div>
-          </div>
-
-          {/* Calendar Integration */}
-          <div style={{
-            padding: '16px',
-            background: '#f8f9fa',
-            borderRadius: '8px',
-            marginBottom: '24px'
-          }}>
-            <h4 style={{ marginTop: 0, marginBottom: '12px' }}>Calendar Sync</h4>
-            {calendarStatus.connected ? (
-              <div style={{ color: '#28a745' }}>
-                ✓ Connected to {calendarStatus.provider}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => connectCalendar('google')}
-                  style={{
-                    padding: '10px 20px',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    background: 'white',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Connect Google Calendar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => connectCalendar('outlook')}
-                  style={{
-                    padding: '10px 20px',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    background: 'white',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Connect Outlook
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Notes */}
