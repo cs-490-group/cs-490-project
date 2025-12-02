@@ -5,46 +5,42 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
   const loadJobs = async (setLoading) => {
     try {
       if (setLoading) setLoading(true);
+
       const res = await JobsAPI.getAll();
-      
-      const transformedJobs = (res.data || []).map(job => ({
-        id: job._id,
-        title: job.title,
-        company: typeof job.company === 'string' ? job.company : job.company?.name || 'Unknown Company',
-        companyData: job.company_data || null,
-        location: job.location,
-        salary: job.salary,
-        url: job.url,
-        deadline: job.deadline,
-        industry: job.industry,
-        job_type: job.job_type,
-        jobType: job.job_type,
-        description: job.description,
-        status: job.status,
-        createdAt: job.date_created || job.createdAt,
-        updatedAt: job.date_updated || job.updatedAt,
-        status_history: job.status_history || [],
-        statusHistory: (job.status_history || []).map(([status, timestamp]) => ({
-          status,
-          timestamp
-        })),
-        notes: job.notes,
-        contacts: job.contacts,
-        salary_notes: job.salary_notes,
-        salaryNotes: job.salary_notes,
-        interview_notes: job.interview_notes,
-        interviewNotes: job.interview_notes,
-        archived: job.archived || false,
-        archiveReason: job.archive_reason,
-        archiveDate: job.archive_date,
-        reminderDays: job.reminderDays || 3,
-        emailReminder: job.emailReminder !== false,
-        reminderEmail: job.reminderEmail,
-        // FIX: Add materials fields
-        materials: job.materials || null,
-        materials_history: job.materials_history || []
-      }));
-      
+
+      const transformedJobs = (res.data || []).map(job => {
+  console.log("JOB FROM BACKEND:", job);
+
+  const t = {
+    id: job._id,
+    title: job.title,
+    company: typeof job.company === "string" ? job.company : job.company?.name,
+    companyData: job.company_data || null,
+    company_news: job.company_news || null,
+    company_research: job.company_research || null,
+    location: job.location,
+    salary: job.salary,
+    url: job.url,
+    deadline: job.deadline,
+    industry: job.industry,
+    job_type: job.job_type,
+    description: job.description,
+    status: job.status,
+    archived: job.archived,
+    notes: job.notes,
+    contacts: job.contacts,
+    salary_notes: job.salary_notes,
+    interview_notes: job.interview_notes,
+    status_history: job.status_history || [],
+    materials: job.materials || null,
+    materials_history: job.materials_history || [],
+  };
+
+  console.log("TRANSFORMED JOB:", t);
+  return t;
+});
+
+
       setJobs(transformedJobs);
     } catch (error) {
       console.error("Failed to load jobs:", error);
@@ -80,11 +76,32 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
   };
 
   const addJob = async (jobData) => {
+    console.log("📡 addJob CALLED with:", jobData);
     try {
       const backendData = {
-        ...jobData,
-        company: jobData.companyData || jobData.company
+        title: jobData.title,
+        company: jobData.company,              // <-- ALWAYS THE STRING NAME
+        location: jobData.location,
+        salary: jobData.salary,
+        url: jobData.url,
+        deadline: jobData.deadline,
+        industry: jobData.industry,
+        job_type: jobData.job_type,
+        description: jobData.description,
+        status: jobData.status,
+        notes: jobData.notes,
+        contacts: jobData.contacts,
+        salary_notes: jobData.salary_notes,
+        interview_notes: jobData.interview_notes,
+        status_history: jobData.status_history,
+
+      
+
+        // company_data goes here, NOT inside "company"
+        company_data: jobData.companyData || null
       };
+
+      console.log("BACKEND DATA:", backendData);
       
       const res = await JobsAPI.add(backendData);
 
@@ -92,7 +109,7 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
         const newJob = {
           id: res.data.job_id,
           ...jobData,
-          company: typeof jobData.company === 'string' ? jobData.company : jobData.company?.name || jobData.companyData?.name || 'Unknown Company',
+          company: jobData.company, 
           companyData: jobData.companyData,
           jobType: jobData.job_type,
           salaryNotes: jobData.salary_notes,
