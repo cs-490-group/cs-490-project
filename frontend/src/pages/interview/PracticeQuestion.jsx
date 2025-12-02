@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import QuestionBankAPI from "../../api/questionBank";
+import MockInterviewAPI from "../../api/mockInterview";
+import CoachingFeedbackPanel from "../../components/CoachingFeedbackPanel";
 import "../../styles/practiceQuestion.css";
 
 
@@ -18,6 +20,20 @@ function PracticeQuestion() {
     guidance: false,
   });
 
+  // UC-076: AI Coaching feedback state
+  const [coachingFeedback, setCoachingFeedback] = useState(null);
+  const [loadingCoaching, setLoadingCoaching] = useState(false);
+  const coachingFeedbackRef = useRef(null);
+
+  // Auto-scroll to coaching feedback when it loads
+  useEffect(() => {
+    if (coachingFeedback && coachingFeedbackRef.current) {
+      setTimeout(() => {
+        coachingFeedbackRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, [coachingFeedback]);
+
   useEffect(() => {
     loadQuestion();
     loadUserResponse();
@@ -28,7 +44,6 @@ function PracticeQuestion() {
       const response = await QuestionBankAPI.getQuestion(questionId);
       setQuestion(response.data || response);
     } catch (error) {
-      console.error("Failed to load question:", error);
       setQuestion(null);
     } finally {
       setLoading(false);
@@ -60,10 +75,51 @@ function PracticeQuestion() {
         response_html: userResponse,
         is_marked_practiced: false,
       });
-      setSavedFeedback("Response saved successfully! ✓");
+      setSavedFeedback("Response saved successfully");
+
+      // UC-076: Generate AI coaching feedback after saving
+      if (question) {
+        setLoadingCoaching(true);
+        try {
+          // Strip HTML tags for plain text analysis
+          const plainTextResponse = userResponse.replace(/<[^>]*>/g, '');
+
+          const session = localStorage.getItem('session');
+          const uuid = localStorage.getItem('uuid');
+
+          // Call coaching endpoint to generate AI feedback
+          const coachingResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/coaching/analyze`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'authorization': `Bearer ${session}`,
+              'uuid': uuid
+            },
+            body: JSON.stringify({
+              response_text: plainTextResponse,
+              response_duration_seconds: 120,
+              question_text: question.prompt,
+              question_category: question.category || 'behavioral',
+              question_difficulty: question.difficulty || 'mid',
+              expected_skills: question.expected_skills || [],
+              interviewer_guidance: question.interviewer_guidance || '',
+              question_id: questionId
+            })
+          });
+
+          if (coachingResponse.ok) {
+            const feedbackData = await coachingResponse.json();
+            setCoachingFeedback(feedbackData);
+          }
+        } catch (coachingError) {
+          // Coaching is optional, fail silently
+        } finally {
+          setLoadingCoaching(false);
+        }
+      }
+
       setTimeout(() => setSavedFeedback(""), 3000);
     } catch (error) {
-      console.error("Error saving response:", error);
       setSavedFeedback("Error saving response. Please try again.");
       setTimeout(() => setSavedFeedback(""), 3000);
     } finally {
@@ -77,7 +133,6 @@ function PracticeQuestion() {
       setSavedFeedback("Question marked as practiced! 🎉");
       setTimeout(() => setSavedFeedback(""), 3000);
     } catch (error) {
-      console.error("Error marking as practiced:", error);
       setSavedFeedback("Error. Please try again.");
       setTimeout(() => setSavedFeedback(""), 3000);
     }
@@ -309,30 +364,51 @@ function PracticeQuestion() {
                 onClick={handleSaveResponse}
                 disabled={saving || !userResponse.trim()}
               >
-                {saving ? "Saving..." : "💾 Save Response"}
+                {saving ? "Saving..." : "Save Response"}
               </button>
               <button
                 className="practiced-btn"
                 onClick={handleMarkPracticed}
               >
-                ✓ Mark as Practiced
+                Mark as Practiced
               </button>
             </div>
 
             {/* Tips */}
-            <div className="tips-box">
-              <h5>💬 Tips</h5>
-              <ul>
-                <li>Be specific with examples and metrics</li>
-                <li>Use the STAR framework for structure</li>
-                <li>Highlight relevant skills</li>
-                <li>Practice out loud before typing</li>
-                <li>Keep answers to 2-3 minutes of speaking time</li>
-              </ul>
-            </div>
+            {!coachingFeedback && (
+              <div className="tips-box">
+                <h5>Tips</h5>
+                <ul>
+                  <li>Be specific with examples and metrics</li>
+                  <li>Use the STAR framework for structure</li>
+                  <li>Highlight relevant skills</li>
+                  <li>Practice out loud before typing</li>
+                  <li>Keep answers to 2-3 minutes of speaking time</li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* UC-076: AI Coaching Feedback - Separate Card Below */}
+      {(coachingFeedback || loadingCoaching) && (
+        <div className="coaching-feedback-card" ref={coachingFeedbackRef}>
+          {coachingFeedback && (
+            <CoachingFeedbackPanel
+              feedback={coachingFeedback}
+              loading={loadingCoaching}
+              questionCategory={question?.category || 'behavioral'}
+            />
+          )}
+
+          {loadingCoaching && !coachingFeedback && (
+            <div className="coaching-loading">
+              <p>Generating AI coaching feedback...</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

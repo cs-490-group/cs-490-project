@@ -17,6 +17,11 @@ from mongo.progress_sharing_dao import progress_sharing_dao
 from sessions.session_authorizer import authorize
 from schema.Job import Job, UrlBody
 from services.html_pdf_generator import HTMLPDFGenerator
+from services.company_research import run_company_research
+from services.company_news import run_company_news
+
+
+# Import the new enhanced scraper
 from webscrape.job_scraper import job_from_url, URLScrapeError
 
 jobs_router = APIRouter(prefix="/jobs")
@@ -266,6 +271,32 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
     try:
         model = job.model_dump()
         model["uuid"] = uuid
+        
+        # Extract Company Name
+        company_name = None
+
+        # If frontend sent plain string
+        if isinstance(job.company, str):
+            company_name = job.company
+
+        # If frontend sent { name: "...", size: "...", description: "..." }
+        elif isinstance(job.company, dict):
+            company_name = job.company.get("name") or job.company.get("company")
+
+        # If scraping job import
+        elif model.get("company"):
+            company_name = model["company"]
+
+        print(f"🔍 Running automated research for company: {company_name}")
+
+        #Automated Company Research
+        research_result = await run_company_research(company_name)
+        model["company_research"] = research_result
+
+        #Automated Company News
+        news_result = await run_company_news(company_name)
+        model["company_news"] = news_result
+        
         result = await jobs_dao.add_job(model)
         
         # TRIGGER MILESTONE CHECK
@@ -317,6 +348,9 @@ async def get_job(job_id: str, uuid: str = Depends(authorize)):
                 except Exception as e:
                     print(f"Error fetching cover letter details: {e}")
         
+        result["company_research"] = result.get("company_research", None)
+        result["company_news"] = result.get("company_news", None)
+    
         return result
     else:
         raise HTTPException(400, "Job not found")
