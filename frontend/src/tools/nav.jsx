@@ -271,9 +271,41 @@ const Nav = () => {
                   Cover Letters
                 </BootstrapNav.Link>
 
-                <BootstrapNav.Link as={NavLink} to="/network" className="mx-3">
-                  Network
-                </BootstrapNav.Link>
+                <NavDropdown
+                  title={
+                    <span
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigate("/network");
+                      }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Network
+                    </span>
+                  }
+                  id="interview-dropdown"
+                  className="mx-3"
+                >
+                  <NavDropdown.Item as={NavLink} to="/networks/referrals">
+                    Referrals
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/networks/events">
+                    Events
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/networks/interviews">
+                    Interviews
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/networks/mentorship">
+                    Mentorship
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/networks/discovery">
+                    Discovery
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/networks/analytics">
+                    Performance & Analytics
+                  </NavDropdown.Item>
+                </NavDropdown>
 
                 <NavDropdown
                   title={

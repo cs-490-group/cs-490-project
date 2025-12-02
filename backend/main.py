@@ -29,6 +29,9 @@ from routes.question_bank import question_bank_router
 from routes.mock_interview import mock_interview_router
 from routes.coaching import coaching_router
 from routes.networks import networks_router
+from routes.referrals import referrals_router
+# from routes.network_events import network_events_router
+# from routes.network_analytics import network_analytics_router
 
 app = FastAPI()
 
@@ -49,14 +52,6 @@ app.add_middleware(
     allow_methods=["*"],         
     allow_headers=["*"],         
 )
-
-# @app.middleware("http")
-# async def add_global_headers(request: Request, call_next):
-#     response: Response = await call_next(request)
-#     # Add headers to every response
-#     response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
-#     response.headers["Cross-Origin-Embedder-Policy"] = "unsafe-none"
-#     return response
 
 app.include_router(auth_router, prefix = api_prefix)
 app.include_router(profiles_router, prefix = api_prefix)
@@ -80,6 +75,9 @@ app.include_router(coaching_router, prefix = api_prefix)
 
 app.include_router(ai_router, prefix=api_prefix)
 app.include_router(networks_router, prefix = api_prefix)
+app.include_router(referrals_router, prefix = api_prefix)
+# app.include_router(network_events_router, prefix = api_prefix)
+# app.include_router(network_analytics, prefix = api_prefix)
 
 @app.on_event("startup")
 async def startup_event():
