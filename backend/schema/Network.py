@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from typing import Optional, Literal
-from schema.Employment import Employment
 
 class Numbers(BaseModel):
     primary: Optional[Literal["home", "work", "mobile"]] = None
@@ -13,6 +12,11 @@ class Websites(BaseModel):
     # TODO: add more if necessary
 
     other: Optional[str] = None # any personal websites
+
+class Employment(BaseModel):
+    position: Optional[str] = None
+    company: Optional[str] = None
+    location: Optional[str] = None
 
 class Contact(BaseModel):
     name: Optional[str] = None

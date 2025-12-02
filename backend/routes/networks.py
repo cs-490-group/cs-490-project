@@ -74,17 +74,26 @@ async def upload_avatar(contact_id: str, media: UploadFile = File(...), uuid: st
     try:
         media_id = await media_dao.add_media(contact_id, media.filename, await media.read(), media.content_type)
     except Exception as e:
-        raise HTTPException(500, str(e))
-    
+        raise HTTPException(400, "Unable to find media")
+
     if not media_id:
-        raise HTTPException(500, "Unable to upload media")
+        raise HTTPException(400, "Unable to upload media")
     
     return {"media_id": media_id}
 
 @networks_router.get("/avatar", tags = ["networks"])
-async def download_avatar(media_id: str, uuid: str = Depends(authorize)):
+async def download_avatar(contact_id: str, uuid: str = Depends(authorize)):
     try:
-        media = await media_dao.get_media(media_id)
+        media_ids = await media_dao.get_all_associated_media_ids(contact_id)
+        print(media_ids)
+    except Exception as e:
+        raise HTTPException(500, str(e))
+    
+    if not media_ids:
+        raise HTTPException(400, "Could not find requested media")
+    
+    try:
+        media = await media_dao.get_media(media_ids[-1])
     except Exception as e:
         raise HTTPException(500, str(e))
     
@@ -100,9 +109,17 @@ async def download_avatar(media_id: str, uuid: str = Depends(authorize)):
     )
 
 @networks_router.put("/avatar", tags = ["networks"])
-async def update_avatar(media_id: str, media: UploadFile, uuid: str = Depends(authorize)):
+async def update_avatar(contact_id: str, media: UploadFile, uuid: str = Depends(authorize)):
     try:
-        updated = await media_dao.update_media(media_id, media.filename, await media.read(), None, media.content_type)
+        media_ids = await media_dao.get_all_associated_media_ids(contact_id)
+    except Exception as e:
+        raise HTTPException(500, str(e))
+    
+    if not media_ids:
+        raise HTTPException(400, "Could not find requested media")
+    
+    try:
+        updated = await media_dao.update_media(media_ids[-1], media.filename, await media.read(), None, media.content_type)
     except Exception as e:
         raise HTTPException(500, str(e))
     
@@ -112,9 +129,17 @@ async def update_avatar(media_id: str, media: UploadFile, uuid: str = Depends(au
     return {"detail": "Sucessfully updated file"}
 
 @networks_router.delete("/avatar", tags = ["networks"])
-async def delete_avatar(media_id: str, uuid: str = Depends(authorize)):
+async def delete_avatar(contact_id: str, uuid: str = Depends(authorize)):
     try:
-        deleted = await media_dao.delete_media(media_id)
+        media_ids = await media_dao.get_all_associated_media_ids(contact_id)
+    except Exception as e:
+        raise HTTPException(500, str(e))
+    
+    if not media_ids:
+        raise HTTPException(400, "Could not find requested media")
+    
+    try:
+        deleted = await media_dao.delete_media(media_ids[-1])
     except Exception as e:
         raise HTTPException(500, str(e))
     

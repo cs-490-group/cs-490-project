@@ -22,24 +22,24 @@ class NetworksAPI {
         return api.delete(`${BASE_URL}?contact_id=${contactId}`);
     }
 
-    uploadAvatar(image) {
+    uploadAvatar(contactId, image) {
         const formData = new FormData();
         formData.append("media", image);
-        return api.post(`${BASE_URL}/avatar`, formData);
+        return api.post(`${BASE_URL}/avatar?contact_id=${contactId}`, formData);
     }
 
-    getAvatar(mediaId) {
-        return api.get(`${BASE_URL}/avatar`, {params: {media_id: mediaId}, responseType: "blob"});
+    getAvatar(contactId) {
+        return api.get(`${BASE_URL}/avatar`, {params: {contact_id: contactId}, responseType: "blob"});
     }
 
-    updateAvatar(mediaId, file) {
+    updateAvatar(contactId, file) {
         const formData = new FormData();
         formData.append("media", file);
-        return api.put(`${BASE_URL}/avatar?${mediaId}`, formData);
+        return api.put(`${BASE_URL}/avatar?contact_id=${contactId}`, formData);
     }
 
-    deleteAvatar(mediaId) {
-        return api.delete(`${BASE_URL}/avatar?media_id=${mediaId}`);
+    deleteAvatar(contactId) {
+        return api.delete(`${BASE_URL}/avatar?contact_id=${contactId}`);
     }
 }
 
