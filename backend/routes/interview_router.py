@@ -346,11 +346,9 @@ async def get_upcoming_interviews(request: Request):
     """Get all upcoming and completed interviews for the user"""
     try:
         uuid_val = get_uuid_from_headers(request)
-       #print(f"\n[Get Upcoming] Called for uuid: {uuid_val}")
         
         # Get all interviews for the user
         all_interviews = await schedule_dao.get_user_schedules(uuid_val)
-        #print(f"[Get Upcoming] Found {len(all_interviews)} total interviews")
         
         # Separate into upcoming and past
         now = datetime.now(timezone.utc)
@@ -361,35 +359,32 @@ async def get_upcoming_interviews(request: Request):
             # Add uuid field for frontend compatibility
             interview['uuid'] = interview.get('_id')
             
+            # ===== FIX: Ensure datetime is serialized as ISO string =====
             interview_time = interview.get('interview_datetime')
             if interview_time:
-                # Handle both datetime objects and strings
-                if isinstance(interview_time, str):
-                    interview_time = datetime.fromisoformat(interview_time.replace('Z', '+00:00'))
+                # Convert datetime object to ISO string
+                if isinstance(interview_time, datetime):
+                    interview['interview_datetime'] = interview_time.isoformat()
+                    interview_time_aware = make_aware(interview_time)
+                elif isinstance(interview_time, str):
+                    # Already a string, parse it for comparison
+                    interview_time_aware = make_aware(
+                        datetime.fromisoformat(interview_time.replace('Z', '+00:00'))
+                    )
+                else:
+                    continue
                 
-                # Make sure both datetimes are timezone-aware for comparison
-                interview_time = make_aware(interview_time)
                 now_aware = make_aware(now)
                 
-                # Compare timezone-aware datetimes
-                if interview_time > now_aware:
+                # Categorize as upcoming or past
+                if interview_time_aware > now_aware:
                     upcoming.append(interview)
                 else:
                     past.append(interview)
         
         # Sort by date
-        upcoming.sort(key=lambda x: make_aware(
-            datetime.fromisoformat(x.get('interview_datetime').replace('Z', '+00:00')) 
-            if isinstance(x.get('interview_datetime'), str) 
-            else x.get('interview_datetime')
-        ))
-        past.sort(key=lambda x: make_aware(
-            datetime.fromisoformat(x.get('interview_datetime').replace('Z', '+00:00')) 
-            if isinstance(x.get('interview_datetime'), str) 
-            else x.get('interview_datetime')
-        ), reverse=True)
-        
-        #print(f"[Get Upcoming] Returning {len(upcoming)} upcoming, {len(past)} past")
+        upcoming.sort(key=lambda x: x.get('interview_datetime'))
+        past.sort(key=lambda x: x.get('interview_datetime'), reverse=True)
         
         return {
             "upcoming_interviews": upcoming,
@@ -403,7 +398,7 @@ async def get_upcoming_interviews(request: Request):
         import traceback
         traceback.print_exc()
         raise HTTPException(500, f"Failed to load interviews: {str(e)}")
-
+    
 @interview_router.get("/schedule/{schedule_id}")
 async def get_interview_details(schedule_id: str, request: Request):
     """Get details for a specific interview"""

@@ -14,39 +14,54 @@ function InterviewCalendar() {
   const [showDetails, setShowDetails] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState(null);
-  const [viewMode, setViewMode] = useState('upcoming'); // upcoming, past, all
+  const [viewMode, setViewMode] = useState('upcoming');
   
   useEffect(() => {
     loadInterviews();
   }, []);
   
+  // Helper function to parse UTC datetime and convert to local Date object
+  const parseUTCDateTime = (datetimeStr) => {
+    if (!datetimeStr) return null;
+    
+    // Ensure the string has timezone info (Z for UTC or +00:00)
+    let isoString = datetimeStr;
+    if (!isoString.includes('Z') && !isoString.includes('+') && !isoString.includes('-', 10)) {
+      // If no timezone info, assume it's UTC and add 'Z'
+      isoString = isoString + 'Z';
+    }
+    
+    return new Date(isoString);
+  };
+  
   const loadInterviews = async () => {
     try {
       const response = await InterviewScheduleAPI.getUpcomingInterviews();
       
-      // CLIENT-SIDE FILTERING FIX: Ensure correct categorization
+      // CLIENT-SIDE FILTERING: Re-categorize based on current local time
       const now = new Date();
       const allInterviewsData = [
         ...(response.data.upcoming_interviews || []),
         ...(response.data.past_interviews || [])
       ];
       
-      // Re-categorize based on current time
       const upcoming = [];
       const past = [];
       
       allInterviewsData.forEach(interview => {
-        const interviewTime = new Date(interview.interview_datetime);
-        if (interviewTime >= now) {
+        // Parse UTC datetime from server and convert to local Date object
+        const interviewTime = parseUTCDateTime(interview.interview_datetime);
+        
+        if (interviewTime && interviewTime >= now) {
           upcoming.push(interview);
-        } else {
+        } else if (interviewTime) {
           past.push(interview);
         }
       });
       
       // Sort upcoming by soonest first, past by most recent first
-      upcoming.sort((a, b) => new Date(a.interview_datetime) - new Date(b.interview_datetime));
-      past.sort((a, b) => new Date(b.interview_datetime) - new Date(a.interview_datetime));
+      upcoming.sort((a, b) => parseUTCDateTime(a.interview_datetime) - parseUTCDateTime(b.interview_datetime));
+      past.sort((a, b) => parseUTCDateTime(b.interview_datetime) - parseUTCDateTime(a.interview_datetime));
       
       setAllInterviews({ upcoming, past });
     } catch (error) {
@@ -84,11 +99,28 @@ function InterviewCalendar() {
   };
   
   const handleEditInterview = (interview) => {
-    // Convert UTC datetime back to local datetime-local format
-    const utcDate = new Date(interview.interview_datetime);
-    const localDatetimeString = new Date(utcDate.getTime() - utcDate.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
+    // Parse the UTC datetime string from backend
+    const utcDate = parseUTCDateTime(interview.interview_datetime);
+    
+    if (!utcDate) {
+      showFlash('Invalid interview date', 'error');
+      return;
+    }
+    
+    // Format as local datetime string for datetime-local input
+    // This will show the CORRECT local time in the input field
+    const year = utcDate.getFullYear();
+    const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+    const day = String(utcDate.getDate()).padStart(2, '0');
+    const hours = String(utcDate.getHours()).padStart(2, '0');
+    const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+    
+    const localDatetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+    
+    console.log('📅 Edit Setup:');
+    console.log('  UTC from backend:', interview.interview_datetime);
+    console.log('  Parsed to local Date:', utcDate.toString());
+    console.log('  Local datetime-local value:', localDatetimeString);
     
     setEditFormData({
       interview_datetime: localDatetimeString,
@@ -115,8 +147,11 @@ function InterviewCalendar() {
     if (!selectedInterview) return;
     
     try {
-      // Convert local datetime back to UTC before sending
+      // The datetime-local input gives us a local datetime string like "2025-12-03T10:30"
+      // We need to convert this to UTC for the backend
       const localDate = new Date(editFormData.interview_datetime);
+      
+      // Convert to UTC ISO string
       const utcDatetime = localDate.toISOString();
       
       const dataToSend = {
@@ -124,9 +159,10 @@ function InterviewCalendar() {
         interview_datetime: utcDatetime
       };
       
-      console.log('📅 Edit DateTime Debug:');
-      console.log('  Local:', editFormData.interview_datetime);
-      console.log('  UTC:', utcDatetime);
+      console.log('📅 Save Edit:');
+      console.log('  Local input value:', editFormData.interview_datetime);
+      console.log('  Parsed as local Date:', localDate.toString());
+      console.log('  Converted to UTC ISO:', utcDatetime);
       
       await InterviewScheduleAPI.updateSchedule(selectedInterview.uuid, dataToSend);
       showFlash('Interview updated successfully', 'success');
@@ -157,8 +193,18 @@ function InterviewCalendar() {
   };
   
   const formatDateTime = (datetime) => {
-    // Parse UTC datetime and convert to local time
-    const date = new Date(datetime); // This automatically converts UTC to local
+    // Parse UTC datetime string and automatically convert to local time
+    const date = parseUTCDateTime(datetime);
+    
+    if (!date) {
+      return {
+        date: 'Invalid Date',
+        time: 'Invalid Time',
+        dayOfWeek: '',
+        fullDateTime: 'Invalid DateTime'
+      };
+    }
+    
     return {
       date: date.toLocaleDateString('en-US', { 
         month: 'short', 
@@ -170,33 +216,42 @@ function InterviewCalendar() {
         minute: '2-digit',
         hour12: true
       }),
-      dayOfWeek: date.toLocaleDateString('en-US', { weekday: 'long' })
+      dayOfWeek: date.toLocaleDateString('en-US', { weekday: 'long' }),
+      fullDateTime: date.toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
     };
   };
   
   const getTimeUntil = (datetime) => {
     const now = new Date();
-    const interviewDate = new Date(datetime);
-    const diff = interviewDate - now; // milliseconds
+    const interviewDate = parseUTCDateTime(datetime);
     
-    // FIXED: More accurate time calculation
-    if (diff < 0) {
+    if (!interviewDate) return 'invalid';
+    
+    const diffMs = interviewDate - now;
+    
+    if (diffMs < 0) {
       return 'past';
     }
     
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const minutes = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     
     if (days > 7) {
       return `in ${days} days`;
-    } else if (days > 2) {
+    } else if (days >= 2) {
       return `in ${days} days`;
-    } else if (days === 2) {
-      return 'in 2 days';
     } else if (days === 1) {
       return 'tomorrow';
-    } else if (hours > 1) {
+    } else if (hours >= 2) {
       return `in ${hours} hours`;
     } else if (hours === 1) {
       return 'in 1 hour';
@@ -380,8 +435,8 @@ function InterviewCalendar() {
               </div>
               
               <div className="detail-section">
-                <h4>Date & Time</h4>
-                <p>{formatDateTime(selectedInterview.interview_datetime).dayOfWeek}, {formatDateTime(selectedInterview.interview_datetime).date} at {formatDateTime(selectedInterview.interview_datetime).time}</p>
+                <h4>Date & Time (Local)</h4>
+                <p>{formatDateTime(selectedInterview.interview_datetime).fullDateTime}</p>
                 <p className="time-until-detail">
                   <strong>Status:</strong> {getTimeUntil(selectedInterview.interview_datetime)}
                 </p>
@@ -484,13 +539,16 @@ function InterviewCalendar() {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Date & Time</label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Date & Time (Local)</label>
                 <input
                   type="datetime-local"
                   value={editFormData.interview_datetime}
                   onChange={(e) => setEditFormData({...editFormData, interview_datetime: e.target.value})}
                   style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
                 />
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                  💡 Enter time in your local timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone})
+                </p>
               </div>
               
               <div style={{ marginBottom: '16px' }}>
