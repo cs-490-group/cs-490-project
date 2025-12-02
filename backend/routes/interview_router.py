@@ -15,6 +15,7 @@ from mongo.interview_schedule_dao import (
     FollowUpTemplateDAO
 )
 from mongo.jobs_dao import JobsDAO
+from mongo.profiles_dao import UserDataDAO
 from services.calendar_service import calendar_service, PreparationTaskGenerator
 from services.followup_service import followup_service
 from mongo.dao_setup import db_client
@@ -26,7 +27,9 @@ interview_router = APIRouter(prefix="/interview", tags=["interview"])
 # Initialize DAOs
 schedule_dao = InterviewScheduleDAO(db_client)
 followup_dao = FollowUpTemplateDAO(db_client)
+followup_dao = FollowUpTemplateDAO(db_client)
 jobs_dao = JobsDAO()
+profile_dao = UserDataDAO()
 
 # In-memory storage for calendar credentials
 calendar_credentials_store = {}
@@ -57,6 +60,372 @@ def make_aware(dt):
     # If it's naive, assume it's UTC and make it aware
     return dt.replace(tzinfo=timezone.utc)
 
+# ============================================================================
+# FOLLOW-UP TEMPLATE ENDPOINTS WITH EMAIL SENDING
+# ============================================================================
+
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def send_followup_email(
+    recipient_email: str,
+    sender_name: str,
+    subject: str,
+    body: str,
+    template_type: str
+):
+    """Send a follow-up email using Gmail SMTP"""
+    sender_email = os.getenv("GMAIL_SENDER")
+    sender_password = os.getenv("GMAIL_APP_PASSWORD")
+    
+    if not sender_email or not sender_password:
+        raise ValueError("Email credentials not configured")
+    
+    # Create message
+    message = MIMEMultipart("alternative")
+    message["Subject"] = subject
+    message["From"] = f"{sender_name} <{sender_email}>"
+    message["To"] = recipient_email
+    message["Reply-To"] = sender_email  # User can reply to this email
+    
+    # Determine emoji based on template type
+    emoji_map = {
+        "thank_you": "✉️",
+        "status_inquiry": "❓",
+        "feedback_request": "📝",
+        "networking": "🤝"
+    }
+    emoji = emoji_map.get(template_type, "📧")
+    
+    # Plain text version (the actual email body)
+    text = body
+    
+    # HTML version with nice formatting
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', 'Arial', sans-serif; background-color: #f5f5f5;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
+        <tr>
+            <td align="center">
+                <table width="650" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 50px 40px;">
+                            <div style="white-space: pre-wrap; font-size: 16px; line-height: 1.8; color: #333;">
+{body}
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9f9f9; padding: 20px 40px; text-align: center; border-top: 1px solid #e0e0e0;">
+                            <p style="margin: 0; color: #999; font-size: 12px; line-height: 1.6;">
+                                {emoji} This email was sent via <strong style="color: #004d7a;">Metamorphosis</strong> Interview Follow-Up Manager
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+"""
+    
+    # Attach both versions
+    part1 = MIMEText(text, "plain")
+    part2 = MIMEText(html, "html")
+    message.attach(part1)
+    message.attach(part2)
+    
+    # Send email
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, recipient_email, message.as_string())
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        raise
+
+
+@interview_router.post("/followup/generate")
+async def generate_followup_template(
+    request_data: GenerateFollowUpRequest,
+    request: Request
+):
+    """Generate a personalized follow-up template"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        
+        # Fetch the interview
+        interview = await schedule_dao.get_schedule(request_data.interview_uuid)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        # Fetch user profile for personalization
+        user_full_name = None
+        user_email = None
+        try:
+            profile = await profile_dao.get_profile(uuid_val)
+            if profile:
+                user_full_name = profile.get("full_name")
+                user_email = profile.get("email")
+        except Exception as e:
+            print(f"Could not fetch profile for user {uuid_val}: {e}")
+        
+        # Extract interview details
+        interviewer_name = interview.get("interviewer_name", "Hiring Team")
+        interviewer_email = interview.get("interviewer_email")
+        company_name = interview.get("company_name", "Company")
+        job_title = interview.get("scenario_name", "Position")
+        interview_date = make_aware(interview.get("interview_datetime"))
+        outcome = interview.get("outcome")
+        
+        days_since = (datetime.now(timezone.utc) - interview_date).days if interview_date else 0
+        
+        # Generate the appropriate template with user's name
+        template_data = None
+        
+        if request_data.template_type == "thank_you":
+            template_data = followup_service.generate_thank_you_email(
+                interviewer_name=interviewer_name,
+                company_name=company_name,
+                job_title=job_title,
+                interview_date=interview_date,
+                user_full_name=user_full_name,
+                specific_topics=request_data.specific_topics or [],
+                custom_notes=request_data.custom_notes
+            )
+        elif request_data.template_type == "status_inquiry":
+            template_data = followup_service.generate_status_inquiry(
+                interviewer_name=interviewer_name,
+                company_name=company_name,
+                job_title=job_title,
+                interview_date=interview_date,
+                days_since_interview=days_since,
+                user_full_name=user_full_name
+            )
+        elif request_data.template_type == "feedback_request":
+            was_selected = outcome == "passed"
+            template_data = followup_service.generate_feedback_request(
+                interviewer_name=interviewer_name,
+                company_name=company_name,
+                job_title=job_title,
+                was_selected=was_selected,
+                user_full_name=user_full_name
+            )
+        elif request_data.template_type == "networking":
+            template_data = followup_service.generate_networking_followup(
+                interviewer_name=interviewer_name,
+                company_name=company_name,
+                job_title=job_title,
+                user_full_name=user_full_name,
+                connection_request=True
+            )
+        else:
+            raise HTTPException(400, f"Invalid template type: {request_data.template_type}")
+        
+        # Get recommended send time
+        suggested_send_time = followup_service.get_recommended_timing(
+            request_data.template_type,
+            interview_date
+        )
+        
+        # Create template record for tracking
+        template_record = {
+            "user_uuid": uuid_val,
+            "interview_uuid": request_data.interview_uuid,
+            "template_type": request_data.template_type,
+            "subject_line": template_data["subject"],
+            "email_body": template_data["body"],
+            "interviewer_name": interviewer_name,
+            "interviewer_email": interviewer_email,
+            "company_name": company_name,
+            "job_title": job_title,
+            "specific_topics_discussed": request_data.specific_topics or [],
+            "suggested_send_time": suggested_send_time,
+            "user_email": user_email
+        }
+        
+        template_uuid = await followup_dao.create_template(template_record)
+        
+        return {
+            "template_uuid": template_uuid,
+            "subject": template_data["subject"],
+            "body": template_data["body"],
+            "suggested_send_time": suggested_send_time.isoformat(),
+            "interviewer_name": interviewer_name,
+            "interviewer_email": interviewer_email,
+            "user_email": user_email,
+            "template_type": request_data.template_type
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to generate template: {str(e)}")
+
+
+@interview_router.post("/followup/{template_id}/send")
+async def mark_template_sent(template_id: str, request: Request):
+    """Send the follow-up email and mark template as sent"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        template = await followup_dao.get_template(template_id)
+        
+        if not template:
+            raise HTTPException(404, "Template not found")
+        
+        if template["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        # Check if interviewer email exists
+        interviewer_email = template.get("interviewer_email")
+        if not interviewer_email:
+            raise HTTPException(400, "No interviewer email available. Cannot send email.")
+        
+        # Get user name for "From" field
+        user_name = "User"
+        user_email = template.get("user_email")
+        try:
+            profile = await profile_dao.get_profile(uuid_val)
+            if profile and profile.get("full_name"):
+                user_name = profile.get("full_name")
+                user_email = profile.get("email")
+        except Exception as e:
+            print(f"Could not fetch profile: {e}")
+        
+        # Send the actual email
+        try:
+            send_followup_email(
+                recipient_email=interviewer_email,
+                sender_name=user_name,
+                subject=template["subject_line"],
+                body=template["email_body"],
+                template_type=template["template_type"]
+            )
+            print(f"✅ Follow-up email sent to {interviewer_email}")
+        except ValueError as e:
+            raise HTTPException(500, f"Email configuration error: {str(e)}")
+        except Exception as e:
+            print(f"❌ Failed to send email: {e}")
+            raise HTTPException(500, f"Failed to send email: {str(e)}")
+        
+        # Mark as sent in database
+        await followup_dao.mark_as_sent(template_id)
+        
+        # Update interview record
+        interview_uuid = template["interview_uuid"]
+        interview = await schedule_dao.get_schedule(interview_uuid)
+        
+        if interview:
+            follow_up_actions = interview.get("follow_up_actions", [])
+            follow_up_actions.append({
+                "action": f"Sent {template['template_type']} email to {interviewer_email}",
+                "timestamp": datetime.now(timezone.utc),
+                "template_id": template_id
+            })
+            
+            await schedule_dao.update_schedule(interview_uuid, {
+                "follow_up_actions": follow_up_actions
+            })
+            
+            if template["template_type"] == "thank_you":
+                await schedule_dao.mark_thank_you_sent(interview_uuid)
+        
+        return {
+            "detail": "Email sent successfully",
+            "sent_to": interviewer_email,
+            "sent_from": user_email or "system",
+            "sent_at": datetime.now(timezone.utc).isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to send follow-up: {str(e)}")
+
+
+@interview_router.get("/followup/{template_id}")
+async def get_followup_template(template_id: str, request: Request):
+    """Get a specific follow-up template"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        template = await followup_dao.get_template(template_id)
+        
+        if not template:
+            raise HTTPException(404, "Template not found")
+        
+        if template["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        return {"template": template}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to get template: {str(e)}")
+
+
+@interview_router.get("/followup/interview/{interview_id}/templates")
+async def get_templates_by_interview(interview_id: str, request: Request):
+    """Get all follow-up templates for a specific interview"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        interview = await schedule_dao.get_schedule(interview_id)
+        
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+        
+        if interview.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        templates = await followup_dao.get_templates_by_interview(interview_id)
+        
+        return {"templates": templates, "count": len(templates)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to get templates: {str(e)}")
+
+
+@interview_router.post("/followup/{template_id}/response-received")
+async def mark_response_received(
+    template_id: str,
+    request: Request,
+    sentiment: Optional[str] = None
+):
+    """Track that a response was received to a follow-up"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        template = await followup_dao.get_template(template_id)
+        
+        if not template:
+            raise HTTPException(404, "Template not found")
+        
+        if template["user_uuid"] != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+        
+        await followup_dao.mark_response_received(template_id, sentiment)
+        
+        return {
+            "detail": "Response recorded",
+            "received_at": datetime.now(timezone.utc).isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to mark response: {str(e)}")
 
 # ============================================================================
 # INTERVIEW SCHEDULE ENDPOINTS
@@ -813,6 +1182,8 @@ async def generate_followup_template(
     """Generate a personalized follow-up template"""
     try:
         uuid_val = get_uuid_from_headers(request)
+        
+        # Fetch the interview
         interview = await schedule_dao.get_schedule(request_data.interview_uuid)
         
         if not interview:
@@ -821,6 +1192,17 @@ async def generate_followup_template(
         if interview.get("uuid") != uuid_val:
             raise HTTPException(403, "Unauthorized")
         
+        # Fetch user profile for personalization
+        user_full_name = None
+        try:
+            profile = await profile_dao.get_profile(uuid_val)
+            if profile and profile.get("full_name"):
+                user_full_name = profile.get("full_name")
+        except Exception as e:
+            # Profile is optional, continue without it
+            print(f"Could not fetch profile for user {uuid_val}: {e}")
+        
+        # Extract interview details
         interviewer_name = interview.get("interviewer_name", "Hiring Team")
         company_name = interview.get("company_name", "Company")
         job_title = interview.get("scenario_name", "Position")
@@ -829,6 +1211,7 @@ async def generate_followup_template(
         
         days_since = (datetime.now(timezone.utc) - interview_date).days if interview_date else 0
         
+        # Generate the appropriate template with user's name
         template_data = None
         
         if request_data.template_type == "thank_you":
@@ -837,6 +1220,7 @@ async def generate_followup_template(
                 company_name=company_name,
                 job_title=job_title,
                 interview_date=interview_date,
+                user_full_name=user_full_name,
                 specific_topics=request_data.specific_topics or [],
                 custom_notes=request_data.custom_notes
             )
@@ -846,7 +1230,8 @@ async def generate_followup_template(
                 company_name=company_name,
                 job_title=job_title,
                 interview_date=interview_date,
-                days_since_interview=days_since
+                days_since_interview=days_since,
+                user_full_name=user_full_name
             )
         elif request_data.template_type == "feedback_request":
             was_selected = outcome == "passed"
@@ -854,23 +1239,27 @@ async def generate_followup_template(
                 interviewer_name=interviewer_name,
                 company_name=company_name,
                 job_title=job_title,
-                was_selected=was_selected
+                was_selected=was_selected,
+                user_full_name=user_full_name
             )
         elif request_data.template_type == "networking":
             template_data = followup_service.generate_networking_followup(
                 interviewer_name=interviewer_name,
                 company_name=company_name,
                 job_title=job_title,
+                user_full_name=user_full_name,
                 connection_request=True
             )
         else:
             raise HTTPException(400, f"Invalid template type: {request_data.template_type}")
         
+        # Get recommended send time
         suggested_send_time = followup_service.get_recommended_timing(
             request_data.template_type,
             interview_date
         )
         
+        # Create template record for tracking
         template_record = {
             "user_uuid": uuid_val,
             "interview_uuid": request_data.interview_uuid,
@@ -1013,7 +1402,7 @@ async def mark_response_received(
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to mark response: {str(e)}")
-
+    
 # ============================================================================
 # REMINDER SCHEDULER
 # ============================================================================

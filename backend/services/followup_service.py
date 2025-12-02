@@ -16,6 +16,7 @@ class FollowUpService:
         company_name: str,
         job_title: str,
         interview_date: datetime,
+        user_full_name: Optional[str] = None,
         specific_topics: Optional[List[str]] = None,
         custom_notes: Optional[str] = None
     ) -> Dict[str, str]:
@@ -75,12 +76,11 @@ class FollowUpService:
         )
         body_parts.append("")
         body_parts.append("Best regards,")
-        body_parts.append("[Your Name]")
+        body_parts.append(user_full_name if user_full_name else "[Your Name]")
         
         return {
             "subject": subject,
-            "body": "\n".join(body_parts),
-            "suggested_send_time": interview_date + timedelta(hours=24)
+            "body": "\n".join(body_parts)
         }
     
     @staticmethod
@@ -89,7 +89,8 @@ class FollowUpService:
         company_name: str,
         job_title: str,
         interview_date: datetime,
-        days_since_interview: int
+        days_since_interview: int,
+        user_full_name: Optional[str] = None
     ) -> Dict[str, str]:
         """Generate a status inquiry email for delayed response"""
         subject = f"Following Up - {job_title} Position"
@@ -128,7 +129,7 @@ class FollowUpService:
         body_parts.append("Thank you again for considering my application. I look forward to hearing from you.")
         body_parts.append("")
         body_parts.append("Best regards,")
-        body_parts.append("[Your Name]")
+        body_parts.append(user_full_name if user_full_name else "[Your Name]")
         
         return {
             "subject": subject,
@@ -140,7 +141,8 @@ class FollowUpService:
         interviewer_name: str,
         company_name: str,
         job_title: str,
-        was_selected: bool
+        was_selected: bool,
+        user_full_name: Optional[str] = None
     ) -> Dict[str, str]:
         """Generate a feedback request email"""
         subject = f"Thank You - {job_title} Offer" if was_selected else f"Feedback Request - {job_title} Interview"
@@ -177,7 +179,7 @@ class FollowUpService:
         )
         body_parts.append("")
         body_parts.append("Best regards,")
-        body_parts.append("[Your Name]")
+        body_parts.append(user_full_name if user_full_name else "[Your Name]")
         
         return {
             "subject": subject,
@@ -189,6 +191,7 @@ class FollowUpService:
         interviewer_name: str,
         company_name: str,
         job_title: str,
+        user_full_name: Optional[str] = None,
         connection_request: bool = True
     ) -> Dict[str, str]:
         """Generate a networking follow-up for rejected applications"""
@@ -227,7 +230,7 @@ class FollowUpService:
         body_parts.append("Wishing you and the team continued success.")
         body_parts.append("")
         body_parts.append("Best regards,")
-        body_parts.append("[Your Name]")
+        body_parts.append(user_full_name if user_full_name else "[Your Name]")
         
         return {
             "subject": subject,
@@ -242,14 +245,18 @@ class FollowUpService:
         now = datetime.now(timezone.utc)
         
         if template_type == "thank_you":
-            recommended = interview_date + timedelta(hours=24)
+            # Send within a few hours of interview
+            recommended = interview_date + timedelta(hours=4)
             return max(recommended, now)
         elif template_type == "status_inquiry":
-            recommended = interview_date + timedelta(days=8)
+            # Follow up after 5 days
+            recommended = interview_date + timedelta(days=5)
             return max(recommended, now)
         elif template_type == "feedback_request":
-            return now + timedelta(days=2)
+            # Give them a few days to decide
+            return now + timedelta(days=3)
         elif template_type == "networking":
+            # Wait a week after rejection
             return now + timedelta(days=7)
         else:
             return now

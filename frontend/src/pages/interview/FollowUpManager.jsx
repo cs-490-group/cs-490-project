@@ -37,7 +37,6 @@ function FollowUpManager() {
       setUserProfile(response.data);
     } catch (err) {
       console.error('[FollowUpManager] Error loading profile:', err);
-      // Don't set error state here - profile is optional
     }
   };
   
@@ -50,7 +49,6 @@ function FollowUpManager() {
       
       const data = response.data;
       
-      // Filter to completed interviews and sort by date
       const allInterviews = [
         ...(data.upcoming_interviews || []),
         ...(data.past_interviews || [])
@@ -67,31 +65,6 @@ function FollowUpManager() {
       console.error('[FollowUpManager] Error loading interviews:', err);
       setError('Failed to load interviews: ' + (err.response?.data?.detail || err.message));
     }
-  };
-  
-  const replaceTemplatePlaceholders = (text) => {
-    if (!text) return text;
-    
-    let updatedText = text;
-    
-    // Replace [Your Name] with actual user name
-    if (userProfile?.full_name) {
-      updatedText = updatedText.replace(/\[Your Name\]/g, userProfile.full_name);
-    }
-    
-    // Replace "Hiring Team" or "Dear Hiring Team" with interviewer name if available
-    if (selectedInterview?.interviewer_name) {
-      updatedText = updatedText.replace(
-        /Dear Hiring Team/g, 
-        `Dear ${selectedInterview.interviewer_name}`
-      );
-      updatedText = updatedText.replace(
-        /Hiring Team/g, 
-        selectedInterview.interviewer_name
-      );
-    }
-    
-    return updatedText;
   };
   
   const handleGenerate = async () => {
@@ -119,20 +92,16 @@ function FollowUpManager() {
       
       const data = response.data;
       
-      // Replace placeholders in both subject and body
-      const processedSubject = replaceTemplatePlaceholders(data.subject);
-      const processedBody = replaceTemplatePlaceholders(data.body);
-      
       setGeneratedTemplate({
         template_uuid: data.template_uuid,
-        subject: processedSubject,
-        body: processedBody,
-        suggested_send_time: data.suggested_send_time,
-        interviewer_email: data.interviewer_email || selectedInterview.interviewer_email
+        subject: data.subject,
+        body: data.body,
+        interviewer_email: data.interviewer_email || selectedInterview.interviewer_email,
+        user_email: data.user_email
       });
       
-      setEditedSubject(processedSubject);
-      setEditedBody(processedBody);
+      setEditedSubject(data.subject);
+      setEditedBody(data.body);
       setIsEditing(false);
     } catch (err) {
       console.error('[FollowUpManager] Error generating template:', err);
@@ -145,45 +114,36 @@ function FollowUpManager() {
   const handleSend = async () => {
     if (!generatedTemplate) return;
     
+    if (!generatedTemplate.interviewer_email) {
+      setError('No interviewer email available. Cannot send email.');
+      return;
+    }
+    
     setSendingEmail(true);
     setError('');
     
     try {
-      console.log('[FollowUpManager] Marking template as sent:', generatedTemplate.template_uuid);
+      console.log('[FollowUpManager] Sending email via backend:', generatedTemplate.template_uuid);
       
-      // Mark template as sent in the backend
-      await FollowUpAPI.markAsSent(generatedTemplate.template_uuid);
+      const response = await FollowUpAPI.markAsSent(generatedTemplate.template_uuid);
       
-      console.log('[FollowUpManager] Template marked as sent');
+      console.log('[FollowUpManager] Email sent successfully:', response.data);
       
-      // Get recipient email (interviewer or fallback to empty)
-      const recipientEmail = generatedTemplate.interviewer_email || '';
+      const sentTo = response.data.sent_to || generatedTemplate.interviewer_email;
+      const sentFrom = response.data.sent_from || userProfile?.email || 'system';
       
-      // Get sender email (from user profile)
-      const senderEmail = userProfile?.email || '';
+      alert(`✅ Email sent successfully!\n\nFrom: ${sentFrom}\nTo: ${sentTo}\n\nThe follow-up has been sent and tracked in your system.`);
       
-      // Build mailto link with proper formatting
-      const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(editedSubject)}&body=${encodeURIComponent(editedBody)}${senderEmail ? `&from=${encodeURIComponent(senderEmail)}` : ''}`;
-      
-      console.log('[FollowUpManager] Opening email client for:', recipientEmail);
-      
-      // Open the user's email client
-      window.location.href = mailtoLink;
-      
-      // Show success message
-      alert(`Follow-up tracked successfully!\n\nYour email client has been opened with:\nTo: ${recipientEmail || 'Add recipient'}\nFrom: ${senderEmail || 'Your email'}\n\nThe follow-up has been marked as sent in your tracking system.`);
-      
-      // Reset form
       setGeneratedTemplate(null);
       setSelectedInterview(null);
       setCustomNotes('');
       setSpecificTopics('');
       
-      // Reload interviews to update status
       await loadCompletedInterviews();
     } catch (err) {
       console.error('[FollowUpManager] Error sending follow-up:', err);
-      setError(err.response?.data?.detail || err.message || 'Failed to send follow-up');
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to send follow-up';
+      setError(errorMsg);
     } finally {
       setSendingEmail(false);
     }
@@ -233,7 +193,6 @@ function FollowUpManager() {
         </div>
       )}
       
-      {/* Show user info if loaded */}
       {userProfile && (
         <div style={{
           padding: '1rem',
@@ -248,7 +207,6 @@ function FollowUpManager() {
       )}
       
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
-        {/* Left Panel - Interview Selection */}
         <div>
           <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Select Interview</h3>
           
@@ -330,7 +288,6 @@ function FollowUpManager() {
           )}
         </div>
         
-        {/* Right Panel - Template Generation */}
         <div>
           {!selectedInterview ? (
             <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#f8f9fa', borderRadius: '12px' }}>
@@ -342,7 +299,6 @@ function FollowUpManager() {
             <div>
               <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Generate Follow-Up</h3>
               
-              {/* Show recipient info */}
               {selectedInterview.interviewer_name && (
                 <div style={{
                   padding: '1rem',
@@ -359,7 +315,6 @@ function FollowUpManager() {
                 </div>
               )}
               
-              {/* Template Type Selection */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '500' }}>
                   Template Type
@@ -385,7 +340,6 @@ function FollowUpManager() {
                 </div>
               </div>
               
-              {/* Specific Topics */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
                   Specific Topics Discussed (optional)
@@ -402,7 +356,6 @@ function FollowUpManager() {
                 </div>
               </div>
               
-              {/* Custom Notes */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
                   Custom Notes to Include (optional)
@@ -428,154 +381,138 @@ function FollowUpManager() {
                   cursor: loading ? 'not-allowed' : 'pointer',
                   fontWeight: '500',
                   fontSize: '1rem',
-                  width: '100%'
-                }}
-              >
-                {loading ? 'Generating...' : 'Generate Template'}
-              </button>
+                  width:'100%'
+}}
+>
+{loading ? 'Generating...' : 'Generate Template'}
+</button>
+</div>
+) : (
+<div>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+<h3 style={{ margin: 0 }}>Generated Follow-Up</h3>
+<div style={{ display: 'flex', gap: '0.5rem' }}>
+<button
+onClick={handleCopyToClipboard}
+style={{
+padding: '0.5rem 1rem',
+background: 'white',
+color: '#667eea',
+border: '1px solid #667eea',
+borderRadius: '6px',
+cursor: 'pointer',
+fontSize: '0.9rem'
+}}
+>
+📋 Copy
+</button>
+<button
+onClick={() => setIsEditing(!isEditing)}
+style={{
+padding: '0.5rem 1rem',
+background: 'white',
+color: '#667eea',
+border: '1px solid #667eea',
+borderRadius: '6px',
+cursor: 'pointer',
+fontSize: '0.9rem'
+}}
+>
+{isEditing ? '👁 Preview' : '✏️ Edit'}
+</button>
+</div>
+</div>
+          <div style={{
+            padding: '0.75rem 1rem',
+            background: '#f8f9fa',
+            borderRadius: '6px',
+            fontSize: '0.9rem',
+            marginBottom: '1rem',
+            border: '1px solid #e0e0e0'
+          }}>
+            <div><strong>To:</strong> {generatedTemplate.interviewer_email || 'No email available'}</div>
+            {userProfile?.email && (
+              <div style={{ marginTop: '0.25rem' }}><strong>From:</strong> {userProfile.email}</div>
+            )}
+          </div>
+          
+          <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', marginBottom: '1rem' }}>
+            <div style={{ padding: '1rem', borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editedSubject}
+                  onChange={(e) => setEditedSubject(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', fontSize: '1rem', fontWeight: '600', boxSizing: 'border-box' }}
+                />
+              ) : (
+                <div style={{ fontWeight: '600', fontSize: '1rem' }}>Subject: {editedSubject}</div>
+              )}
             </div>
-          ) : (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0 }}>Generated Follow-Up</h3>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    onClick={handleCopyToClipboard}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      background: 'white',
-                      color: '#667eea',
-                      border: '1px solid #667eea',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    📋 Copy
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(!isEditing)}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      background: 'white',
-                      color: '#667eea',
-                      border: '1px solid #667eea',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    {isEditing ? '👁 Preview' : '✏️ Edit'}
-                  </button>
-                </div>
-              </div>
-              
-              {/* Email Recipient Info */}
-              <div style={{
-                padding: '0.75rem 1rem',
-                background: '#f8f9fa',
-                borderRadius: '6px',
-                fontSize: '0.9rem',
-                marginBottom: '1rem',
-                border: '1px solid #e0e0e0'
-              }}>
-                <div><strong>To:</strong> {generatedTemplate.interviewer_email || 'No email available'}</div>
-                {userProfile?.email && (
-                  <div style={{ marginTop: '0.25rem' }}><strong>From:</strong> {userProfile.email}</div>
-                )}
-              </div>
-              
-              <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', marginBottom: '1rem' }}>
-                <div style={{ padding: '1rem', borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedSubject}
-                      onChange={(e) => setEditedSubject(e.target.value)}
-                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', fontSize: '1rem', fontWeight: '600', boxSizing: 'border-box' }}
-                    />
-                  ) : (
-                    <div style={{ fontWeight: '600', fontSize: '1rem' }}>Subject: {editedSubject}</div>
-                  )}
-                </div>
-                
-                <div style={{ padding: '1.5rem' }}>
-                  {isEditing ? (
-                    <textarea
-                      value={editedBody}
-                      onChange={(e) => setEditedBody(e.target.value)}
-                      rows="15"
-                      style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical', fontSize: '1rem', lineHeight: '1.6', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                    />
-                  ) : (
-                    <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', fontSize: '1rem' }}>
-                      {editedBody}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {generatedTemplate.suggested_send_time && (
-                <div style={{
-                  padding: '0.75rem 1rem',
-                  background: '#e7f3ff',
-                  borderRadius: '6px',
-                  fontSize: '0.9rem',
-                  marginBottom: '1rem',
-                  border: '1px solid #b3d9ff'
-                }}>
-                  <strong>💡 Recommended timing:</strong> Send by {new Date(generatedTemplate.suggested_send_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            
+            <div style={{ padding: '1.5rem' }}>
+              {isEditing ? (
+                <textarea
+                  value={editedBody}
+                  onChange={(e) => setEditedBody(e.target.value)}
+                  rows="15"
+                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical', fontSize: '1rem', lineHeight: '1.6', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              ) : (
+                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', fontSize: '1rem' }}>
+                  {editedBody}
                 </div>
               )}
-              
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <button
-                  onClick={() => {
-                    setGeneratedTemplate(null);
-                    setError('');
-                  }}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: 'white',
-                    color: '#666',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    flex: 1
-                  }}
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleSend}
-                  disabled={sendingEmail || !generatedTemplate.interviewer_email}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: sendingEmail || !generatedTemplate.interviewer_email ? '#ccc' : '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: sendingEmail || !generatedTemplate.interviewer_email ? 'not-allowed' : 'pointer',
-                    fontWeight: '500',
-                    fontSize: '1rem',
-                    flex: 2
-                  }}
-                  title={!generatedTemplate.interviewer_email ? 'No interviewer email available' : ''}
-                >
-                  {sendingEmail ? 'Sending...' : '📧 Send Email'}
-                </button>
-              </div>
-              
-              <div style={{ marginTop: '1rem', padding: '1rem', background: '#fff3cd', borderRadius: '6px', fontSize: '0.9rem' }}>
-                <strong>💡 Tip:</strong> Review and personalize the template before sending for best results. This will open your email client with the template pre-filled.
-              </div>
             </div>
-          )}
+          </div>
+          
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={() => {
+                setGeneratedTemplate(null);
+                setError('');
+              }}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'white',
+                color: '#666',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                flex: 1
+              }}
+            >
+              Back
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={sendingEmail || !generatedTemplate.interviewer_email}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: sendingEmail || !generatedTemplate.interviewer_email ? '#ccc' : '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: sendingEmail || !generatedTemplate.interviewer_email ? 'not-allowed' : 'pointer',
+                fontWeight: '500',
+                fontSize: '1rem',
+                flex: 2
+              }}
+              title={!generatedTemplate.interviewer_email ? 'No interviewer email available' : ''}
+            >
+              {sendingEmail ? 'Sending Email...' : '📧 Send Email Now'}
+            </button>
+          </div>
+          
+          <div style={{ marginTop: '1rem', padding: '1rem', background: '#fff3cd', borderRadius: '6px', fontSize: '0.9rem' }}>
+            <strong>💡 Tip:</strong> Review and personalize the template before sending. This will send the email immediately to the interviewer.
+          </div>
         </div>
-      </div>
+      )}
     </div>
-  );
+  </div>
+</div>
+);
 }
-
 export default FollowUpManager;
