@@ -33,4 +33,24 @@ class JobsDAO:
         result = await self.collection.delete_one({"_id": ObjectId(job_id)})
         return result.deleted_count
 
+    async def add_offer_to_job(self, job_id: str, offer_id: str) -> bool:
+        """Add an offer ID to the job's offers array (UC-083 salary negotiation)"""
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(job_id)},
+                {"$addToSet": {"offers": offer_id}, "$set": {"date_updated": datetime.now(timezone.utc)}}
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error adding offer to job: {e}")
+            return False
+
+    async def get_job_offers(self, job_id: str) -> list:
+        """Get all offer IDs for a job"""
+        try:
+            job = await self.collection.find_one({"_id": ObjectId(job_id)})
+            return job.get("offers", []) if job else []
+        except Exception:
+            return []
+
 jobs_dao = JobsDAO()

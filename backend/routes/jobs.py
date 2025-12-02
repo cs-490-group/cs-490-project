@@ -21,6 +21,7 @@ from schema.Job import Job, UrlBody
 from services.html_pdf_generator import HTMLPDFGenerator
 from services.company_research import run_company_research
 from services.company_news import run_company_news
+from services.salary_research import generate_job_salary_negotiation
 
 
 # Import the new enhanced scraper
@@ -216,8 +217,27 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         #Automated Company News
         news_result = await run_company_news(company_name)
         model["company_news"] = news_result
-        
-        result = await jobs_dao.add_job(model)
+
+        #Automated Salary Negotiation Research (UC-083)
+        try:
+            salary_negotiation = await generate_job_salary_negotiation(
+                job_title=model.get("title", ""),
+                company=company_name,
+                location=model.get("location", ""),
+                company_size=research_result.get("basic_info", {}).get("size") if research_result else None
+            )
+            model["salary_negotiation"] = salary_negotiation
+        except Exception as e:
+            print(f"⚠️ Failed to generate salary negotiation: {str(e)}")
+            model["salary_negotiation"] = None
+
+        job_id = await jobs_dao.add_job(model)
+
+        # Fetch the created job to return full object with all generated data
+        created_job = await jobs_dao.get_job(job_id)
+        if created_job:
+            created_job["_id"] = str(created_job["_id"])
+
     except DuplicateKeyError:
         raise HTTPException(400, "Job already exists")
     except HTTPException as http:
@@ -226,8 +246,8 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         print("❌ ERROR IN add_job:", e)
         raise HTTPException(500, str(e))
 
-    
-    return {"detail": "Successfully added job", "job_id": result}
+
+    return {"detail": "Successfully added job", "job_id": job_id, "job": created_job}
 
 
 @jobs_router.get("", tags=["jobs"])
@@ -266,6 +286,7 @@ async def get_job(job_id: str, uuid: str = Depends(authorize)):
         
         result["company_research"] = result.get("company_research", None)
         result["company_news"] = result.get("company_news", None)
+        result["salary_negotiation"] = result.get("salary_negotiation", None)
     
         return result
     else:
