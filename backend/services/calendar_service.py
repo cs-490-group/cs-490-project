@@ -15,7 +15,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import uuid
 import secrets
-
+import pytz
 
 class CalendarService:
     """Unified calendar sync and reminder service"""
@@ -170,8 +170,7 @@ class CalendarService:
         interview_data: Dict[str, Any],
         hours_until: int
     ) -> bool:
-        """Send email reminder for upcoming interview"""
-        
+        """Send email reminder for upcoming interview""" 
         if not self.sender_email or not self.sender_password:
             print("Email credentials not configured")
             return False
@@ -191,10 +190,31 @@ class CalendarService:
         message["From"] = self.sender_email
         message["To"] = recipient_email
         
-        interview_time = interview_data['interview_datetime']
-        formatted_date = interview_time.strftime("%A, %B %d, %Y")
-        formatted_time = interview_time.strftime("%I:%M %p")
+        interview_time_utc = interview_data['interview_datetime']
+        user_timezone = interview_data.get('timezone', 'UTC')
+
+        try:
+            tz = pytz.timezone(user_timezone)
+            interview_time_local = interview_time_utc.astimezone(tz)
+        except:
+            # Fallback to UTC if timezone conversion fails
+            interview_time_local = interview_time_utc
+            user_timezone = 'UTC'
+
+        formatted_date = interview_time_local.strftime("%A, %B %d, %Y")
+        formatted_time = interview_time_local.strftime("%I:%M %p")
         
+        # Calculate completion excluding follow-up tasks
+        all_tasks = interview_data.get('preparation_tasks', [])
+        prep_tasks = [t for t in all_tasks if t.get('category', '').lower() != 'follow-up']
+
+        if prep_tasks:
+            completed_prep = sum(1 for t in prep_tasks if t.get('is_completed', False))
+            completion_percentage = int((completed_prep / len(prep_tasks)) * 100)
+        else:
+            completion_percentage = interview_data.get('preparation_completion_percentage', 0)
+           
+
         text = f"""
 Interview Reminder
 
@@ -203,19 +223,19 @@ Your interview is coming up {self._format_time_until(hours_until)}!
 Position: {interview_data.get('job_title', 'Position')}
 Company: {interview_data.get('company_name', 'Company')}
 Date: {formatted_date}
-Time: {formatted_time} ({interview_data.get('timezone', 'UTC')})
+Time: {formatted_time} ({user_timezone})
 Format: {interview_data.get('location_type', 'Interview').title()}
 
 {self._get_location_text(interview_data)}
 
-Preparation: {interview_data.get('preparation_completion_percentage', 0)}% complete
+Preparation: {completion_percentage}% complete
 
 Good luck!
 
 View details: {self.frontend_url}/interview/details/{interview_data.get('schedule_uuid')}
 """
         
-        html = self._build_reminder_html(interview_data, hours_until, formatted_date, formatted_time)
+        html = self._build_reminder_html(interview_data, hours_until, formatted_date, formatted_time, user_timezone, completion_percentage)
         
         part1 = MIMEText(text, "plain")
         part2 = MIMEText(html, "html")
@@ -293,21 +313,21 @@ View details: {self.frontend_url}/interview/details/{interview_data.get('schedul
             if video_link:
                 return f"🎥 {platform} Meeting\n{video_link}"
             else:
-                return f"🎥 {platform} Meeting (link will be provided)"
+                return f"🎥 {platform} Meeting"
                 
         elif location_type == 'phone':
             phone = interview_data.get('phone_number', '')
             if phone:
                 return f"📞 Phone Interview\nCall: {phone}"
             else:
-                return "📞 Phone Interview (number will be provided)"
+                return "📞 Phone Interview"
                 
         elif location_type == 'in-person':
             location = interview_data.get('location_details', '')
             if location:
                 return f"🏢 In-Person Interview\n📍 {location}"
             else:
-                return "🏢 In-Person Interview (location will be provided)"
+                return "🏢 In-Person Interview"
         else:
             return "Interview"
     
@@ -316,10 +336,11 @@ View details: {self.frontend_url}/interview/details/{interview_data.get('schedul
         interview_data: Dict[str, Any],
         hours_until: int,
         formatted_date: str,
-        formatted_time: str
+        formatted_time: str,
+        user_timezone: str,
+        completion: int
     ) -> str:
         """Build enhanced HTML email reminder with logistics"""
-        completion = interview_data.get('preparation_completion_percentage', 0)
         location_type = interview_data.get('location_type', 'interview').lower()
         
         # Urgency styling
@@ -348,7 +369,7 @@ View details: {self.frontend_url}/interview/details/{interview_data.get('schedul
                 <td style="padding: 15px 0; border-top: 1px solid #e0e0e0;">
                     <strong style="color: #6c757d; font-size: 14px;">🎥 Video Interview</strong><br>
                     <span style="color: #333; font-size: 16px;">Platform: {platform}</span><br>
-                    {f'<a href="{video_link}" style="color: #007bff; text-decoration: none; font-weight: 600;">Join Meeting</a>' if video_link else '<span style="color: #666;">Link will be provided</span>'}
+                    {f'<a href="{video_link}" style="color: #007bff; text-decoration: none; font-weight: 600;">Join Meeting</a>' if video_link else ''}
                 </td>
             </tr>
             """
@@ -359,7 +380,7 @@ View details: {self.frontend_url}/interview/details/{interview_data.get('schedul
             <tr>
                 <td style="padding: 15px 0; border-top: 1px solid #e0e0e0;">
                     <strong style="color: #6c757d; font-size: 14px;">📞 Phone Interview</strong><br>
-                    <span style="color: #333; font-size: 16px;">{phone if phone else 'Number will be provided'}</span>
+                    {f'<span style="color: #333; font-size: 16px;">{phone}</span>' if phone else ''}
                 </td>
             </tr>
             """
@@ -370,7 +391,7 @@ View details: {self.frontend_url}/interview/details/{interview_data.get('schedul
             <tr>
                 <td style="padding: 15px 0; border-top: 1px solid #e0e0e0;">
                     <strong style="color: #6c757d; font-size: 14px;">🏢 In-Person Interview</strong><br>
-                    <span style="color: #333; font-size: 16px;">📍 {location if location else 'Location will be provided'}</span>
+                    {f'<span style="color: #333; font-size: 16px;">📍 {location}</span>' if location else ''}
                     {f'<br><a href="https://www.google.com/maps/search/?api=1&query={location.replace(" ", "+")}" style="color: #007bff; text-decoration: none; font-size: 14px;">📍 Open in Maps</a>' if location else ''}
                 </td>
             </tr>
@@ -451,7 +472,7 @@ View details: {self.frontend_url}/interview/details/{interview_data.get('schedul
                                             <strong style="color: #6c757d; font-size: 14px;">📅 Date & Time</strong><br>
                                             <span style="color: #333; font-size: 16px;">{formatted_date}</span><br>
                                             <span style="color: #007bff; font-size: 20px; font-weight: 600;">🕐 {formatted_time}</span><br>
-                                            <span style="color: #666; font-size: 14px;">{interview_data.get('timezone', 'UTC')}</span>
+                                            <span style="color: #666; font-size: 14px;">{user_timezone}</span>
                                         </td>
                                     </tr>
                                     {duration_html}
