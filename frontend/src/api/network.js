@@ -15,7 +15,7 @@ class NetworksAPI {
         return api.get(`${BASE_URL}/me`);
     }
     update(contactId, data) {
-        return api.put(`${BASE_URL}?contact_id=${contactId}`);
+        return api.put(`${BASE_URL}?contact_id=${contactId}`, data);
     }
 
     delete(contactId) {

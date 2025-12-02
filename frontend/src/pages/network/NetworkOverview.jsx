@@ -17,7 +17,8 @@ export default function NetworkOverview() {
 	const [contacts, setContacts] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [loadingMessage, setLoadMessage] = useState("Placeholder");
-	const [contactFormVisibility, setContactFormVisibility] = useState(false);
+	const [addFormVis, setAddFormVis] = useState(false);
+	const [editing, setEditing] = useState(false);
 	const [formData, setFormData] = useState({
 		firstName: null,
 		lastName: null,
@@ -34,6 +35,7 @@ export default function NetworkOverview() {
 		avatar: null
 	});
 	const [avatars, setAvatars] = useState({});
+	const [editingContactId, setEditingContactId] = useState(null);
 
 	useEffect(() => {
 		setLoadMessage(loadingMessages[Math.floor(Math.random() * (loadingMessages.length))]); // fun little feature
@@ -55,13 +57,15 @@ export default function NetworkOverview() {
 			}));
 
 			setContacts(transformedContacts);
-			
+
 			// Fetch avatars for each contact
 			const avatarMap = {};
+			const blobMap = {};
 			for (const contact of transformedContacts) {
 				try {
 					const res = await NetworksAPI.getAvatar(contact.id);
 					const avatarBlob = res.data;
+					blobMap[contact.id] = avatarBlob;
 					avatarMap[contact.id] = URL.createObjectURL(avatarBlob);
 				} catch (error) {
 					console.error(`Failed to load avatar for ${contact.id}:`, error);
@@ -104,7 +108,7 @@ export default function NetworkOverview() {
 			console.error(error);
 		} finally {
 			fetchContacts();
-			setContactFormVisibility(false);
+			setAddFormVis(false);
 			setFormData({
 				firstName: null,
 				lastName: null,
@@ -156,7 +160,8 @@ export default function NetworkOverview() {
 				}
 			}
 
-			const res = await NetworksAPI.update(contactId, filteredData);
+			await NetworksAPI.update(contactId, filteredData);
+			await NetworksAPI.updateAvatar(contactId, data.avatar);
 		} catch (error) {
 			console.error(error);
 		} finally {
@@ -169,11 +174,79 @@ export default function NetworkOverview() {
 	}
 
 	const showContactForm = () => {
-		setContactFormVisibility(!contactFormVisibility);
+		setAddFormVis(!addFormVis);
+		if (addFormVis) {
+			setEditing(false);
+			setEditingContactId(null);
+			setFormData({
+				firstName: null,
+				lastName: null,
+				email: null,
+				homeNum: null,
+				workNum: null,
+				mobileNum: null,
+				primary: null,
+				linkedin: null,
+				other: null,
+				company: null,
+				position: null,
+				location: null,
+				avatar: null
+			});
+		}
 	};
 
 	const handleDelete = event => {
 		deleteContact(event.target.getAttribute("contact"));
+	};
+
+	const handleEdit = event => {
+		const contactId = event.target.getAttribute("contact");
+		setEditingContactId(contactId);
+		setEditing(true);
+		setAddFormVis(true);
+		const contact = contacts.find(c => c.id === contactId);
+		setFormData({
+			firstName: contact.name.split(" ")[0],
+			lastName: contact.name.split(" ").slice(1).join(" "),
+			email: contact.email || "",
+			homeNum: contact.phone_numbers.home || "",
+			workNum: contact.phone_numbers.work || "",
+			mobileNum: contact.phone_numbers.mobile || "",
+			primary: contact.phone_numbers.primary || "home",
+			linkedin: contact.websites.linkedin || "",
+			other: contact.websites.other || "",
+			company: contact.employment.company || "",
+			position: contact.employment.position || "",
+			location: contact.employment.location || "",
+			avatar: avatars[contactId] || "./default.png"
+		});
+	}
+
+	const handleAddOrUpdate = async (data) => {
+		if (editing && editingContactId) {
+			await updateContact(editingContactId, data);
+			setEditing(false);
+			setEditingContactId(null);
+		} else {
+			await addContact(data);
+		}
+		setAddFormVis(false);
+		setFormData({
+			firstName: null,
+			lastName: null,
+			email: null,
+			homeNum: null,
+			workNum: null,
+			mobileNum: null,
+			primary: null,
+			linkedin: null,
+			other: null,
+			company: null,
+			position: null,
+			location: null,
+			avatar: null
+		});
 	};
 
 	return (
@@ -195,74 +268,72 @@ export default function NetworkOverview() {
 					</div>
 				</div>
 			) : (
-				<div className="min-vh-100 py-4">
-					{contactFormVisibility ? (
-						<>
-							<Button style={{ border: "none" }} variant="danger" type="button" onClick={showContactForm}>
+				<>
+					<Row>
+						{addFormVis ? (
+							<Button id="add-contact-button" type="button" onClick={showContactForm}>
 								╳ Cancel
 							</Button>
-						</>
-					) : (
-						<Button id="add-contact-button" onClick={showContactForm}>+ Add Contact</Button>
-					)}
-					{contacts.length === 0 ? (
-						<div>
-							<p className="text-white">
+						) : (
+							<Button id="add-contact-button" onClick={showContactForm}>+ Add Contact</Button>
+						)}
+					</Row>
+					<Row className="py-4">
+						{contacts.length === 0 ? (
+							<p styles={{ marginTop: "1rem", width: "5rem" }} className="text-white">
 								{loadingMessage}
 							</p>
-						</div>
-					) : (
-						<div className="contact-display">
-							{contacts.map(contact => (
-								<Card key={contact.id} className="contact-card">
-									<Card.Img contact={contact.id} className="contact-avatar" src={fetchAvatar(contact.id)}></Card.Img>
-									<Card.Title as="h3">{contact.name}</Card.Title>
-									<Card.Subtitle as="h5">{contact.email}</Card.Subtitle>
-									<br />
-									<Row>
-										<Col>
-											<h4>Numbers</h4>
-											Primary: {contact.phone_numbers.primary}
-											<br />
-											Home: {contact.phone_numbers.home}
-											<br />
-											Work: {contact.phone_numbers.work}
-											<br />
-											Mobile: {contact.phone_numbers.mobile}
-										</Col>
-										<Col>
-											<h4>Employment</h4>
-											Position: {contact.employment.position}
-											<br />
-											Company: {contact.employment.company}
-											<br />
-											Location: {contact.employment.location}
-										</Col>
-									</Row>
-									<Row>
-										<Col>
-											<h4>Websites</h4>
-											Linkedin: {contact.websites.linkedin}
-											<br />
-											Other: {contact.websites.other}
-										</Col>
-									</Row>
-									<Row style={{ display: "flex", flexDirection: "row" }}>
-										<Button style={{ width: "fit-content", height: "3rem", backgroundColor: "red", border: "none" }} contact={contact.id} onClick={handleDelete}>🗑️</Button>
-										<Button style={{ width: "fit-content", height: "3rem", marginLeft: "0.5rem", backgroundColor: "orange", border: "none" }} contact={contact.id} onClick={null}>✏️</Button>
-									</Row>
-								</Card>
-							))}
-						</div>
-					)}
-					{contactFormVisibility ? (
-						<AddContact
-							data={formData}
-							addData={addContact}
-							setData={setFormData}
-						></AddContact>
-					) : null}
-				</div>
+						) : (
+							<Col className="contact-display">
+								{contacts.map(contact => (
+									<Card key={contact.id} className="contact-card">
+										<Card.Img contact={contact.id} className="contact-avatar" src={fetchAvatar(contact.id)}></Card.Img>
+										<Card.Body>
+                                            <Card.Title as="h3">{contact.name}</Card.Title>
+                                            <Card.Subtitle as="h5" className="mb-3">{contact.email}</Card.Subtitle>
+                                            
+                                            <div className="contact-section">
+                                                <h6 className="section-title">Phone Numbers</h6>
+                                                <p className="mb-1"><strong>Primary:</strong> {contact.phone_numbers.primary || "—"}</p>
+                                                <p className="mb-1"><strong>Home:</strong> {contact.phone_numbers.home || "—"}</p>
+                                                <p className="mb-1"><strong>Work:</strong> {contact.phone_numbers.work || "—"}</p>
+                                                <p className="mb-2"><strong>Mobile:</strong> {contact.phone_numbers.mobile || "—"}</p>
+                                            </div>
+
+                                            <div className="contact-section">
+                                                <h6 className="section-title">Employment</h6>
+                                                <p className="mb-1"><strong>Position:</strong> {contact.employment.position || "—"}</p>
+                                                <p className="mb-1"><strong>Company:</strong> {contact.employment.company || "—"}</p>
+                                                <p className="mb-2"><strong>Location:</strong> {contact.employment.location || "—"}</p>
+                                            </div>
+
+                                            <div className="contact-section">
+                                                <h6 className="section-title">Websites</h6>
+                                                <p className="mb-1"><strong>LinkedIn:</strong> {contact.websites.linkedin || "—"}</p>
+                                                <p className="mb-2"><strong>Other:</strong> {contact.websites.other || "—"}</p>
+                                            </div>
+
+                                            <div className="card-actions">
+                                                <Button className="action-button delete-btn" contact={contact.id} onClick={handleDelete}>🗑️ Delete</Button>
+                                                <Button className="action-button edit-btn" contact={contact.id} onClick={handleEdit}>✏️ Edit</Button>
+                                            </div>
+                                        </Card.Body>
+									</Card>
+								))}
+							</Col>
+						)}
+						{addFormVis ? (
+							<Col xs="auto">
+								<AddContact
+									data={formData}
+									editing={editing}
+									addData={handleAddOrUpdate}
+									setData={setFormData}
+								></AddContact>
+							</Col>
+						) : null}
+					</Row>
+				</>
 			)}
 		</Container>
 	);
