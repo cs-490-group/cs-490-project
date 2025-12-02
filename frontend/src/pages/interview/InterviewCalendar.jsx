@@ -644,10 +644,10 @@ function InterviewCalendar() {
               
               <div className="detail-section">
                 <h4>Add to Calendar</h4>
-                <p style={{ marginBottom: '12px', color: '#666', fontSize: '14px' }}>
+                <p style={{ marginBottom: '12px', color: '#666', fontSize: '14px', textAlign: 'center' }}>
                   Save this interview to your calendar
                 </p>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
                   <button
                     onClick={() => addToGoogleCalendar(selectedInterview)}
                     style={{
