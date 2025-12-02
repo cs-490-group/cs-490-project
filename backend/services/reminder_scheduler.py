@@ -39,13 +39,13 @@ async def check_and_send_reminders():
     """
     try:
         now = datetime.now(timezone.utc)
-        print(f"\n{'='*80}")
-        print(f"[{now.strftime('%Y-%m-%d %H:%M:%S UTC')}] 🔔 REMINDER CHECK")
-        print(f"{'='*80}")
+        #print(f"\n{'='*80}")
+        #print(f"[{now.strftime('%Y-%m-%d %H:%M:%S UTC')}] 🔔 REMINDER CHECK")
+        #print(f"{'='*80}")
         
         # Get ALL scheduled interviews
         all_scheduled = await schedule_dao.get_all_scheduled_interviews()
-        print(f"📊 Found {len(all_scheduled)} scheduled interviews")
+        #print(f"📊 Found {len(all_scheduled)} scheduled interviews")
         
         if len(all_scheduled) == 0:
             print("⚠️  No scheduled interviews in database")
@@ -144,12 +144,12 @@ async def check_and_send_reminders():
                 traceback.print_exc()
                 continue
         
-        print(f"\n{'='*80}")
+        #print(f"\n{'='*80}")
         if reminders_sent > 0:
-            print(f"✅ CHECK COMPLETE - Sent {reminders_sent} reminder(s)")
+            print(f"✅ INTERVIEW REMINDER CHECK COMPLETE - Sent {reminders_sent} reminder(s)")
         else:
-            print(f"✓ CHECK COMPLETE - No reminders sent")
-        print(f"{'='*80}\n")
+            print(f"✓ INTERVIEW REMINDER CHECK COMPLETE - No reminders sent")
+        #print(f"{'='*80}\n")
             
     except Exception as e:
         print(f"❌ CRITICAL ERROR: {e}")
