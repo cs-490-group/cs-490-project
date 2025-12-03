@@ -550,7 +550,7 @@ export default function CoverLetterList() {
 
   const handleJobSelect = async (jobId) => {
     try {
-      // Call your API to associate the letter with the job
+      
       await CoverLetterAPI.addToJob(jobLetter, jobId);
       showFlash("Cover letter added to job!", "success");
     } catch (err) {

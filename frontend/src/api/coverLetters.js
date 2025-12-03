@@ -39,7 +39,7 @@ class CoverLetterAPI {
     return api.get(`${BASE_URL}/usage/by-type`);
   }
 
-  // PUT set as default (if you implement this)
+  
   setDefault(coverLetterId) {
     return api.put(`${BASE_URL}/${coverLetterId}/default`);
   }

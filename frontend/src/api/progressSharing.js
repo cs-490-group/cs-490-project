@@ -34,6 +34,10 @@ class ProgressSharingAPI {
     return api.post(`${BASE_URL}/${teamId}/members/${memberUuid}/milestones`, milestone);
   }
 
+  logWellbeing(teamId, memberUuid, data) {
+    return api.post(`${BASE_URL}/${teamId}/members/${memberUuid}/wellbeing`, data);
+  }
+
   // Get milestones
   getMilestones(teamId, memberUuid, days = 30) {
     return api.get(`${BASE_URL}/${teamId}/members/${memberUuid}/milestones`, { params: { days } });
@@ -46,6 +50,10 @@ class ProgressSharingAPI {
   // Add celebration
   addCelebration(teamId, memberUuid, celebration) {
     return api.post(`${BASE_URL}/${teamId}/members/${memberUuid}/celebrate`, celebration);
+  }
+
+  getCelebrations(teamId, memberUuid) {
+    return api.get(`${BASE_URL}/${teamId}/members/${memberUuid}/celebrations`);
   }
 
   // Get accountability impact
