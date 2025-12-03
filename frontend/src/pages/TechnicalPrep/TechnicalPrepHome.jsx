@@ -11,10 +11,10 @@ const TechnicalPrepHome = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [jobRoles, setJobRoles] = useState([]);
-  const [selectedJobRole, setSelectedJobRole] = useState("");
-  const [jobRoleRecommendations, setJobRoleRecommendations] = useState(null);
-  const [showJobRolePanel, setShowJobRolePanel] = useState(false);
+  const [userJobs, setUserJobs] = useState([]);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [jobRecommendations, setJobRecommendations] = useState(null);
+  const [showJobRecommendationsPanel, setShowJobRecommendationsPanel] = useState(false);
 
   useEffect(() => {
     loadInitialData();
@@ -23,18 +23,15 @@ const TechnicalPrepHome = () => {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const [challengesRes, statsRes, jobRolesRes] = await Promise.all([
+      const [challengesRes, statsRes, jobsRes] = await Promise.all([
         technicalPrepAPI.getChallenges(0, 20),
         uuid ? technicalPrepAPI.getUserStatistics(uuid) : Promise.resolve({ data: { statistics: {} } }),
-        technicalPrepAPI.getAvailableJobRoles()
+        uuid ? technicalPrepAPI.getUserJobs(uuid) : Promise.resolve({ data: { jobs: [] } })
       ]);
 
       setChallenges(challengesRes.data.challenges || []);
       setStats(statsRes.data.statistics);
-
-      if (jobRolesRes.data.available_roles) {
-        setJobRoles(Object.keys(jobRolesRes.data.available_roles));
-      }
+      setUserJobs(jobsRes.data.jobs || []);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -42,23 +39,23 @@ const TechnicalPrepHome = () => {
     }
   };
 
-  const handleJobRoleSelect = async (role) => {
+  const handleJobSelect = async (job) => {
     if (!uuid) {
       alert("Please log in to get personalized recommendations");
       return;
     }
 
     try {
-      const res = await technicalPrepAPI.getJobRoleRecommendations(uuid, role);
+      setSelectedJob(job);
+      const res = await technicalPrepAPI.getJobRecommendations(uuid, job._id);
       if (res.data.success) {
-        setSelectedJobRole(role);
-        setJobRoleRecommendations(res.data);
-        setShowJobRolePanel(true);
+        setJobRecommendations(res.data);
+        setShowJobRecommendationsPanel(true);
       } else {
         alert(res.data.error || "Failed to load recommendations");
       }
     } catch (error) {
-      console.error("Error loading job role recommendations:", error);
+      console.error("Error loading job recommendations:", error);
       alert("Failed to load recommendations");
     }
   };
@@ -144,35 +141,85 @@ const TechnicalPrepHome = () => {
         </div>
       )}
 
-      {/* Job Role Selector */}
-      <div className="job-role-section" style={{ marginBottom: "40px" }}>
-        <h2>🎯 Find Challenges for Your Role</h2>
-        <p style={{ color: "#6b7280", marginBottom: "16px" }}>Select your job role to get personalized challenge recommendations</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "10px" }}>
-          {jobRoles.map((role) => (
+      {/* Job Applications Selector */}
+      <div className="job-applications-section" style={{ marginBottom: "40px" }}>
+        <h2>🎯 Interview Prep for Your Job Applications</h2>
+        <p style={{ color: "#6b7280", marginBottom: "16px" }}>Select a job from your applications to get personalized coding challenges based on the job requirements</p>
+        {userJobs && userJobs.length > 0 ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" }}>
+            {userJobs.map((job) => (
+              <button
+                key={job._id}
+                onClick={() => handleJobSelect(job)}
+                style={{
+                  padding: "16px",
+                  borderRadius: "8px",
+                  border: selectedJob?._id === job._id ? "2px solid #3b82f6" : "1px solid #e5e7eb",
+                  backgroundColor: selectedJob?._id === job._id ? "#dbeafe" : "#ffffff",
+                  cursor: "pointer",
+                  transition: "all 0.3s",
+                  textAlign: "left"
+                }}
+              >
+                <div style={{
+                  fontWeight: selectedJob?._id === job._id ? "700" : "600",
+                  color: selectedJob?._id === job._id ? "#1e40af" : "#111827",
+                  fontSize: "0.95rem",
+                  marginBottom: "4px"
+                }}>
+                  {job.title}
+                </div>
+                <div style={{
+                  color: "#6b7280",
+                  fontSize: "0.85rem",
+                  marginBottom: "8px"
+                }}>
+                  {job.company}
+                </div>
+                <div style={{
+                  fontSize: "0.75rem",
+                  color: "#9ca3af",
+                  textAlign: "right"
+                }}>
+                  {job.status}
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            backgroundColor: "#fef3c7",
+            border: "2px solid #fbbf24",
+            borderRadius: "8px",
+            padding: "20px",
+            textAlign: "center",
+            color: "#92400e"
+          }}>
+            <p style={{ margin: "0 0 8px 0" }}>📋 No job applications found</p>
+            <p style={{ margin: 0, fontSize: "0.9rem" }}>
+              Create a job application first to get personalized interview prep recommendations
+            </p>
             <button
-              key={role}
-              onClick={() => handleJobRoleSelect(role)}
+              onClick={() => navigate("/jobs")}
               style={{
-                padding: "12px 16px",
-                borderRadius: "8px",
-                border: selectedJobRole === role ? "2px solid #3b82f6" : "1px solid #e5e7eb",
-                backgroundColor: selectedJobRole === role ? "#dbeafe" : "#ffffff",
-                color: selectedJobRole === role ? "#1e40af" : "#374151",
+                marginTop: "12px",
+                padding: "8px 16px",
+                backgroundColor: "#fbbf24",
+                color: "#000",
+                border: "none",
+                borderRadius: "6px",
                 cursor: "pointer",
-                fontSize: "0.9rem",
-                fontWeight: selectedJobRole === role ? "600" : "500",
-                transition: "all 0.3s"
+                fontWeight: "600"
               }}
             >
-              {role.replace(/_/g, " ")}
+              → Go to Job Applications
             </button>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Job Role Recommendations Panel */}
-      {showJobRolePanel && jobRoleRecommendations && (
+      {/* Job Recommendations Panel */}
+      {showJobRecommendationsPanel && jobRecommendations && selectedJob && (
         <div className="recommendations-panel" style={{
           backgroundColor: "#f0f9ff",
           border: "2px solid #93c5fd",
@@ -183,27 +230,32 @@ const TechnicalPrepHome = () => {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "16px" }}>
             <div>
               <h3 style={{ color: "#1e40af", marginBottom: "4px" }}>
-                Personalized Recommendations for {selectedJobRole.replace(/_/g, " ")}
+                📌 Interview Prep for {selectedJob.title}
               </h3>
-              <p style={{ color: "#6b7280" }}>{jobRoleRecommendations.role_description}</p>
+              <p style={{ color: "#6b7280", marginBottom: "4px" }}>
+                <strong>{selectedJob.company}</strong>
+              </p>
+              <p style={{ color: "#6b7280", fontSize: "0.9rem" }}>
+                Based on the job requirements, we've selected these challenges to help you prepare
+              </p>
             </div>
             <button
-              onClick={() => setShowJobRolePanel(false)}
+              onClick={() => setShowJobRecommendationsPanel(false)}
               style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}
             >
               ✕
             </button>
           </div>
 
-          {jobRoleRecommendations.recommended_skills && jobRoleRecommendations.recommended_skills.length > 0 && (
+          {jobRecommendations.recommended_skills && jobRecommendations.recommended_skills.length > 0 && (
             <div style={{ marginBottom: "16px" }}>
-              <p style={{ fontWeight: "600", marginBottom: "8px" }}>Recommended Skills:</p>
+              <p style={{ fontWeight: "600", marginBottom: "8px" }}>💡 Key Skills to Practice:</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                {jobRoleRecommendations.recommended_skills.map((skill, idx) => (
+                {jobRecommendations.recommended_skills.map((skill, idx) => (
                   <span key={idx} style={{
                     backgroundColor: "#e0e7ff",
                     color: "#4338ca",
-                    padding: "4px 12px",
+                    padding: "6px 14px",
                     borderRadius: "16px",
                     fontSize: "0.85rem"
                   }}>
@@ -215,11 +267,11 @@ const TechnicalPrepHome = () => {
           )}
 
           <p style={{ color: "#6b7280", marginBottom: "12px" }}>
-            📌 {jobRoleRecommendations.total_challenges} challenges available for this role
+            📊 {jobRecommendations.total_challenges} challenges recommended based on job requirements
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px" }}>
-            {Object.entries(jobRoleRecommendations.challenges).map(([type, items]) => (
+            {Object.entries(jobRecommendations.challenges).map(([type, items]) => (
               items.length > 0 && (
                 <button
                   key={type}
@@ -239,8 +291,11 @@ const TechnicalPrepHome = () => {
                     borderRadius: "6px",
                     cursor: "pointer",
                     fontSize: "0.9rem",
-                    fontWeight: "600"
+                    fontWeight: "600",
+                    transition: "all 0.3s"
                   }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = "#2563eb"}
+                  onMouseOut={(e) => e.target.style.backgroundColor = "#3b82f6"}
                 >
                   {type.replace(/_/g, " ")} ({items.length})
                 </button>

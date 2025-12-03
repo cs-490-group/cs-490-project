@@ -53,6 +53,69 @@ async def get_all_challenges(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@technical_prep_router.get("/user-jobs/{uuid}")
+async def get_user_jobs(uuid: str):
+    """Get user's job applications for challenge recommendations"""
+    try:
+        from mongo.jobs_dao import jobs_dao
+        jobs = await jobs_dao.get_all_jobs(uuid)
+
+        if not jobs:
+            return {
+                "success": True,
+                "jobs": [],
+                "message": "No job applications found. Create a job application to get personalized recommendations."
+            }
+
+        # Format jobs for frontend
+        formatted_jobs = []
+        for job in jobs:
+            formatted_jobs.append({
+                "_id": job.get("_id"),
+                "title": job.get("title"),
+                "company": job.get("company") if isinstance(job.get("company"), str) else (job.get("company", {}).get("name") if isinstance(job.get("company"), dict) else "Unknown Company"),
+                "description": job.get("description", ""),
+                "location": job.get("location", ""),
+                "status": job.get("status", "applied")
+            })
+
+        return {
+            "success": True,
+            "jobs": formatted_jobs
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@technical_prep_router.get("/job-recommendations/{uuid}/{job_id}")
+async def get_job_based_recommendations(uuid: str, job_id: str):
+    """Get personalized challenges based on actual job application details"""
+    try:
+        from mongo.jobs_dao import jobs_dao
+
+        # Get job details
+        job = await jobs_dao.get_job(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+
+        # Get recommendations based on job details
+        recommendations = await technical_prep_service.get_job_based_recommendations(
+            uuid=uuid,
+            job_id=str(job.get("_id")),
+            job_title=job.get("title", ""),
+            job_description=job.get("description", ""),
+        )
+
+        if not recommendations.get("success"):
+            raise HTTPException(status_code=500, detail=recommendations.get("error"))
+
+        return recommendations
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @technical_prep_router.get("/job-roles")
 async def get_available_job_roles():
     """Get list of available job roles for challenge recommendations"""

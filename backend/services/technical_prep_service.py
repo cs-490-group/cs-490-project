@@ -1119,6 +1119,96 @@ class TechnicalPrepService:
             "total_challenges": sum(len(v) for v in challenges.values())
         }
 
+    async def get_job_based_recommendations(
+        self,
+        uuid: str,
+        job_id: str,
+        job_title: str,
+        job_description: str,
+        limit: int = 15
+    ) -> Dict[str, Any]:
+        """Get personalized challenge recommendations based on actual job application details"""
+        challenges = {
+            "coding": [],
+            "system_design": [],
+            "case_study": []
+        }
+
+        try:
+            # Extract key skills from job title and description
+            job_title_lower = job_title.lower() if job_title else ""
+            job_desc_lower = job_description.lower() if job_description else ""
+            combined_text = f"{job_title_lower} {job_desc_lower}".lower()
+
+            # Determine challenge types based on job title/description
+            is_senior = any(word in job_title_lower for word in ["senior", "lead", "principal", "staff", "architect"])
+            is_backend = any(word in combined_text for word in ["backend", "api", "database", "server", "microservice"])
+            is_frontend = any(word in combined_text for word in ["frontend", "react", "javascript", "ui", "ux", "web"])
+            is_ml = any(word in combined_text for word in ["machine learning", "ml", "data science", "ai", "neural", "nlp"])
+            is_product = any(word in combined_text for word in ["product manager", "pm", "product", "strategy"])
+            is_data = any(word in combined_text for word in ["data engineer", "data", "etl", "pipeline", "warehouse"])
+
+            # Get relevant challenges based on role
+            difficulties = ["hard"] if is_senior else ["medium", "hard"]
+
+            # Coding challenges (everyone needs these)
+            for difficulty in difficulties:
+                coding_challenges = await technical_prep_dao.get_challenges_by_difficulty(
+                    difficulty, limit=5
+                )
+                challenges["coding"].extend(coding_challenges)
+
+            # System design challenges (for senior and backend roles)
+            if is_senior or is_backend or is_data:
+                design_challenges = await technical_prep_dao.get_challenges_by_type(
+                    "system_design", limit=5
+                )
+                challenges["system_design"].extend(design_challenges)
+
+            # Case studies (for product managers and senior roles)
+            if is_product or is_senior:
+                case_studies = await technical_prep_dao.get_challenges_by_type(
+                    "case_study", limit=3
+                )
+                challenges["case_study"].extend(case_studies)
+
+            # Determine recommended skills based on job
+            recommended_skills = []
+            if is_backend:
+                recommended_skills.extend(["Database Design", "API Design", "Scalability", "Distributed Systems"])
+            if is_frontend:
+                recommended_skills.extend(["JavaScript", "React", "DOM", "Performance Optimization"])
+            if is_data:
+                recommended_skills.extend(["SQL", "Data Pipeline", "ETL", "Data Modeling"])
+            if is_ml:
+                recommended_skills.extend(["Python", "Machine Learning", "Statistics", "Data Processing"])
+            if is_product:
+                recommended_skills.extend(["Market Analysis", "Business Strategy", "User Research"])
+
+            return {
+                "success": True,
+                "job_id": job_id,
+                "job_title": job_title,
+                "challenges": challenges,
+                "recommended_skills": recommended_skills,
+                "total_challenges": sum(len(v) for v in challenges.values()),
+                "role_analysis": {
+                    "is_senior": is_senior,
+                    "is_backend": is_backend,
+                    "is_frontend": is_frontend,
+                    "is_ml": is_ml,
+                    "is_product": is_product,
+                    "is_data": is_data
+                }
+            }
+
+        except Exception as e:
+            print(f"Error getting job-based recommendations: {e}")
+            return {
+                "success": False,
+                "error": f"Failed to generate recommendations: {str(e)}"
+            }
+
     async def generate_coding_challenge(
         self,
         uuid: str,
@@ -1293,7 +1383,18 @@ class TechnicalPrepService:
         if not challenge:
             return {"success": False, "error": "Challenge not found"}
 
-        # Simulate test runner
+        # Generate test cases if they don't exist
+        if challenge.get("challenge_type") == "coding":
+            coding = challenge.get("coding_challenge", {})
+            if not coding.get("test_cases") or len(coding.get("test_cases", [])) == 0:
+                # Generate AI test cases
+                test_cases = await self._generate_test_cases(challenge, language)
+                # Update challenge with generated test cases
+                if test_cases:
+                    coding["test_cases"] = test_cases
+                    challenge["coding_challenge"] = coding
+
+        # Run tests
         test_results = await self._run_tests(challenge, code, language)
 
         passed = sum(1 for t in test_results if t.get("passed"))
@@ -1334,6 +1435,77 @@ class TechnicalPrepService:
         return await technical_prep_dao.complete_attempt(
             attempt_id, score, passed_tests, total_tests, code
         )
+
+    async def _generate_test_cases(self, challenge: Dict[str, Any], language: str) -> List[Dict[str, Any]]:
+        """Generate 3 test cases for a coding challenge using OpenAI"""
+        try:
+            coding = challenge.get("coding_challenge", {})
+            title = challenge.get("title", "Coding Challenge")
+            description = coding.get("description", "")
+
+            # Create prompt for OpenAI to generate test cases
+            prompt = f"""Generate exactly 3 test cases for this coding problem. Return ONLY valid JSON array with this exact structure:
+[
+  {{"input": {{"param1": value, "param2": value}}, "expected_output": expected_value, "description": "Test case 1 description"}},
+  {{"input": {{"param1": value, "param2": value}}, "expected_output": expected_value, "description": "Test case 2 description"}},
+  {{"input": {{"param1": value, "param2": value}}, "expected_output": expected_value, "description": "Test case 3 description"}}
+]
+
+Problem: {title}
+Description: {description}
+
+Requirements:
+- Test case 1: Basic/simple example
+- Test case 2: Edge case or medium complexity
+- Test case 3: Complex or boundary case
+- Input must be a dict with parameter names as keys
+- Expected output must match the problem's expected return value
+- No explanation, just valid JSON array"""
+
+            openai.api_key = os.getenv("OPENAI_API_KEY")
+
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a code testing expert. Generate test cases in valid JSON format only. No explanations."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                max_tokens=1000,
+                temperature=0.7,
+            )
+
+            response_text = response.choices[0].message.content.strip() if response.choices else ""
+
+            # Parse JSON response
+            test_cases = json.loads(response_text)
+
+            # Validate and return test cases
+            if isinstance(test_cases, list) and len(test_cases) > 0:
+                # Ensure all test cases have required fields
+                validated_cases = []
+                for tc in test_cases:
+                    if "input" in tc and "expected_output" in tc:
+                        validated_cases.append({
+                            "input": tc.get("input", {}),
+                            "expected_output": tc.get("expected_output"),
+                            "description": tc.get("description", "Auto-generated test case")
+                        })
+                return validated_cases if validated_cases else []
+
+            return []
+        except json.JSONDecodeError:
+            # If JSON parsing fails, return empty list
+            return []
+        except Exception as e:
+            # On any error, return empty list and let original flow continue
+            print(f"Error generating test cases: {str(e)}")
+            return []
 
     async def _run_tests(self, challenge: Dict[str, Any], code: str, language: str) -> List[Dict[str, Any]]:
         """Run tests against submitted code using OpenAI"""

@@ -139,14 +139,24 @@ const technicalPrepAPI = {
     });
   },
 
-  // ============ JOB ROLE BASED RECOMMENDATIONS ============
+  // ============ JOB BASED RECOMMENDATIONS ============
 
-  // Get available job roles
+  // Get user's job applications for technical prep
+  getUserJobs: async (uuid) => {
+    return api.get(`/technical-prep/user-jobs/${uuid}`);
+  },
+
+  // Get personalized challenges based on job application
+  getJobRecommendations: async (uuid, jobId) => {
+    return api.get(`/technical-prep/job-recommendations/${uuid}/${jobId}`);
+  },
+
+  // Get available job roles (legacy, kept for backward compatibility)
   getAvailableJobRoles: async () => {
     return api.get("/technical-prep/job-roles");
   },
 
-  // Get personalized challenges based on job role
+  // Get personalized challenges based on job role (legacy)
   getJobRoleRecommendations: async (uuid, jobRole) => {
     return api.get(`/technical-prep/job-role-recommendations/${uuid}/${jobRole}`);
   }

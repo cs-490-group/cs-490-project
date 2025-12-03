@@ -54,15 +54,37 @@ const ChallengeWorkspace = () => {
   };
 
   const handleRunCode = async () => {
-    if (!attemptId || !code.trim()) return;
+    if (!attemptId || !code.trim()) {
+      alert("Please write some code first");
+      return;
+    }
 
     try {
       setSubmitting(true);
+      setTestResults(null); // Clear previous results
+
       const res = await technicalPrepAPI.submitCode(attemptId, code, language);
-      setTestResults(res.data);
+
+      console.log("Test results response:", res.data);
+
+      if (res.data.success) {
+        setTestResults(res.data);
+        // Automatically switch to results tab
+        setActiveTab("results");
+      } else {
+        setTestResults({
+          error: res.data.error || "Failed to run tests",
+          success: false
+        });
+        setActiveTab("results");
+      }
     } catch (error) {
       console.error("Error submitting code:", error);
-      setTestResults({ error: "Failed to run tests" });
+      setTestResults({
+        error: error.message || "Failed to run tests. Check your connection.",
+        success: false
+      });
+      setActiveTab("results");
     } finally {
       setSubmitting(false);
     }
@@ -401,52 +423,104 @@ const ChallengeWorkspace = () => {
             </div>
           )}
 
-          {activeTab === "results" && testResults && (
+          {activeTab === "results" && (
             <div className="results-content">
               <h2>Test Results</h2>
-              <div className="results-summary">
-                <div className="result-stat">
-                  <span>Score:</span>
-                  <strong>{Math.round(testResults.score || 0)}%</strong>
-                </div>
-                <div className="result-stat">
-                  <span>Passed Tests:</span>
-                  <strong>{testResults.passed || 0}/{testResults.total || 0}</strong>
-                </div>
-              </div>
 
-              {testResults?.test_results && Array.isArray(testResults.test_results) && testResults.test_results.length > 0 ? (
-                <div className="test-list">
-                  {testResults.test_results.map((test, idx) => (
-                    <div key={idx} className={`test-item ${test.passed ? "passed" : "failed"}`}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", width: "100%" }}>
-                        <span className={`status ${test.passed ? "pass" : "fail"}`} style={{ marginTop: "4px" }}>
-                          {test.passed ? "✓" : "✗"}
-                        </span>
-                        <div style={{ flex: 1 }}>
-                          <span className="test-name" style={{ display: "block", marginBottom: "8px" }}>
-                            {test.description || `Test ${idx + 1}`}
-                          </span>
-                          {test.input && (
-                            <div style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "6px" }}>
-                              <strong>Input:</strong> {JSON.stringify(test.input)}
-                            </div>
-                          )}
-                          <div style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "6px" }}>
-                            <strong>Expected:</strong> {JSON.stringify(test.expected)}
-                          </div>
-                          {test.actual && (
-                            <div style={{ fontSize: "0.85rem", color: test.passed ? "#10b981" : "#ef4444", marginBottom: "6px" }}>
-                              <strong>Got:</strong> {test.actual}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              {testResults?.error ? (
+                // Error message
+                <div style={{
+                  backgroundColor: "#fee2e2",
+                  border: "2px solid #fca5a5",
+                  borderRadius: "8px",
+                  padding: "16px",
+                  color: "#991b1b",
+                  marginTop: "16px"
+                }}>
+                  <h3 style={{ margin: "0 0 8px 0", color: "#7f1d1d" }}>❌ Error</h3>
+                  <p style={{ margin: 0 }}>{testResults.error}</p>
+                  <p style={{ margin: "8px 0 0 0", fontSize: "0.9rem" }}>
+                    Make sure your code is syntactically correct and the logic is sound.
+                  </p>
                 </div>
+              ) : testResults ? (
+                <>
+                  {/* Summary Stats */}
+                  <div className="results-summary">
+                    <div className="result-stat">
+                      <span>Score:</span>
+                      <strong>{Math.round(testResults.score || 0)}%</strong>
+                    </div>
+                    <div className="result-stat">
+                      <span>Passed Tests:</span>
+                      <strong>{testResults.passed || 0}/{testResults.total || 0}</strong>
+                    </div>
+                  </div>
+
+                  {/* Test Results List */}
+                  {testResults?.test_results && Array.isArray(testResults.test_results) && testResults.test_results.length > 0 ? (
+                    <div className="test-list">
+                      {testResults.test_results.map((test, idx) => (
+                        <div key={idx} className={`test-item ${test.passed ? "passed" : "failed"}`}>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", width: "100%" }}>
+                            <span className={`status ${test.passed ? "pass" : "fail"}`} style={{ marginTop: "4px", fontSize: "1.2rem" }}>
+                              {test.passed ? "✓" : "✗"}
+                            </span>
+                            <div style={{ flex: 1 }}>
+                              <span className="test-name" style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
+                                {test.description || `Test ${test.test_number || idx + 1}`}
+                              </span>
+                              {test.input && (
+                                <div style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "6px", fontFamily: "monospace", backgroundColor: "#f3f4f6", padding: "6px", borderRadius: "4px" }}>
+                                  <strong>Input:</strong> {JSON.stringify(test.input)}
+                                </div>
+                              )}
+                              <div style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "6px", fontFamily: "monospace", backgroundColor: "#f3f4f6", padding: "6px", borderRadius: "4px" }}>
+                                <strong>Expected:</strong> {JSON.stringify(test.expected)}
+                              </div>
+                              {test.actual && (
+                                <div style={{ fontSize: "0.85rem", color: test.passed ? "#10b981" : "#ef4444", marginBottom: "6px", fontFamily: "monospace", backgroundColor: "#f3f4f6", padding: "6px", borderRadius: "4px", fontWeight: "500" }}>
+                                  <strong>Got:</strong> {String(test.actual).substring(0, 200)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{
+                      backgroundColor: "#fef3c7",
+                      border: "2px solid #fbbf24",
+                      borderRadius: "8px",
+                      padding: "16px",
+                      color: "#92400e",
+                      marginTop: "16px"
+                    }}>
+                      <h3 style={{ margin: "0 0 8px 0", color: "#78350f" }}>⚠️ No Test Cases Found</h3>
+                      <p style={{ margin: 0 }}>
+                        This challenge doesn't have any test cases configured. Your code appears to have executed, but we cannot verify it against test cases.
+                      </p>
+                    </div>
+                  )}
+                </>
               ) : (
-                <p style={{ color: "#6b7280", marginTop: "20px" }}>No test results available</p>
+                <div style={{
+                  backgroundColor: "#dbeafe",
+                  border: "2px solid #93c5fd",
+                  borderRadius: "8px",
+                  padding: "16px",
+                  color: "#0c4a6e",
+                  marginTop: "16px",
+                  textAlign: "center"
+                }}>
+                  <p style={{ margin: "0 0 8px 0" }}>
+                    👈 Write some code and click "Run Tests" to see results here
+                  </p>
+                  <p style={{ margin: 0, fontSize: "0.9rem" }}>
+                    Your code will be executed and tested against the test cases
+                  </p>
+                </div>
               )}
             </div>
           )}
