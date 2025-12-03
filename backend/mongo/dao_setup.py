@@ -26,6 +26,8 @@ RESUME_TEMPLATES = os.getenv("RESUME_TEMPLATES_COLLECTION")
 RESET_LINKS = os.getenv("RESET_LINKS_COLLECTION")
 GOOGLE_OAUTH = os.getenv("GOOGLE_OAUTH_CREDENTIALS")
 COHERE_API = os.getenv("COHERE_API_KEY")
+JOB_REQUIREMENTS = os.getenv("JOB_REQUIREMENTS_COLLECTION", "job_requirements")
+MATCH_HISTORY = os.getenv("MATCH_HISTORY_COLLECTION", "match_history")
 
 mongo_client = AsyncMongoClient(MONGO_CONNECTION_STRING, tls = True, tlsCAFile=certifi.where())
 db_client = mongo_client.get_database(DATABASE_NAME)

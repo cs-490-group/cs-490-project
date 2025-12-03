@@ -44,7 +44,8 @@ import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
-
+import JobMatchingPage from "./pages/jobs/JobMatchingPage";
+import SkillsGapPage from "./pages/jobs/SkillsGapPage";
 
 // inside your router
 
@@ -83,6 +84,8 @@ export function App() {
                 <Route path = "/resetPassword/:token" element = {<ResetPassword />}/>
                 <Route path = "/cover-Letter" element = {<CoverLetter />} />
                 <Route path="/cover-letter/edit/:id" element={<CoverLetterEditPage />} />
+                <Route path="/job-matching" element={<JobMatchingPage />} />
+                <Route path="/jobs/:jobId/skills-gap" element={<SkillsGapPage />} />
 
               <Route path="/skills" element={<SkillsList />} />
               <Route path="/education" element={<EducationList />} />

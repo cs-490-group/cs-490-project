@@ -21,6 +21,14 @@ from schema.Job import Job, UrlBody
 from services.html_pdf_generator import HTMLPDFGenerator
 from services.company_research import run_company_research
 from services.company_news import run_company_news
+from services.job_requirements_extractor import (
+    extract_skills,
+    extract_years_experience,
+    extract_education_level,
+)
+from mongo.job_requirements_extractor_dao import job_requirements_extractor_dao
+
+
 
 
 # Import the new enhanced scraper
@@ -194,30 +202,51 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         
         # Extract Company Name
         company_name = None
-
-        # If frontend sent plain string
         if isinstance(job.company, str):
             company_name = job.company
-
-        # If frontend sent { name: "...", size: "...", description: "..." }
         elif isinstance(job.company, dict):
             company_name = job.company.get("name") or job.company.get("company")
-
-        # If scraping job import
         elif model.get("company"):
             company_name = model["company"]
 
         print(f"🔍 Running automated research for company: {company_name}")
 
-        #Automated Company Research
+        # 1️⃣ Company Research
         research_result = await run_company_research(company_name)
         model["company_research"] = research_result
 
-        #Automated Company News
+        # 2️⃣ Company News
         news_result = await run_company_news(company_name)
         model["company_news"] = news_result
-        
+
+        # 2) Requirement extraction from description
+        description = model.get("description", "") or ""
+        required_skills = extract_skills(description)
+        min_years = extract_years_experience(description)
+        edu_level = extract_education_level(description)
+
+        model["requiredSkills"] = required_skills
+        model["minYearsExperience"] = min_years
+        model["educationLevel"] = edu_level
+
+        print("📌 Auto-extracted requirements:")
+        print("   Skills:", required_skills)
+        print("   Min experience:", min_years)
+        print("   Education:", edu_level)
+
+        # 4️⃣ SAVE JOB IN DB
         result = await jobs_dao.add_job(model)
+        
+        # 5) Store extraction snapshot separately for auditing
+        await job_requirements_extractor_dao.save_requirements(
+            uuid=uuid,
+            job_id=result,
+            description=description,
+            required_skills=required_skills,
+            min_years_experience=min_years,
+            education_level=edu_level,
+        )
+
     except DuplicateKeyError:
         raise HTTPException(400, "Job already exists")
     except HTTPException as http:
@@ -226,7 +255,6 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         print("❌ ERROR IN add_job:", e)
         raise HTTPException(500, str(e))
 
-    
     return {"detail": "Successfully added job", "job_id": result}
 
 
