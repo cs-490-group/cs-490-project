@@ -1557,7 +1557,11 @@ async def submit_writing_practice_response(request: Request):
 
         # Update session with results
         end_time = datetime.now(timezone.utc)
-        duration_seconds = (end_time - session.get("start_time", end_time)).total_seconds()
+        start_time = session.get("start_time", end_time)
+        # Ensure start_time is timezone-aware
+        if start_time and isinstance(start_time, datetime):
+            start_time = make_aware(start_time)
+        duration_seconds = (end_time - start_time).total_seconds()
 
         update_data = {
             "response_text": response_text,
