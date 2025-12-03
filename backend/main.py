@@ -32,6 +32,7 @@ from routes.interview_router import (interview_router)
 from routes.interview_analytics_routes import analytics_router, prediction_router
 from routes.coaching import coaching_router
 from routes.offers import offers_router
+from routes.application_workflow_router import workflow_router
 
 app = FastAPI()
 
@@ -89,6 +90,8 @@ app.include_router(coaching_router, prefix = api_prefix)
 app.include_router(offers_router, prefix = api_prefix)
 
 app.include_router(ai_router, prefix=api_prefix)
+
+app.include_router(workflow_router)
 
 @app.on_event("startup")
 async def startup_event():
