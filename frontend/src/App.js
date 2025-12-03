@@ -51,6 +51,7 @@ import SuccessProbability from './pages/interview/SuccessProbability';
 import CompleteInterview from './pages/interview/CompleteInterview';
 import InterviewCalendar from './pages/interview/InterviewCalendar';
 import InterviewPerformanceTracking from './pages/interview/InterviewPerformanceTracking';
+import PipelineManagement from './pages/pipeline/PipelineManagement';
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -134,6 +135,7 @@ export function App() {
               <Route path="/interview/complete/:scheduleId" element={<CompleteInterview />} />
               <Route path="/interview/calendar" element={<InterviewCalendar />} />
               <Route path="/interview/performance" element={<InterviewPerformanceTracking />} />
+              <Route path="/pipeline-management" element={<PipelineManagement />} />
               </Routes>
             </JobProvider>
             </FlashProvider>
