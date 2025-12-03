@@ -67,8 +67,9 @@ export default function JobList() {
     restoreJob,
     restoreDeletedJob,
     loadJobs,
-    checkAutoArchive
-  } = useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, setUndoStack, jobs, autoArchiveDays, autoArchiveEnabled);
+    checkAutoArchive,
+    retryJobResearch
+  } = useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, setUndoStack, jobs, autoArchiveDays, autoArchiveEnabled, setView);
 
   useEffect(() => {
     loadJobs(setLoading);
@@ -336,7 +337,7 @@ export default function JobList() {
           addJob={addJob}
           editJob={editingJob ? { ...editingJob, submit: updateJob } : null}
           cancelEdit={() => {
-            setView("dashboard");
+            setView("pipeline");
             setEditingJob(null);
             window.location.reload();
           }}

@@ -275,55 +275,73 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         
         # Extract Company Name
         company_name = None
-
-        # If frontend sent plain string
         if isinstance(job.company, str):
             company_name = job.company
-
-        # If frontend sent { name: "...", size: "...", description: "..." }
         elif isinstance(job.company, dict):
             company_name = job.company.get("name") or job.company.get("company")
-
-        # If scraping job import
         elif model.get("company"):
             company_name = model["company"]
 
-        print(f"🔍 Running automated research for company: {company_name}")
-
-        #Automated Company Research
-        research_result = await run_company_research(company_name)
-        model["company_research"] = research_result
-
-        #Automated Company News
-        news_result = await run_company_news(company_name)
-        model["company_news"] = news_result
-
-        #Automated Salary Negotiation Research (UC-083)
-        try:
-            salary_negotiation = await generate_job_salary_negotiation(
-                job_title=model.get("title", ""),
-                company=company_name,
-                location=model.get("location", ""),
-                company_size=research_result.get("basic_info", {}).get("size") if research_result else None
-            )
-            model["salary_negotiation"] = salary_negotiation
-        except Exception as e:
-            print(f"⚠️ Failed to generate salary negotiation: {str(e)}")
-            model["salary_negotiation"] = None
-
+        # PHASE 1: Create the job immediately WITHOUT research data
         job_id = await jobs_dao.add_job(model)
+        print(f"✅ Job created successfully with ID: {job_id}")
 
-        # Fetch the created job to return full object with all generated data
+        # PHASE 2: Add research data asynchronously (non-blocking)
+        # If this fails, the job still exists
+        if company_name:
+            try:
+                print(f"🔍 Starting automated research for company: {company_name}")
+                
+                # Run company research
+                research_result = await run_company_research(company_name)
+                
+                # Run company news
+                news_result = await run_company_news(company_name)
+                
+                # Run salary negotiation research
+                salary_negotiation = None
+                try:
+                    salary_negotiation = await generate_job_salary_negotiation(
+                        job_title=model.get("title", ""),
+                        company=company_name,
+                        location=model.get("location", ""),
+                        company_size=research_result.get("basic_info", {}).get("size") if research_result else None
+                    )
+                except Exception as e:
+                    print(f"⚠️ Failed to generate salary negotiation: {str(e)}")
+                
+                # Update job with research data
+                research_update = {}
+                if research_result:
+                    research_update["company_research"] = research_result
+                if news_result:
+                    research_update["company_news"] = news_result
+                if salary_negotiation:
+                    research_update["salary_negotiation"] = salary_negotiation
+                
+                if research_update:
+                    await jobs_dao.update_job(job_id, research_update)
+                    print(f"✅ Research data added to job {job_id}")
+                
+            except Exception as research_error:
+                # Log the error but don't fail the job creation
+                print(f"⚠️ Research failed for job {job_id}: {str(research_error)}")
+                print(f"Job was still created successfully")
+
+        # Fetch the created job to return full object
         created_job = await jobs_dao.get_job(job_id)
         if created_job:
             created_job["_id"] = str(created_job["_id"])
 
-        
-        result = await jobs_dao.add_job(model)
-        
         # TRIGGER MILESTONE CHECK
-        print(f"[Jobs Router] Job Added. ID: {result}")
+        print(f"[Jobs Router] Job Added. ID: {job_id}")
         await check_and_log_milestones(uuid, model, old_job_data=None)
+        
+        return {
+            "detail": "Successfully added job",
+            "job_id": job_id,
+            "job": created_job
+        }
         
     except DuplicateKeyError:
         raise HTTPException(400, "Job already exists")
@@ -331,10 +349,79 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         raise http
     except Exception as e:
         print(f"[Jobs Router] Add Error: {e}")
+        traceback.print_exc()
         raise HTTPException(500, "Encountered internal server error")
-    
-    return {"detail": "Successfully added job", "job_id": result}
 
+
+# NEW ENDPOINT: Retry research for an existing job
+@jobs_router.post("/{job_id}/retry-research", tags=["jobs"])
+async def retry_job_research(job_id: str, uuid: str = Depends(authorize)):
+    """Retry automated research for a job that failed during creation"""
+    try:
+        job = await jobs_dao.get_job(job_id)
+        if not job:
+            raise HTTPException(404, "Job not found")
+        
+        # Extract company name
+        company_name = None
+        if isinstance(job.get("company"), str):
+            company_name = job["company"]
+        elif isinstance(job.get("company"), dict):
+            company_name = job["company"].get("name")
+        
+        if not company_name:
+            raise HTTPException(400, "Job has no company name")
+        
+        print(f"🔄 Retrying research for job {job_id}, company: {company_name}")
+        
+        research_update = {}
+        
+        # Run company research
+        try:
+            research_result = await run_company_research(company_name)
+            if research_result:
+                research_update["company_research"] = research_result
+        except Exception as e:
+            print(f"⚠️ Company research failed: {str(e)}")
+        
+        # Run company news
+        try:
+            news_result = await run_company_news(company_name)
+            if news_result:
+                research_update["company_news"] = news_result
+        except Exception as e:
+            print(f"⚠️ Company news failed: {str(e)}")
+        
+        # Run salary negotiation
+        try:
+            salary_negotiation = await generate_job_salary_negotiation(
+                job_title=job.get("title", ""),
+                company=company_name,
+                location=job.get("location", ""),
+                company_size=research_update.get("company_research", {}).get("basic_info", {}).get("size") if research_update.get("company_research") else None
+            )
+            if salary_negotiation:
+                research_update["salary_negotiation"] = salary_negotiation
+        except Exception as e:
+            print(f"⚠️ Salary negotiation failed: {str(e)}")
+        
+        if not research_update:
+            raise HTTPException(500, "All research attempts failed")
+        
+        # Update job with research data
+        await jobs_dao.update_job(job_id, research_update)
+        
+        return {
+            "detail": "Research completed successfully",
+            "updated_fields": list(research_update.keys())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error retrying research: {e}")
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to retry research: {str(e)}")
 
 @jobs_router.get("", tags=["jobs"])
 async def get_job(job_id: str, uuid: str = Depends(authorize)):

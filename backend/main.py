@@ -93,7 +93,7 @@ app.include_router(technical_prep_router, prefix = api_prefix)
 
 app.include_router(ai_router, prefix=api_prefix)
 
-app.include_router(workflow_router)
+app.include_router(workflow_router, prefix=api_prefix)
 
 @app.on_event("startup")
 async def startup_event():

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
 import { useParams } from 'react-router-dom';
 
 function InterviewPreparation() {
   const { scheduleId } = useParams();
-  
+  const navigate = useNavigate();
   const [interview, setInterview] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -389,6 +390,21 @@ function InterviewPreparation() {
             }}
           >
             📝 View Details
+          </button>
+          <button
+            onClick={() => navigate(`/interview/complete/${scheduleId}`)}
+            style={{ 
+              padding: '0.5rem 1rem', 
+              background: 'rgba(76, 175, 80, 0.9)', 
+              color: 'white', 
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: '6px', 
+              cursor: 'pointer',
+              fontWeight: '500',
+              fontSize: '0.9rem'
+            }}
+          >
+            ✅ Complete Interview
           </button>
         </div>
       </div>
