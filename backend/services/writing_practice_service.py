@@ -451,9 +451,15 @@ Provide analysis in JSON format with these exact fields:
             try:
                 ai_feedback = json.loads(response_text_ai)
             except json.JSONDecodeError:
-                # If JSON parsing fails, return manual analysis with note
+                # If JSON parsing fails, format manual analysis with required fields
                 manual_analysis["ai_feedback_available"] = False
                 manual_analysis["note"] = "Using standard analysis (AI parsing failed)"
+                manual_analysis["clarity"] = manual_analysis.get("clarity_score", 70)
+                manual_analysis["professionalism"] = manual_analysis.get("professionalism_score", 70)
+                manual_analysis["structure_analysis"] = {"score": manual_analysis.get("structure_score", 70)}
+                manual_analysis["storytelling_effectiveness"] = {"score": manual_analysis.get("conciseness_score", 70)}
+                manual_analysis["feedback"] = f"Review your response. {' '.join(manual_analysis.get('specific_suggestions', [])[:2])}"
+                manual_analysis["engagement_level"] = 75
                 return manual_analysis
 
             # Merge AI insights with manual analysis
@@ -462,7 +468,10 @@ Provide analysis in JSON format with these exact fields:
                 **manual_analysis,
                 "clarity": ai_feedback.get("clarity_score", manual_analysis.get("clarity_score", 70)),
                 "professionalism": ai_feedback.get("professionalism_score", manual_analysis.get("professionalism_score", 70)),
-                "structure_analysis": ai_feedback.get("structure_analysis", ""),
+                "structure_analysis": {
+                    "text": ai_feedback.get("structure_analysis", ""),
+                    "score": manual_analysis.get("structure_score", 70)
+                },
                 "storytelling_effectiveness": {
                     "score": ai_feedback.get("storytelling_effectiveness", 75),
                     "feedback": ai_feedback.get("overall_feedback", "")
@@ -484,7 +493,13 @@ Provide analysis in JSON format with these exact fields:
             analysis = WritingPracticeService.analyze_response_quality(response_text, question_category)
             analysis["ai_feedback_available"] = False
             analysis["note"] = "Using standard analysis (AI unavailable)"
-            analysis["feedback"] = analysis.get("overall_score", 70)  # Provide feedback summary
+            # Map manual analysis fields to expected format
+            analysis["clarity"] = analysis.get("clarity_score", 70)
+            analysis["professionalism"] = analysis.get("professionalism_score", 70)
+            analysis["structure_analysis"] = {"score": analysis.get("structure_score", 70)}
+            analysis["storytelling_effectiveness"] = {"score": analysis.get("conciseness_score", 70)}
+            analysis["feedback"] = f"Review your response focusing on: {', '.join(analysis.get('areas_for_improvement', [])[:3])}" if analysis.get('areas_for_improvement') else "Consider the suggestions above for improvement."
+            analysis["engagement_level"] = 75
             return analysis
 
     @staticmethod

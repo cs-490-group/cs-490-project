@@ -12,6 +12,7 @@ function WritingPractice() {
   const [showResults, setShowResults] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState(null);
   const [availableQuestions, setAvailableQuestions] = useState([]);
   const [writingTips, setWritingTips] = useState(null);
@@ -129,12 +130,13 @@ function WritingPractice() {
   const handleSubmit = async () => {
     try {
       setError(null);
-      setIsLoading(true);
+      setIsAnalyzing(true);
       setIsPracticing(false);
 
       if (!sessionId || !responseText.trim()) {
         setError('Please write a response before submitting.');
         setIsPracticing(true);
+        setIsAnalyzing(false);
         return;
       }
 
@@ -160,7 +162,7 @@ function WritingPractice() {
       setError('Failed to analyze your response. Please try again.');
       setIsPracticing(true);
     } finally {
-      setIsLoading(false);
+      setIsAnalyzing(false);
     }
   };
 
@@ -193,8 +195,104 @@ function WritingPractice() {
     </div>
   );
 
+  const LoadingModal = () => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0, 0, 0, 0.6)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      backdropFilter: 'blur(4px)'
+    }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '12px',
+        padding: '2rem',
+        textAlign: 'center',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+        maxWidth: '400px'
+      }}>
+        <div style={{
+          fontSize: '2rem',
+          marginBottom: '1rem',
+          animation: 'spin 2s linear infinite'
+        }}>⚙️</div>
+        <h2 style={{
+          margin: '0 0 0.5rem 0',
+          color: '#333',
+          fontSize: '1.3rem'
+        }}>
+          Analyzing Your Response
+        </h2>
+        <p style={{
+          color: '#666',
+          margin: '0.5rem 0',
+          fontSize: '0.95rem',
+          lineHeight: '1.5'
+        }}>
+          Our AI is reviewing your response and generating personalized feedback...
+        </p>
+        <div style={{
+          marginTop: '1.5rem',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '0.5rem'
+        }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#667eea',
+            animation: 'pulse 1.5s ease-in-out infinite',
+            animationDelay: '0s'
+          }}/>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#667eea',
+            animation: 'pulse 1.5s ease-in-out infinite',
+            animationDelay: '0.3s'
+          }}/>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#667eea',
+            animation: 'pulse 1.5s ease-in-out infinite',
+            animationDelay: '0.6s'
+          }}/>
+        </div>
+        <p style={{
+          color: '#999',
+          fontSize: '0.85rem',
+          marginTop: '1rem'
+        }}>
+          This usually takes 10-30 seconds...
+        </p>
+      </div>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 1; }
+        }
+      `}</style>
+    </div>
+  );
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: '1200px', margin: '0 auto' }}>
+      {isAnalyzing && <LoadingModal />}
+
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '2rem' }}>Interview Writing Practice</h1>
         <p style={{ color: '#666', margin: 0 }}>Practice timed responses, get AI feedback, and track your improvement</p>
