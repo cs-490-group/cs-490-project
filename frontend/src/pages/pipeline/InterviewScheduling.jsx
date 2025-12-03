@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
 import JobsAPI from '../../api/jobs';
 
 const InterviewScheduling = () => {
+  const navigate = useNavigate();
   const [interviews, setInterviews] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -123,6 +125,7 @@ const InterviewScheduling = () => {
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const days = Math.floor(hours / 24);
 
+    if (diffMs < 0) return 'past';
     if (days > 7) return `in ${days} days`;
     if (days > 1) return `in ${days} days`;
     if (days === 1) return 'tomorrow';
@@ -168,6 +171,21 @@ const InterviewScheduling = () => {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => navigate('/interview/calendar')}
+            style={{
+              padding: '10px 20px',
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '14px'
+            }}
+          >
+            View Full Calendar
+          </button>
           <select
             value={viewMode}
             onChange={(e) => setViewMode(e.target.value)}
@@ -360,8 +378,8 @@ const InterviewScheduling = () => {
                     </div>
                     <div style={{
                       padding: '6px 12px',
-                      background: '#e3f2fd',
-                      color: '#1976d2',
+                      background: timeUntil === 'past' ? '#e0e0e0' : '#e3f2fd',
+                      color: timeUntil === 'past' ? '#666' : '#1976d2',
                       borderRadius: '12px',
                       fontSize: '12px',
                       fontWeight: '600'
@@ -439,18 +457,24 @@ const InterviewScheduling = () => {
 
                   {/* Actions */}
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button style={{
-                      flex: 1,
-                      padding: '10px',
-                      background: '#667eea',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '13px'
-                    }}>
-                      View Details
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/interview/prepare/${interview.id}`);
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        background: '#667eea',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        fontSize: '13px'
+                      }}
+                    >
+                      Prepare
                     </button>
                     {interview.type === 'video' && interview.link && (
                       <button
@@ -489,11 +513,7 @@ const InterviewScheduling = () => {
             setShowScheduleModal(false);
             setSelectedApp(null);
           }}
-          onScheduled={() => {
-            setShowScheduleModal(false);
-            setSelectedApp(null);
-            loadData();
-          }}
+          onSchedule={handleScheduleInterview}
         />
       )}
     </div>
@@ -501,8 +521,9 @@ const InterviewScheduling = () => {
 };
 
 // Schedule Interview Modal Component
-const ScheduleInterviewModal = ({ application, onClose, onScheduled }) => {
+const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
   const [formData, setFormData] = useState({
+    applicationId: application.id,
     datetime: '',
     duration: 60,
     type: 'video',
@@ -513,14 +534,19 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled }) => {
     interviewerName: '',
     interviewerTitle: '',
     interviewerEmail: '',
+    interviewerPhone: '',
     notes: ''
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // This would call your InterviewScheduleAPI.createSchedule
-    console.log('Scheduling interview:', formData);
-    onScheduled();
+    
+    if (!formData.datetime) {
+      alert('Please select a date and time for the interview');
+      return;
+    }
+
+    await onSchedule(formData);
   };
 
   return (
@@ -598,7 +624,8 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled }) => {
                 padding: '12px',
                 border: '1px solid #ddd',
                 borderRadius: '8px',
-                fontSize: '14px'
+                fontSize: '14px',
+                boxSizing: 'border-box'
               }}
             />
           </div>
@@ -619,7 +646,8 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled }) => {
                 padding: '12px',
                 border: '1px solid #ddd',
                 borderRadius: '8px',
-                fontSize: '14px'
+                fontSize: '14px',
+                boxSizing: 'border-box'
               }}
             />
           </div>
@@ -678,7 +706,8 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled }) => {
                     padding: '12px',
                     border: '1px solid #ddd',
                     borderRadius: '8px',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
                   }}
                 >
                   <option value="zoom">Zoom</option>
@@ -702,7 +731,8 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled }) => {
                     padding: '12px',
                     border: '1px solid #ddd',
                     borderRadius: '8px',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
@@ -724,7 +754,8 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled }) => {
                   padding: '12px',
                   border: '1px solid #ddd',
                   borderRadius: '8px',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -746,7 +777,8 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled }) => {
                   border: '1px solid #ddd',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  resize: 'vertical'
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -759,34 +791,35 @@ const ScheduleInterviewModal = ({ application, onClose, onScheduled }) => {
             borderRadius: '8px',
             marginBottom: '20px'
           }}>
-            <h4 style={{ marginTop: 0,marginBottom: '12px', fontSize: '16px' }}>
-Interviewer Information (Optional)
-</h4>
-<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-<div>
-<label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '500' }}>
-Name
-</label>
-<input
-type="text"
-value={formData.interviewerName}
-onChange={(e) => setFormData({ ...formData, interviewerName: e.target.value })}
-style={{
-width: '100%',
-padding: '10px',
-border: '1px solid #ddd',
-borderRadius: '6px',
-fontSize: '14px'
-}}
-/>
-</div>
-<div>
-<label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '500' }}>
-Title
-</label>
-<input
-type="text"
-value={formData.interviewerTitle}
+            <h4 style={{ marginTop: 0, marginBottom: '12px', fontSize: '16px' }}>
+              Interviewer Information (Optional)
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '500' }}>
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.interviewerName}
+                  onChange={(e) => setFormData({ ...formData, interviewerName: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '500' }}>
+                  Title
+                </label>
+                <input
+                  type="text"
+                  value={formData.interviewerTitle}
 onChange={(e) => setFormData({ ...formData, interviewerTitle: e.target.value })}
 placeholder="e.g., Senior Engineer"
 style={{
@@ -794,7 +827,8 @@ width: '100%',
 padding: '10px',
 border: '1px solid #ddd',
 borderRadius: '6px',
-fontSize: '14px'
+fontSize: '14px',
+boxSizing: 'border-box'
 }}
 />
 </div>
@@ -811,12 +845,32 @@ width: '100%',
 padding: '10px',
 border: '1px solid #ddd',
 borderRadius: '6px',
-fontSize: '14px'
+fontSize: '14px',
+boxSizing: 'border-box'
+}}
+/>
+</div>
+<div style={{ gridColumn: '1 / -1' }}>
+<label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '500' }}>
+Phone
+</label>
+<input
+type="tel"
+value={formData.interviewerPhone}
+onChange={(e) => setFormData({ ...formData, interviewerPhone: e.target.value })}
+style={{
+width: '100%',
+padding: '10px',
+border: '1px solid #ddd',
+borderRadius: '6px',
+fontSize: '14px',
+boxSizing: 'border-box'
 }}
 />
 </div>
 </div>
-</div>      {/* Notes */}
+</div>
+      {/* Notes */}
       <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
           Notes
@@ -832,10 +886,13 @@ fontSize: '14px'
             border: '1px solid #ddd',
             borderRadius: '8px',
             fontSize: '14px',
-            resize: 'vertical'
+            resize: 'vertical',
+            boxSizing: 'border-box'
           }}
         />
-      </div>      {/* Info Box */}
+      </div>
+
+      {/* Info Box */}
       <div style={{
         padding: '12px',
         background: '#e3f2fd',
@@ -846,7 +903,9 @@ fontSize: '14px'
         color: '#1976d2'
       }}>
         💡 Preparation tasks will be automatically generated based on your interview details
-      </div>      {/* Actions */}
+      </div>
+
+      {/* Actions */}
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
         <button
           type="button"

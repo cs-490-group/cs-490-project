@@ -57,6 +57,7 @@ export default function StatusMonitoring() {
   const handleStatusUpdate = async (jobId, newStatus, notes = '') => {
     try {
       // Update job status via API
+      
       await JobsAPI.update(jobId, { 
         status: newStatus.charAt(0).toUpperCase() + newStatus.slice(1),
         notes: notes 
