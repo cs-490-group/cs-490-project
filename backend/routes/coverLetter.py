@@ -425,9 +425,7 @@ def process_html_element(element, doc):
             for child in element.children:
                 process_html_element(child, doc)
 
-# ============================================================
-# PUBLIC: Get via Token (No Auth)
-# ============================================================
+
 @coverletter_router.get("/public/{token}", tags=["cover-letters"])
 async def get_shared_cover_letter(token: str):
     """Get cover letter via share token (for external reviewers)"""
@@ -439,14 +437,11 @@ async def get_shared_cover_letter(token: str):
     except Exception as e:
         raise HTTPException(500, f"Error: {str(e)}")
 
-# ============================================================
-# PUBLIC: Add Feedback (No Auth)
-# ============================================================
 @coverletter_router.post("/public/{token}/feedback", tags=["cover-letters"])
 async def add_public_feedback(token: str, feedback: CoverLetterFeedback):
     """Allow external reviewers to comment"""
     try:
-        # Validate token first
+
         letter = await cover_letters_dao.get_cover_letter_by_token(token)
         if not letter:
             raise HTTPException(400, "Invalid token")
@@ -535,7 +530,7 @@ async def set_public_cover_letter_status(token: str, request: ApprovalRequest):
 @coverletter_router.post("/{letter_id}/versions", tags=["cover-letters"])
 async def create_version(letter_id: str, version: CoverLetterVersion, uuid: str = Depends(authorize)):
     """Save a manual version snapshot"""
-    # Verify ownership first
+
     letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
     if not letter:
         raise HTTPException(404, "Cover letter not found")
@@ -552,7 +547,7 @@ async def create_version(letter_id: str, version: CoverLetterVersion, uuid: str 
 
 @coverletter_router.get("/{letter_id}/versions", tags=["cover-letters"])
 async def get_versions(letter_id: str, uuid: str = Depends(authorize)):
-    # Verify ownership
+   
     letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
     if not letter:
         raise HTTPException(404, "Cover letter not found")
@@ -561,7 +556,7 @@ async def get_versions(letter_id: str, uuid: str = Depends(authorize)):
 
 @coverletter_router.post("/{letter_id}/versions/{version_id}/restore", tags=["cover-letters"])
 async def restore_version(letter_id: str, version_id: str, uuid: str = Depends(authorize)):
-    # Verify ownership
+    
     letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
     if not letter:
         raise HTTPException(404, "Cover letter not found")

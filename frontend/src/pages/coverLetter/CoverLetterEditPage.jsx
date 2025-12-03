@@ -47,7 +47,7 @@ export default function EditCoverLetterPage() {
         // Fetch Letter AND Versions in parallel
         const [letterRes, versionsRes] = await Promise.all([
           CoverLetterAPI.get(id),
-          CoverLetterAPI.getVersions(id) // <--- Fetch history
+          CoverLetterAPI.getVersions(id) 
         ]);
 
         const letter = letterRes.data;

@@ -11,6 +11,7 @@ class PrivacySettings(BaseModel):
     can_see_full_progress: bool = False  # Hide if under certain threshold
     can_see_milestones: bool = True
     can_see_feedback: bool = False
+    hide_sensitive: bool = False
 
 
 class ShareWithRequest(BaseModel):
