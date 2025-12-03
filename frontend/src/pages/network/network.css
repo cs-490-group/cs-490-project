@@ -3,6 +3,11 @@
     margin:auto;
 }
 
+/* Modal centering fix */
+.modal-centered-content {
+    margin: 0 auto !important;
+}
+
 .filter-section {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -919,6 +924,13 @@
     --bs-form-control-bg: white !important;
     --bs-form-control-color: black !important;
     --bs-form-control-border-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Form placeholder styling */
+.modal .form-control::placeholder,
+.form-control::placeholder {
+    color: #6c757d !important;
+    opacity: 1 !important;
 }
 
 /* Compact Contact Cards */
