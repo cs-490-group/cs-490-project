@@ -399,8 +399,7 @@ class WritingPracticeService:
 
     # ============ OPENAI ENHANCED ANALYSIS (UC-084) ============
 
-    @staticmethod
-    async def analyze_with_ai(response_text: str, question: str, question_category: str = "general") -> Dict[str, Any]:
+    async def analyze_with_ai(self, response_text: str, question: str, question_category: str = "general") -> Dict[str, Any]:
         """
         Analyze response using OpenAI for enhanced feedback
         Falls back to manual analysis if AI fails
@@ -458,18 +457,23 @@ Provide analysis in JSON format with these exact fields:
                 return manual_analysis
 
             # Merge AI insights with manual analysis
+            overall_feedback = ai_feedback.get("overall_feedback", "")
             merged = {
                 **manual_analysis,
-                "clarity_score": ai_feedback.get("clarity_score", manual_analysis["clarity_score"]),
-                "professionalism_score": ai_feedback.get("professionalism_score", manual_analysis["professionalism_score"]),
+                "clarity": ai_feedback.get("clarity_score", manual_analysis.get("clarity_score", 70)),
+                "professionalism": ai_feedback.get("professionalism_score", manual_analysis.get("professionalism_score", 70)),
                 "structure_analysis": ai_feedback.get("structure_analysis", ""),
-                "storytelling_effectiveness": ai_feedback.get("storytelling_effectiveness", 75),
+                "storytelling_effectiveness": {
+                    "score": ai_feedback.get("storytelling_effectiveness", 75),
+                    "feedback": ai_feedback.get("overall_feedback", "")
+                },
                 "star_compliance": ai_feedback.get("star_compliance", {}),
-                "overall_feedback": ai_feedback.get("overall_feedback", ""),
+                "overall_feedback": overall_feedback,
+                "feedback": overall_feedback,
                 "engagement_level": ai_feedback.get("engagement_level", 75),
                 "ai_feedback_available": True,
-                "strengths": ai_feedback.get("strengths", manual_analysis["strengths"]),
-                "specific_suggestions": ai_feedback.get("improvement_suggestions", manual_analysis["specific_suggestions"]),
+                "strengths": ai_feedback.get("strengths", manual_analysis.get("strengths", [])),
+                "specific_suggestions": ai_feedback.get("improvement_suggestions", manual_analysis.get("specific_suggestions", [])),
             }
 
             return merged
@@ -480,6 +484,7 @@ Provide analysis in JSON format with these exact fields:
             analysis = WritingPracticeService.analyze_response_quality(response_text, question_category)
             analysis["ai_feedback_available"] = False
             analysis["note"] = "Using standard analysis (AI unavailable)"
+            analysis["feedback"] = analysis.get("overall_score", 70)  # Provide feedback summary
             return analysis
 
     @staticmethod
