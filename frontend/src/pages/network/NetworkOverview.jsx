@@ -112,6 +112,13 @@ export default function NetworkOverview() {
 		}
 	};
 
+	const getUniqueDegrees = () => {
+		const degrees = contacts
+			.map(contact => contact.education?.degree)
+			.filter(degree => degree && degree.trim() !== '');
+		return [...new Set(degrees)].sort();
+	};
+
 	const filterContacts = (contactsToFilter) => {
 		return contactsToFilter.filter(contact => {
 			if (filterText.name && !contact.name?.toLowerCase().includes(filterText.name.toLowerCase())) {
@@ -467,14 +474,21 @@ export default function NetworkOverview() {
 								/>
 							</div>
 							<div className="filter-group">
-								<input
-									type="text"
+								<select
 									placeholder="Search by degree..."
 									name="degree"
 									value={filterText.degree}
 									onChange={handleFilterChange}
 									className="filter-input"
-								/>
+									style={{color:"black"}}
+								>
+									<option value="">All Degrees</option>
+									{getUniqueDegrees().map(degree => (
+										<option key={degree} value={degree}>
+											{degree}
+										</option>
+									))}
+								</select>
 							</div>
 							{Object.values(filterText).some(val => val !== "") && (
 								<Button className="filter-clear-btn" onClick={clearFilters}>Clear Filters</Button>
@@ -586,7 +600,8 @@ export default function NetworkOverview() {
 														<a href={contact.websites.linkedin.startsWith('http') ? contact.websites.linkedin : `https://${contact.websites.linkedin}`} 
 														   target="_blank" 
 														   rel="noopener noreferrer"
-														   className="external-link">
+														   className="external-link"
+														   onClick={(e) => e.stopPropagation()}>
 															LinkedIn Profile
 														</a>
 													</div>
@@ -597,7 +612,8 @@ export default function NetworkOverview() {
 														<a href={contact.websites.other.startsWith('http') ? contact.websites.other : `https://${contact.websites.other}`} 
 														   target="_blank" 
 														   rel="noopener noreferrer"
-														   className="external-link">
+														   className="external-link"
+														   onClick={(e) => e.stopPropagation()}>
 															Visit Website
 														</a>
 													</div>
@@ -643,10 +659,10 @@ export default function NetworkOverview() {
 										{/* Action Buttons */}
 										<div className="mt-auto pt-3 border-top">
 											<div className="d-flex gap-2">
-												<Button variant="outline-primary" size="sm" onClick={() => handleEdit(contact)}>
+												<Button variant="outline-primary" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(contact); }}>
 													Edit
 												</Button>
-												<Button variant="outline-danger" size="sm" onClick={() => handleDelete(contact)}>
+												<Button variant="outline-danger" size="sm" onClick={(e) => { e.stopPropagation(); handleDelete(contact); }}>
 													Delete
 												</Button>
 											</div>
