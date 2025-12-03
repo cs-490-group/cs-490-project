@@ -81,10 +81,10 @@ async def get_challenge(challenge_id: str):
 
 @technical_prep_router.post("/challenges/coding/generate")
 async def generate_coding_challenge(
-    uuid: str,
-    difficulty: str = "medium",
+    uuid: str = Query(...),
+    difficulty: str = Query("medium"),
     skills: Optional[List[str]] = Query(None),
-    job_role: Optional[str] = None
+    job_role: Optional[str] = Query(None)
 ):
     """Generate a new coding challenge"""
     try:
@@ -104,8 +104,8 @@ async def generate_coding_challenge(
 
 @technical_prep_router.post("/challenges/system-design/generate")
 async def generate_system_design_challenge(
-    uuid: str,
-    seniority: str = "senior",
+    uuid: str = Query(...),
+    seniority: str = Query("senior"),
     focus_areas: Optional[List[str]] = Query(None)
 ):
     """Generate a new system design challenge"""
@@ -126,8 +126,8 @@ async def generate_system_design_challenge(
 
 @technical_prep_router.post("/challenges/case-study/generate")
 async def generate_case_study(
-    uuid: str,
-    industry: Optional[str] = None
+    uuid: str = Query(...),
+    industry: Optional[str] = Query(None)
 ):
     """Generate a new case study challenge"""
     try:
@@ -161,7 +161,11 @@ async def start_challenge_attempt(uuid: str, challenge_id: str):
 
 
 @technical_prep_router.post("/attempts/{attempt_id}/submit")
-async def submit_code(attempt_id: str, code: str, language: str):
+async def submit_code(
+    attempt_id: str,
+    code: str = Query(...),
+    language: str = Query(...)
+):
     """Submit code for a challenge"""
     try:
         result = await technical_prep_service.submit_challenge_code(attempt_id, code, language)
@@ -175,10 +179,10 @@ async def submit_code(attempt_id: str, code: str, language: str):
 @technical_prep_router.post("/attempts/{attempt_id}/complete")
 async def complete_attempt(
     attempt_id: str,
-    score: float,
-    passed_tests: int,
-    total_tests: int,
-    code: Optional[str] = None
+    score: float = Query(...),
+    passed_tests: int = Query(...),
+    total_tests: int = Query(...),
+    code: Optional[str] = Query(None)
 ):
     """Mark an attempt as complete"""
     try:
