@@ -41,6 +41,7 @@ import Progress from "./pages/interview/Progress";
 import MockInterviewStart from "./pages/interview/MockInterviewStart";
 import MockInterviewQuestion from "./pages/interview/MockInterviewQuestion";
 import MockInterviewSummary from "./pages/interview/MockInterviewSummary";
+import AnalyticsPage from "./pages/analytics/analytics";
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -73,6 +74,7 @@ export function App() {
                 <Route path = "/register" element = {<Register />} />
                 <Route path = "/login" element = {<Login />} />
                 <Route path = "/profile" element = {<Profile />} />
+                <Route path = "/analytics" element = {<AnalyticsPage />} />
                 <Route path = "/newGroup" element = {<CreateGroup />} />
                 <Route path = "/group/:groupId" element = {<GroupPage />} />
                 <Route path="/setup-team" element={<SetupTeam />} />

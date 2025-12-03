@@ -340,6 +340,10 @@ const Nav = () => {
                     <i className="fas fa-user" style={{ marginRight: "8px" }}></i>
                     Profile
                   </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/analytics">
+                    <i className="fas fa-chart-line" style={{ marginRight: "8px" }}></i>
+                    Analytics
+                  </NavDropdown.Item>
                   <NavDropdown.Item onClick={logout}>
                     <i className="fas fa-sign-out-alt" style={{ marginRight: "8px" }}></i>
                     Logout
