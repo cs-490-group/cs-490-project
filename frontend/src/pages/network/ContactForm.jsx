@@ -43,26 +43,13 @@ export default function ContactForm({
                             </Col>
                         </Row>
                         <Row>
-                            <Col md={6}>
+                            <Col>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Email</Form.Label>
                                     <Form.Control
                                         type="email"
                                         value={formData.email}
                                         onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Primary Phone</Form.Label>
-                                    <Form.Control
-                                        type="tel"
-                                        value={formData.phone_numbers.primary}
-                                        onChange={(e) => setFormData({
-                                            ...formData, 
-                                            phone_numbers: {...formData.phone_numbers, primary: e.target.value}
-                                        })}
                                     />
                                 </Form.Group>
                             </Col>
@@ -264,6 +251,22 @@ export default function ContactForm({
                             </Col>
                         </Row>
                         <Row>
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Primary Phone</Form.Label>
+                                    <Form.Select
+                                        value={formData.phone_numbers.primary || 'home'}
+                                        onChange={(e) => setFormData({
+                                            ...formData, 
+                                            phone_numbers: {...formData.phone_numbers, primary: e.target.value}
+                                        })}
+                                    >
+                                        <option value="home">Home</option>
+                                        <option value="work">Work</option>
+                                        <option value="mobile">Mobile</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Next Reminder Date</Form.Label>
