@@ -1,14 +1,13 @@
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
-
+from mongo.dao_setup import db_client
 
 class InterviewScheduleDAO:
     """Data Access Object for interview schedules"""
 
-    def __init__(self, db_client: AsyncIOMotorDatabase):
+    def __init__(self):
         self.db = db_client
         self.collection = db_client["interview_schedules"]
 
@@ -271,7 +270,7 @@ class InterviewScheduleDAO:
 class InterviewAnalyticsDAO:
     """Data Access Object for interview analytics"""
 
-    def __init__(self, db_client: AsyncIOMotorDatabase):
+    def __init__(self):
         self.db = db_client
         self.schedules_collection = db_client["interview_schedules"]
         self.mock_sessions_collection = db_client["mock_interview_sessions"]
@@ -368,7 +367,7 @@ class InterviewAnalyticsDAO:
 class FollowUpTemplateDAO:
     """Data Access Object for follow-up templates"""
 
-    def __init__(self, db_client: AsyncIOMotorDatabase):
+    def __init__(self):
         self.db = db_client
         self.collection = db_client["follow_up_templates"]
 

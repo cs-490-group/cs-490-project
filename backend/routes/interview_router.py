@@ -25,8 +25,8 @@ import services.reminder_scheduler
 interview_router = APIRouter(prefix="/interview", tags=["interview"])
 
 # Initialize DAOs
-schedule_dao = InterviewScheduleDAO(db_client)
-followup_dao = FollowUpTemplateDAO(db_client)
+schedule_dao = InterviewScheduleDAO()
+followup_dao = FollowUpTemplateDAO()
 jobs_dao = JobsDAO()
 profile_dao = UserDataDAO()
 
