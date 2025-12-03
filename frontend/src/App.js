@@ -51,6 +51,12 @@ import SuccessProbability from './pages/interview/SuccessProbability';
 import CompleteInterview from './pages/interview/CompleteInterview';
 import InterviewCalendar from './pages/interview/InterviewCalendar';
 import InterviewPerformanceTracking from './pages/interview/InterviewPerformanceTracking';
+import TechnicalPrepHome from './pages/TechnicalPrep/TechnicalPrepHome';
+import CodingChallenges from './pages/TechnicalPrep/CodingChallenges';
+import SystemDesignChallenges from './pages/TechnicalPrep/SystemDesignChallenges';
+import CaseStudyChallenges from './pages/TechnicalPrep/CaseStudyChallenges';
+import ChallengeWorkspace from './pages/TechnicalPrep/ChallengeWorkspace';
+import ChallengeResults from './pages/TechnicalPrep/ChallengeResults';
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -134,6 +140,14 @@ export function App() {
               <Route path="/interview/complete/:scheduleId" element={<CompleteInterview />} />
               <Route path="/interview/calendar" element={<InterviewCalendar />} />
               <Route path="/interview/performance" element={<InterviewPerformanceTracking />} />
+
+              {/* Technical Preparation Routes */}
+              <Route path="/technical-prep" element={<TechnicalPrepHome />} />
+              <Route path="/technical-prep/coding" element={<CodingChallenges />} />
+              <Route path="/technical-prep/system-design" element={<SystemDesignChallenges />} />
+              <Route path="/technical-prep/case-study" element={<CaseStudyChallenges />} />
+              <Route path="/technical-prep/challenge/:challengeId" element={<ChallengeWorkspace />} />
+              <Route path="/technical-prep/results/:attemptId" element={<ChallengeResults />} />
               </Routes>
             </JobProvider>
             </FlashProvider>
