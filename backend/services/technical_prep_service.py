@@ -1,4 +1,5 @@
 import json
+import random
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from mongo.technical_prep_dao import technical_prep_dao
@@ -284,20 +285,37 @@ class TechnicalPrepService:
         job_role: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generate or fetch a coding challenge"""
-        # Start with templates
-        challenges = [c for c in CODING_CHALLENGES_TEMPLATES if c.get("difficulty") == difficulty]
+        # Try to fetch from database first
+        db_challenges = await technical_prep_dao.get_challenges_by_difficulty(difficulty, limit=50)
+
+        if db_challenges:
+            # Filter by skills if provided
+            if skills:
+                filtered = [
+                    c for c in db_challenges
+                    if any(skill in c.get("required_skills", []) for skill in skills)
+                ]
+                db_challenges = filtered if filtered else db_challenges
+
+            # Randomly select instead of always picking first
+            selected = random.choice(db_challenges)
+            return selected
+
+        # Fallback to templates if no database challenges found
+        templates = [c for c in CODING_CHALLENGES_TEMPLATES if c.get("difficulty") == difficulty]
 
         if skills:
             filtered = [
-                c for c in challenges
+                c for c in templates
                 if any(skill in c.get("required_skills", []) for skill in skills)
             ]
-            challenges = filtered if filtered else challenges
+            templates = filtered if filtered else templates
 
-        if not challenges:
-            challenges = CODING_CHALLENGES_TEMPLATES
+        if not templates:
+            templates = CODING_CHALLENGES_TEMPLATES
 
-        template = challenges[0]
+        # Randomly select from available templates
+        template = random.choice(templates)
         challenge_data = {
             "uuid": uuid,
             "challenge_type": "coding",
@@ -325,7 +343,16 @@ class TechnicalPrepService:
         focus_areas: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Generate or fetch a system design challenge"""
-        template = SYSTEM_DESIGN_TEMPLATES[0]
+        # Try to fetch from database first
+        db_challenges = await technical_prep_dao.get_challenges_by_type("system_design", limit=50)
+
+        if db_challenges:
+            # Randomly select instead of always picking first
+            selected = random.choice(db_challenges)
+            return selected
+
+        # Fallback to templates if no database challenges found
+        template = random.choice(SYSTEM_DESIGN_TEMPLATES) if SYSTEM_DESIGN_TEMPLATES else SYSTEM_DESIGN_TEMPLATES[0]
 
         challenge_data = {
             "uuid": uuid,
@@ -351,7 +378,16 @@ class TechnicalPrepService:
         industry: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generate or fetch a case study"""
-        template = CASE_STUDY_TEMPLATES[0]
+        # Try to fetch from database first
+        db_challenges = await technical_prep_dao.get_challenges_by_type("case_study", limit=50)
+
+        if db_challenges:
+            # Randomly select instead of always picking first
+            selected = random.choice(db_challenges)
+            return selected
+
+        # Fallback to templates if no database challenges found
+        template = random.choice(CASE_STUDY_TEMPLATES) if CASE_STUDY_TEMPLATES else CASE_STUDY_TEMPLATES[0]
 
         challenge_data = {
             "uuid": uuid,

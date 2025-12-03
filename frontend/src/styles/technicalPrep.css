@@ -15,7 +15,7 @@
 /* ============ CONTAINER ============ */
 
 .technical-prep-container {
-  max-width: 1400px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 20px;
   animation: fadeIn 0.3s ease-in;
@@ -35,7 +35,7 @@
 /* ============ HEADER ============ */
 
 .prep-header {
-  margin-bottom: 40px;
+  margin-bottom: 32px;
   animation: slideDown 0.4s ease-out;
 }
 
@@ -211,7 +211,7 @@
   background: white;
   border-radius: 12px;
   padding: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   border: 1px solid var(--border-color);
   display: flex;
   gap: 20px;
@@ -276,7 +276,7 @@
 /* ============ CHALLENGES SECTION ============ */
 
 .challenges-section {
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
 .challenges-section h2 {
@@ -294,7 +294,7 @@
 .challenges-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 16px;
 }
 
 .challenge-card,
@@ -391,8 +391,7 @@
   font-weight: 500;
 }
 
-.start-challenge-btn,
-.btn-start {
+.start-challenge-btn {
   width: 100%;
   padding: 10px 16px;
   background: var(--primary-color);
@@ -404,6 +403,19 @@
   transition: all 0.3s;
 }
 
+.btn-start {
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .start-challenge-btn:hover,
 .btn-start:hover {
   background: #2563eb;
@@ -412,12 +424,21 @@
 
 .challenge-list-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .challenge-list-item .item-content {
   flex: 1;
+}
+
+@media (min-width: 768px) {
+  .challenge-list-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
 }
 
 .challenge-list-item h3 {
@@ -1078,7 +1099,7 @@
   background: white;
   border-radius: 12px;
   padding: 25px;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   border: 1px solid var(--border-color);
 }
 
@@ -1352,5 +1373,19 @@
 
   .start-challenge-btn {
     padding: 8px 12px;
+  }
+
+  .challenge-list-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .challenge-list-item .item-content {
+    width: 100%;
+  }
+
+  .btn-start {
+    width: 100%;
+    text-align: center;
   }
 }
