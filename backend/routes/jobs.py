@@ -1,8 +1,3 @@
-"""
-Updated Jobs Router with Materials Download Support
-Adds endpoints for downloading linked resume/cover letter PDFs
-"""
-
 from fastapi import APIRouter, HTTPException, Depends, Request, Body, UploadFile, File
 from fastapi.responses import StreamingResponse, FileResponse
 from pymongo.errors import DuplicateKeyError
@@ -11,11 +6,14 @@ import smtplib, os, tempfile
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from io import BytesIO
+import traceback
 
 from mongo.jobs_dao import jobs_dao
 from mongo.media_dao import media_dao
 from mongo.resumes_dao import resumes_dao
 from mongo.cover_letters_dao import cover_letters_dao
+from mongo.teams_dao import teams_dao 
+from mongo.progress_sharing_dao import progress_sharing_dao
 from sessions.session_authorizer import authorize
 from schema.Job import Job, UrlBody
 from services.html_pdf_generator import HTMLPDFGenerator
@@ -187,6 +185,88 @@ This is an automated reminder from your Job Opportunities Tracker.
         raise
 
 
+async def check_and_log_milestones(uuid: str, job_data: dict, old_job_data: dict = None):
+    """
+    Triggers milestones when jobs are created or status changes.
+    """
+    
+    try:
+        # Get Team Info
+        team = await teams_dao.get_user_team(uuid)
+        
+        if not team:
+            print(f"[Milestones]STOPPING: User {uuid} is not in any team.")
+            print(f"[Milestones] Fix: Go to 'Setup Team' or 'Teams Dashboard' to create/join a team.")
+            return
+
+        team_id = team["_id"]
+        print(f"[Milestones] Found Team: {team.get('name')} (ID: {team_id})")
+
+        # Compare Statuses
+        new_status = job_data.get("status")
+        old_status = old_job_data.get("status") if old_job_data else None
+        
+        print(f"[Milestones] Status Comparison: Old='{old_status}' -> New='{new_status}'")
+
+        #  Check for Status Change Milestones
+        if new_status == "Interview" and old_status != "Interview":
+            print("[Milestones] TRIGGER: Interview Milestone detected")
+            await progress_sharing_dao.log_milestone(team_id, uuid, {
+                "id": f"int_{datetime.utcnow().timestamp()}",
+                "title": " Interview Scheduled!",
+                "description": f"Interview for {job_data.get('title', 'Role')} at {job_data.get('company', 'Company')}",
+                "achieved_date": datetime.utcnow(),
+                "category": "interview_scheduled",
+                "impact_score": 7
+            })
+            print("[Milestones] Interview Logged")
+
+        elif new_status == "Offer" and old_status != "Offer":
+            print("[Milestones]  TRIGGER: Offer Milestone detected")
+            await progress_sharing_dao.log_milestone(team_id, uuid, {
+                "id": f"off_{datetime.utcnow().timestamp()}",
+                "title": " Offer Received!",
+                "description": f"Offer from {job_data.get('company', 'Company')}!",
+                "achieved_date": datetime.utcnow(),
+                "category": "offer_received",
+                "impact_score": 10
+            })
+
+
+        # Check for New Job / Application Count Milestones
+        if not old_job_data:
+   
+            await teams_dao.update_member_activity(team_id, uuid, "application_sent")
+            
+            all_jobs = await jobs_dao.get_all_jobs(uuid)
+            count = len(all_jobs)
+            
+            milestone_title = None
+            if count == 1: milestone_title = "First Application Sent!"
+            elif count == 5: milestone_title = "5 Applications Sent!"
+            elif count == 10: milestone_title = "10 Applications Sent!"
+            elif count == 25: milestone_title = "25 Applications Sent!"
+            elif count == 50: milestone_title = "50 Applications Sent!"
+
+            if milestone_title:
+                print(f"[Milestones] TRIGGER: {milestone_title}")
+                await progress_sharing_dao.log_milestone(team_id, uuid, {
+                    "id": f"apps_{count}_{datetime.utcnow().timestamp()}",
+                    "title": f"📧 {milestone_title}",
+                    "description": f"You've sent {count} job applications. Keep going!",
+                    "achieved_date": datetime.utcnow(),
+                    "category": "applications_milestone",
+                    "impact_score": 5
+                })
+                print("[Milestones] Application Count Logged")
+            else:
+                print(f"[Milestones] Count {count} is not a milestone threshold")
+
+    except Exception as e:
+        print(f"[Milestones] CRITICAL ERROR: {str(e)}")
+        traceback.print_exc()
+
+
 @jobs_router.post("", tags=["jobs"])
 async def add_job(job: Job, uuid: str = Depends(authorize)):
     try:
@@ -238,16 +318,22 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         if created_job:
             created_job["_id"] = str(created_job["_id"])
 
+        
+        result = await jobs_dao.add_job(model)
+        
+        # TRIGGER MILESTONE CHECK
+        print(f"[Jobs Router] Job Added. ID: {result}")
+        await check_and_log_milestones(uuid, model, old_job_data=None)
+        
     except DuplicateKeyError:
         raise HTTPException(400, "Job already exists")
     except HTTPException as http:
         raise http
     except Exception as e:
-        print("❌ ERROR IN add_job:", e)
-        raise HTTPException(500, str(e))
-
-
-    return {"detail": "Successfully added job", "job_id": job_id, "job": created_job}
+        print(f"[Jobs Router] Add Error: {e}")
+        raise HTTPException(500, "Encountered internal server error")
+    
+    return {"detail": "Successfully added job", "job_id": result}
 
 
 @jobs_router.get("", tags=["jobs"])
@@ -331,7 +417,13 @@ async def get_all_jobs(uuid: str = Depends(authorize)):
 @jobs_router.put("", tags=["jobs"])
 async def update_job(job_id: str, job: Job, uuid: str = Depends(authorize)):    
     try:
+        # Get old data for comparison
+        old_job = await jobs_dao.get_job(job_id)
+        if not old_job:
+            raise HTTPException(400, "Job not found")
+
         model = job.model_dump(exclude_unset=True)
+        
         
         if model.get("materials"):
             print(f"Updating job {job_id} with materials: {model['materials']}")
@@ -360,6 +452,14 @@ async def update_job(job_id: str, job: Job, uuid: str = Depends(authorize)):
             model["materials"] = materials
         
         updated = await jobs_dao.update_job(job_id, model)
+
+        # TRIGGER MILESTONE CHECK
+        if updated:
+            print(f"[Jobs Router] Job Updated. ID: {job_id}")
+            # Merge old data with new model to get complete picture for milestone description
+            merged_data = {**old_job, **model}
+            await check_and_log_milestones(uuid, merged_data, old_job_data=old_job)
+
     except Exception as e:
         print(f"Error updating job: {e}")
         raise HTTPException(500, "Encountered internal service error")
