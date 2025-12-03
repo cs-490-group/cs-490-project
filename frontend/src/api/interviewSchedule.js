@@ -163,51 +163,6 @@ const InterviewScheduleAPI = {
   }
 };
 
-const InterviewAnalyticsAPI = {
-  // ============================================================================
-  // ANALYTICS (UC-080)
-  // ============================================================================
-  
-  getDashboard: () => {
-    return axios.get(
-      `${API_BASE_URL}/interview/analytics/dashboard`,
-      { headers: getAuthHeaders() }
-    );
-  },
-  
-  getTrends: (timeframeDays = 90) => {
-    return axios.get(
-      `${API_BASE_URL}/interview/analytics/trends?timeframe_days=${timeframeDays}`,
-      { headers: getAuthHeaders() }
-    );
-  },
-  
-  getComparison: (compareWith = null) => {
-    const url = compareWith 
-      ? `${API_BASE_URL}/interview/analytics/comparison?compare_with=${compareWith}`
-      : `${API_BASE_URL}/interview/analytics/comparison`;
-    
-    return axios.get(url, { headers: getAuthHeaders() });
-  },
-
-  addTask: (scheduleId, task) => {
-    return axios.post(
-      `${API_BASE_URL}/interview/schedule/${scheduleId}/preparation-tasks/add`,
-      task,
-      { headers: getAuthHeaders() }
-    );
-  },
-  
-  generateTasks: (scheduleId) => {
-    return axios.post(
-      `${API_BASE_URL}/interview/schedule/${scheduleId}/preparation-tasks/generate`,
-      {},
-      { headers: getAuthHeaders() }
-    );
-  }
-};
-
-
 const FollowUpAPI = {
   // ============================================================================
   // FOLLOW-UP TEMPLATES
@@ -262,88 +217,11 @@ const FollowUpAPI = {
   }
 };
 
-const WritingPracticeAPI = {
-  // ============================================================================
-  // WRITING PRACTICE (UC-084)
-  // ============================================================================
-  
-  startSession: (questionUuid, timeLimitSeconds = 300) => {
-    return axios.post(
-      `${API_BASE_URL}/interview/writing-practice/start`,
-      null,
-      { 
-        params: { question_uuid: questionUuid, time_limit_seconds: timeLimitSeconds },
-        headers: getAuthHeaders() 
-      }
-    );
-  },
-  
-  submitResponse: (sessionUuid, questionUuid, responseText, timeTaken, questionCategory = 'general') => {
-    return axios.post(
-      `${API_BASE_URL}/interview/writing-practice/submit`,
-      null,
-      {
-        params: {
-          session_uuid: sessionUuid,
-          question_uuid: questionUuid,
-          response_text: responseText,
-          time_taken_seconds: timeTaken,
-          question_category: questionCategory
-        },
-        headers: getAuthHeaders()
-      }
-    );
-  },
-  
-  getSessions: () => {
-    return axios.get(
-      `${API_BASE_URL}/interview/writing-practice/sessions`,
-      { headers: getAuthHeaders() }
-    );
-  },
-  
-  getSession: (sessionId) => {
-    return axios.get(
-      `${API_BASE_URL}/interview/writing-practice/sessions/${sessionId}`,
-      { headers: getAuthHeaders() }
-    );
-  },
-  
-  getSessionsByQuestion: (questionId) => {
-    return axios.get(
-      `${API_BASE_URL}/interview/writing-practice/sessions/question/${questionId}`,
-      { headers: getAuthHeaders() }
-    );
-  }
-};
 
-const SuccessPredictionAPI = {
-  // ============================================================================
-  // SUCCESS PREDICTION (UC-085)
-  // ============================================================================
-  
-  getProbability: (interviewId) => {
-    return axios.get(
-      `${API_BASE_URL}/interview/success-prediction/${interviewId}/probability`,
-      { headers: getAuthHeaders() }
-    );
-  },
-  
-  compareInterviews: (interviewIds) => {
-    return axios.post(
-      `${API_BASE_URL}/interview/success-prediction/compare`,
-      { interview_ids: interviewIds },
-      { headers: getAuthHeaders() }
-    );
-  }
-};
 
 export {
   InterviewScheduleAPI,
-  InterviewAnalyticsAPI,
   FollowUpAPI,
-  WritingPracticeAPI,
-  SuccessPredictionAPI
 };
 
 export default InterviewScheduleAPI;

@@ -1,3 +1,27 @@
+DAO 
+class WritingPracticeDAO:
+    """Data Access Object for writing practice sessions"""
+
+    def __init__(self, db_client: AsyncIOMotorDatabase):
+        self.db = db_client
+        self.collection = db_client["writing_practice_sessions"]
+
+    async def create_session(self, data: dict) -> str:
+        """Create a new writing practice session"""
+        data["uuid"] = str(uuid.uuid4())
+        data["date_created"] = datetime.now(timezone.utc)
+        
+        await self.collection.insert_one(data)
+        return data["uuid"]
+
+    async def get_session(self, session_uuid: str) -> Optional[dict]:
+        """Get a specific session"""
+        doc = await self.collection.find_one({"uuid": session_uuid})
+        if doc:
+            doc["_id"] = str(doc["_id"])
+        return doc
+
+
 # ============================================================================
 # WRITING PRACTICE ENDPOINTS (UC-084)
 # ============================================================================
@@ -135,3 +159,61 @@ async def get_sessions_by_question(
         "count": len(sessions),
         "question_uuid": question_id
     }
+
+=============================================================================================
+API PART
+==============================================================================================
+const WritingPracticeAPI = {
+  // ============================================================================
+  // WRITING PRACTICE (UC-084)
+  // ============================================================================
+  
+  startSession: (questionUuid, timeLimitSeconds = 300) => {
+    return axios.post(
+      `${API_BASE_URL}/interview/writing-practice/start`,
+      null,
+      { 
+        params: { question_uuid: questionUuid, time_limit_seconds: timeLimitSeconds },
+        headers: getAuthHeaders() 
+      }
+    );
+  },
+  
+  submitResponse: (sessionUuid, questionUuid, responseText, timeTaken, questionCategory = 'general') => {
+    return axios.post(
+      `${API_BASE_URL}/interview/writing-practice/submit`,
+      null,
+      {
+        params: {
+          session_uuid: sessionUuid,
+          question_uuid: questionUuid,
+          response_text: responseText,
+          time_taken_seconds: timeTaken,
+          question_category: questionCategory
+        },
+        headers: getAuthHeaders()
+      }
+    );
+  },
+  
+  getSessions: () => {
+    return axios.get(
+      `${API_BASE_URL}/interview/writing-practice/sessions`,
+      { headers: getAuthHeaders() }
+    );
+  },
+  
+  getSession: (sessionId) => {
+    return axios.get(
+      `${API_BASE_URL}/interview/writing-practice/sessions/${sessionId}`,
+      { headers: getAuthHeaders() }
+    );
+  },
+  
+  getSessionsByQuestion: (questionId) => {
+    return axios.get(
+      `${API_BASE_URL}/interview/writing-practice/sessions/question/${questionId}`,
+      { headers: getAuthHeaders() }
+    );
+  }
+};

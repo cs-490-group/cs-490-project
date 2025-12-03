@@ -150,7 +150,7 @@ function FollowUpManager() {
       const sentTo = result.sent_to || recipientEmail;
       const sentFrom = result.sent_from || userProfile?.email || 'system';
       
-      alert(`✅ Email sent successfully!\n\nFrom: ${sentFrom}\nTo: ${sentTo}\n\nThe follow-up has been sent and tracked in your system.`);
+      alert(`✅ Email sent successfully! \nThe follow-up has been sent and tracked in your system.`);
       
       // Reset all state
       setGeneratedTemplate(null);

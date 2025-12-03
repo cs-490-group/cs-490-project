@@ -427,29 +427,6 @@ class FollowUpTemplateDAO:
         )
         return result.matched_count
 
-
-class WritingPracticeDAO:
-    """Data Access Object for writing practice sessions"""
-
-    def __init__(self, db_client: AsyncIOMotorDatabase):
-        self.db = db_client
-        self.collection = db_client["writing_practice_sessions"]
-
-    async def create_session(self, data: dict) -> str:
-        """Create a new writing practice session"""
-        data["uuid"] = str(uuid.uuid4())
-        data["date_created"] = datetime.now(timezone.utc)
-        
-        await self.collection.insert_one(data)
-        return data["uuid"]
-
-    async def get_session(self, session_uuid: str) -> Optional[dict]:
-        """Get a specific session"""
-        doc = await self.collection.find_one({"uuid": session_uuid})
-        if doc:
-            doc["_id"] = str(doc["_id"])
-        return doc
-
     async def get_user_sessions(self, user_uuid: str) -> List[dict]:
         """Get all sessions for a user"""
         cursor = self.collection.find({"user_uuid": user_uuid}).sort("date_created", -1)
