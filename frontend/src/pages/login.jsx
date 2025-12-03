@@ -5,7 +5,8 @@ import { useFlash } from "../context/flashContext";
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from "jwt-decode";
 import { useMsal } from "@azure/msal-react";
-import AuthAPI from "../api/authentication"; 
+import AuthAPI from "../api/authentication";
+import teamsAPI from "../api/teams";
 import "../styles/login.css"; 
 import logo from "../logo.svg.png"; 
 
@@ -21,12 +22,113 @@ function Login() {
   const { flash, showFlash } = useFlash();
   const { instance } = useMsal();
 
+  // Helper function to log user login activity
+  const logUserLogin = async (teamId, uuid) => {
+    
+    if (!teamId || !uuid) {
+      console.log("⚠️ Missing teamId or uuid, skipping login logging");
+      return false;
+    }
+
+    try {
+      
+      const response = await teamsAPI.logMemberLogin(teamId, uuid);
+      
+      if (response) {
+        return true;
+      } else {
+        console.log("logMemberLogin returned null/falsy");
+        return false;
+      }
+    } catch (error) {
+      console.error("Exception in logUserLogin:", error);
+      console.error(" Error message:", error.message);
+      // Don't fail login if activity logging fails
+      return false;
+    }
+  };
+
+  // Helper function to accept pending invitations
+  const acceptPendingInvite = async (teamId, email, uuid) => {
+    try {
+      if (!teamId || !email) {
+        console.log("Missing teamId or email, skipping invite acceptance");
+        console.log("  teamId:", teamId, "| email:", email);
+        return false;
+      }
+
+      console.log("Attempting to accept invite...");
+      console.log("  teamId:", teamId);
+      console.log("  email:", email);
+      console.log("  uuid:", uuid);
+      
+      const response = await teamsAPI.acceptInvitation(teamId, {
+        email: email,
+        uuid: uuid
+      });
+      
+      console.log("Invite accepted successfully:", response);
+      return true;
+    } catch (error) {
+      console.error("Failed to accept invite");
+      console.error("  Error:", error);
+      if (error.response) {
+        console.error("  Response status:", error.response.status);
+        console.error("  Response data:", error.response.data);
+      }
+      // Don't fail login if accept-invite fails
+      return false;
+    }
+  };
+
+  // Helper function to load user's team
+  const loadUserTeam = async (uuid) => {
+    try {
+      const userTeam = await teamsAPI.getUserTeams(uuid);
+      
+      let teamId = null;
+      
+      if (Array.isArray(userTeam)) {
+        if (userTeam.length > 0) {
+          teamId = userTeam[0].id;
+        }
+      } else if (userTeam && userTeam.id) {
+        teamId = userTeam.id;
+      }
+      
+      if (teamId) {
+        localStorage.setItem("teamId", teamId);
+        console.log("Team loaded and stored:", teamId);
+        return teamId;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Failed to load user team:", error);
+      return null;
+    }
+  };
+
   const onSubmit = async (data) => {
     try {
       const res = await AuthAPI.login(data);
 
       localStorage.setItem("session", res.data.session_token);
       localStorage.setItem("uuid", res.data.uuid);
+      localStorage.setItem("email", res.data.email || data.email);
+
+      // Load user's team
+      const teamId = await loadUserTeam(res.data.uuid);
+      
+      // Log login activity for engagement tracking
+      if (teamId && res.data.uuid) {
+        await logUserLogin(teamId, res.data.uuid);
+      }
+      
+      // Accept invite if user has pending invitation
+      if (teamId) {
+        await acceptPendingInvite(teamId, res.data.email || data.email, res.data.uuid);
+      }
 
       navigate(`/dashboard`);
       return;
@@ -38,39 +140,49 @@ function Login() {
   };
 
   const OAuthSubmit = async (credentialResponse) => {
-  // Make sure a credential exists
-  if (!credentialResponse?.credential) {
-    showFlash("Google login failed: no credential returned", "error");
-    return;
-  }
-
-  try {
-    const res = await AuthAPI.loginGoogle({
-      credential: credentialResponse.credential,
-    });
-
-    if (res.status !== 200) {
-      showFlash(res.data?.detail || "Google login failed", "error");
+    if (!credentialResponse?.credential) {
+      showFlash("Google login failed: no credential returned", "error");
       return;
     }
 
-    localStorage.setItem("session", res.data.session_token);
-    localStorage.setItem("uuid", res.data.uuid);
+    try {
+      const res = await AuthAPI.loginGoogle({
+        credential: credentialResponse.credential,
+      });
 
-    // If user has no password yet, navigate to set-password page
-    if (!res.data.has_password) {
-      navigate("/set-password");
-      return;
+      if (res.status !== 200) {
+        showFlash(res.data?.detail || "Google login failed", "error");
+        return;
+      }
+
+      localStorage.setItem("session", res.data.session_token);
+      localStorage.setItem("uuid", res.data.uuid);
+      localStorage.setItem("email", res.data.email || "");
+
+      // Load user's team
+      const teamId = await loadUserTeam(res.data.uuid);
+      
+      // Log login activity for engagement tracking
+      if (teamId && res.data.uuid) {
+        await logUserLogin(teamId, res.data.uuid);
+      }
+      
+      // Accept invite if user has pending invitation
+      if (teamId) {
+        await acceptPendingInvite(teamId, res.data.email, res.data.uuid);
+      }
+
+      if (!res.data.has_password) {
+        navigate("/set-password");
+        return;
+      }
+
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Google login error:", error);
+      showFlash(error?.response?.data?.detail || "Google login failed", "error");
     }
-
-    // Otherwise, go to profile
-    navigate("/dashboard");
-  } catch (error) {
-    console.error("Google login error:", error);
-    showFlash(error?.response?.data?.detail || "Google login failed", "error");
-  }
-};
-
+  };
 
   async function handleMicrosoftLogin() {
     try {
@@ -103,12 +215,25 @@ function Login() {
 
       localStorage.setItem("session", res.data.session_token);
       localStorage.setItem("uuid", res.data.uuid);
+      localStorage.setItem("email", res.data.email || "");
 
-      if (!res.data.has_password){
+      // Load user's team
+      const teamId = await loadUserTeam(res.data.uuid);
+      
+      // Log login activity for engagement tracking
+      if (teamId && res.data.uuid) {
+        await logUserLogin(teamId, res.data.uuid);
+      }
+      
+      // Accept invite if user has pending invitation
+      if (teamId) {
+        await acceptPendingInvite(teamId, res.data.email, res.data.uuid);
+      }
+
+      if (!res.data.has_password) {
         navigate(`/set-password`);
         return;
       }
-
 
       navigate("/dashboard");
     } catch (err) {
@@ -154,10 +279,9 @@ function Login() {
         <div className="oauth-buttons mt-3">
           <div className="google-login mb-2">
             <GoogleLogin
-              onSuccess={OAuthSubmit} // passes the credentialResponse automatically
+              onSuccess={OAuthSubmit}
               onError={() => showFlash("Google login failed", "error")}
             />
-
           </div>
 
           <button

@@ -11,6 +11,8 @@ load_dotenv(dotenv_path=env_path)
 from routes.auth import auth_router
 from routes.profiles import profiles_router
 from routes.groups import groups_router
+from routes.teams import teams_router
+from routes.progress_sharing_router import progress_router
 from routes.posts import posts_router
 from routes.skills import skills_router
 from routes.projects import projects_router
@@ -28,6 +30,7 @@ from routes.question_bank import question_bank_router
 from routes.mock_interview import mock_interview_router
 from routes.interview_router import (interview_router)
 from routes.interview_analytics_routes import analytics_router, prediction_router
+from routes.coaching import coaching_router
 
 app = FastAPI()
 
@@ -60,6 +63,8 @@ app.add_middleware(
 app.include_router(auth_router, prefix = api_prefix)
 app.include_router(profiles_router, prefix = api_prefix)
 app.include_router(groups_router, prefix = api_prefix)
+app.include_router(teams_router,prefix=api_prefix)
+app.include_router(progress_router,prefix = api_prefix)
 app.include_router(posts_router,prefix = api_prefix)
 app.include_router(skills_router, prefix = api_prefix)
 app.include_router(projects_router, prefix = api_prefix)
@@ -79,6 +84,9 @@ app.include_router(analytics_router, prefix=api_prefix)
 app.include_router(prediction_router, prefix=api_prefix)
 app.include_router(ai_router, prefix=api_prefix)
 
+app.include_router(coaching_router, prefix = api_prefix)
+
+app.include_router(ai_router, prefix=api_prefix)
 
 @app.on_event("startup")
 async def startup_event():

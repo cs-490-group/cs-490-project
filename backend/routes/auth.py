@@ -152,12 +152,12 @@ async def verify_google_token(token: dict = Body(...)):
     credentials = token.get("credential")
     try:
 
-        idinfo = id_token.verify_oauth2_token(credentials, requests.Request()) # returns user data such as email and profile picture
+        idinfo = id_token.verify_oauth2_token(credentials, requests.Request())
 
-        data = await auth_dao.get_uuid(idinfo["email"]) # this returns a uuid
+        data = await auth_dao.get_uuid(idinfo["email"])
         pass_exists = None
 
-        if (data): # if the user already exists, still log in because it doesn't matter.
+        if (data):
             uuid = data
             pass_exists = await auth_dao.get_password_by_uuid(uuid)
         else:
@@ -173,12 +173,12 @@ async def verify_google_token(token: dict = Body(...)):
         print("here is it")
         print(data != None and pass_exists)
 
-
         return {
             "detail": "success",
-            "uuid":uuid,
+            "uuid": uuid,
+            "email": idinfo["email"],  
             "session_token": session_token,
-            "has_password": data != None and pass_exists, #If the user's profile exists AND they have a password set...
+            "has_password": data != None and pass_exists,
         }
 
     except ValueError:
@@ -247,7 +247,6 @@ async def verify_microsoft_token(request: Request):
         }
         await auth_dao.add_user(uuid, user_data)
 
-
         existing_profile = await profiles_dao.get_profile(uuid)
         if not existing_profile:
             await profiles_dao.add_profile(uuid, claims)
@@ -256,5 +255,11 @@ async def verify_microsoft_token(request: Request):
 
     return JSONResponse(
         status_code=200,
-        content={"detail": "success", "uuid": uuid, "session_token": session_token,"has_password":existing_user!=None and pass_exists},
+        content={
+            "detail": "success",
+            "uuid": uuid,
+            "email": email,  
+            "session_token": session_token,
+            "has_password": existing_user != None and pass_exists
+        },
     )

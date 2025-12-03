@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import JobsAPI from "../../api/jobs";
+console.log("📌 JobForm rendered");
 
 export default function JobForm({ addJob, editJob, cancelEdit }) {
   const [title, setTitle] = useState("");
@@ -33,6 +34,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
 
   useEffect(() => {
     if (editJob) {
+      console.log("🔥 Does addJob prop exist?", addJob);
       setTitle(editJob.title || "");
       setCompany(editJob.company || "");
       setLocation(editJob.location || "");
@@ -372,7 +374,19 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
   };
 
   const handleSubmit = async (e) => {
+    console.log("🔥 handleSubmit CALLED");
     e.preventDefault();
+
+    console.log("🚀 DEBUG — FORM STATE:", {
+      title,
+      company,
+      location,
+      industry,
+      jobType,
+      deadline,
+      url,
+    });
+
     
     // Validation with scroll to field
     if (!title.trim()) {
@@ -458,6 +472,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
 
     try {
       if (editJob) {
+        console.log("🔥 Does addJob prop exist?", addJob);
         jobData.id = id;
         const statusChanged = editJob.status !== status;
         if (statusChanged) {
@@ -471,6 +486,48 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       } else {
         jobData.status_history = [[status, now]];
         await addJob(jobData);
+      }
+
+      // Log milestone if status indicates progress. UC-111
+      const teamId = localStorage.getItem("teamId");
+      const memberId = localStorage.getItem("uuid");
+      
+      if (teamId && memberId) {
+        try {
+          if (status === "Interview") {
+            await fetch(`/progress-sharing/${teamId}/members/${memberId}/milestones`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                id: `interview_${id || Date.now()}`,
+                title: "📞 Interview Scheduled",
+                description: `Interview at ${company}`,
+                category: "interview_scheduled",
+                impact_score: 7
+              })
+            });
+          } else if (status === "Offer") {
+            await fetch(`/progress-sharing/${teamId}/members/${memberId}/milestones`, { // replace fetch with api call later.
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                id: `offer_${id || Date.now()}`,
+                title: "💼 Offer Received",
+                description: `Offer from ${company}`,
+                category: "offer_received",
+                impact_score: 10
+              })
+            });
+          }
+        } catch (err) {
+          console.error("Failed to log milestone:", err);
+        }
       }
 
       resetForm();
@@ -507,7 +564,8 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
   };
 
   return (
-    <div
+      <form
+        onSubmit={handleSubmit}
       style={{
         maxWidth: "800px",
         margin: "0 auto",
@@ -983,39 +1041,40 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
         <button
           type="button"
           onClick={() => {
-            resetForm();
-            cancelEdit && cancelEdit();
+          resetForm();
+          cancelEdit && cancelEdit();
           }}
           style={{
-            padding: "12px 24px",
-            background: "#999",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "600",
-          }}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          style={{
-            padding: "12px 24px",
-            background: "#4f8ef7",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "600",
-          }}
-        >
-          {editJob ? "💾 Save Changes" : "➕ Add Job"}
-        </button>
-      </div>
+          padding: "12px 24px",
+          background: "#999",
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "14px",
+          fontWeight: "600",
+        }}
+      >
+        Cancel
+      </button>
+
+      <button
+        type="submit"           // ✅ FIXED
+        style={{
+          padding: "12px 24px",
+          background: "#4f8ef7",
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "14px",
+          fontWeight: "600",
+        }}
+      >
+        {editJob ? "💾 Save Changes" : "➕ Add Job"}
+      </button>
+
     </div>
-  );
-}
+    </form> 
+      );
+    }

@@ -15,12 +15,12 @@ class groupAPI {
   };
 
   leaveGroup = async (data) => {
-  const response = await api.post(`${BASE_URL}/${data.groupId}/leave`, { 
-    groupId: data.groupId,
-    uuid: data.uuid 
-  });
-  return response.data || response;
-};
+    const response = await api.post(`${BASE_URL}/${data.groupId}/leave`, { 
+      groupId: data.groupId,
+      uuid: data.uuid 
+    });
+    return response.data || response;
+  };
 
   getAllUserGroups = async (uuid) => {
     const response = await api.get(`${BASE_URL}/user/${uuid}`);
@@ -42,10 +42,18 @@ class groupAPI {
     return response.data || response;
   };
 
-  updateGroup = async (uuid, groupId, data) => {
+ 
+  updateGroupSettings = async (groupId, data) => {
+    const response = await api.put(`${BASE_URL}/${groupId}`, data);
+    return response.data || response;
+  };
+
+
+  updateUserInGroup = async (uuid, groupId, data) => {
     const response = await api.put(`${BASE_URL}/${groupId}/user/${uuid}`, data);
     return response.data || response;
-  }
+  };
+  
 
 }
 

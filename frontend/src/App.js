@@ -11,6 +11,8 @@ import Register from "./pages/register";
 import Profile from "./pages/profile";
 import CreateGroup from "./pages/createGroup";
 import GroupPage from "./pages/groupPage";
+import SetupTeam from "./pages/teams/setupTeam";
+import SharedProgressView from "./pages/teams/SharedProgressView";
 import EmploymentList from "./pages/employment/EmploymentList";
 import SetPassword from "./pages/setPassword";
 import ForgotPassword from "./pages/forgotPassword";
@@ -59,6 +61,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 // import Dashboard from "./pages/dashboard";
 import Dashboard from "./pages/dashboard";
+import TeamsDashboard from "./pages/teamsDashboard";
 
 
 export function App() {
@@ -81,6 +84,9 @@ export function App() {
                 <Route path = "/profile" element = {<Profile />} />
                 <Route path = "/newGroup" element = {<CreateGroup />} />
                 <Route path = "/group/:groupId" element = {<GroupPage />} />
+                <Route path="/setup-team" element={<SetupTeam />} />
+                <Route path="/teams" element={<TeamsDashboard />} />
+                <Route path="/shared-progress/:teamId/:memberId/:email?" element={<SharedProgressView />} />
                 <Route path="/employment-history" element={<EmploymentList />} />
                 <Route path = "/forgotPassword" element = {<ForgotPassword />} />
                 <Route path = "/set-password" element = {<SetPassword />} />

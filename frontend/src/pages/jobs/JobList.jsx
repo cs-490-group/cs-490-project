@@ -359,7 +359,10 @@ export default function JobList() {
                     <JobPipeline
                       stage={stage}
                       jobs={groupedJobs[stage]}
-                      onView={(job) => setSelectedJob(job)}
+                        onView={(job) => {
+                          console.log("➡️ VIEW CLICKED, JOB FROM PIPELINE:", job);
+                          setSelectedJob(job);
+                        }}
                       onEdit={(job) => {
                         setEditingJob(job);
                         setView("form");

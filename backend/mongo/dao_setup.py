@@ -1,15 +1,19 @@
 import os, certifi
+from pathlib import Path
 
 from dotenv import load_dotenv
 from pymongo import AsyncMongoClient
 
-load_dotenv("./.env")
+# Load .env from the same directory as this file (mongo/)
+env_path = Path(__file__).parent / ".env"
+load_dotenv(env_path)
 
 MONGO_CONNECTION_STRING = os.getenv("MONGO_CONNECTION_STRING")
 DATABASE_NAME = os.getenv("MONGO_APPLICATION_DATABASE")
 AUTH = os.getenv("AUTH_COLLECTION")
 PROFILES = os.getenv("PROFILES_COLLECTION")
 GROUPS = os.getenv("GROUPS_COLLECTION")
+TEAMS = os.getenv("TEAMS_COLLECTION")
 SKILLS = os.getenv("SKILLS_COLLECTION")
 EMPLOYMENT = os.getenv("EMPLOYMENT_COLLECTION")
 EDUCATION = os.getenv("EDUCATION_COLLECTION")

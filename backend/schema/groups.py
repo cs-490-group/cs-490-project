@@ -11,17 +11,19 @@ class GroupMember(BaseModel):
 class Comment(BaseModel):
     _id: str
     uuid: str
+    username: str
     text: str
+    isAnonymous: bool = False
     created_at: datetime
-
 
 class Post(BaseModel):
     _id: str
     uuid: str
+    username: str
     title: str
     content: str
     postType: str
-    isAnonymous: bool
+    isAnonymous: bool = False
     likes: List[str] = []
     comments: List[Comment] = []
     created_at: datetime
@@ -67,6 +69,7 @@ class GroupDetailResponse(BaseModel):
     maxMembers: int
     members: List[GroupMember]
     posts: List[Post]
+    postsVisibleToNonMembers: bool = True
     createdAt: datetime
 
 
@@ -85,11 +88,13 @@ class Group(GroupBase):
     _id: str
     members: List[GroupMember]
     posts: List[Post] = []
+    postsVisibleToNonMembers: bool = True
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
 
 
 class CreatePostRequest(BaseModel):
