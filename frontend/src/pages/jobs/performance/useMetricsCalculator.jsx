@@ -196,9 +196,12 @@ export function useMetricsCalculator(filteredJobs) {
     console.log("Interviews this month:", interviewsThisMonth);
     
     // UC-097: Application Success Rate Analysis
-    // Analyze by company size
+    // Analyze by company size - only count jobs that have been applied to
     const companySizeSuccess = {};
     filteredJobs.forEach(job => {
+      // Only analyze jobs that have moved past "Interested" status
+      if (job.status === 'Interested') return;
+      
       const companySize = job.company_data?.size || job.companyData?.size || job.companySize;
       if (companySize) {
         if (!companySizeSuccess[companySize]) {
@@ -221,9 +224,12 @@ export function useMetricsCalculator(filteredJobs) {
       .filter(c => c.total >= 2)
       .sort((a, b) => parseFloat(b.successRate) - parseFloat(a.successRate));
     
-    // Analyze by application source/method
+    // Analyze by application source/method - only count jobs that have been applied to
     const sourceSuccess = {};
     filteredJobs.forEach(job => {
+      // Only analyze jobs that have moved past "Interested" status
+      if (job.status === 'Interested') return;
+      
       const source = job.source || 'Direct';
       if (!sourceSuccess[source]) {
         sourceSuccess[source] = { total: 0, successful: 0 };
@@ -241,14 +247,19 @@ export function useMetricsCalculator(filteredJobs) {
       successful: data.successful
     })).sort((a, b) => parseFloat(b.successRate) - parseFloat(a.successRate));
     
-    // Analyze customization impact
+    // Analyze customization impact - only count jobs that have been applied to
     const customizationImpact = {
       customized: { total: 0, successful: 0 },
       notCustomized: { total: 0, successful: 0 }
     };
     
     filteredJobs.forEach(job => {
-      const isCustomized = job.coverLetter || job.customNotes;
+      // Only analyze jobs that have moved past "Interested" status
+      if (job.status === 'Interested') return;
+      
+      // Check if job has linked materials (resume_id or cover_letter_id indicates customization)
+      const hasMaterials = job.materials?.resume_id || job.materials?.cover_letter_id;
+      const isCustomized = hasMaterials || job.coverLetter || job.customNotes;
       const category = isCustomized ? 'customized' : 'notCustomized';
       customizationImpact[category].total++;
       if (job.status === 'Interview' || job.status === 'Offer') {
@@ -263,12 +274,15 @@ export function useMetricsCalculator(filteredJobs) {
       ? ((customizationImpact.notCustomized.successful / customizationImpact.notCustomized.total) * 100).toFixed(1)
       : 0;
     
-    // Timing pattern analysis - day of week
+    // Timing pattern analysis - day of week (only for applied jobs)
     const dayOfWeekSuccess = {};
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     days.forEach(day => dayOfWeekSuccess[day] = { total: 0, successful: 0 });
     
     filteredJobs.forEach(job => {
+      // Only analyze jobs that have moved past "Interested" status
+      if (job.status === 'Interested') return;
+      
       let statusHistory = job.statusHistory || job.status_history;
       if (statusHistory) {
         // Convert array of arrays to objects if needed
@@ -297,9 +311,12 @@ export function useMetricsCalculator(filteredJobs) {
       .filter(d => d.total >= 3)
       .sort((a, b) => parseFloat(b.successRate) - parseFloat(a.successRate));
     
-    // Success patterns by role type
+    // Success patterns by role type - only count jobs that have been applied to
     const roleTypeSuccess = {};
     filteredJobs.forEach(job => {
+      // Only analyze jobs that have moved past "Interested" status
+      if (job.status === 'Interested') return;
+      
       const role = job.role || job.title || 'Unknown';
       const roleCategory = categorizeRole(role);
       if (!roleTypeSuccess[roleCategory]) {
