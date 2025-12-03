@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ResumesAPI from '../../api/resumes';
+import ReviewImpactWidget from '../../components/ReviewImpactWidget';
 import '../../styles/resumes.css';
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
 
@@ -165,6 +166,8 @@ export default function ResumeList() {
           className="form-control"
         />
       </div>
+
+      <ReviewImpactWidget />
 
       {filteredResumes.length === 0 ? (
         <div className="alert alert-info">
