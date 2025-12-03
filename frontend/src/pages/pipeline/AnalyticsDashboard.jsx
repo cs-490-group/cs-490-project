@@ -1,96 +1,6 @@
 import React, { useState, useEffect } from 'react';
-
-// Mock API - replace with actual API import
-const ApplicationWorkflowAPI = {
-  getApplicationFunnel: () => Promise.resolve({
-    data: {
-      total_applications: 45,
-      stage_counts: { applied: 45, screening: 12, interview: 8, offer: 3, rejected: 15 },
-      conversion_rates: {
-        applied_to_screening: 26.67,
-        screening_to_interview: 66.67,
-        interview_to_offer: 37.5,
-        overall: 6.67
-      },
-      rejection_rate: 33.33
-    }
-  }),
-  getResponseTimes: () => Promise.resolve({
-    data: {
-      overall: { average_days: 12.5, min_days: 3, max_days: 30, sample_size: 25 }
-    }
-  }),
-  getSuccessRates: () => Promise.resolve({
-    data: {
-      overall: {
-        total_applications: 45,
-        interview_rate: 17.78,
-        offer_rate: 6.67,
-        interviews: 8,
-        offers: 3
-      }
-    }
-  }),
-  getApplicationTrends: () => Promise.resolve({
-    data: {
-      total_applications: 45,
-      time_period_days: 90,
-      weekly_average: 5.0,
-      weekly_breakdown: [
-        ['2024-10-01', 6],
-        ['2024-10-08', 5],
-        ['2024-10-15', 4],
-        ['2024-10-22', 7],
-        ['2024-10-29', 5],
-        ['2024-11-05', 6],
-        ['2024-11-12', 4],
-        ['2024-11-19', 5],
-        ['2024-11-26', 3]
-      ],
-      by_status: { Applied: 20, Screening: 10, Interview: 8, Offer: 3, Rejected: 4 }
-    }
-  }),
-  getOptimizationRecommendations: () => Promise.resolve({
-    data: [
-      {
-        category: "materials",
-        priority: "high",
-        title: "Improve Application Materials",
-        description: "Your interview rate (17.8%) is below average. Consider tailoring your resume and cover letter more closely to each position.",
-        action: "Review and improve resume/cover letter quality"
-      },
-      {
-        category: "volume",
-        priority: "medium",
-        title: "Increase Application Volume",
-        description: "You're averaging 5 applications per week. Consider increasing to 10-15 per week to improve chances.",
-        action: "Set a goal of 10+ applications per week"
-      }
-    ]
-  }),
-  getPerformanceBenchmarks: () => Promise.resolve({
-    data: {
-      user_metrics: {
-        response_time_days: 12.5,
-        interview_rate: 17.78,
-        offer_rate: 6.67,
-        weekly_applications: 5.0
-      },
-      industry_benchmarks: {
-        average_response_time_days: 14,
-        average_interview_rate: 15.0,
-        average_offer_rate: 3.0,
-        average_applications_per_week: 10
-      },
-      comparisons: {
-        response_time_vs_benchmark: "faster",
-        interview_rate_vs_benchmark: "above",
-        offer_rate_vs_benchmark: "above",
-        activity_vs_benchmark: "below"
-      }
-    }
-  })
-};
+import JobsAPI from '../../api/jobs';
+import ApplicationWorkflowAPI from '../../api/applicationWorkflow';
 
 export default function AnalyticsDashboard() {
   const [funnel, setFunnel] = useState(null);
@@ -117,6 +27,7 @@ export default function AnalyticsDashboard() {
         ApplicationWorkflowAPI.getOptimizationRecommendations(),
         ApplicationWorkflowAPI.getPerformanceBenchmarks()
       ]);
+      
       setFunnel(funnelRes.data);
       setResponseTimes(responseRes.data);
       setSuccessRates(successRes.data);
@@ -129,29 +40,6 @@ export default function AnalyticsDashboard() {
       setLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '400px'
-      }}>
-        <div style={{
-          width: '50px',
-          height: '50px',
-          border: '4px solid #f0f0f0',
-          borderTop: '4px solid #4f8ef7',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-        <p style={{ marginTop: '16px', color: '#666', fontSize: '16px' }}>Loading analytics...</p>
-      </div>
-    );
-  }
 
   return (
     <div style={{ padding: '20px' }}>

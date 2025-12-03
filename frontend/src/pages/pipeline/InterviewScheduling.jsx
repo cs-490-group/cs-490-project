@@ -1,13 +1,14 @@
-// InterviewSchedulingIntegration.jsx
 import React, { useState, useEffect } from 'react';
+import { InterviewScheduleAPI } from '../../api/interviewSchedule';
+import JobsAPI from '../../api/jobs';
 
-const InterviewSchedulingIntegration = () => {
+const InterviewScheduling = () => {
   const [interviews, setInterviews] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedApp, setSelectedApp] = useState(null);
-  const [viewMode, setViewMode] = useState('calendar'); // calendar, list, upcoming
+  const [viewMode, setViewMode] = useState('calendar');
 
   useEffect(() => {
     loadData();
@@ -16,53 +17,54 @@ const InterviewSchedulingIntegration = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load interviews and applications
-      // This would integrate with your InterviewScheduleAPI
-      const mockInterviews = [
-        {
-          id: '1',
-          applicationId: 'app1',
-          position: 'Senior Frontend Developer',
-          company: 'Tech Corp',
-          datetime: '2024-12-05T14:00:00Z',
-          type: 'video',
-          platform: 'zoom',
-          link: 'https://zoom.us/j/123456',
-          duration: 60,
-          interviewer: {
-            name: 'John Smith',
-            title: 'Engineering Manager',
-            email: 'john@techcorp.com'
-          },
-          status: 'scheduled',
-          prepTasks: [
-            { id: 1, text: 'Research company culture', completed: true },
-            { id: 2, text: 'Review job description', completed: true },
-            { id: 3, text: 'Prepare questions', completed: false },
-            { id: 4, text: 'Test video setup', completed: false }
-          ]
-        }
+      // Load interviews
+      const interviewsRes = await InterviewScheduleAPI.getUpcomingInterviews();
+      
+      // Load jobs that are in Interview status
+      const jobsRes = await JobsAPI.getAll();
+      
+      const allInterviews = [
+        ...(interviewsRes.data.upcoming_interviews || []),
+        ...(interviewsRes.data.past_interviews || [])
       ];
 
-      const mockApplications = [
-        {
-          id: 'app1',
-          title: 'Senior Frontend Developer',
-          company: 'Tech Corp',
-          status: 'Interview',
-          hasInterview: true
-        },
-        {
-          id: 'app2',
-          title: 'Full Stack Engineer',
-          company: 'Startup Inc',
-          status: 'Interview',
-          hasInterview: false
-        }
-      ];
+      // Process interviews data
+      const processedInterviews = allInterviews.map(interview => ({
+        id: interview.uuid,
+        applicationId: interview.job_application_uuid,
+        position: interview.scenario_name,
+        company: interview.company_name,
+        datetime: interview.interview_datetime,
+        type: interview.location_type,
+        platform: interview.video_platform,
+        link: interview.video_link,
+        duration: interview.duration_minutes,
+        interviewer: interview.interviewer_name ? {
+          name: interview.interviewer_name,
+          title: interview.interviewer_title,
+          email: interview.interviewer_email,
+          phone: interview.interviewer_phone
+        } : null,
+        status: interview.status,
+        prepTasks: interview.preparation_tasks || [],
+        notes: interview.notes,
+        location: interview.location_details,
+        phone: interview.phone_number
+      }));
 
-      setInterviews(mockInterviews);
-      setApplications(mockApplications);
+      // Process jobs - filter for Interview status
+      const interviewJobs = (jobsRes.data || [])
+        .filter(job => job.status === 'Interview')
+        .map(job => ({
+          id: job._id,
+          title: job.title,
+          company: typeof job.company === 'string' ? job.company : job.company?.name || 'Unknown',
+          status: job.status,
+          hasInterview: processedInterviews.some(i => i.applicationId === job._id)
+        }));
+
+      setInterviews(processedInterviews);
+      setApplications(interviewJobs);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -73,6 +75,36 @@ const InterviewSchedulingIntegration = () => {
   const handleScheduleFromApplication = (app) => {
     setSelectedApp(app);
     setShowScheduleModal(true);
+  };
+
+  const handleScheduleInterview = async (formData) => {
+    try {
+      await InterviewScheduleAPI.createSchedule({
+        job_application_uuid: formData.applicationId,
+        interview_datetime: formData.datetime,
+        duration_minutes: formData.duration,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        location_type: formData.type,
+        location_details: formData.location,
+        video_platform: formData.platform,
+        video_link: formData.link,
+        phone_number: formData.phone,
+        interviewer_name: formData.interviewerName,
+        interviewer_email: formData.interviewerEmail,
+        interviewer_phone: formData.interviewerPhone,
+        interviewer_title: formData.interviewerTitle,
+        notes: formData.notes,
+        scenario_name: selectedApp?.title || formData.position,
+        company_name: selectedApp?.company || formData.company
+      });
+
+      await loadData(); // Reload data
+      setShowScheduleModal(false);
+      setSelectedApp(null);
+    } catch (error) {
+      console.error('Failed to schedule interview:', error);
+      alert('Failed to schedule interview. Please try again.');
+    }
   };
 
   const formatDateTime = (datetime) => {
@@ -853,4 +885,4 @@ fontSize: '14px'
 </div>
 );
 };
-export default InterviewSchedulingIntegration;
+export default InterviewScheduling;

@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
-
-// Mock API - replace with actual API import
-const ApplicationWorkflowAPI = {
-  getPackages: () => Promise.resolve({ data: [] }),
-  getScheduledApplications: () => Promise.resolve({ data: [] }),
-  getTemplates: () => Promise.resolve({ data: [] }),
-  getAutomationRules: () => Promise.resolve({ data: [] })
-};
+import ApplicationWorkflowAPI from '../../api/applicationWorkflow';
+import ResumesAPI from '../../api/resumes';
+import CoverLetterAPI from '../../api/coverLetters';
 
 export default function WorkflowAutomation() {
   const [packages, setPackages] = useState([]);
@@ -16,12 +11,18 @@ export default function WorkflowAutomation() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('packages');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  // For package creation - need resume/cover letter lists
+  const [resumes, setResumes] = useState([]);
+  const [coverLetters, setCoverLetters] = useState([]);
 
   useEffect(() => {
     loadData();
+    loadMaterials();
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
     try {
       const [packagesRes, schedulesRes, templatesRes, rulesRes] = await Promise.all([
         ApplicationWorkflowAPI.getPackages(),
@@ -37,6 +38,19 @@ export default function WorkflowAutomation() {
       console.error('Failed to load workflow data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMaterials = async () => {
+    try {
+      const [resumesRes, coverLettersRes] = await Promise.all([
+        ResumesAPI.getAll(),
+        CoverLetterAPI.getAll()
+      ]);
+      setResumes(resumesRes.data || []);
+      setCoverLetters(coverLettersRes.data || []);
+    } catch (error) {
+      console.error('Failed to load materials:', error);
     }
   };
 

@@ -1,3 +1,4 @@
+// PipelineManagement.jsx
 import React, { useState } from "react";
 import WorkflowAutomation from "./WorkflowAutomation";
 import StatusMonitoring from "./StatusMonitoring";
@@ -33,7 +34,6 @@ export default function PipelineManagement() {
         }}>
           Application Pipeline Management
         </h1>
-        {/* Gradient underline */}
         <div style={{
           width: "160px",
           height: "4px",

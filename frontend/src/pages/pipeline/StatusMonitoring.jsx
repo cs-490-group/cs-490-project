@@ -1,57 +1,76 @@
 import React, { useState, useEffect } from 'react';
-
-// Mock API and Data
-const mockJobs = [
-  {
-    id: '1',
-    title: 'Senior Frontend Developer',
-    company: 'Tech Corp',
-    status: 'interview',
-    lastUpdate: '2024-12-01T10:00:00Z',
-    statusHistory: [
-      ['applied', '2024-11-15T09:00:00Z'],
-      ['screening', '2024-11-20T14:30:00Z'],
-      ['interview', '2024-12-01T10:00:00Z']
-    ],
-    nextAction: 'Follow up after interview',
-    daysInStage: 1,
-    responseTime: 5
-  },
-  {
-    id: '2',
-    title: 'Full Stack Engineer',
-    company: 'Startup Inc',
-    status: 'screening',
-    lastUpdate: '2024-11-28T16:00:00Z',
-    statusHistory: [
-      ['applied', '2024-11-20T11:00:00Z'],
-      ['screening', '2024-11-28T16:00:00Z']
-    ],
-    nextAction: 'Wait for response',
-    daysInStage: 4,
-    responseTime: 8
-  },
-  {
-    id: '3',
-    title: 'React Developer',
-    company: 'Agency XYZ',
-    status: 'applied',
-    lastUpdate: '2024-11-25T13:00:00Z',
-    statusHistory: [
-      ['applied', '2024-11-25T13:00:00Z']
-    ],
-    nextAction: 'Follow up if no response by Dec 9',
-    daysInStage: 7,
-    responseTime: null
-  }
-];
+import JobsAPI from '../../api/jobs';
 
 export default function StatusMonitoring() {
-  const [jobs, setJobs] = useState(mockJobs);
+  const [jobs, setJobs] = useState([]);
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('lastUpdate');
   const [selectedJob, setSelectedJob] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadJobs();
+  }, []);
+
+  const loadJobs = async () => {
+    setLoading(true);
+    try {
+      const response = await JobsAPI.getAll();
+      const jobsData = (response.data || []).map(job => ({
+        id: job._id,
+        title: job.title,
+        company: typeof job.company === 'string' ? job.company : job.company?.name || 'Unknown Company',
+        status: job.status?.toLowerCase() || 'applied',
+        lastUpdate: job.date_updated || job.date_created,
+        statusHistory: job.status_history || [[job.status?.toLowerCase() || 'applied', job.date_created]],
+        nextAction: job.notes || '',
+        daysInStage: calculateDaysInStage(job.status_history),
+        responseTime: calculateResponseTime(job.status_history),
+        notes: job.notes,
+        location: job.location,
+        url: job.url
+      }));
+      setJobs(jobsData);
+    } catch (error) {
+      console.error('Failed to load jobs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateDaysInStage = (statusHistory) => {
+    if (!statusHistory || statusHistory.length === 0) return 0;
+    const lastStatus = statusHistory[statusHistory.length - 1];
+    const lastDate = new Date(lastStatus[1]);
+    const today = new Date();
+    return Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
+  };
+
+  const calculateResponseTime = (statusHistory) => {
+    if (!statusHistory || statusHistory.length < 2) return null;
+    const firstDate = new Date(statusHistory[0][1]);
+    const secondDate = new Date(statusHistory[1][1]);
+    return Math.floor((secondDate - firstDate) / (1000 * 60 * 60 * 24));
+  };
+
+  const handleStatusUpdate = async (jobId, newStatus, notes = '') => {
+    try {
+      // Update job status via API
+      await JobsAPI.update(jobId, { 
+        status: newStatus.charAt(0).toUpperCase() + newStatus.slice(1),
+        notes: notes 
+      });
+      
+      // Reload jobs to get updated data
+      await loadJobs();
+      setShowUpdateModal(false);
+      setSelectedJob(null);
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      alert('Failed to update status. Please try again.');
+    }
+  };
 
   const statusColors = {
     interested: '#9e9e9e',
@@ -86,23 +105,28 @@ export default function StatusMonitoring() {
     return 0;
   });
 
-  const handleStatusUpdate = (jobId, newStatus, notes = '') => {
-    setJobs(jobs.map(job => {
-      if (job.id === jobId) {
-        const now = new Date().toISOString();
-        return {
-          ...job,
-          status: newStatus,
-          lastUpdate: now,
-          statusHistory: [...job.statusHistory, [newStatus, now]],
-          daysInStage: 0
-        };
-      }
-      return job;
-    }));
-    setShowUpdateModal(false);
-    setSelectedJob(null);
-  };
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '400px'
+      }}>
+        <div style={{
+          width: '50px',
+          height: '50px',
+          border: '4px solid #f0f0f0',
+          borderTop: '4px solid #4f8ef7',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        <p style={{ marginTop: '16px', color: '#666', fontSize: '16px' }}>Loading applications...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '20px' }}>
