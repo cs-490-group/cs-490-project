@@ -41,6 +41,10 @@ class NetworksAPI {
     deleteAvatar(contactId) {
         return api.delete(`${BASE_URL}/avatar?contact_id=${contactId}`);
     }
+
+    getDiscovery() {
+        return api.get(`${BASE_URL}/discovery`);
+    }
 }
 
 export default new NetworksAPI();

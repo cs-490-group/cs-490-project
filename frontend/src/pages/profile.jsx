@@ -71,23 +71,66 @@ export default function Profile() {
         };
     }, [avatarUrl]);
 
+    const resizeImage = (file, maxWidth = 1280, maxHeight = 720) => {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+                // Calculate new dimensions to fit within 720p
+                let { width, height } = img;
+                
+                if (width > maxWidth || height > maxHeight) {
+                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width *= ratio;
+                    height *= ratio;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw resized image
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob(resolve, 'image/jpeg', 0.9);
+            };
+            
+            img.src = URL.createObjectURL(file);
+        });
+    };
+
     const onChange = (e) => {
         const { name, value } = e.target;
         setForm((f) => ({ ...f, [name]: value }));
     };
 
-    const onPick = (e) => {
+    const onPick = async (e) => {
         const f = e.target.files?.[0];
-        setSelectedFile(f || null);
-
-        // Create local preview using FileReader
+        
         if (f) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                setPreviewUrl(event.target.result);
-            };
-            reader.readAsDataURL(f);
+            // Resize image to max 720p before setting
+            try {
+                const resizedFile = await resizeImage(f);
+                setSelectedFile(resizedFile);
+                
+                // Create local preview using FileReader
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    setPreviewUrl(event.target.result);
+                };
+                reader.readAsDataURL(resizedFile);
+            } catch (error) {
+                console.error("Image resize failed:", error);
+                // Fallback to original file
+                setSelectedFile(f);
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    setPreviewUrl(event.target.result);
+                };
+                reader.readAsDataURL(f);
+            }
         } else {
+            setSelectedFile(null);
             setPreviewUrl(null);
         }
     };

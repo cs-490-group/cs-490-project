@@ -1,26 +1,22 @@
 import { useState, useEffect } from "react";
-import { Container, Card, Button, Spinner, Row, Col, Badge } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { Container, Card, Spinner, Row, Col, Badge, Button } from "react-bootstrap";
 import NetworksAPI from "../../api/network";
-import ContactForm from "./ContactForm";
 import "./network.css";
 
 let loadingMessages = [
-	"**Crickets**",
-	"Let's invite some more people into your network!",
-	"A broader network builds to your success, let's invite some people!",
-	"Let's meet some new people, send them a request!",
-	"It's empty in here... let's change that!"
+	"**Discovering new connections...**",
+	"Finding professionals in your industry...",
+	"Expanding your network reach...",
+	"Discovering potential mentors and colleagues...",
+	"Building bridges to new opportunities..."
 ];
 
-export default function NetworkOverview() {
-	const navigate = useNavigate();
+export default function DiscoveryPage() {
 	const [contacts, setContacts] = useState([]);
+	const [avatars, setAvatars] = useState({});
+	const [avatarBlobs, setAvatarBlobs] = useState({}); // Store original blobs for copying
 	const [loading, setLoading] = useState(true);
 	const [loadingMessage, setLoadMessage] = useState("Placeholder");
-	const [showModal, setShowModal] = useState(false);
-	const [editing, setEditing] = useState(false);
-	const [editingContactId, setEditingContactId] = useState(null);
 	const [filterText, setFilterText] = useState({
 		name: "",
 		email: "",
@@ -29,84 +25,48 @@ export default function NetworkOverview() {
 		position: "",
 		location: "",
 		institution: "",
-		degree: ""
+		degree: "",
+		connectionDegree: ""
 	});
-	const [formData, setFormData] = useState({
-		name: "",
-		email: "",
-		avatar: null,
-		phone_numbers: {
-			primary: "",
-			home: "",
-			work: "",
-			mobile: ""
-		},
-		websites: {
-			linkedin: "",
-			other: ""
-		},
-		employment: {
-			position: "",
-			company: "",
-			location: ""
-		},
-		education: {
-			institution_name: "",
-			degree: "",
-			field_of_study: "",
-			graduation_date: "",
-			education_level: "",
-			achievements: ""
-		},
-		relationship_type: "colleague",
-		relationship_strength: "moderate",
-		industry: "",
-		professional_interests: "",
-		personal_interests: "",
-		interaction_history: [],
-		notes: "",
-		reminder_frequency: "none",
-		next_reminder_date: ""
-	});
-
-	const [avatars, setAvatars] = useState({});
 
 	useEffect(() => {
 		setLoadMessage(loadingMessages[Math.floor(Math.random() * (loadingMessages.length))]);
-		fetchContacts();
-		// Scroll to top when component mounts
-		window.scrollTo(0, 0);
+		fetchDiscoveryContacts();
 	}, []);
 
-	const fetchContacts = async () => {
+	const fetchDiscoveryContacts = async () => {
 		try {
-			const res = await NetworksAPI.getAll();
+			const res = await NetworksAPI.getDiscovery();
 			setContacts(res.data || []);
-			
-			// Clear existing avatars to force refresh
-			setAvatars({});
-			
-			// Fetch avatars for each contact
+			// Fetch avatars for each contact and store blobs
 			const avatarPromises = (res.data || []).map(async (contact) => {
 				try {
 					const avatarResponse = await NetworksAPI.getAvatar(contact._id);
 					const avatarUrl = URL.createObjectURL(avatarResponse.data);
-					return { [contact._id]: avatarUrl };
+					// Store the blob for later copying
+					return { 
+						[contact._id]: avatarUrl,
+						blob: avatarResponse.data
+					};
 				} catch (error) {
-					// Handle 400/404 (avatar not found) and other errors gracefully
-					if (error.response?.status === 400 || error.response?.status === 404) {
-						return { [contact._id]: "./default.png" };
-					}
-					console.warn(`Failed to fetch avatar for ${contact._id}:`, error.message);
 					return { [contact._id]: "./default.png" };
 				}
 			});
 			
 			const avatarResults = await Promise.all(avatarPromises);
-			const avatarMap = avatarResults.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+			const avatarMap = avatarResults.reduce((acc, curr) => ({ ...acc, [Object.keys(curr)[0]]: curr[Object.keys(curr)[0]] }), {});
+			const blobMap = avatarResults.reduce((acc, curr) => {
+				const contactId = Object.keys(curr)[0];
+				if (curr.blob) {
+					acc[contactId] = curr.blob;
+				}
+				return acc;
+			}, {});
+			
 			setAvatars(avatarMap);
+			setAvatarBlobs(blobMap);
 		} catch (error) {
-			console.error("Failed to fetch contacts:", error);
+			console.error("Failed to fetch discovery contacts:", error);
 		} finally {
 			setLoading(false);
 		}
@@ -138,6 +98,9 @@ export default function NetworkOverview() {
 			if (filterText.degree && !contact.education?.degree?.toLowerCase().includes(filterText.degree.toLowerCase())) {
 				return false;
 			}
+			if (filterText.connectionDegree && !contact.connection_degree?.toString().includes(filterText.connectionDegree)) {
+				return false;
+			}
 			return true;
 		});
 	};
@@ -159,190 +122,9 @@ export default function NetworkOverview() {
 			position: "",
 			location: "",
 			institution: "",
-			degree: ""
+			degree: "",
+			connectionDegree: ""
 		});
-	};
-
-	const handleAddOrUpdate = async () => {
-		try {
-			// Clean up the data before sending to match backend schema
-			const dataToSend = {
-				name: formData.name || null,
-				email: formData.email || null,
-				phone_numbers: {
-					primary: formData.phone_numbers.primary || null,
-					home: formData.phone_numbers.home || null,
-					work: formData.phone_numbers.work || null,
-					mobile: formData.phone_numbers.mobile || null
-				},
-				websites: {
-					linkedin: formData.websites.linkedin || null,
-					other: formData.websites.other || null
-				},
-				employment: {
-					position: formData.employment.position || null,
-					company: formData.employment.company || null,
-					location: formData.employment.location || null
-				},
-				education: {
-					institution_name: formData.education.institution_name || null,
-					degree: formData.education.degree || null,
-					field_of_study: formData.education.field_of_study || null,
-					graduation_date: formData.education.graduation_date || null,
-					education_level: formData.education.education_level || null,
-					achievements: formData.education.achievements || null
-				},
-				relationship_type: formData.relationship_type || null,
-				relationship_strength: formData.relationship_strength || null,
-				industry: formData.industry || null,
-				professional_interests: formData.professional_interests || null,
-				personal_interests: formData.personal_interests || null,
-				interaction_history: formData.interaction_history || [],
-				notes: formData.notes || null,
-				reminder_frequency: formData.reminder_frequency || null,
-				next_reminder_date: formData.next_reminder_date || null
-			};
-
-			let contactId;
-			if (editing && editingContactId) {
-				await NetworksAPI.update(editingContactId, dataToSend);
-				contactId = editingContactId;
-			} else {
-				const response = await NetworksAPI.add(dataToSend);
-				contactId = response.data._id;
-			}
-
-			// Handle avatar upload
-			if (formData.avatar && formData.avatar instanceof File) {
-				try {
-					if (editing && editingContactId) {
-						// Try to update first, if that fails, upload
-						await NetworksAPI.updateAvatar(editingContactId, formData.avatar);
-					} else {
-						await NetworksAPI.uploadAvatar(contactId, formData.avatar);
-					}
-				} catch (avatarError) {
-					// If update fails (no existing avatar), try uploading
-					if (editing && editingContactId) {
-						await NetworksAPI.uploadAvatar(editingContactId, formData.avatar);
-					} else {
-						throw avatarError;
-					}
-				}
-			}
-
-			await fetchContacts();
-			setShowModal(false);
-			resetForm();
-		} catch (error) {
-			console.error("Error saving contact:", error);
-			console.error("Error details:", error.response?.data);
-		}
-	};
-
-	const handleEdit = (contact) => {
-		setEditing(true);
-		setEditingContactId(contact._id);
-		setFormData({
-			name: contact.name || "",
-			email: contact.email || "",
-			avatar: null,
-			phone_numbers: {
-				primary: contact.phone_numbers?.primary || "",
-				home: contact.phone_numbers?.home || "",
-				work: contact.phone_numbers?.work || "",
-				mobile: contact.phone_numbers?.mobile || ""
-			},
-			websites: {
-				linkedin: contact.websites?.linkedin || "",
-				other: contact.websites?.other || ""
-			},
-			employment: {
-				position: contact.employment?.position || "",
-				company: contact.employment?.company || "",
-				location: contact.employment?.location || ""
-			},
-			education: {
-				institution_name: contact.education?.institution_name || "",
-				degree: contact.education?.degree || "",
-				field_of_study: contact.education?.field_of_study || "",
-				graduation_date: contact.education?.graduation_date || "",
-				education_level: contact.education?.education_level || "",
-				achievements: contact.education?.achievements || ""
-			},
-			relationship_type: contact.relationship_type || "colleague",
-			relationship_strength: contact.relationship_strength || "moderate",
-			industry: contact.industry || "",
-			professional_interests: contact.professional_interests || "",
-			personal_interests: contact.personal_interests || "",
-			interaction_history: contact.interaction_history || [],
-			notes: contact.notes || "",
-			reminder_frequency: contact.reminder_frequency || "none",
-			next_reminder_date: contact.next_reminder_date || ""
-		});
-		setShowModal(true);
-	};
-
-	const handleDelete = async (contact) => {
-		if (window.confirm("Are you sure you want to delete this contact?")) {
-			try {
-				// Delete the contact first
-				await NetworksAPI.delete(contact._id);
-				
-				// Try to delete avatar, but don't fail if it doesn't exist
-				try {
-					await NetworksAPI.deleteAvatar(contact._id);
-				} catch (avatarError) {
-					// Avatar deletion failed (likely doesn't exist) - continue
-				}
-				
-				await fetchContacts();
-			} catch (error) {
-				console.error("Failed to delete contact:", error);
-			}
-		}
-	};
-
-	const resetForm = () => {
-		setFormData({
-			name: "",
-			email: "",
-			avatar: null,
-			phone_numbers: {
-				primary: "",
-				home: "",
-				work: "",
-				mobile: ""
-			},
-			websites: {
-				linkedin: "",
-				other: ""
-			},
-			employment: {
-				position: "",
-				company: "",
-				location: ""
-			},
-			education: {
-				institution_name: "",
-				degree: "",
-				field_of_study: "",
-				graduation_date: "",
-				education_level: "",
-				achievements: ""
-			},
-			relationship_type: "colleague",
-			relationship_strength: "moderate",
-			industry: "",
-			professional_interests: "",
-			personal_interests: "",
-			interaction_history: [],
-			notes: "",
-			reminder_frequency: "none",
-			next_reminder_date: ""
-		});
-		setEditing(false);
-		setEditingContactId(null);
 	};
 
 	const getRelationshipColor = (type) => {
@@ -366,12 +148,100 @@ export default function NetworkOverview() {
 		}
 	};
 
+	const handleAddContact = async (contact) => {
+		try {
+			// Copy ALL available contact data (don't hardcode fields)
+			const contactData = { ...contact };
+			
+			// Remove discovery-specific fields that shouldn't be copied
+			delete contactData.is_alumni;
+			delete contactData.connection_degree;
+			
+			// Ensure we have the contact ID from the original
+			const originalContactId = contact._id;
+			
+			// Add the contact to user's own contacts
+			const addResponse = await NetworksAPI.add(contactData);
+			const newContactId = addResponse.data.contact_id; // Backend returns contact_id field
+			
+			// If the original contact has an avatar, copy it to the new contact
+			if (originalContactId && newContactId && avatarBlobs[originalContactId]) {
+				try {
+					const avatarBlob = avatarBlobs[originalContactId];
+					
+					// Convert blob to file for upload
+					const avatarFile = new File([avatarBlob], 'avatar.jpg', { type: 'image/jpeg' });
+					
+					// Upload avatar to new contact
+					await NetworksAPI.uploadAvatar(newContactId, avatarFile);
+				} catch (avatarError) {
+					// Continue without avatar - not a critical error
+				}
+			}
+			
+			alert(`Successfully added ${contact.name} to your contacts!`);
+			
+			// Optionally refresh the discovery contacts list
+			fetchDiscoveryContacts();
+		} catch (error) {
+			console.error("Failed to add contact:", error);
+			alert(`Failed to add ${contact.name}. Please try again.`);
+		}
+	};
+
+	const getAlumniBadge = (contact) => {
+		if (contact.is_alumni) {
+			return (
+				<Badge bg="info" className="small-badge me-2">
+					<i className="bi bi-mortarboard-fill me-1"></i>
+					Alumni
+				</Badge>
+			);
+		}
+		return null;
+	};
+
+	const getConnectionDegreeBadge = (contact) => {
+		if (contact.connection_degree === 2) {
+			return (
+				<Badge bg="success" className="small-badge me-2">
+					<i className="bi bi-people-fill me-1"></i>
+					2nd Degree
+				</Badge>
+			);
+		} else if (contact.connection_degree === 3) {
+			return (
+				<Badge bg="warning" className="small-badge me-2">
+					<i className="bi bi-person-lines-fill me-1"></i>
+					3rd Degree
+				</Badge>
+			);
+		} else if (contact.connection_degree === 0) {
+			return (
+				<Badge bg="primary" className="small-badge me-2">
+					<i className="bi bi-person-plus-fill me-1"></i>
+					New Connection
+				</Badge>
+			);
+		}
+		return null;
+	};
+
+	const getMutualConnection = (contact) => {
+		// For 2nd degree connections, show the actual mutual connection details
+		if (contact.connection_degree === 2 && contact.mutual_connection) {
+			const mutual = contact.mutual_connection;
+			return `Connected to ${mutual.name} - ${mutual.email}`;
+		}
+		return null;
+	};
+
 	if (loading) {
 		return (
 			<Container fluid className="dashboard-gradient min-vh-100 py-4">
 				<div className="d-flex flex-column align-items-center justify-content-center" style={{ height: "200px" }}>
 					<Spinner animation="border" variant="light" className="mb-3" />
-					<p className="text-white fs-5">Hold on while we load your network...</p>
+					<p className="text-white fs-5">Hold on while we discover new connections...</p>
 				</div>
 			</Container>
 		);
@@ -380,21 +250,13 @@ export default function NetworkOverview() {
 	return (
 		<Container fluid className="dashboard-gradient min-vh-100 py-4">
 			<h1 className="text-center text-white fw-bold mb-5 display-4">
-				Your Professional Network
+				Discover New Connections
 			</h1>
-
-			<Row>
-				<Col xs={12} className="mb-4">
-					<Button onClick={() => { setShowModal(true); resetForm(); }}>
-						+ Add Contact
-					</Button>
-				</Col>
-			</Row>
 
 			<Row className="py-4">
 				<Col xs={12} className="mb-4">
 					<div className="filter-section">
-						<h5 className="text-white mb-3">Search Contacts</h5>
+						<h5 className="text-white mb-3">Search Professionals</h5>
 						<div className="filter-controls">
 							<div className="filter-group">
 								<input
@@ -476,6 +338,19 @@ export default function NetworkOverview() {
 									className="filter-input"
 								/>
 							</div>
+							<div className="filter-group">
+								<select
+									name="connectionDegree"
+									value={filterText.connectionDegree}
+									onChange={handleFilterChange}
+									className="form-select"
+								>
+									<option value="">All Degrees</option>
+									<option value="0">New</option>
+									<option value="2">2nd Degree</option>
+									<option value="3">3rd Degree</option>
+								</select>
+							</div>
 							{Object.values(filterText).some(val => val !== "") && (
 								<Button className="filter-clear-btn" onClick={clearFilters}>Clear Filters</Button>
 							)}
@@ -488,12 +363,12 @@ export default function NetworkOverview() {
 				<Col>
 					{filterContacts(contacts).length === 0 ? (
 						<p className="text-white">
-							{Object.values(filterText).some(val => val !== "") ? "No contacts match your search." : "No contacts found. Add your first contact to get started!"}
+							{Object.values(filterText).some(val => val !== "") ? "No professionals match your search." : "No professionals available for discovery at the moment."}
 						</p>
 					) : (
 						<div className="contact-display">
 							{filterContacts(contacts).map(contact => (
-								<Card key={contact._id} className="contact-card clickable-card" onClick={() => navigate(`/network/contact/${contact._id}`)}>
+								<Card key={contact._id} className="contact-card">
 									<Card.Body>
 										{/* Header with avatar and centered name/email */}
 										<div className="d-flex flex-column align-items-center text-center mb-3">
@@ -501,9 +376,6 @@ export default function NetworkOverview() {
 												src={avatars[contact._id] || "./default.png"} 
 												alt={contact.name}
 												className="contact-avatar"
-												onError={(e) => {
-													e.target.src = "./default.png";
-												}}
 											/>
 											<Card.Title as="h3" className="mb-1">{contact.name}</Card.Title>
 											<Card.Subtitle className="mb-2">{contact.email}</Card.Subtitle>
@@ -608,10 +480,12 @@ export default function NetworkOverview() {
 										{/* Relationship Section */}
 										<div className="contact-section">
 											<div className="section-header">
-												<small className="section-title">Relationship</small>
+												<small className="section-title">Relationship Type</small>
 											</div>
 											<div className="section-content">
-												<div className="d-flex gap-2 mb-2">
+												<div className="d-flex gap-2 mb-2 flex-wrap">
+													{getConnectionDegreeBadge(contact)}
+													{getAlumniBadge(contact)}
 													{contact.relationship_type && (
 														<Badge bg={getRelationshipColor(contact.relationship_type)} className="small-badge">
 															{contact.relationship_type}
@@ -623,6 +497,14 @@ export default function NetworkOverview() {
 														</Badge>
 													)}
 												</div>
+												{getMutualConnection(contact) && (
+													<div className="mt-2">
+														<small className="text-muted">
+															<i className="bi bi-link-45deg me-1"></i>
+															{getMutualConnection(contact)}
+														</small>
+													</div>
+												)}
 											</div>
 										</div>
 
@@ -640,16 +522,12 @@ export default function NetworkOverview() {
 											</div>
 										)}
 
-										{/* Action Buttons */}
+										{/* Add Contact Button */}
 										<div className="mt-auto pt-3 border-top">
-											<div className="d-flex gap-2">
-												<Button variant="outline-primary" size="sm" onClick={() => handleEdit(contact)}>
-													Edit
-												</Button>
-												<Button variant="outline-danger" size="sm" onClick={() => handleDelete(contact)}>
-													Delete
-												</Button>
-											</div>
+											<Button variant="success" onClick={() => handleAddContact(contact)}>
+												<i className="bi bi-plus-circle me-2"></i>
+												Add Contact
+											</Button>
 										</div>
 									</Card.Body>
 								</Card>
@@ -658,15 +536,6 @@ export default function NetworkOverview() {
 					)}
 				</Col>
 			</Row>
-
-			<ContactForm
-				showModal={showModal}
-				setShowModal={setShowModal}
-				editing={editing}
-				formData={formData}
-				setFormData={setFormData}
-				handleAddOrUpdate={handleAddOrUpdate}
-			/>
 		</Container>
 	);
 }

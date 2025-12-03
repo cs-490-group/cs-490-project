@@ -4,6 +4,7 @@ import { Container, Row, Col, Card, Button, Badge, Spinner, Alert, Form } from "
 import InformationalInterviewsAPI from "../../api/informationalInterviews";
 import NetworksAPI from "../../api/network";
 import InformationalInterviewForm from "./InformationalInterviewForm";
+import { formatLocalDate, formatLocalDateTime, toLocalDate, isToday, getLocalDay, getLocalMonth, getLocalYear, toUTCDate } from "../../utils/dateUtils";
 import "./network.css";
 
 export default function InformationalInterviewManagement() {
@@ -14,6 +15,7 @@ export default function InformationalInterviewManagement() {
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState(false);
     const [editingInterviewId, setEditingInterviewId] = useState(null);
+    const [currentMonth, setCurrentMonth] = useState(new Date());
     const [rawTopicsInput, setRawTopicsInput] = useState("");
     const [rawQuestionsInput, setRawQuestionsInput] = useState("");
     const [filterText, setFilterText] = useState({
@@ -85,6 +87,25 @@ export default function InformationalInterviewManagement() {
                 }
             }
             return true;
+        }).sort((a, b) => {
+            // Sort by date first, then by start time
+            const dateA = a.scheduled_date || a.request_date || '';
+            const dateB = b.scheduled_date || b.request_date || '';
+
+            // Compare dates
+            if (dateA !== dateB) {
+                return dateA.localeCompare(dateB);
+            }
+
+            // If dates are the same, sort by start time
+            if (!a.start_time && !b.start_time) return 0;
+            if (!a.start_time) return 1;
+            if (!b.start_time) return -1;
+
+            // Parse times for comparison
+            const timeA = new Date(`2000-01-01T${a.start_time}`);
+            const timeB = new Date(`2000-01-01T${b.start_time}`);
+            return timeA - timeB;
         });
     };
 
@@ -243,6 +264,190 @@ export default function InformationalInterviewManagement() {
         });
     };
 
+    const isPastInterview = (interview) => {
+        const interviewDateTime = new Date(`${interview.scheduled_date || interview.request_date}T${interview.end_time || '23:59'}`);
+        return interviewDateTime < new Date();
+    };
+
+    const isCurrentlyOccurring = (interview) => {
+        const now = new Date();
+        const interviewDate = interview.scheduled_date || interview.request_date;
+        const eventStart = new Date(`${interviewDate}T${interview.start_time || '00:00'}`);
+        const eventEnd = new Date(`${interviewDate}T${interview.end_time || '23:59'}`);
+        return now >= eventStart && now <= eventEnd;
+    };
+
+    const isLaterToday = (interview) => {
+        const today = new Date();
+        const interviewLocalDate = toLocalDate(interview.scheduled_date || interview.request_date);
+        const interviewDate = new Date(interviewLocalDate);
+        
+        // Check if interview is today
+        if (interviewDate.toDateString() !== today.toDateString()) {
+            return false;
+        }
+        
+        // Create full datetime objects for accurate comparison
+        const interviewDateTime = new Date(interviewLocalDate);
+        if (interview.start_time) {
+            const [hours, minutes] = interview.start_time.split(':');
+            interviewDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        }
+        
+        // Check if interview is later today
+        return interviewDateTime > today;
+    };
+
+    const renderCalendarView = () => {
+        const filteredInterviews = filterInterviews(interviews);
+
+        const getDaysInMonth = (date) => {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            return { daysInMonth, startingDayOfWeek, year, month };
+        };
+
+        const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth);
+
+        const getInterviewsForDate = (day) => {
+            return filteredInterviews.filter(interview => {
+                const interviewDate = interview.scheduled_date || interview.request_date;
+                return interviewDate && getLocalDay(interviewDate) === day &&
+                    getLocalMonth(interviewDate) === month &&
+                    getLocalYear(interviewDate) === year;
+            });
+        };
+
+        const isTodayCheck = (day) => {
+            return filteredInterviews.some(interview => {
+                const interviewDate = interview.scheduled_date || interview.request_date;
+                return interviewDate && isToday(interviewDate) && getLocalDay(interviewDate) === day;
+            }) || (new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year);
+        };
+
+        const getInterviewStatusColor = (status) => {
+            const colors = {
+                "requested": "#17a2b8",
+                "confirmed": "#ffc107",
+                "completed": "#28a745",
+                "cancelled": "#dc3545"
+            };
+            return colors[status] || "#6c757d";
+        };
+
+        const monthNames = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"];
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+        const calendarDays = [];
+        for (let i = 0; i < startingDayOfWeek; i++) {
+            calendarDays.push(<div key={`empty-${i}`} className="calendar-day-empty"></div>);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const interviewsOnDay = getInterviewsForDate(day);
+            const hasInterviews = interviewsOnDay.length > 0;
+
+            calendarDays.push(
+                <div
+                    key={day}
+                    className={`calendar-day-cell ${isTodayCheck(day)
+                            ? "calendar-day-cell-today"
+                            : "calendar-day-cell-default"
+                        } ${hasInterviews ? "calendar-day-cell-has-events" : ""
+                        }`}
+                    style={{ cursor: hasInterviews ? "pointer" : "default" }}
+                >
+                    <div className={`calendar-day-number ${isTodayCheck(day) ? "calendar-day-number-today" : ""
+                        }`}>
+                        {day}
+                    </div>
+                    {hasInterviews && (
+                        <div className="calendar-event-list">
+                            {interviewsOnDay.map(interview => (
+                                <div
+                                    key={interview._id}
+                                    onClick={() => navigate(`/network/interview/${interview._id}`)}
+                                    className={`calendar-event-item ${interview.status === 'cancelled' ? 'cancelled-event' : ''} ${isPastInterview(interview) ? 'past-event' : ''} ${isCurrentlyOccurring(interview) ? 'current-event' : ''} ${isLaterToday(interview) ? 'later-today-event' : ''}`}
+                                    style={{ background: getInterviewStatusColor(interview.status) }}
+                                >
+                                    {interview.company}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        return (
+            <div className="calendar-main-container">
+                <div className="calendar-header-controls">
+                    <button
+                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+                        className="calendar-nav-button"
+                    >
+                        ← Previous
+                    </button>
+                    <h2 className="calendar-month-title">{monthNames[month]} {year}</h2>
+                    <button
+                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+                        className="calendar-nav-button"
+                    >
+                        Next →
+                    </button>
+                </div>
+
+                <div className="calendar-grid-container">
+                    {dayNames.map(day => (
+                        <div key={day} className="calendar-day-header">
+                            {day}
+                        </div>
+                    ))}
+                    {calendarDays}
+                </div>
+
+                <div className="calendar-legend-container">
+                    <div className="calendar-legend-row">
+                        <div className="calendar-legend-label">Interview Status:</div>
+                        <div className="calendar-legend-item">
+                            <div className="calendar-legend-icon-small" style={{ background: "#17a2b8" }}></div>
+                            <span>Requested</span>
+                        </div>
+                        <div className="calendar-legend-item">
+                            <div className="calendar-legend-icon-small" style={{ background: "#ffc107" }}></div>
+                            <span>Confirmed</span>
+                        </div>
+                        <div className="calendar-legend-item">
+                            <div className="calendar-legend-icon-small" style={{ background: "#28a745" }}></div>
+                            <span>Completed</span>
+                        </div>
+                        <div className="calendar-legend-item">
+                            <div className="calendar-legend-icon-small" style={{ background: "#dc3545" }}></div>
+                            <span>Cancelled</span>
+                        </div>
+                    </div>
+
+                    <div className="calendar-legend-row">
+                        <div className="calendar-legend-label">Calendar:</div>
+                        <div className="calendar-legend-item">
+                            <div className="calendar-legend-icon-large calendar-legend-border-thin calendar-legend-has-events"></div>
+                            <span>Has Interviews</span>
+                        </div>
+                        <div className="calendar-legend-item">
+                            <div className="calendar-legend-icon-large calendar-legend-border-thick"></div>
+                            <span>Today</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     if (loading) {
         return (
             <Container fluid className="dashboard-gradient min-vh-100 py-4">
@@ -338,7 +543,8 @@ export default function InformationalInterviewManagement() {
             </Row>
 
             <Row className="py-4">
-                <Col>
+                <Col className="mb-4">
+                    <h5 className="text-white mb-3">Interview Timeline</h5>
                     {filterInterviews(interviews).length === 0 ? (
                         <p className="text-white">
                             {Object.values(filterText).some(val => val !== "")
@@ -363,7 +569,7 @@ export default function InformationalInterviewManagement() {
                                 </div>
                                 <div className="timeline-scroll">
                                     {filterInterviews(interviews).map(interview => (
-                                        <Card key={interview._id} className="contact-card interview-card" style={{ cursor: "pointer" }} onClick={() => navigate(`/network/interview/${interview._id}`)}>
+                                        <Card key={interview._id} className={`contact-card interview-card ${interview.status === 'cancelled' ? 'cancelled-event' : ''} ${isPastInterview(interview) ? 'past-event' : ''} ${isCurrentlyOccurring(interview) ? 'current-event' : ''} ${isLaterToday(interview) ? 'later-today-event' : ''}`} style={{ cursor: "pointer" }} onClick={() => navigate(`/network/interview/${interview._id}`)}>
                                             <Card.Body>
                                                 <Row className="contact-section">
                                                     {/* "d-flex justify-content-between align-items-start mb-2" */}
@@ -393,7 +599,7 @@ export default function InformationalInterviewManagement() {
                                                     <h6 className="section-title">Schedule</h6>
                                                     <p className="mb-1"><strong>Requested:</strong> {interview.request_date || "—"}</p>
                                                     <p className="mb-1"><strong>Scheduled:</strong> {interview.scheduled_date || "—"}</p>
-                                                    <p className="mb-0"><strong>Time:</strong> {interview.start_time || "—"} - {interview.end_time || "—"}</p>
+                                                    <p className="mb-0"><strong>Time:</strong> {interview.start_time ? new Date(`2000-01-01T${interview.start_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : "—"} - {interview.end_time ? new Date(`2000-01-01T${interview.end_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : "—"} {interview.start_time ? ` ${new Date().toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ')[2] || new Date().toLocaleDateString('en-US', { timeZoneName: 'short', weekday: 'short' }).split(' ')[1]}` : ""}</p>
                                                 </div>
 
                                                 {interview.topics_to_cover && interview.topics_to_cover.length > 0 && (
@@ -455,6 +661,10 @@ export default function InformationalInterviewManagement() {
                         </div>
                     )}
                 </Col>
+            </Row>
+            <Row className="mb-4" style={{margin: "0rem 1rem 0rem 1rem"}}>
+                <h5 className="text-white mb-3">Interview Calendar</h5>
+                {renderCalendarView()}
             </Row>
 
             <InformationalInterviewForm

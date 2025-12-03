@@ -7,7 +7,8 @@ export default function MentorshipForm({
     formData,
     setFormData,
     handleAddOrUpdate,
-    resetForm
+    resetForm,
+    contacts
 }) {
     const handleClose = () => {
         setShowModal(false);
@@ -29,24 +30,32 @@ export default function MentorshipForm({
                     <Row>
                         <Col md={6}>
                             <Form.Group className="mb-3">
-                                <Form.Label>Mentor ID</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    value={formData.mentor_id}
-                                    onChange={(e) => setFormData({...formData, mentor_id: e.target.value})}
+                                <Form.Label>Select Contact</Form.Label>
+                                <Form.Select
+                                    value={formData.contact_id}
+                                    onChange={(e) => setFormData({...formData, contact_id: e.target.value})}
                                     required
-                                />
+                                >
+                                    <option value="">Choose a contact...</option>
+                                    {contacts.map(contact => (
+                                        <option key={contact._id} value={contact._id}>
+                                            {contact.name} - {contact.email}
+                                        </option>
+                                    ))}
+                                </Form.Select>
                             </Form.Group>
                         </Col>
                         <Col md={6}>
                             <Form.Group className="mb-3">
-                                <Form.Label>Mentee ID</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    value={formData.mentee_id}
-                                    onChange={(e) => setFormData({...formData, mentee_id: e.target.value})}
+                                <Form.Label>Relationship Type</Form.Label>
+                                <Form.Select
+                                    value={formData.relationship_type}
+                                    onChange={(e) => setFormData({...formData, relationship_type: e.target.value})}
                                     required
-                                />
+                                >
+                                    <option value="mentor">Mentor</option>
+                                    <option value="career_coach">Career Coach</option>
+                                </Form.Select>
                             </Form.Group>
                         </Col>
                     </Row>
@@ -67,8 +76,8 @@ export default function MentorshipForm({
                                 <Form.Label>End Date</Form.Label>
                                 <Form.Control
                                     type="date"
-                                    value={formData.end_date}
-                                    onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+                                    value={formData.end_date || ""}
+                                    onChange={(e) => setFormData({...formData, end_date: e.target.value || null})}
                                 />
                             </Form.Group>
                         </Col>
@@ -88,68 +97,47 @@ export default function MentorshipForm({
                                 </Form.Select>
                             </Form.Group>
                         </Col>
-                        <Col md={6}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Mentorship Type</Form.Label>
-                                <Form.Select
-                                    value={formData.mentorship_type}
-                                    onChange={(e) => setFormData({...formData, mentorship_type: e.target.value})}
-                                >
-                                    <option value="career">Career</option>
-                                    <option value="skill">Skill Development</option>
-                                    <option value="leadership">Leadership</option>
-                                    <option value="academic">Academic</option>
-                                </Form.Select>
-                            </Form.Group>
-                        </Col>
                     </Row>
                     <Row>
                         <Col md={6}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Meeting Frequency</Form.Label>
                                 <Form.Select
-                                    value={formData.frequency}
-                                    onChange={(e) => setFormData({...formData, frequency: e.target.value})}
+                                    value={formData.meeting_frequency}
+                                    onChange={(e) => setFormData({...formData, meeting_frequency: e.target.value})}
                                 >
-                                    <option value="daily">Daily</option>
                                     <option value="weekly">Weekly</option>
                                     <option value="biweekly">Bi-weekly</option>
                                     <option value="monthly">Monthly</option>
                                     <option value="quarterly">Quarterly</option>
+                                    <option value="as_needed">As Needed</option>
                                 </Form.Select>
                             </Form.Group>
                         </Col>
                         <Col md={6}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Meeting Format</Form.Label>
-                                <Form.Select
-                                    value={formData.meeting_format}
-                                    onChange={(e) => setFormData({...formData, meeting_format: e.target.value})}
-                                >
-                                    <option value="virtual">Virtual</option>
-                                    <option value="in-person">In-person</option>
-                                    <option value="hybrid">Hybrid</option>
-                                </Form.Select>
-                            </Form.Group>
                         </Col>
                     </Row>
                     <Form.Group className="mb-3">
-                        <Form.Label>Goals</Form.Label>
+                        <Form.Label>Mentorship Goals</Form.Label>
                         <Form.Control
                             as="textarea"
                             rows={3}
-                            value={formData.goals}
-                            onChange={(e) => setFormData({...formData, goals: e.target.value})}
-                            placeholder="What are the goals for this mentorship relationship?"
+                            value={Array.isArray(formData.mentorship_goals) ? formData.mentorship_goals.join(', ') : (formData.mentorship_goals || "")}
+                            onChange={(e) => {
+                                const goalsText = e.target.value;
+                                const goalsArray = goalsText ? goalsText.split(',').map(g => g.trim()).filter(g => g) : null;
+                                setFormData({...formData, mentorship_goals: goalsArray});
+                            }}
+                            placeholder="Enter goals separated by commas (e.g., Career growth, Skill development, Networking)"
                         />
                     </Form.Group>
                     <Form.Group className="mb-3">
-                        <Form.Label>Notes</Form.Label>
+                        <Form.Label>Mentor Notes</Form.Label>
                         <Form.Control
                             as="textarea"
                             rows={3}
-                            value={formData.notes}
-                            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                            value={formData.mentor_notes || ""}
+                            onChange={(e) => setFormData({...formData, mentor_notes: e.target.value || null})}
                             placeholder="Additional notes about this mentorship relationship"
                         />
                     </Form.Group>

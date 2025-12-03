@@ -192,12 +192,33 @@ export default function NetworkEventForm({
                         >
                             {contacts.map(contact => (
                                 <option key={contact._id} value={contact._id}>
-                                    {contact.name} - {contact.employment?.company || 'No Company'}
+                                    {contact.name} - {contact.email}
                                 </option>
                             ))}
                         </Form.Select>
                         <Form.Text className="text-muted">
                             Select contacts you expect to meet at this event (hold Ctrl/Cmd to select multiple)
+                        </Form.Text>
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>New Connections Made</Form.Label>
+                        <Form.Select
+                            multiple
+                            value={formData.new_connections_made || []}
+                            onChange={(e) => {
+                                const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+                                setFormData({...formData, new_connections_made: selectedOptions});
+                            }}
+                            style={{ height: "120px" }}
+                        >
+                            {contacts.map(contact => (
+                                <option key={contact._id} value={contact._id}>
+                                    {contact.name} - {contact.email}
+                                </option>
+                            ))}
+                        </Form.Select>
+                        <Form.Text className="text-muted">
+                            Select contacts you actually connected with at this event (hold Ctrl/Cmd to select multiple)
                         </Form.Text>
                     </Form.Group>
                     <Form.Group className="mb-3">

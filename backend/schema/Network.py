@@ -20,8 +20,17 @@ class Employment(BaseModel):
 class InteractionRecord(BaseModel):
     """Track individual interactions with a contact"""
     date: Optional[str] = None
-    type: Optional[Literal["call", "email", "meeting", "message", "other"]] = None
+    type: Optional[Literal["call", "email", "meeting", "message", "event", "other"]] = None
     notes: Optional[str] = None
+
+class ContactEducation(BaseModel):
+    """Education information for network contacts"""
+    institution_name: Optional[str] = None
+    degree: Optional[str] = None
+    field_of_study: Optional[str] = None
+    graduation_date: Optional[str] = None
+    education_level: Optional[str] = None
+    achievements: Optional[str] = None
 
 class Contact(BaseModel):
     name: Optional[str] = None
@@ -29,6 +38,7 @@ class Contact(BaseModel):
     phone_numbers: Optional[Numbers] = None
     websites: Optional[Websites] = None
     employment: Optional[Employment] = None
+    education: Optional[ContactEducation] = None
     
     # UC-086: Relationship context and categorization
     relationship_type: Optional[Literal["colleague", "mentor", "mentee", "friend", "client", "recruiter", "other"]] = None

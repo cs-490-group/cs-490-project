@@ -69,10 +69,11 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import NetworkOverview from "./pages/network/NetworkOverview";
 import ReferralManagement from "./pages/network/ReferralManagement";
 import NetworkEventManagement from "./pages/network/NetworkEventManagement";
-import LinkedInIntegration from "./pages/network/LinkedInIntegration";
+import ContactDetail from "./pages/network/ContactDetail";
 import InformationalInterviewManagement from "./pages/network/InformationalInterviewManagement";
 import InterviewDetail from "./pages/network/InterviewDetail";
 import MentorshipManagement from "./pages/network/MentorshipManagement";
+import DiscoveryPage from "./pages/network/DiscoveryPage";
 
 // inside your router
 
@@ -167,11 +168,11 @@ export function App() {
               <Route path="/network" element={<NetworkOverview />} />
               <Route path="/network/referrals" element={<ReferralManagement />} />
               <Route path="/network/events" element={<NetworkEventManagement />} />
+              <Route path="/network/contact/:contactId" element={<ContactDetail />} />
               <Route path="/network/interviews" element={<InformationalInterviewManagement />} />
               <Route path="/network/interview/:interviewId" element={<InterviewDetail />} />
-              <Route path="/network/linkedin" element={<LinkedInIntegration />} />
               <Route path="/network/mentorship" element={<MentorshipManagement />} />
-              <Route path="/network/discovery" element={null} />
+              <Route path="/network/discovery" element={<DiscoveryPage />} />
               <Route path="/network/analytics" element={null} />
               </Routes>
             </JobProvider>

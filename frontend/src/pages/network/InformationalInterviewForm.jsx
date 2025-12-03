@@ -46,7 +46,7 @@ export default function InformationalInterviewForm({
                                     <option value="">Select a contact</option>
                                     {contacts.map(contact => (
                                         <option key={contact._id} value={contact._id}>
-                                            {contact.name}
+                                            {contact.name} - {contact.email}
                                         </option>
                                     ))}
                                 </Form.Select>

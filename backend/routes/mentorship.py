@@ -5,6 +5,7 @@ from mongo.mentorship_dao import mentorship_dao
 
 mentorship_router = APIRouter(prefix="/mentorship")
 
+
 @mentorship_router.post("", tags=["mentorship"])
 async def create_mentorship(mentorship: MentorshipRelationship, uuid: str = Depends(authorize)):
     try:
@@ -19,6 +20,30 @@ async def create_mentorship(mentorship: MentorshipRelationship, uuid: str = Depe
 async def get_all_mentorships(uuid: str = Depends(authorize)):
     try:
         results = await mentorship_dao.get_all_mentorships(uuid)
+        return results
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@mentorship_router.get("/mentors", tags=["mentorship"])
+async def get_mentors(uuid: str = Depends(authorize)):
+    try:
+        results = await mentorship_dao.get_mentors(uuid)
+        return results
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@mentorship_router.get("/mentees", tags=["mentorship"])
+async def get_mentees(uuid: str = Depends(authorize)):
+    try:
+        results = await mentorship_dao.get_mentees(uuid)
+        return results
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@mentorship_router.get("/active", tags=["mentorship"])
+async def get_active_mentorships(uuid: str = Depends(authorize)):
+    try:
+        results = await mentorship_dao.get_active_mentorships(uuid)
         return results
     except Exception as e:
         raise HTTPException(500, str(e))
@@ -50,30 +75,6 @@ async def delete_mentorship(mentorship_id: str, uuid: str = Depends(authorize)):
         if result == 0:
             raise HTTPException(404, "Mentorship not found")
         return {"detail": "Mentorship deleted successfully"}
-    except Exception as e:
-        raise HTTPException(500, str(e))
-
-@mentorship_router.get("/mentors", tags=["mentorship"])
-async def get_mentors(uuid: str = Depends(authorize)):
-    try:
-        results = await mentorship_dao.get_mentors(uuid)
-        return results
-    except Exception as e:
-        raise HTTPException(500, str(e))
-
-@mentorship_router.get("/mentees", tags=["mentorship"])
-async def get_mentees(uuid: str = Depends(authorize)):
-    try:
-        results = await mentorship_dao.get_mentees(uuid)
-        return results
-    except Exception as e:
-        raise HTTPException(500, str(e))
-
-@mentorship_router.get("/active", tags=["mentorship"])
-async def get_active_mentorships(uuid: str = Depends(authorize)):
-    try:
-        results = await mentorship_dao.get_active_mentorships(uuid)
-        return results
     except Exception as e:
         raise HTTPException(500, str(e))
 

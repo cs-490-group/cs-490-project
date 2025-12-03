@@ -49,6 +49,11 @@
     box-shadow: 0 0 10px rgba(13, 110, 253, 0.3);
 }
 
+.filter-input option {
+    background-color: #343a40 !important;
+    color: white !important;
+}
+
 .filter-clear-btn {
     background: rgba(220, 53, 69, 0.8);
     border: none;
@@ -262,8 +267,14 @@
 }
 
 .contact-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+.clickable-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
 }
 
 .contact-avatar {

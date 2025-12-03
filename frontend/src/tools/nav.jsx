@@ -65,25 +65,22 @@ const Nav = () => {
           
           // Always fetch fresh profile data including avatar
           try {
+            // Set default avatar immediately
+            setAvatarUrl("/default.png");
+            
+            // Fetch profile data first (critical for header)
             const profileRes = await ProfilesAPI.get();
             const newUsername = profileRes.data.username || "User";
             setUsername(newUsername);
             localStorage.setItem("username", newUsername);
             
-            // Try to get avatar, but don't fail if it doesn't exist
-            try {
-              const avatarRes = await ProfilesAPI.getAvatar();
-              const blob = avatarRes.data;
-              const url = URL.createObjectURL(blob);
-              if (url) {
+            // Fetch avatar in background to update when ready
+            ProfilesAPI.getAvatar()
+              .then(avatarRes => {
+                const blob = avatarRes.data;
+                const url = URL.createObjectURL(blob);
                 setAvatarUrl(url);
-              } else {
-                setAvatarUrl("/default.png");
-              }
-            } catch (avatarError) {
-              console.log("No avatar found, using default:", avatarError);
-              setAvatarUrl("/default.png");
-            }
+              })
           } catch (error) {
             console.error("Failed to load profile data:", error);
             setAvatarUrl("/default.png");

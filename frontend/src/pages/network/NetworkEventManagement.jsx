@@ -56,7 +56,7 @@ export default function NetworkEventManagement() {
                 NetworkEventsAPI.getAll(),
                 NetworksAPI.getAll()
             ]);
-            
+
             setEvents(eventsRes.data || []);
             setContacts(contactsRes.data || []);
         } catch (error) {
@@ -125,12 +125,12 @@ export default function NetworkEventManagement() {
         const eventEnd = new Date(`${event.event_date}T${event.end_time || '23:59'}`);
         const today = new Date();
         const eventDate = new Date(event.event_date);
-        
+
         // Exclude past events, current events, and later today events
         if (isPastEvent(event) || isCurrentlyOccurring(event) || isLaterToday(event)) {
             return false;
         }
-        
+
         // Only return true for future events (not today)
         return eventDate > today;
     };
@@ -139,22 +139,82 @@ export default function NetworkEventManagement() {
         const today = new Date();
         const eventLocalDate = toLocalDate(event.event_date);
         const eventDate = new Date(eventLocalDate);
-        
+
         // Check if event is today
         if (eventDate.toDateString() !== today.toDateString()) {
             return false;
         }
-        
+
         // Create full datetime objects for accurate comparison
         const eventDateTime = new Date(eventLocalDate);
         if (event.start_time) {
             const [hours, minutes] = event.start_time.split(':');
             eventDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
         }
-        
+
         const now = new Date();
         const isLater = eventDateTime > now;
         return isLater;
+    };
+
+    const createEventInteractions = async (event) => {
+        try {
+            console.log("Starting createEventInteractions with:", event);
+            // Create interaction entries for new connections made at the event
+            if (event.new_connections_made && event.new_connections_made.length > 0) {
+                console.log("Processing new connections:", event.new_connections_made);
+                for (const contactId of event.new_connections_made) {
+                    try {
+                        console.log("Processing contact:", contactId);
+                        // Get current contact data
+                        const contactResponse = await NetworksAPI.get(contactId);
+                        const contact = contactResponse.data.contact;
+                        console.log("Found contact:", contact.name);
+                        
+                        // Create interaction entry
+                        const interactionData = {
+                            date: event.event_date,
+                            type: "event",
+                            notes: `Met at ${event.event_name || 'networking event'}${event.location ? ` at ${event.location}` : ''}${event.industry ? ` (${event.industry} industry)` : ''}.`
+                        };
+                        console.log("Creating interaction:", interactionData);
+                        
+                        // Update contact's interaction history
+                        const updatedContact = { ...contact };
+                        updatedContact.interaction_history = updatedContact.interaction_history || [];
+                        
+                        // Check if this interaction already exists to avoid duplicates
+                        const existingInteraction = updatedContact.interaction_history.find(
+                            interaction => interaction.date === event.event_date && 
+                                          interaction.type === "event" && 
+                                          interaction.notes.includes(event.event_name || 'networking event')
+                        );
+                        
+                        if (!existingInteraction) {
+                            updatedContact.interaction_history.push(interactionData);
+                            updatedContact.last_interaction_date = event.event_date;
+                            
+                            // Sort interactions by date (most recent first)
+                            updatedContact.interaction_history.sort((a, b) => new Date(b.date) - new Date(a.date));
+                            
+                            console.log("Saving updated contact with new interaction");
+                            console.log("Contact data being sent:", updatedContact);
+                            // Save updated contact
+                            await NetworksAPI.update(contactId, updatedContact);
+                            console.log(`Successfully created event interaction for contact ${contactId}`);
+                        } else {
+                            console.log("Interaction already exists for this contact");
+                        }
+                    } catch (error) {
+                        console.error(`Failed to create interaction for contact ${contactId}:`, error);
+                    }
+                }
+            } else {
+                console.log("No new connections to process");
+            }
+        } catch (error) {
+            console.error("Failed to create event interactions:", error);
+        }
     };
 
     const handleAddOrUpdate = async () => {
@@ -169,11 +229,25 @@ export default function NetworkEventManagement() {
                 new_connections_made: formData.new_connections_made || [],
                 follow_up_actions: formData.follow_up_actions || []
             };
-            
+
             if (editing && editingEventId) {
                 await NetworkEventsAPI.update(editingEventId, dataToSend);
+                // Create interactions if event was attended and new connections were made
+                if (dataToSend.registration_status === "attended" && dataToSend.new_connections_made && dataToSend.new_connections_made.length > 0) {
+                    console.log("Creating event interactions for:", dataToSend);
+                    await createEventInteractions(dataToSend);
+                } else {
+                    console.log("Not creating interactions. Status:", dataToSend.registration_status, "Connections:", dataToSend.new_connections_made);
+                }
             } else {
                 await NetworkEventsAPI.add(dataToSend);
+                // Create interactions if event was attended and new connections were made
+                if (dataToSend.registration_status === "attended" && dataToSend.new_connections_made && dataToSend.new_connections_made.length > 0) {
+                    console.log("Creating event interactions for:", dataToSend);
+                    await createEventInteractions(dataToSend);
+                } else {
+                    console.log("Not creating interactions. Status:", dataToSend.registration_status, "Connections:", dataToSend.new_connections_made);
+                }
             }
             await fetchEvents();
             setShowModal(false);
@@ -272,7 +346,7 @@ export default function NetworkEventManagement() {
 
     const renderTimelineView = () => {
         const sortedEvents = filterEvents(events).sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
-        
+
         return (
             <div className="timeline-container">
                 {sortedEvents.map((event, index) => (
@@ -295,23 +369,23 @@ export default function NetworkEventManagement() {
                                         </Badge>
                                     </div>
                                 </div>
-                                
+
                                 <Card.Subtitle className="mb-2 text-muted">
                                     {event.location || "Virtual"}
                                 </Card.Subtitle>
-                                
+
                                 {event.industry && (
                                     <p className="mb-2"><strong>Industry:</strong> {event.industry}</p>
                                 )}
-                                
+
                                 {event.description && (
                                     <p className="mb-2">{event.description.substring(0, 150)}...</p>
                                 )}
-                                
+
                                 {event.cost > 0 && (
                                     <p className="mb-2"><strong>Cost:</strong> ${event.cost}</p>
                                 )}
-                                
+
                                 {event.networking_goals && event.networking_goals.length > 0 && (
                                     <div className="mb-2">
                                         <strong>Goals:</strong>
@@ -324,7 +398,7 @@ export default function NetworkEventManagement() {
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 {event.expected_contacts && event.expected_contacts.length > 0 && (
                                     <div className="mb-2">
                                         <strong>Expected Contacts:</strong>
@@ -340,7 +414,7 @@ export default function NetworkEventManagement() {
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 <div className="d-flex justify-content-end gap-2">
                                     <Button variant="outline-primary" size="sm" onClick={() => handleEdit(event)}>
                                         Edit
@@ -359,7 +433,7 @@ export default function NetworkEventManagement() {
 
     const renderCalendarView = () => {
         const filteredEvents = filterEvents(events);
-        
+
         const getDaysInMonth = (date) => {
             const year = date.getFullYear();
             const month = date.getMonth();
@@ -374,9 +448,9 @@ export default function NetworkEventManagement() {
 
         const getEventsForDate = (day) => {
             return filteredEvents.filter(event => {
-                return getLocalDay(event.event_date) === day && 
-                       getLocalMonth(event.event_date) === month && 
-                       getLocalYear(event.event_date) === year;
+                return getLocalDay(event.event_date) === day &&
+                    getLocalMonth(event.event_date) === month &&
+                    getLocalYear(event.event_date) === year;
             });
         };
 
@@ -389,7 +463,7 @@ export default function NetworkEventManagement() {
         const getEventTypeColor = (eventType) => {
             const colors = {
                 "conference": "#2196f3",
-                "meetup": "#4caf50", 
+                "meetup": "#4caf50",
                 "workshop": "#ff9800",
                 "webinar": "#9c27b0",
                 "social": "#607d8b",
@@ -400,7 +474,7 @@ export default function NetworkEventManagement() {
         };
 
         const monthNames = ["January", "February", "March", "April", "May", "June",
-                          "July", "August", "September", "October", "November", "December"];
+            "July", "August", "September", "October", "November", "December"];
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
         const calendarDays = [];
@@ -415,18 +489,15 @@ export default function NetworkEventManagement() {
             calendarDays.push(
                 <div
                     key={day}
-                    className={`calendar-day-cell ${
-                        isTodayCheck(day) 
-                            ? "calendar-day-cell-today" 
+                    className={`calendar-day-cell ${isTodayCheck(day)
+                            ? "calendar-day-cell-today"
                             : "calendar-day-cell-default"
-                    } ${
-                        hasEvents ? "calendar-day-cell-has-events" : ""
-                    }`}
+                        } ${hasEvents ? "calendar-day-cell-has-events" : ""
+                        }`}
                     style={{ cursor: hasEvents ? "pointer" : "default" }}
                 >
-                    <div className={`calendar-day-number ${
-                        isTodayCheck(day) ? "calendar-day-number-today" : ""
-                    }`}>
+                    <div className={`calendar-day-number ${isTodayCheck(day) ? "calendar-day-number-today" : ""
+                        }`}>
                         {day}
                     </div>
                     {hasEvents && (
@@ -502,7 +573,7 @@ export default function NetworkEventManagement() {
                             <span>Virtual</span>
                         </div>
                     </div>
-                    
+
                     <div className="calendar-legend-row">
                         <div className="calendar-legend-label">Calendar:</div>
                         <div className="calendar-legend-item">
@@ -536,17 +607,13 @@ export default function NetworkEventManagement() {
                 Networking Event Management
             </h1>
 
-            <Row>
-                <Col xs={12} className="mb-4">
-                    <div className="d-flex justify-content-center align-items-center gap-3">
-                        <Button onClick={() => { setShowModal(true); resetForm(); }}>
-                            + Add Event
-                        </Button>
-                    </div>
-                </Col>
+            <Row style={{ width:"fit-content", margin:"auto" }}>
+                <Button onClick={() => { setShowModal(true); resetForm(); }}>
+                    + Add Event
+                </Button>
             </Row>
 
-            <Row className="py-4" styles={{height:"fit-content"}}>
+            <Row className="py-4" styles={{ height: "fit-content" }}>
                 <Col xs={12} className="mb-4">
                     <div className="filter-section">
                         <h5 className="text-white mb-3">Filter Events</h5>
@@ -619,14 +686,14 @@ export default function NetworkEventManagement() {
                 <Col>
                     {filterEvents(events).length === 0 ? (
                         <p className="text-white">
-                            {Object.values(filterText).some(val => val !== "") 
-                                ? "No events match your search." 
+                            {Object.values(filterText).some(val => val !== "")
+                                ? "No events match your search."
                                 : "No networking events found. Start by adding one!"}
                         </p>
                     ) : (
                         <Row>
                             <Col lg={4} className="mb-4">
-                                <h5 className="text-white mb-3">Timeline View</h5>
+                                <h5 className="text-white mb-3">Event Timeline</h5>
                                 <div className="timeline-scroll-wrapper">
                                     <div className="timeline-scroll-container">
                                         {renderTimelineView()}
@@ -634,7 +701,7 @@ export default function NetworkEventManagement() {
                                 </div>
                             </Col>
                             <Col lg={8} className="mb-4">
-                                <h5 className="text-white mb-3">Calendar View</h5>
+                                <h5 className="text-white mb-3">Event Calendar</h5>
                                 {renderCalendarView()}
                             </Col>
                         </Row>

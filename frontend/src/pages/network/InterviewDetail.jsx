@@ -159,17 +159,21 @@ export default function InterviewDetail() {
                             </div>
 
                             <Row className="mb-4">
-                                <Col md={4}>
+                                <Col md={3}>
                                     <h6 className="text-muted">Requested Date</h6>
                                     <p>{interview.request_date || "—"}</p>
                                 </Col>
-                                <Col md={4}>
+                                <Col md={3}>
                                     <h6 className="text-muted">Scheduled Date</h6>
                                     <p>{interview.scheduled_date || "—"}</p>
                                 </Col>
-                                <Col md={4}>
-                                    <h6 className="text-muted">Duration</h6>
-                                    <p>{interview.duration_minutes || 30} minutes</p>
+                                <Col md={3}>
+                                    <h6 className="text-muted">Start Time</h6>
+                                    <p>{interview.start_time ? new Date(`2000-01-01T${interview.start_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' }) : "—"}</p>
+                                </Col>
+                                <Col md={3}>
+                                    <h6 className="text-muted">End Time</h6>
+                                    <p>{interview.end_time ? new Date(`2000-01-01T${interview.end_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' }) : "—"}</p>
                                 </Col>
                             </Row>
 

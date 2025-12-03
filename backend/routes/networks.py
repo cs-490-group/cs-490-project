@@ -3,6 +3,7 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import StreamingResponse
 from pymongo.errors import DuplicateKeyError
 from io import BytesIO
+from pathlib import Path
 
 from sessions.session_authorizer import authorize
 from schema.Network import Contact
@@ -90,7 +91,25 @@ async def download_avatar(contact_id: str, uuid: str = Depends(authorize)):
         raise HTTPException(500, str(e))
     
     if not media_ids:
-        raise HTTPException(400, "Could not find requested media")
+        # Return default profile picture if contact hasn't set one
+        default_image_path = Path(__file__).parent.parent.parent / "frontend" / "public" / "default.png"
+
+        if not default_image_path.exists():
+            raise HTTPException(500, "Default profile picture not found")
+
+        try:
+            with open(default_image_path, "rb") as f:
+                default_image_content = f.read()
+
+            return StreamingResponse(
+                BytesIO(default_image_content),
+                media_type="image/png",
+                headers={
+                    "Content-Disposition": 'inline; filename="default.png"'
+                }
+            )
+        except Exception as e:
+            raise HTTPException(500, "Could not load default profile picture")
     
     try:
         media = await media_dao.get_media(media_ids[-1])
@@ -98,7 +117,25 @@ async def download_avatar(contact_id: str, uuid: str = Depends(authorize)):
         raise HTTPException(500, str(e))
     
     if not media:
-        raise HTTPException(400, "Could not find requested media")
+        # Return default profile picture if media not found
+        default_image_path = Path(__file__).parent.parent.parent / "frontend" / "public" / "default.png"
+
+        if not default_image_path.exists():
+            raise HTTPException(500, "Default profile picture not found")
+
+        try:
+            with open(default_image_path, "rb") as f:
+                default_image_content = f.read()
+
+            return StreamingResponse(
+                BytesIO(default_image_content),
+                media_type="image/png",
+                headers={
+                    "Content-Disposition": 'inline; filename="default.png"'
+                }
+            )
+        except Exception as e:
+            raise HTTPException(500, "Could not load default profile picture")
 
     return StreamingResponse(
         BytesIO(media["contents"]),
@@ -127,6 +164,15 @@ async def update_avatar(contact_id: str, media: UploadFile, uuid: str = Depends(
         raise HTTPException(500, "Unable to update media")
     
     return {"detail": "Sucessfully updated file"}
+
+@networks_router.get("/discovery", tags = ["networks"])
+async def get_all_discovery_contacts(uuid: str = Depends(authorize)):
+    try:
+        results = await networks_dao.get_all_discovery_contacts(uuid)
+    except Exception as e:
+        raise HTTPException(500, str(e))
+    
+    return results
 
 @networks_router.delete("/avatar", tags = ["networks"])
 async def delete_avatar(contact_id: str, uuid: str = Depends(authorize)):
