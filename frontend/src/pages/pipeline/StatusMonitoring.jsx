@@ -63,20 +63,22 @@ export default function StatusMonitoring() {
   };
 
   const handleStatusUpdate = async (jobId, newStatus, notes = '') => {
-    try {
-      // Get current job to access status_history
-      const currentJob = jobs.find(j => j.id === jobId);
-      
-      // Build new status history entry
-      const newHistoryEntry = [newStatus.toLowerCase(), new Date().toISOString()];
-      const updatedHistory = [...(currentJob?.statusHistory || []), newHistoryEntry];
-      
-      // Update job status via API with complete history
-      await JobsAPI.update(jobId, { 
-        status: newStatus.charAt(0).toUpperCase() + newStatus.slice(1),
-        status_history: updatedHistory,
-        notes: notes 
-      });
+  try {
+    const currentJob = jobs.find(j => j.id === jobId);
+    
+    // Clean status string (remove any emojis or extra characters)
+    const cleanStatus = newStatus.toLowerCase().trim().replace(/[^\w\s]/g, '').trim();
+    
+    // Build new status history entry
+    const newHistoryEntry = [cleanStatus, new Date().toISOString()];
+    const updatedHistory = [...(currentJob?.statusHistory || []), newHistoryEntry];
+    
+    // Update job status via API with complete history
+    await JobsAPI.update(jobId, { 
+      status: cleanStatus.charAt(0).toUpperCase() + cleanStatus.slice(1),
+      status_history: updatedHistory,
+      notes: notes 
+    });
       
       // Reload jobs to get updated data
       await loadJobs();
@@ -92,18 +94,21 @@ export default function StatusMonitoring() {
   };
 
   const handleBulkStatusUpdate = async (newStatus, notes = '') => {
-    try {
-      const updatePromises = Array.from(selectedJobs).map(jobId => {
-        const currentJob = jobs.find(j => j.id === jobId);
-        const newHistoryEntry = [newStatus.toLowerCase(), new Date().toISOString()];
-        const updatedHistory = [...(currentJob?.statusHistory || []), newHistoryEntry];
-        
-        return JobsAPI.update(jobId, {
-          status: newStatus.charAt(0).toUpperCase() + newStatus.slice(1),
-          status_history: updatedHistory,
-          notes: notes
-        });
+  try {
+    // Clean status string (remove any emojis or extra characters)
+    const cleanStatus = newStatus.toLowerCase().trim().replace(/[^\w\s]/g, '').trim();
+    
+    const updatePromises = Array.from(selectedJobs).map(jobId => {
+      const currentJob = jobs.find(j => j.id === jobId);
+      const newHistoryEntry = [cleanStatus, new Date().toISOString()];
+      const updatedHistory = [...(currentJob?.statusHistory || []), newHistoryEntry];
+      
+      return JobsAPI.update(jobId, {
+        status: cleanStatus.charAt(0).toUpperCase() + cleanStatus.slice(1),
+        status_history: updatedHistory,
+        notes: notes
       });
+    });
 
       await Promise.all(updatePromises);
       await loadJobs();
