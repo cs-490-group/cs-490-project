@@ -27,15 +27,15 @@ export default function CoverLetterSharingPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // 1. Get Letter Data
+
       const res = await CoverLetterAPI.get(id);
       setLetter(res.data);
 
-      // 2. Get Feedback
+      
       const fbRes = await CoverLetterAPI.getFeedback(id);
       setFeedback(fbRes.data || []);
 
-      // 3. Check for existing link
+      
       try {
         const linkRes = await CoverLetterAPI.getShareLink(id);
         if (linkRes.data && linkRes.data.token) {
@@ -136,7 +136,7 @@ export default function CoverLetterSharingPage() {
   const handleResolve = async (fbId, currentStatus) => {
     try {
       await CoverLetterAPI.updateFeedback(id, fbId, { resolved: !currentStatus });
-      // Optimistic update
+     
       setFeedback(prev => prev.map(f => f._id === fbId ? { ...f, resolved: !currentStatus } : f));
     } catch (err) {
       console.error(err);

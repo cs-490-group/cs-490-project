@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Lock } from "lucide-react";
 import progressSharingAPI from "../../api/progressSharing";
+import FamilySupportView from './FamilySupportView';
 
 export default function SharedProgressView() {
   const { teamId, memberId, email } = useParams();
@@ -74,6 +75,10 @@ export default function SharedProgressView() {
         )}
       </div>
     );
+  }
+
+  if (report?.relationship_type === 'family' || report?.relationship_type === 'friend') {
+    return <FamilySupportView report={report} />;
   }
 
   return (
