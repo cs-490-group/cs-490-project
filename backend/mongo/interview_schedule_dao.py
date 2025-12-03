@@ -273,7 +273,7 @@ Handles business logic for UC-080 Interview Analytics
 """
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any, List
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from mongo.dao_setup import db_client
 
 
 class InterviewAnalyticsService:
