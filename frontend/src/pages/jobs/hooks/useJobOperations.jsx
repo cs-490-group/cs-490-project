@@ -18,6 +18,7 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
     companyData: job.company_data || null,
     company_news: job.company_news || null,
     company_research: job.company_research || null,
+    salary_negotiation: job.salary_negotiation || null,
     location: job.location,
     salary: job.salary,
     url: job.url,
@@ -106,10 +107,39 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
       const res = await JobsAPI.add(backendData);
 
       if (res && res.data.job_id) {
-        const newJob = {
+        // Use the full job object from backend if available, which includes all generated data
+        const backendJob = res.data.job;
+
+        const newJob = backendJob ? {
+          id: backendJob._id,
+          title: backendJob.title,
+          company: typeof backendJob.company === "string" ? backendJob.company : backendJob.company?.name,
+          companyData: backendJob.company_data || null,
+          company_news: backendJob.company_news || null,
+          company_research: backendJob.company_research || null,
+          salary_negotiation: backendJob.salary_negotiation || null,
+          location: backendJob.location,
+          salary: backendJob.salary,
+          url: backendJob.url,
+          deadline: backendJob.deadline,
+          industry: backendJob.industry,
+          job_type: backendJob.job_type,
+          description: backendJob.description,
+          status: backendJob.status,
+          archived: backendJob.archived || false,
+          notes: backendJob.notes,
+          contacts: backendJob.contacts,
+          salary_notes: backendJob.salary_notes,
+          interview_notes: backendJob.interview_notes,
+          status_history: backendJob.status_history || [],
+          materials: backendJob.materials || null,
+          materials_history: backendJob.materials_history || [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        } : {
           id: res.data.job_id,
           ...jobData,
-          company: jobData.company, 
+          company: jobData.company,
           companyData: jobData.companyData,
           jobType: jobData.job_type,
           salaryNotes: jobData.salary_notes,
@@ -118,7 +148,7 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
-        
+
         setJobs(prev => [...prev, newJob]);
       }
     } catch (error) {
