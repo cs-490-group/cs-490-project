@@ -205,7 +205,19 @@ export default function AddContact({ editing, addData, data, setData }) {
                         </Form.Group>
                         <Form.Group>
                             <Form.Label>Industry</Form.Label>
-                            <Form.Control type="text" placeholder="e.g., Software Engineering, Marketing" name="industry" value={data.industry || ""} onChange={updateData} />
+                            <Form.Select name="industry" value={data.industry || ""} onChange={updateData}>
+                                <option value="">Select Industry</option>
+                                <option value="Technology">Technology</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Healthcare">Healthcare</option>
+                                <option value="Education">Education</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Design">Design</option>
+                                <option value="Consulting">Consulting</option>
+                                <option value="Manufacturing">Manufacturing</option>
+                                <option value="Retail">Retail</option>
+                                <option value="Other">Other</option>
+                            </Form.Select>
                         </Form.Group>
                     </Accordion.Body>
                 </Accordion.Item>

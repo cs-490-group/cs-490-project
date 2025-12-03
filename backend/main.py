@@ -29,9 +29,13 @@ from routes.question_bank import question_bank_router
 from routes.mock_interview import mock_interview_router
 from routes.coaching import coaching_router
 from routes.networks import networks_router
-# from routes.referrals import referrals_router
-# from routes.network_events import network_events_router
-# from routes.network_analytics import network_analytics_router
+from routes.referrals import referrals_router
+from routes.network_events import network_events_router
+from routes.informational_interviews import informational_interviews_router
+from routes.mentorship import mentorship_router
+from routes.network_campaigns import network_campaigns_router
+from routes.professional_references import professional_references_router
+from routes.network_analytics import network_analytics_router
 
 app = FastAPI()
 
@@ -75,9 +79,13 @@ app.include_router(coaching_router, prefix = api_prefix)
 
 app.include_router(ai_router, prefix=api_prefix)
 app.include_router(networks_router, prefix = api_prefix)
-# app.include_router(referrals_router, prefix = api_prefix)
-# app.include_router(network_events_router, prefix = api_prefix)
-# app.include_router(network_analytics, prefix = api_prefix)
+app.include_router(referrals_router, prefix = api_prefix)
+app.include_router(network_events_router, prefix = api_prefix)
+app.include_router(informational_interviews_router, prefix = api_prefix)
+app.include_router(mentorship_router, prefix = api_prefix)
+app.include_router(network_campaigns_router, prefix = api_prefix)
+app.include_router(professional_references_router, prefix = api_prefix)
+app.include_router(network_analytics_router, prefix = api_prefix)
 
 @app.on_event("startup")
 async def startup_event():

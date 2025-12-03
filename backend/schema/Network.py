@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, Literal, List
 
 class Numbers(BaseModel):
-    primary: Optional[Literal["home", "work", "mobile"]] = None
+    primary: Optional[str] = None  # Fixed: should be string, not literal
     home: Optional[str] = None
     work: Optional[str] = None
     mobile: Optional[str] = None

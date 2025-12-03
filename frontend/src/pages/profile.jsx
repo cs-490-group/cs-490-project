@@ -43,11 +43,16 @@ export default function Profile() {
                 });
 
                 // Load avatar
-                const res = await ProfilesAPI.getAvatar();
-                const blob = res.data;
-                const url = URL.createObjectURL(blob);
-                if (url) {
-                    setAvatarUrl(url);
+                try {
+                    const res = await ProfilesAPI.getAvatar();
+                    const blob = res.data;
+                    const url = URL.createObjectURL(blob);
+                    if (url) {
+                        setAvatarUrl(url);
+                    }
+                } catch (avatarError) {
+                    console.log("No avatar found, using default");
+                    setAvatarUrl("/default.png");
                 }
             } catch (e) {
                 // setErr("Failed to load profile: " + (e.message || "Unknown error"));

@@ -7,8 +7,6 @@ import ProfilesAPI from "../api/profiles";
 
 
 const Nav = () => {
-  console.log("NAV RELOADING")
-  
   const navigate = useNavigate();
   const location = useLocation();
   const { showFlash } = useFlash();
@@ -19,19 +17,15 @@ const Nav = () => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
-  const [avatarUrl, setAvatarUrl] = React.useState(localStorage.getItem("avatarUrl") || null);
+  const [avatarUrl, setAvatarUrl] = React.useState(null);
   const [username, setUsername] = React.useState(localStorage.getItem("username") || "");
   const hasValidated = React.useRef(false);
-
-  console.log(token)
   React.useEffect(() => {
     const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword"];
 
     const shouldSkip = excludedPaths.some(prefix =>
       location.pathname.startsWith(prefix)
     );
-
-    console.log("ENTERING EFFECT")
     
     if (hasValidated.current) {
       return;
@@ -67,20 +61,25 @@ const Nav = () => {
             setUsername(cachedUsername);
           }
           
+          // Always fetch fresh profile data including avatar
           try {
-            if (!cachedUsername) {
-              const profileRes = await ProfilesAPI.get();
-              const newUsername = profileRes.data.username || "User";
-              setUsername(newUsername);
-              localStorage.setItem("username", newUsername);
-            }
+            const profileRes = await ProfilesAPI.get();
+            const newUsername = profileRes.data.username || "User";
+            setUsername(newUsername);
+            localStorage.setItem("username", newUsername);
             
-            const avatarRes = await ProfilesAPI.getAvatar();
-            const blob = avatarRes.data;
-            const url = URL.createObjectURL(blob);
-            if (url) {
-              setAvatarUrl(url);
-            } else {
+            // Try to get avatar, but don't fail if it doesn't exist
+            try {
+              const avatarRes = await ProfilesAPI.getAvatar();
+              const blob = avatarRes.data;
+              const url = URL.createObjectURL(blob);
+              if (url) {
+                setAvatarUrl(url);
+              } else {
+                setAvatarUrl("/default.png");
+              }
+            } catch (avatarError) {
+              console.log("No avatar found, using default:", avatarError);
               setAvatarUrl("/default.png");
             }
           } catch (error) {
@@ -135,6 +134,7 @@ const Nav = () => {
       
       if (newUsername) setUsername(newUsername);
       
+      // Only fetch new avatar if it's different from cached
       try {
         const avatarRes = await ProfilesAPI.getAvatar();
         const blob = avatarRes.data;
@@ -145,12 +145,15 @@ const Nav = () => {
             URL.revokeObjectURL(oldUrl);
           }
           setAvatarUrl(url);
+          localStorage.setItem("avatarUrl", url);
         } else {
           setAvatarUrl("/default.png");
+          localStorage.setItem("avatarUrl", "/default.png");
         }
       } catch (error) {
-        console.error("Failed to reload avatar:", error);
+        console.log("No avatar found, using default");
         setAvatarUrl("/default.png");
+        localStorage.setItem("avatarUrl", "/default.png");
       }
     };
 
@@ -164,6 +167,31 @@ const Nav = () => {
   const logout = async () => {
     const uuid = localStorage.getItem("uuid");
 
+    const handleLogout = async () => {
+      try {
+        await AuthAPI.logout();
+      } catch (error) {
+        showFlash(error.detail, "error");
+        console.error("Logout failed:", error);
+      }
+
+      // Clean up blob URL if exists
+      if (avatarUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarUrl);
+      }
+
+      localStorage.removeItem("uuid");
+      localStorage.removeItem("session");
+      localStorage.removeItem("username");
+      localStorage.removeItem("teamId");
+      setIsAuthenticated(false);
+      setAvatarUrl(null);
+      setUsername("");
+      hasValidated.current = false;
+      navigate("/");
+      window.scrollTo({ top: 0, behavior: "smooth" }); 
+    };
+
     try {
       await AuthAPI.logout();
       showFlash("Successfully Logged out", "success");
@@ -172,14 +200,7 @@ const Nav = () => {
       console.error("Logout failed:", error);
     }
 
-    const cachedAvatarUrl = localStorage.getItem("avatarUrl");
-    if (cachedAvatarUrl?.startsWith("blob:")) {
-      URL.revokeObjectURL(cachedAvatarUrl);
-    }
-
-    localStorage.removeItem("uuid");
-    localStorage.removeItem("session");
-    localStorage.removeItem("username");
+    handleLogout();
     localStorage.removeItem("teamId");
     setIsAuthenticated(false);
     setAvatarUrl(null);
@@ -287,22 +308,22 @@ const Nav = () => {
                   id="interview-dropdown"
                   className="mx-3"
                 >
-                  <NavDropdown.Item as={NavLink} to="/networks/referrals">
+                  <NavDropdown.Item as={NavLink} to="/network/referrals">
                     Referrals
                   </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/networks/events">
+                  <NavDropdown.Item as={NavLink} to="/network/events">
                     Events
                   </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/networks/interviews">
+                  <NavDropdown.Item as={NavLink} to="/network/interviews">
                     Interviews
                   </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/networks/mentorship">
+                  <NavDropdown.Item as={NavLink} to="/network/mentorship">
                     Mentorship
                   </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/networks/discovery">
+                  <NavDropdown.Item as={NavLink} to="/network/discovery">
                     Discovery
                   </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/networks/analytics">
+                  <NavDropdown.Item as={NavLink} to="/network/analytics">
                     Performance & Analytics
                   </NavDropdown.Item>
                 </NavDropdown>
@@ -351,8 +372,12 @@ const Nav = () => {
                       style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
                     >
                       <img
-                        src={avatarUrl || "/default.png"}
+                        src={avatarUrl}
                         alt="Profile"
+                        onError={(e) => {
+                          console.log("Avatar failed to load, falling back to default");
+                          e.target.src = "/default.png";
+                        }}
                         style={{
                           width: "24px",
                           height: "24px",
