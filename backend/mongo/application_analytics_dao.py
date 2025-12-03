@@ -415,5 +415,25 @@ class ApplicationAnalyticsDAO:
         )
         return result.matched_count
 
+    async def update_goal(self, goal_id: str, update_data: dict) -> int:
+        """Update a goal"""
+        from bson import ObjectId
+        
+        update_data["date_updated"] = datetime.now(timezone.utc)
+        
+        result = await self.analytics_collection.update_one(
+            {"_id": ObjectId(goal_id)},
+            {"$set": update_data}
+        )
+        return result.matched_count
+
+    async def delete_goal(self, goal_id: str) -> int:
+        """Delete a goal"""
+        from bson import ObjectId
+        
+        result = await self.analytics_collection.delete_one(
+            {"_id": ObjectId(goal_id)}
+        )
+        return result.deleted_count
 # Singleton instance
 application_analytics_dao = ApplicationAnalyticsDAO()
