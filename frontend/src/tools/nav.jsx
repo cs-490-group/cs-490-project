@@ -259,7 +259,11 @@ const Nav = () => {
                     Projects
                   </NavDropdown.Item>
                 </NavDropdown>
-
+                
+                <BootstrapNav.Link as={NavLink} to="/pipeline-management" className="mx-3">
+                  App Pipeline
+                </BootstrapNav.Link>
+                
                 <BootstrapNav.Link as={NavLink} to="/jobs" className="mx-3">
                   Jobs
                 </BootstrapNav.Link>

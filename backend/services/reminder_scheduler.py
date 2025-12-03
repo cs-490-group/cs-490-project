@@ -146,9 +146,9 @@ async def check_and_send_reminders():
         
         #print(f"\n{'='*80}")
         if reminders_sent > 0:
-            print(f"✅ INTERVIEW REMINDER CHECK COMPLETE - Sent {reminders_sent} reminder(s)")
+            print("\033[92m✅ INTERVIEW REMINDER CHECK COMPLETE - Sent {} reminder(s)\033[0m".format(reminders_sent))
         else:
-            print(f"✓ INTERVIEW REMINDER CHECK COMPLETE - No reminders sent")
+            print("\033[92m✓ INTERVIEW REMINDER CHECK COMPLETE - No reminders sent\033[0m")
         #print(f"{'='*80}\n")
             
     except Exception as e:

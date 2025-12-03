@@ -7,8 +7,9 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
 from mongo.resumes_dao import resumes_dao
+from mongo.jobs_dao import jobs_dao
 from sessions.session_authorizer import authorize
-from schema.Resume import Resume, ResumeVersion, ResumeFeedback, ResumeShare
+from schema.Resume import Resume, ResumeVersion, ResumeFeedback, ResumeShare,ApprovalRequest
 from services.resume_validator import ResumeValidator
 from services.ai_generator import AIGenerator
 from services.html_pdf_generator import HTMLPDFGenerator
@@ -610,3 +611,82 @@ async def export_resume_pdf(resume_id: str, uuid: str = Depends(authorize)):
         import traceback
         traceback.print_exc()
         raise HTTPException(500, f"Failed to export resume PDF: {str(e)}")
+    
+@resumes_router.post("/public/{token}/status", tags=["resumes"])
+async def set_public_resume_status(token: str, request: ApprovalRequest):
+    """Allow a reviewer to set approval status"""
+    resume = await resumes_dao.get_resume_by_share_token(token)
+    if not resume:
+        raise HTTPException(400, "Invalid token")
+    
+    # Check permissions (reuse comment permission or assume reviewers can approve)
+    if not resume.get("share_settings", {}).get("can_comment"):
+        raise HTTPException(403, "Reviewer permissions disabled")
+
+    await resumes_dao.update_approval_status(resume["_id"], request.status)
+    return {"detail": f"Status updated to {request.status}"}
+
+@resumes_router.get("/analytics/impact", tags=["resumes"])
+async def get_review_impact_stats(uuid: str = Depends(authorize)):
+    """
+    compares succsess of review and non-reviewed resumes.
+    """
+    try:
+        jobs = await jobs_dao.get_all_jobs(uuid)
+        resumes = await resumes_dao.get_all_resumes(uuid)
+        
+        # Create a map for each resume's status.
+        # Resume is "Reviewed" if it is approved OR has feedback
+        resume_status = {}
+        for r in resumes:
+            r_id = str(r["_id"])
+            # Check if approved
+            is_approved = r.get("approval_status") == "approved"
+            
+            # Check if has feedback (need to check feedback collection)
+            feedback = await resumes_dao.get_resume_feedback(r_id)
+            has_feedback = len(feedback) > 0
+            
+            resume_status[r_id] = is_approved or has_feedback
+
+        reviewed_stats = {"total": 0, "success": 0}   # Interview or Offer
+        unreviewed_stats = {"total": 0, "success": 0}
+        
+        for job in jobs:
+            # Check if job has a linked resume
+            materials = job.get("materials", {})
+            if not materials or not materials.get("resume_id"):
+                continue
+                
+            rid = materials.get("resume_id")
+            is_success = job.get("status") in ["Interview", "Offer"]
+            
+            if resume_status.get(rid):
+                reviewed_stats["total"] += 1
+                if is_success: reviewed_stats["success"] += 1
+            else:
+                unreviewed_stats["total"] += 1
+                if is_success: unreviewed_stats["success"] += 1
+                
+
+        def calc_rate(stats):
+            if stats["total"] == 0: return 0
+            return round((stats["success"] / stats["total"]) * 100, 1)
+
+        return {
+            "reviewed": {
+                "count": reviewed_stats["total"],
+                "success_rate": calc_rate(reviewed_stats),
+                "interviews": reviewed_stats["success"]
+            },
+            "unreviewed": {
+                "count": unreviewed_stats["total"],
+                "success_rate": calc_rate(unreviewed_stats),
+                "interviews": unreviewed_stats["success"]
+            },
+            "lift": calc_rate(reviewed_stats) - calc_rate(unreviewed_stats)
+        }
+
+    except Exception as e:
+        print(f"Error calculating impact: {e}")
+        raise HTTPException(500, str(e))

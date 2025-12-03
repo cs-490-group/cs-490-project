@@ -25,6 +25,8 @@ import JobsList from "./pages/jobs/JobList";
 import OffersPage from "./pages/offers/OffersPage";
 import CoverLetter from "./pages/coverLetter/coverLetter";
 import CoverLetterEditPage from "./pages/coverLetter/CoverLetterEditPage";
+import CoverLetterSharingPage from "./pages/coverLetter/CoverLetterSharingPage";
+import PublicCoverLetterPage from "./pages/coverLetter/PublicCoverLetterPage";
 import ResumeList from "./pages/resumes/ResumeList";
 import ResumeEditor from "./pages/resumes/ResumeEditor";
 import ResumePreviewPage from "./pages/resumes/ResumePreviewPage";
@@ -58,6 +60,7 @@ import CaseStudyChallenges from './pages/TechnicalPrep/CaseStudyChallenges';
 import ChallengeWorkspace from './pages/TechnicalPrep/ChallengeWorkspace';
 import ChallengeResults from './pages/TechnicalPrep/ChallengeResults';
 import WhiteboardingTips from './pages/TechnicalPrep/WhiteboardingTips';
+import PipelineManagement from './pages/pipeline/PipelineManagement';
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -102,6 +105,8 @@ export function App() {
                 <Route path = "/resetPassword/:token" element = {<ResetPassword />}/>
                 <Route path = "/cover-Letter" element = {<CoverLetter />} />
                 <Route path="/cover-letter/edit/:id" element={<CoverLetterEditPage />} />
+                <Route path="/cover-letter/feedback/:id" element={<CoverLetterSharingPage />} />
+                <Route path="/cover-letter/public/:token" element={<PublicCoverLetterPage />} />
 
               <Route path="/skills" element={<SkillsList />} />
               <Route path="/education" element={<EducationList />} />
@@ -150,6 +155,7 @@ export function App() {
               <Route path="/technical-prep/whiteboarding" element={<WhiteboardingTips />} />
               <Route path="/technical-prep/challenge/:challengeId" element={<ChallengeWorkspace />} />
               <Route path="/technical-prep/results/:attemptId" element={<ChallengeResults />} />
+              <Route path="/pipeline-management" element={<PipelineManagement />} />
               </Routes>
             </JobProvider>
             </FlashProvider>
