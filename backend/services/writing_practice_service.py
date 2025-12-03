@@ -1,11 +1,14 @@
 """
 Writing Practice Service
-Analyzes written responses for quality, structure, and provides feedback
+Analyzes written responses for quality, structure, and provides feedback using AI
 """
 
 import re
+import os
+import json
 from typing import Dict, List, Any
 from collections import Counter
+from openai import OpenAI
 
 
 class WritingPracticeService:
@@ -388,3 +391,377 @@ class WritingPracticeService:
             "trend": "improving" if score_diff > 5 else "stable" if score_diff > -5 else "declining",
             "attempt_number": len(previous_analyses) + 1
         }
+
+    # ============ OPENAI ENHANCED ANALYSIS (UC-084) ============
+
+    @staticmethod
+    async def analyze_with_ai(response_text: str, question: str, question_category: str = "general") -> Dict[str, Any]:
+        """
+        Analyze response using OpenAI for enhanced feedback
+        Falls back to manual analysis if AI fails
+        """
+        try:
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+            # Get manual analysis first (quick baseline)
+            manual_analysis = WritingPracticeService.analyze_response_quality(response_text, question_category)
+
+            # Create AI prompt for enhanced analysis
+            prompt = f"""Analyze this interview response and provide detailed feedback.
+
+Question: {question}
+Response: {response_text}
+
+Provide analysis in JSON format with these exact fields:
+{{
+  "clarity_score": <0-100>,
+  "professionalism_score": <0-100>,
+  "structure_analysis": "<2-3 sentences about structure>",
+  "storytelling_effectiveness": <0-100>,
+  "star_compliance": {{"has_situation": boolean, "has_task": boolean, "has_action": boolean, "has_result": boolean}},
+  "strengths": ["<strength1>", "<strength2>", "<strength3>"],
+  "improvement_suggestions": ["<suggestion1>", "<suggestion2>", "<suggestion3>"],
+  "overall_feedback": "<2-3 sentences of encouraging feedback>",
+  "engagement_level": <0-100>
+}}"""
+
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert interview coach analyzing written responses. Provide constructive, encouraging feedback in valid JSON format."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                max_tokens=1000,
+                temperature=0.7,
+            )
+
+            response_text_ai = response.choices[0].message.content.strip()
+
+            # Parse AI response
+            try:
+                ai_feedback = json.loads(response_text_ai)
+            except json.JSONDecodeError:
+                # If JSON parsing fails, return manual analysis with note
+                manual_analysis["ai_feedback_available"] = False
+                manual_analysis["note"] = "Using standard analysis (AI parsing failed)"
+                return manual_analysis
+
+            # Merge AI insights with manual analysis
+            merged = {
+                **manual_analysis,
+                "clarity_score": ai_feedback.get("clarity_score", manual_analysis["clarity_score"]),
+                "professionalism_score": ai_feedback.get("professionalism_score", manual_analysis["professionalism_score"]),
+                "structure_analysis": ai_feedback.get("structure_analysis", ""),
+                "storytelling_effectiveness": ai_feedback.get("storytelling_effectiveness", 75),
+                "star_compliance": ai_feedback.get("star_compliance", {}),
+                "overall_feedback": ai_feedback.get("overall_feedback", ""),
+                "engagement_level": ai_feedback.get("engagement_level", 75),
+                "ai_feedback_available": True,
+                "strengths": ai_feedback.get("strengths", manual_analysis["strengths"]),
+                "specific_suggestions": ai_feedback.get("improvement_suggestions", manual_analysis["specific_suggestions"]),
+            }
+
+            return merged
+
+        except Exception as e:
+            print(f"AI analysis error: {e}, falling back to manual analysis")
+            # Fall back to manual analysis
+            analysis = WritingPracticeService.analyze_response_quality(response_text, question_category)
+            analysis["ai_feedback_available"] = False
+            analysis["note"] = "Using standard analysis (AI unavailable)"
+            return analysis
+
+    @staticmethod
+    def get_nerves_management_exercises() -> List[Dict[str, Any]]:
+        """
+        Provide exercises for managing interview nerves before writing practice
+        """
+        return [
+            {
+                "id": "breathing",
+                "title": "Box Breathing Exercise",
+                "duration_seconds": 60,
+                "description": "Calm your nervous system with structured breathing",
+                "instructions": [
+                    "Breathe in for 4 counts",
+                    "Hold for 4 counts",
+                    "Exhale for 4 counts",
+                    "Hold for 4 counts",
+                    "Repeat 4 times"
+                ],
+                "benefits": "Reduces anxiety and improves focus"
+            },
+            {
+                "id": "confidence_reframe",
+                "title": "Confidence Reframing",
+                "duration_seconds": 90,
+                "description": "Shift negative thoughts to positive ones",
+                "prompts": [
+                    "I've prepared well for this",
+                    "This is an opportunity to showcase my skills",
+                    "I have valuable experiences to share",
+                    "I can think on my feet and handle this",
+                    "My authentic voice is my strength"
+                ],
+                "benefits": "Build mental confidence and positivity"
+            },
+            {
+                "id": "warmup_drill",
+                "title": "Quick Warm-up Writing Drill",
+                "duration_seconds": 120,
+                "description": "Get your thoughts flowing with a quick exercise",
+                "prompt": "Describe a time you solved a problem in 1-2 minutes",
+                "benefits": "Primes your mind for structured responses"
+            },
+            {
+                "id": "power_pose",
+                "title": "Power Pose Exercise",
+                "duration_seconds": 30,
+                "description": "Build confidence through body language",
+                "instructions": [
+                    "Stand with feet shoulder-width apart",
+                    "Put your hands on your hips or raise arms in victory",
+                    "Hold for 30 seconds",
+                    "Feel the confidence building"
+                ],
+                "benefits": "Increases confidence and reduces stress hormones"
+            }
+        ]
+
+    @staticmethod
+    def get_writing_tips() -> Dict[str, List[str]]:
+        """
+        Provide tips for crafting engaging written responses
+        """
+        return {
+            "engagement_techniques": [
+                "Open with a specific, relevant detail or example",
+                "Use active voice instead of passive voice",
+                "Include quantifiable results (numbers, percentages)",
+                "Create a narrative arc with clear beginning, middle, end",
+                "Use specific action verbs (led, implemented, developed)",
+                "Connect your answer to the company or role when possible"
+            ],
+            "strong_openers": [
+                "\"In my previous role...\"",
+                "\"When faced with...\"",
+                "\"The situation required...\"",
+                "\"I learned that...\"",
+                "\"Our team accomplished...\"",
+                "\"I took initiative to...\"",
+                "\"The challenge taught me...\"",
+                "\"By leveraging my skills in...\"",
+            ],
+            "memorable_finishes": [
+                "Highlight the impact or lesson learned",
+                "Relate back to the job description",
+                "Show growth or future application",
+                "End with enthusiasm or confidence",
+                "Summarize key accomplishment or skill",
+                "Connect to company values or mission"
+            ],
+            "dos": [
+                "✓ Be specific with examples and numbers",
+                "✓ Show clear problem-solving approach",
+                "✓ Demonstrate relevant skills for the role",
+                "✓ Use the STAR method for behavioral questions",
+                "✓ Show enthusiasm and genuine interest",
+                "✓ Keep responses concise (75-150 words)",
+                "✓ Practice speaking your answer aloud"
+            ],
+            "donts": [
+                "✗ Avoid generic answers that could apply anywhere",
+                "✗ Don't use passive voice or be vague",
+                "✗ Avoid rambling or going off-topic",
+                "✗ Don't be overly self-deprecating",
+                "✗ Avoid filler words (like, um, uh, just, really)",
+                "✗ Don't focus only on failures without lessons",
+                "✗ Avoid speaking too fast or running out of breath"
+            ],
+            "avoiding_rambling": [
+                "State your main point in the first sentence",
+                "Use transitional phrases: first, then, finally",
+                "Limit each section to 2-3 sentences max",
+                "Check word count - aim for 75-150 words",
+                "Practice your answer multiple times",
+                "Record yourself and listen for unnecessary details"
+            ]
+        }
+
+    @staticmethod
+    def generate_improvement_checklist(analysis: Dict[str, Any], communication_style: str = "direct") -> List[Dict[str, Any]]:
+        """
+        Generate a checklist of specific improvements based on analysis
+        """
+        checklist = []
+
+        # Content improvements
+        if analysis.get("overall_score", 0) < 70:
+            checklist.append({
+                "category": "Content",
+                "item": "Add more specific, quantifiable examples",
+                "priority": "high",
+                "why": "Concrete details make answers more compelling"
+            })
+
+        # Structure improvements
+        if analysis.get("structure_score", 0) < 75:
+            if "behavioral" in str(analysis.get("question_category", "")).lower():
+                checklist.append({
+                    "category": "Structure",
+                    "item": "Follow STAR framework more clearly",
+                    "priority": "high",
+                    "why": "STAR structure is expected for behavioral questions"
+                })
+
+        # Clarity improvements
+        if analysis.get("clarity_score", 0) < 75:
+            checklist.append({
+                "category": "Clarity",
+                "item": "Use more transition words between ideas",
+                "priority": "medium",
+                "why": "Transitions help listeners follow your logic"
+            })
+
+        # Length improvements
+        word_count = analysis.get("word_count", 0)
+        if word_count < 75:
+            checklist.append({
+                "category": "Completeness",
+                "item": "Expand your answer with more details",
+                "priority": "medium",
+                "why": "75-150 words gives you space to explain fully"
+            })
+        elif word_count > 200:
+            checklist.append({
+                "category": "Conciseness",
+                "item": "Cut unnecessary details and filler words",
+                "priority": "medium",
+                "why": "Concise answers show focused thinking"
+            })
+
+        # Professionalism improvements
+        if analysis.get("professionalism_score", 0) < 80:
+            checklist.append({
+                "category": "Tone",
+                "item": "Replace contractions with formal language",
+                "priority": "low",
+                "why": "Professional tone is expected in interviews"
+            })
+
+        # Engagement improvements
+        if analysis.get("engagement_level", 0) < 70:
+            checklist.append({
+                "category": "Engagement",
+                "item": "Make your opening hook more compelling",
+                "priority": "medium",
+                "why": "A strong opening captures immediate attention"
+            })
+
+        # Practice reminder
+        checklist.append({
+            "category": "Practice",
+            "item": "Practice speaking this answer aloud",
+            "priority": "high",
+            "why": "Written and spoken delivery require different skills"
+        })
+
+        # Communication style specific tips
+        if communication_style == "technical":
+            checklist.append({
+                "category": "Style",
+                "item": "Balance technical terms with clear explanations",
+                "priority": "medium",
+                "why": "Clarity matters more than jargon"
+            })
+        elif communication_style == "narrative":
+            checklist.append({
+                "category": "Style",
+                "item": "Strengthen the story arc and emotional connection",
+                "priority": "medium",
+                "why": "Stories are memorable and engaging"
+            })
+
+        return checklist
+
+    @staticmethod
+    def generate_detailed_comparison(current_analysis: Dict[str, Any], previous_analyses: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Generate detailed comparison between practice sessions
+        Returns side-by-side improvements and trends
+        """
+        if not previous_analyses:
+            return {
+                "can_compare": False,
+                "message": "This is your first attempt - no previous sessions to compare",
+                "recommendation": "Complete more practice sessions to track your improvement"
+            }
+
+        latest_previous = previous_analyses[0]
+
+        # Calculate improvements
+        clarity_improvement = current_analysis.get("clarity_score", 0) - latest_previous.get("clarity_score", 0)
+        professionalism_improvement = current_analysis.get("professionalism_score", 0) - latest_previous.get("professionalism_score", 0)
+        structure_improvement = current_analysis.get("structure_score", 0) - latest_previous.get("structure_score", 0)
+        overall_improvement = current_analysis.get("overall_score", 0) - latest_previous.get("overall_score", 0)
+
+        comparison = {
+            "can_compare": True,
+            "comparison_with_last_attempt": {
+                "clarity": {
+                    "previous": round(latest_previous.get("clarity_score", 0), 2),
+                    "current": round(current_analysis.get("clarity_score", 0), 2),
+                    "improvement": round(clarity_improvement, 2),
+                    "improved": clarity_improvement > 0,
+                    "status": "↑ Improved" if clarity_improvement > 5 else "→ Stable" if clarity_improvement > -5 else "↓ Declined"
+                },
+                "professionalism": {
+                    "previous": round(latest_previous.get("professionalism_score", 0), 2),
+                    "current": round(current_analysis.get("professionalism_score", 0), 2),
+                    "improvement": round(professionalism_improvement, 2),
+                    "improved": professionalism_improvement > 0,
+                    "status": "↑ Improved" if professionalism_improvement > 5 else "→ Stable" if professionalism_improvement > -5 else "↓ Declined"
+                },
+                "structure": {
+                    "previous": round(latest_previous.get("structure_score", 0), 2),
+                    "current": round(current_analysis.get("structure_score", 0), 2),
+                    "improvement": round(structure_improvement, 2),
+                    "improved": structure_improvement > 0,
+                    "status": "↑ Improved" if structure_improvement > 5 else "→ Stable" if structure_improvement > -5 else "↓ Declined"
+                },
+                "overall": {
+                    "previous": round(latest_previous.get("overall_score", 0), 2),
+                    "current": round(current_analysis.get("overall_score", 0), 2),
+                    "improvement": round(overall_improvement, 2),
+                    "improved": overall_improvement > 0,
+                    "status": "↑ Improved" if overall_improvement > 5 else "→ Stable" if overall_improvement > -5 else "↓ Declined"
+                }
+            },
+            "highlights": [],
+            "areas_to_focus": []
+        }
+
+        # Add highlights
+        if clarity_improvement > 5:
+            comparison["highlights"].append("Great improvement in clarity!")
+        if structure_improvement > 5:
+            comparison["highlights"].append("Your structure is getting much better!")
+        if overall_improvement > 5:
+            comparison["highlights"].append("Overall strong improvement - keep it up!")
+
+        # Add areas to focus
+        if clarity_improvement < -5:
+            comparison["areas_to_focus"].append("Clarity seems to have slipped - remember your transition words")
+        if structure_improvement < -5:
+            comparison["areas_to_focus"].append("Try to maintain the structure framework you've been working on")
+
+        if not comparison["highlights"]:
+            comparison["highlights"].append("You're maintaining your strong performance")
+
+        return comparison
