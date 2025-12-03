@@ -57,6 +57,7 @@ import SystemDesignChallenges from './pages/TechnicalPrep/SystemDesignChallenges
 import CaseStudyChallenges from './pages/TechnicalPrep/CaseStudyChallenges';
 import ChallengeWorkspace from './pages/TechnicalPrep/ChallengeWorkspace';
 import ChallengeResults from './pages/TechnicalPrep/ChallengeResults';
+import WhiteboardingTips from './pages/TechnicalPrep/WhiteboardingTips';
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -146,6 +147,7 @@ export function App() {
               <Route path="/technical-prep/coding" element={<CodingChallenges />} />
               <Route path="/technical-prep/system-design" element={<SystemDesignChallenges />} />
               <Route path="/technical-prep/case-study" element={<CaseStudyChallenges />} />
+              <Route path="/technical-prep/whiteboarding" element={<WhiteboardingTips />} />
               <Route path="/technical-prep/challenge/:challengeId" element={<ChallengeWorkspace />} />
               <Route path="/technical-prep/results/:attemptId" element={<ChallengeResults />} />
               </Routes>

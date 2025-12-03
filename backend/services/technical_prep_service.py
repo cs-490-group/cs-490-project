@@ -1,6 +1,6 @@
 import json
 import random
-import cohere
+import openai
 import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
@@ -241,10 +241,265 @@ return []
         "challenge_type": "coding",
         "source": "template",
         "tags": ["string", "sliding-window", "hash-set"]
+    },
+    {
+        "title": "Merge k Sorted Lists",
+        "description": "Merge k sorted linked lists and return it as one sorted list.",
+        "difficulty": "hard",
+        "required_languages": ["Python", "JavaScript", "Java"],
+        "required_skills": ["Linked Lists", "Heap", "Divide and Conquer"],
+        "time_limit_minutes": 45,
+        "constraints": ["k >= 0", "n (total nodes) <= 10^4"],
+        "coding_challenge": {
+            "title": "Merge k Sorted Lists",
+            "description": "Merge k sorted linked lists and return it as one sorted list.",
+            "difficulty": "hard",
+            "required_languages": ["Python", "JavaScript", "Java"],
+            "required_skills": ["Linked Lists", "Heap", "Divide and Conquer"],
+            "time_limit_minutes": 45,
+            "test_cases": [
+                {"input": {"lists": [[1,4,5], [1,3,4], [2,6]]}, "expected_output": [1,1,2,1,3,4,4,5,6], "description": "Multiple sorted lists"},
+                {"input": {"lists": []}, "expected_output": [], "description": "Empty input"},
+            ],
+            "solution_framework": {
+                "title": "Merge k Sorted Lists using Min Heap",
+                "overview": "Use a min heap to efficiently merge k sorted lists in O(n log k) time",
+                "steps": [
+                    "Create a min heap with first element of each list",
+                    "Pop minimum element, add to result",
+                    "Push next element from same list to heap",
+                    "Repeat until heap is empty"
+                ],
+                "time_complexity": "O(n log k) where n is total nodes, k is number of lists",
+                "space_complexity": "O(k) for the heap",
+                "common_mistakes": [
+                    "Using brute force O(n log n) merge",
+                    "Not properly managing heap state",
+                    "Null pointer handling for linked lists"
+                ],
+                "alternative_approaches": [
+                    "Pair-wise merging: O(n log k)",
+                    "Compare one by one: O(nk)"
+                ],
+                "real_world_correlation": "Database query result merging, external sorting",
+                "whiteboard_checklist": [
+                    "Understand linked list structure",
+                    "Explain min heap operations",
+                    "Discuss time/space tradeoffs"
+                ]
+            }
+        },
+        "challenge_type": "coding",
+        "source": "template",
+        "tags": ["linked-list", "heap", "hard"]
+    },
+    {
+        "title": "Median of Two Sorted Arrays",
+        "description": "Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays.",
+        "difficulty": "hard",
+        "required_languages": ["Python", "JavaScript", "Java"],
+        "required_skills": ["Arrays", "Binary Search", "Math"],
+        "time_limit_minutes": 45,
+        "constraints": ["nums1.length == m", "nums2.length == n", "0 <= m <= 1000", "0 <= n <= 1000"],
+        "coding_challenge": {
+            "title": "Median of Two Sorted Arrays",
+            "description": "Given two sorted arrays, return the median of the two sorted arrays.",
+            "difficulty": "hard",
+            "required_languages": ["Python", "JavaScript", "Java"],
+            "required_skills": ["Arrays", "Binary Search", "Math"],
+            "time_limit_minutes": 45,
+            "test_cases": [
+                {"input": {"nums1": [1,3], "nums2": [2]}, "expected_output": 2.0, "description": "Odd total length"},
+                {"input": {"nums1": [1,2], "nums2": [3,4]}, "expected_output": 2.5, "description": "Even total length"},
+            ],
+            "solution_framework": {
+                "title": "Binary Search on Partition",
+                "overview": "Use binary search to find the correct partition point in one array",
+                "steps": [
+                    "Binary search on the smaller array",
+                    "Find partition point where left side has equal elements as right side",
+                    "Calculate median from partition boundaries",
+                    "Handle edge cases for odd/even lengths"
+                ],
+                "time_complexity": "O(log(min(m, n)))",
+                "space_complexity": "O(1)",
+                "common_mistakes": [
+                    "Incorrect partition logic",
+                    "Not handling odd/even cases",
+                    "Off-by-one errors in binary search"
+                ],
+                "alternative_approaches": [
+                    "Merge arrays: O(m+n)",
+                    "Two pointers: O(m+n)"
+                ],
+                "real_world_correlation": "Statistical analysis, data aggregation",
+                "whiteboard_checklist": [
+                    "Clarify input constraints",
+                    "Explain binary search invariant",
+                    "Discuss partition concept"
+                ]
+            }
+        },
+        "challenge_type": "coding",
+        "source": "template",
+        "tags": ["array", "binary-search", "hard"]
+    },
+    {
+        "title": "Serialize and Deserialize Binary Tree",
+        "description": "Design an algorithm to serialize and deserialize a binary tree.",
+        "difficulty": "hard",
+        "required_languages": ["Python", "Java"],
+        "required_skills": ["Binary Trees", "DFS/BFS", "Design"],
+        "time_limit_minutes": 40,
+        "constraints": ["Tree nodes <= 10^4", "Node values in range [-1000, 1000]"],
+        "coding_challenge": {
+            "title": "Serialize and Deserialize Binary Tree",
+            "description": "Design an algorithm to serialize and deserialize a binary tree.",
+            "difficulty": "hard",
+            "required_languages": ["Python", "Java"],
+            "required_skills": ["Binary Trees", "DFS/BFS", "Design"],
+            "time_limit_minutes": 40,
+            "test_cases": [
+                {"input": {"root": [1,2,3,None,None,4,5]}, "expected_output": [1,2,3,None,None,4,5], "description": "Complete binary tree"},
+            ],
+            "solution_framework": {
+                "title": "DFS-based Serialization",
+                "overview": "Use pre-order traversal to serialize and deserialize",
+                "steps": [
+                    "Serialize: Pre-order DFS with null markers",
+                    "Store in comma-separated string format",
+                    "Deserialize: Reconstruct from string using queue",
+                    "Build tree recursively"
+                ],
+                "time_complexity": "O(n) for both operations",
+                "space_complexity": "O(n) for string/recursion stack",
+                "common_mistakes": [
+                    "Not handling null nodes properly",
+                    "Incorrect reconstruction logic",
+                    "Not handling edge cases (empty tree)"
+                ],
+                "alternative_approaches": [
+                    "Level-order (BFS) serialization",
+                    "Post-order traversal"
+                ],
+                "real_world_correlation": "Cache serialization, data persistence",
+                "whiteboard_checklist": [
+                    "Choose serialization format",
+                    "Handle null nodes consistently",
+                    "Verify with examples"
+                ]
+            }
+        },
+        "challenge_type": "coding",
+        "source": "template",
+        "tags": ["binary-tree", "design", "hard"]
+    },
+    {
+        "title": "LRU Cache",
+        "description": "Design and implement an LRU (Least Recently Used) cache.",
+        "difficulty": "medium",
+        "required_languages": ["Python", "Java", "JavaScript"],
+        "required_skills": ["Hash Maps", "Linked Lists", "Design"],
+        "time_limit_minutes": 40,
+        "constraints": ["1 <= capacity <= 3000"],
+        "coding_challenge": {
+            "title": "LRU Cache",
+            "description": "Design and implement an LRU cache with get and put operations.",
+            "difficulty": "medium",
+            "required_languages": ["Python", "Java", "JavaScript"],
+            "required_skills": ["Hash Maps", "Linked Lists", "Design"],
+            "time_limit_minutes": 40,
+            "test_cases": [
+                {"input": {"ops": ["put", "put", "get", "put", "get", "get"], "args": [[1,1], [2,2], [1], [3,3], [2], [3]]}, "expected_output": [1, -1, 3], "description": "LRU eviction"},
+            ],
+            "solution_framework": {
+                "title": "Hash Map + Doubly Linked List",
+                "overview": "Combine hash map for O(1) access with doubly linked list for O(1) eviction",
+                "steps": [
+                    "Use hash map for O(1) node lookup",
+                    "Use doubly linked list for O(1) removal/insertion",
+                    "Most recently used at head, least at tail",
+                    "On access, move node to head",
+                    "On full cache, evict tail node"
+                ],
+                "time_complexity": "O(1) for both get and put",
+                "space_complexity": "O(capacity)",
+                "common_mistakes": [
+                    "Not updating access order on get",
+                    "Incorrect eviction logic",
+                    "Off-by-one in capacity management"
+                ],
+                "alternative_approaches": [
+                    "OrderedDict in Python",
+                    "Python's functools.lru_cache"
+                ],
+                "real_world_correlation": "CPU caches, web caching, database buffer pools",
+                "whiteboard_checklist": [
+                    "Clarify get/put behavior",
+                    "Discuss eviction policy",
+                    "Analyze time/space complexity"
+                ]
+            }
+        },
+        "challenge_type": "coding",
+        "source": "template",
+        "tags": ["design", "hash-map", "linked-list", "medium"]
+    },
+    {
+        "title": "Regular Expression Matching",
+        "description": "Implement regular expression matching with '.' and '*' support.",
+        "difficulty": "hard",
+        "required_languages": ["Python", "Java"],
+        "required_skills": ["Dynamic Programming", "Strings"],
+        "time_limit_minutes": 45,
+        "constraints": ["s.length <= 20", "p.length <= 30"],
+        "coding_challenge": {
+            "title": "Regular Expression Matching",
+            "description": "Implement regex matching with '.' (any character) and '*' (zero or more of preceding)",
+            "difficulty": "hard",
+            "required_languages": ["Python", "Java"],
+            "required_skills": ["Dynamic Programming", "Strings"],
+            "time_limit_minutes": 45,
+            "test_cases": [
+                {"input": {"s": "aa", "p": "a"}, "expected_output": False, "description": "Partial match"},
+                {"input": {"s": "aa", "p": "a*"}, "expected_output": True, "description": "Star matching"},
+                {"input": {"s": "ab", "p": ".*"}, "expected_output": True, "description": "Dot star"},
+            ],
+            "solution_framework": {
+                "title": "Dynamic Programming Solution",
+                "overview": "Use 2D DP table to track valid matches",
+                "steps": [
+                    "Create DP table where dp[i][j] = s[0:i] matches p[0:j]",
+                    "Base cases: empty string and empty pattern",
+                    "Handle '*' patterns (zero matches vs one/more matches)",
+                    "Handle '.' patterns (wildcard matching)"
+                ],
+                "time_complexity": "O(m * n) where m=len(s), n=len(p)",
+                "space_complexity": "O(m * n) for DP table",
+                "common_mistakes": [
+                    "Incorrect '*' handling (should match zero occurrences)",
+                    "Not properly initializing DP table",
+                    "Confusing pattern matching logic"
+                ],
+                "alternative_approaches": [
+                    "Recursive with memoization",
+                    "Bottom-up DP approach"
+                ],
+                "real_world_correlation": "Text editors, validation systems, compilers",
+                "whiteboard_checklist": [
+                    "Clarify wildcard behavior",
+                    "Draw DP table on example",
+                    "Walk through transitions"
+                ]
+            }
+        },
+        "challenge_type": "coding",
+        "source": "template",
+        "tags": ["dp", "string", "hard"]
     }
 ]
 
-# System design questions templates
+# System design questions templates - Senior level complex questions
 SYSTEM_DESIGN_TEMPLATES = [
     {
         "title": "Design a URL Shortening Service",
@@ -307,10 +562,264 @@ SYSTEM_DESIGN_TEMPLATES = [
         },
         "source": "template",
         "tags": ["distributed-systems", "database-design", "scalability"]
+    },
+    {
+        "title": "Design a Real-time Notification System",
+        "challenge_type": "system_design",
+        "difficulty": "senior",
+        "required_skills": ["Message Queues", "Real-time Systems", "Scalability"],
+        "time_limit_minutes": 60,
+        "system_design": {
+            "title": "Design a Real-time Notification System",
+            "prompt": "Design a notification system that can handle millions of users receiving notifications in real-time. Support multiple notification channels (email, SMS, push notifications, in-app).",
+            "difficulty": "senior",
+            "required_skills": ["Message Queues", "Real-time Systems", "Scalability", "Event Processing"],
+            "time_limit_minutes": 60,
+            "architecture_focus": ["Latency", "Throughput", "Reliability", "Scalability"],
+            "evaluation_metrics": {
+                "Throughput": "1M notifications/second",
+                "End-to-end latency": "< 1 second p99",
+                "Delivery guarantee": "At least once"
+            },
+            "diagram_requirements": [
+                "System architecture with message queues",
+                "Notification flow diagram",
+                "Consumer worker architecture"
+            ],
+            "solution_framework": {
+                "title": "Real-time Notification Architecture",
+                "overview": "Event-driven architecture with message queues for decoupling and scalability",
+                "steps": [
+                    "Design notification API endpoints",
+                    "Implement message queue (Kafka/RabbitMQ) for event buffering",
+                    "Create consumer workers for each notification channel",
+                    "Implement retry logic with exponential backoff",
+                    "Design notification template system",
+                    "Track notification delivery status",
+                    "Implement rate limiting per user/channel"
+                ],
+                "time_complexity": "O(1) enqueue, O(n) processing for n notifications",
+                "common_mistakes": [
+                    "Synchronous notification sending causing cascading failures",
+                    "No retry mechanism leading to lost notifications",
+                    "Duplicate notifications without idempotency",
+                    "No rate limiting causing spam"
+                ],
+                "alternative_approaches": [
+                    "Pull-based vs push-based delivery",
+                    "Batch processing vs real-time",
+                    "Webhook notifications"
+                ],
+                "real_world_correlation": "Companies like Uber, Airbnb use similar notification systems",
+                "whiteboard_checklist": [
+                    "Clarify notification types and channels",
+                    "Define delivery guarantees",
+                    "Discuss failure scenarios",
+                    "Plan for scale and latency"
+                ]
+            },
+            "follow_up_questions": [
+                "How do you prevent duplicate notifications?",
+                "How do you handle failed delivery and retries?",
+                "How do you prioritize urgent notifications?"
+            ]
+        },
+        "source": "template",
+        "tags": ["message-queues", "event-driven", "real-time"]
+    },
+    {
+        "title": "Design a Distributed Rate Limiter",
+        "challenge_type": "system_design",
+        "difficulty": "senior",
+        "required_skills": ["Distributed Systems", "Algorithms", "Data Structures"],
+        "time_limit_minutes": 50,
+        "system_design": {
+            "title": "Design a Distributed Rate Limiter",
+            "prompt": "Design a rate limiting system that can enforce rate limits across multiple servers. Support different rate limiting strategies (Token Bucket, Sliding Window).",
+            "difficulty": "senior",
+            "required_skills": ["Distributed Systems", "Algorithms", "Redis", "Concurrency"],
+            "time_limit_minutes": 50,
+            "architecture_focus": ["Consistency", "Scalability", "Latency"],
+            "evaluation_metrics": {
+                "Accuracy": "Zero false positives",
+                "Latency": "< 10ms p99",
+                "QPS": "100K requests/second"
+            },
+            "diagram_requirements": [
+                "Rate limiter architecture",
+                "Data flow diagram"
+            ],
+            "solution_framework": {
+                "title": "Distributed Rate Limiter Design",
+                "overview": "Using Redis for shared state across distributed rate limiters",
+                "steps": [
+                    "Choose rate limiting algorithm (Token Bucket recommended)",
+                    "Use Redis for distributed state management",
+                    "Implement atomic operations with Lua scripts",
+                    "Design sliding window approach for accuracy",
+                    "Handle clock skew and synchronization",
+                    "Implement fallback strategies for Redis failures"
+                ],
+                "time_complexity": "O(1) per request with Redis",
+                "common_mistakes": [
+                    "Using client-side only rate limiting (easy to bypass)",
+                    "Not handling distributed scenarios",
+                    "Clock skew causing rate limit inaccuracies",
+                    "No fallback for cache failures"
+                ],
+                "alternative_approaches": [
+                    "Token Bucket vs Sliding Window vs Leaky Bucket",
+                    "Centralized vs Distributed rate limiter",
+                    "Local cache with sync vs pure Redis"
+                ],
+                "real_world_correlation": "Used by AWS, Stripe, GitHub APIs",
+                "whiteboard_checklist": [
+                    "Define rate limit requirements",
+                    "Discuss distribution strategy",
+                    "Plan for edge cases and failures",
+                    "Consider multi-dimensional limits"
+                ]
+            },
+            "follow_up_questions": [
+                "How do you handle different rate limits for different users?",
+                "How do you sync rate limits across regions?",
+                "What happens if Redis goes down?"
+            ]
+        },
+        "source": "template",
+        "tags": ["distributed-systems", "algorithms", "redis"]
+    },
+    {
+        "title": "Design a Video Streaming Service",
+        "challenge_type": "system_design",
+        "difficulty": "senior",
+        "required_skills": ["Streaming", "CDN", "Scalability"],
+        "time_limit_minutes": 60,
+        "system_design": {
+            "title": "Design a Video Streaming Service",
+            "prompt": "Design a system like YouTube or Netflix that allows users to upload and stream videos. Consider different video qualities and bitrates.",
+            "difficulty": "senior",
+            "required_skills": ["Streaming", "CDN", "Scalability", "Data Processing"],
+            "time_limit_minutes": 60,
+            "architecture_focus": ["Scalability", "Bandwidth", "User Experience"],
+            "evaluation_metrics": {
+                "Concurrent streams": "Millions",
+                "Upload throughput": "100k videos/day",
+                "Streaming latency": "< 2 seconds"
+            },
+            "diagram_requirements": [
+                "Upload/processing pipeline",
+                "Streaming architecture with CDN",
+                "Transcoding workflow"
+            ],
+            "solution_framework": {
+                "title": "Video Streaming Architecture",
+                "overview": "Distributed system with transcoding, storage, CDN, and playback optimization",
+                "steps": [
+                    "Design upload API and storage (S3/blob storage)",
+                    "Implement video transcoding pipeline (multiple bitrates)",
+                    "Use CDN for global content distribution",
+                    "Implement adaptive bitrate streaming (HLS/DASH)",
+                    "Design metadata database schema",
+                    "Implement streaming service with quality selection"
+                ],
+                "time_complexity": "Upload: O(file_size), Streaming: O(1)",
+                "common_mistakes": [
+                    "No transcoding leading to poor user experience",
+                    "Not using CDN causing bandwidth bottlenecks",
+                    "Synchronous transcoding blocking upload response",
+                    "No adaptive bitrate causing buffering"
+                ],
+                "alternative_approaches": [
+                    "Synchronous vs asynchronous transcoding",
+                    "HLS vs DASH streaming protocols",
+                    "Multiple CDN strategy"
+                ],
+                "real_world_correlation": "YouTube, Netflix, Twitch all use similar architecture",
+                "whiteboard_checklist": [
+                    "Clarify video formats and qualities",
+                    "Discuss transcoding strategy",
+                    "Plan CDN distribution",
+                    "Estimate bandwidth and storage"
+                ]
+            },
+            "follow_up_questions": [
+                "How do you optimize for different network speeds?",
+                "How do you handle video processing queue?",
+                "How do you implement resume for failed uploads?"
+            ]
+        },
+        "source": "template",
+        "tags": ["streaming", "cdn", "media-processing"]
+    },
+    {
+        "title": "Design a Microservices E-commerce Platform",
+        "challenge_type": "system_design",
+        "difficulty": "senior",
+        "required_skills": ["Microservices", "Distributed Transactions", "Scalability"],
+        "time_limit_minutes": 60,
+        "system_design": {
+            "title": "Design a Microservices E-commerce Platform",
+            "prompt": "Design an e-commerce platform (like Amazon) using microservices architecture. Handle order processing, inventory, payment, and shipping.",
+            "difficulty": "senior",
+            "required_skills": ["Microservices", "Distributed Transactions", "Scalability", "API Design"],
+            "time_limit_minutes": 60,
+            "architecture_focus": ["Service Independence", "Consistency", "Scalability"],
+            "evaluation_metrics": {
+                "Order throughput": "10K orders/second",
+                "Inventory consistency": "Strong",
+                "Payment success rate": "> 99%"
+            },
+            "diagram_requirements": [
+                "Microservices architecture diagram",
+                "Order processing flow",
+                "Data consistency strategy"
+            ],
+            "solution_framework": {
+                "title": "E-commerce Microservices Architecture",
+                "overview": "Service-oriented architecture with event-driven inter-service communication",
+                "steps": [
+                    "Identify microservices (Product, Order, Payment, Inventory, Shipping)",
+                    "Design API contracts for each service",
+                    "Implement event-driven communication (Kafka/RabbitMQ)",
+                    "Handle distributed transactions using Saga pattern",
+                    "Design inventory management with optimistic locking",
+                    "Implement payment retry logic",
+                    "Design service discovery and load balancing"
+                ],
+                "time_complexity": "Varies by operation",
+                "common_mistakes": [
+                    "Tight coupling between services",
+                    "Synchronous communication causing cascading failures",
+                    "Not handling service failures/timeouts",
+                    "Duplicate order processing without idempotency",
+                    "No compensation logic for failed transactions"
+                ],
+                "alternative_approaches": [
+                    "Saga pattern (choreography vs orchestration)",
+                    "Event sourcing for order history",
+                    "CQRS for read-heavy inventory views"
+                ],
+                "real_world_correlation": "Amazon, eBay, Shopify use microservices",
+                "whiteboard_checklist": [
+                    "Define service boundaries",
+                    "Plan inter-service communication",
+                    "Design failure recovery",
+                    "Address data consistency"
+                ]
+            },
+            "follow_up_questions": [
+                "How do you maintain inventory consistency?",
+                "How do you handle payment failures?",
+                "How do you implement distributed transactions?"
+            ]
+        },
+        "source": "template",
+        "tags": ["microservices", "distributed-systems", "event-driven"]
     }
 ]
 
-# Case study templates
+# Case study templates - Consulting and Business Roles
 CASE_STUDY_TEMPLATES = [
     {
         "title": "Market Sizing: Streaming Service Growth",
@@ -350,8 +859,182 @@ CASE_STUDY_TEMPLATES = [
         },
         "source": "template",
         "tags": ["market-sizing", "business-strategy"]
+    },
+    {
+        "title": "Operational Efficiency: Retail Store Optimization",
+        "challenge_type": "case_study",
+        "difficulty": "medium",
+        "industry": "Retail",
+        "case_study": {
+            "title": "Operational Efficiency: Retail Store Optimization",
+            "scenario": "A major retail chain is experiencing declining sales and wants to optimize store operations",
+            "industry": "Retail",
+            "company_size": "Enterprise (5000+ stores)",
+            "problem_statement": "How would you increase store profitability by 20% within 12 months while maintaining customer satisfaction?",
+            "constraints": [
+                "Limited capital expenditure budget",
+                "Must maintain current workforce",
+                "No major supply chain changes allowed"
+            ],
+            "data_provided": {
+                "average_store_sales_per_year": 5000000,
+                "labor_cost_percentage": 0.25,
+                "inventory_turnover": 6,
+                "customer_satisfaction_score": 75,
+                "average_transaction_value": 45
+            },
+            "questions": [
+                "Identify 3-4 areas for operational improvement",
+                "Quantify potential savings/revenue improvements",
+                "Prioritize initiatives by impact and feasibility",
+                "Outline implementation timeline and risks"
+            ],
+            "evaluation_criteria": [
+                "Financial acumen",
+                "Structured problem solving",
+                "Business insight",
+                "Practical implementation thinking"
+            ]
+        },
+        "source": "template",
+        "tags": ["operations", "business-strategy", "efficiency"]
+    },
+    {
+        "title": "Business Strategy: Market Entry",
+        "challenge_type": "case_study",
+        "difficulty": "hard",
+        "industry": "Strategy",
+        "case_study": {
+            "title": "Business Strategy: Market Entry for SaaS Product",
+            "scenario": "A successful SaaS company in the US wants to expand to European markets",
+            "industry": "Software/SaaS",
+            "company_size": "Mid-market (500 employees)",
+            "problem_statement": "Develop a go-to-market strategy for entering 3 major European markets. Budget: $10M. Timeline: 18 months.",
+            "constraints": [
+                "Limited local partnerships",
+                "Regulatory complexity (GDPR, etc)",
+                "Different buyer behaviors",
+                "Currency and payment complexities"
+            ],
+            "data_provided": {
+                "current_annual_revenue": 50000000,
+                "us_customer_base": 2000,
+                "average_customer_value": 25000,
+                "churn_rate": 0.08,
+                "growth_rate": 0.35
+            },
+            "questions": [
+                "Which 3 European markets should we prioritize and why?",
+                "What's the revenue potential in each market over 3 years?",
+                "Should we build a local sales team or use partners?",
+                "How do we handle regulatory and localization challenges?"
+            ],
+            "evaluation_criteria": [
+                "Strategic thinking",
+                "Market understanding",
+                "Risk analysis",
+                "Execution planning"
+            ]
+        },
+        "source": "template",
+        "tags": ["market-entry", "strategy", "international-business"]
+    },
+    {
+        "title": "Investment Decision: Acquisition Analysis",
+        "challenge_type": "case_study",
+        "difficulty": "hard",
+        "industry": "Finance",
+        "case_study": {
+            "title": "Investment Decision: Company Acquisition Analysis",
+            "scenario": "Your company is considering acquiring a competitor. Finance team wants your perspective on whether it's a good deal.",
+            "industry": "Any/General",
+            "company_size": "Enterprise",
+            "problem_statement": "Evaluate the acquisition of Company X for $500M. Recommended maximum price?",
+            "constraints": [
+                "Due diligence in 30 days",
+                "Market pressures (competitor making same bid)",
+                "Integration complexity",
+                "Regulatory approval uncertainty"
+            ],
+            "data_provided": {
+                "target_annual_revenue": 100000000,
+                "target_ebitda_margin": 0.30,
+                "growth_rate": 0.20,
+                "acquirer_revenue": 500000000,
+                "acquirer_ebitda_margin": 0.35,
+                "synergy_estimates": 50000000
+            },
+            "questions": [
+                "Calculate a valuation range using multiple methods",
+                "Estimate integration costs and timeline",
+                "Identify key synergies and risks",
+                "Recommend maximum acceptable price and payment structure"
+            ],
+            "evaluation_criteria": [
+                "Financial modeling",
+                "Strategic vision",
+                "Risk assessment",
+                "Deal structuring knowledge"
+            ]
+        },
+        "source": "template",
+        "tags": ["finance", "m-and-a", "investment"]
     }
 ]
+
+
+# Job role to challenge mapping for targeted interview prep
+JOB_ROLE_MAPPINGS = {
+    "software_engineer": {
+        "coding_skills": ["Arrays", "Hash Maps", "Strings", "Linked Lists", "Trees"],
+        "challenge_types": ["coding"],
+        "difficulties": ["easy", "medium"],
+        "description": "Focus on core data structures and algorithms"
+    },
+    "senior_software_engineer": {
+        "coding_skills": ["Trees", "Graphs", "Dynamic Programming", "Design"],
+        "system_design_focus": ["Scalability", "Availability", "Consistency"],
+        "challenge_types": ["coding", "system_design"],
+        "difficulties": ["medium", "hard"],
+        "description": "Advanced algorithms and system design"
+    },
+    "frontend_engineer": {
+        "coding_skills": ["JavaScript", "React", "Design Patterns", "Browser APIs"],
+        "challenge_types": ["coding"],
+        "difficulties": ["easy", "medium"],
+        "description": "Front-end specific algorithms and optimization"
+    },
+    "backend_engineer": {
+        "coding_skills": ["Database Design", "APIs", "Concurrency", "Distributed Systems"],
+        "system_design_focus": ["Scalability", "Performance", "Reliability"],
+        "challenge_types": ["coding", "system_design"],
+        "difficulties": ["medium", "hard"],
+        "description": "Backend systems, databases, and distributed computing"
+    },
+    "data_engineer": {
+        "coding_skills": ["SQL", "Data Processing", "ETL", "Distributed Systems"],
+        "system_design_focus": ["Data Pipeline", "Scalability", "Reliability"],
+        "challenge_types": ["coding", "system_design"],
+        "difficulties": ["medium", "hard"],
+        "description": "Data pipeline design and optimization"
+    },
+    "ml_engineer": {
+        "coding_skills": ["Python", "Statistics", "Machine Learning", "Data Structures"],
+        "challenge_types": ["coding", "case_study"],
+        "difficulties": ["medium", "hard"],
+        "description": "Machine learning algorithms and data handling"
+    },
+    "product_manager": {
+        "challenge_types": ["case_study", "system_design"],
+        "difficulties": ["medium", "hard"],
+        "description": "Product strategy, market analysis, and business thinking"
+    },
+    "management_consultant": {
+        "challenge_types": ["case_study"],
+        "difficulties": ["hard"],
+        "description": "Business strategy, operations, and financial analysis"
+    }
+}
 
 
 class TechnicalPrepService:
@@ -387,6 +1070,54 @@ class TechnicalPrepService:
                 unique_challenges.append(c)
 
         return unique_challenges[:limit]
+
+    async def get_job_role_recommendations(
+        self,
+        uuid: str,
+        job_role: str,
+        limit: int = 15
+    ) -> Dict[str, Any]:
+        """Get personalized challenge recommendations based on job role"""
+        if job_role not in JOB_ROLE_MAPPINGS:
+            return {
+                "error": f"Unknown job role: {job_role}",
+                "available_roles": list(JOB_ROLE_MAPPINGS.keys())
+            }
+
+        role_config = JOB_ROLE_MAPPINGS[job_role]
+        challenges = {
+            "coding": [],
+            "system_design": [],
+            "case_study": []
+        }
+
+        # Get challenges for each allowed type
+        for challenge_type in role_config.get("challenge_types", []):
+            try:
+                if challenge_type == "coding":
+                    # Get challenges with recommended difficulties
+                    for difficulty in role_config.get("difficulties", ["medium"]):
+                        type_challenges = await technical_prep_dao.get_challenges_by_difficulty(
+                            difficulty, limit=5
+                        )
+                        challenges["coding"].extend(type_challenges)
+                else:
+                    # For system_design and case_study
+                    type_challenges = await technical_prep_dao.get_challenges_by_type(
+                        challenge_type, limit=10
+                    )
+                    challenges[challenge_type].extend(type_challenges)
+            except Exception as e:
+                print(f"Error fetching {challenge_type} challenges: {e}")
+
+        return {
+            "success": True,
+            "job_role": job_role,
+            "role_description": role_config.get("description"),
+            "recommended_skills": role_config.get("coding_skills", []),
+            "challenges": challenges,
+            "total_challenges": sum(len(v) for v in challenges.values())
+        }
 
     async def generate_coding_challenge(
         self,
@@ -605,7 +1336,7 @@ class TechnicalPrepService:
         )
 
     async def _run_tests(self, challenge: Dict[str, Any], code: str, language: str) -> List[Dict[str, Any]]:
-        """Run tests against submitted code using Cohere"""
+        """Run tests against submitted code using OpenAI"""
         test_cases = []
 
         if challenge.get("challenge_type") == "coding":
@@ -614,20 +1345,37 @@ class TechnicalPrepService:
 
         # Run tests
         results = []
-        co = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        rate_limited = False
 
         for i, test in enumerate(test_cases):
             try:
+                # If we hit rate limit, mark remaining tests as skipped
+                if rate_limited:
+                    results.append({
+                        "test_number": i + 1,
+                        "input": test.get("input", {}),
+                        "expected": test.get("expected_output"),
+                        "actual": "Skipped due to API rate limit",
+                        "passed": False,
+                        "description": test.get("description", f"Test {i + 1}")
+                    })
+                    continue
+
                 test_input = test.get("input", {})
                 expected_output = test.get("expected_output")
 
                 # Create prompt to execute code
                 execution_prompt = self._create_execution_prompt(code, language, test_input)
 
-                # Call Cohere to execute code
-                response = co.chat(
-                    model="command-r-plus-04-2024",
+                # Call OpenAI to execute code
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
                     messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a code execution assistant. Execute the provided code with the given inputs and return ONLY the output value, nothing else."
+                        },
                         {
                             "role": "user",
                             "content": execution_prompt
@@ -637,7 +1385,7 @@ class TechnicalPrepService:
                     temperature=0,
                 )
 
-                actual_output_text = response.message.content[0].text.strip() if response.message.content else ""
+                actual_output_text = response.choices[0].message.content.strip() if response.choices else ""
 
                 # Try to parse and compare output
                 passed = self._compare_outputs(actual_output_text, expected_output, language)
@@ -651,11 +1399,19 @@ class TechnicalPrepService:
                     "description": test.get("description", f"Test {i + 1}")
                 })
             except Exception as e:
+                error_str = str(e)
+                # Check if it's a rate limit error
+                if "429" in error_str or "rate_limit_exceeded" in error_str or "RateLimitError" in error_str:
+                    rate_limited = True
+                    error_msg = "API rate limit reached. Unable to execute remaining tests."
+                else:
+                    error_msg = f"Execution error: {error_str[:100]}"
+
                 results.append({
                     "test_number": i + 1,
                     "input": test.get("input", {}),
                     "expected": test.get("expected_output"),
-                    "actual": f"Error: {str(e)}",
+                    "actual": error_msg,
                     "passed": False,
                     "description": test.get("description", f"Test {i + 1}")
                 })
@@ -663,7 +1419,7 @@ class TechnicalPrepService:
         return results
 
     def _create_execution_prompt(self, code: str, language: str, test_input: Dict[str, Any]) -> str:
-        """Create a prompt for Cohere to execute code"""
+        """Create a prompt for OpenAI to execute code"""
         # Convert test input to function arguments
         if isinstance(test_input, dict):
             args_str = ", ".join([f"{k}={json.dumps(v)}" for k, v in test_input.items()])
@@ -737,6 +1493,7 @@ Output:"""
             coding = challenge.get("coding_challenge", {})
             example_input = coding.get("example_input", "")
             example_output = coding.get("example_output", "")
+            solution_framework = coding.get("solution_framework", {})
 
             # Create prompt for Cohere
             prompt = f"""Generate a clean, well-commented {language.capitalize()} solution for this coding problem:
@@ -758,12 +1515,16 @@ Requirements:
 
 Solution:"""
 
-            # Call Cohere API with error handling
+            # Call OpenAI API with error handling
             try:
-                co = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
-                response = co.chat(
-                    model="command-r-plus-04-2024",
+                openai.api_key = os.getenv("OPENAI_API_KEY")
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
                     messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an expert programming instructor. Provide clean, well-commented code solutions."
+                        },
                         {
                             "role": "user",
                             "content": prompt
@@ -773,27 +1534,45 @@ Solution:"""
                     temperature=0.7,
                 )
 
-                solution_code = response.message.content[0].text.strip() if response.message.content else ""
-            except Exception as cohere_error:
-                # If Cohere API fails (rate limit, etc), return template solution if available
-                if coding.get("solution_framework", {}).get("solution_code", {}).get(language):
-                    solution_code = coding["solution_framework"]["solution_code"][language]
+                solution_code = response.choices[0].message.content.strip() if response.choices else ""
+                return {
+                    "success": True,
+                    "language": language,
+                    "solution": solution_code,
+                    "title": title
+                }
+
+            except Exception as openai_error:
+                # If OpenAI API fails (rate limit, etc), try template solution first
+                solution_code = solution_framework.get("solution_code", {}).get(language)
+                if solution_code:
                     return {
                         "success": True,
                         "language": language,
                         "solution": solution_code,
                         "title": title,
-                        "note": "Using template solution (Cohere API unavailable)"
+                        "note": "Using template solution (OpenAI API temporarily unavailable)"
                     }
-                else:
-                    raise cohere_error
 
-            return {
-                "success": True,
-                "language": language,
-                "solution": solution_code,
-                "title": title
-            }
+                # If no template solution code, return approach as fallback
+                if solution_framework.get("steps"):
+                    steps_text = "\n".join([f"{i+1}. {step}" for i, step in enumerate(solution_framework.get("steps", []))])
+                    pseudocode = solution_framework.get("pseudocode", "")
+                    fallback_solution = f"""# Solution Approach:\n{steps_text}\n\n# Pseudocode:\n{pseudocode}"""
+                    return {
+                        "success": True,
+                        "language": language,
+                        "solution": fallback_solution,
+                        "title": title,
+                        "note": "Showing approach steps (OpenAI API unavailable - see approach tab for detailed solution)"
+                    }
+
+                # Last resort: return error with helpful message
+                return {
+                    "success": False,
+                    "error": "Solution generation temporarily unavailable due to API rate limits. Please try again later or visit the approach section in the Solution tab.",
+                    "title": title
+                }
 
         except Exception as e:
             import traceback

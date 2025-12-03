@@ -11,6 +11,10 @@ const TechnicalPrepHome = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [jobRoles, setJobRoles] = useState([]);
+  const [selectedJobRole, setSelectedJobRole] = useState("");
+  const [jobRoleRecommendations, setJobRoleRecommendations] = useState(null);
+  const [showJobRolePanel, setShowJobRolePanel] = useState(false);
 
   useEffect(() => {
     loadInitialData();
@@ -19,17 +23,43 @@ const TechnicalPrepHome = () => {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const [challengesRes, statsRes] = await Promise.all([
+      const [challengesRes, statsRes, jobRolesRes] = await Promise.all([
         technicalPrepAPI.getChallenges(0, 20),
-        uuid ? technicalPrepAPI.getUserStatistics(uuid) : Promise.resolve({ data: { statistics: {} } })
+        uuid ? technicalPrepAPI.getUserStatistics(uuid) : Promise.resolve({ data: { statistics: {} } }),
+        technicalPrepAPI.getAvailableJobRoles()
       ]);
 
       setChallenges(challengesRes.data.challenges || []);
       setStats(statsRes.data.statistics);
+
+      if (jobRolesRes.data.available_roles) {
+        setJobRoles(Object.keys(jobRolesRes.data.available_roles));
+      }
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleJobRoleSelect = async (role) => {
+    if (!uuid) {
+      alert("Please log in to get personalized recommendations");
+      return;
+    }
+
+    try {
+      const res = await technicalPrepAPI.getJobRoleRecommendations(uuid, role);
+      if (res.data.success) {
+        setSelectedJobRole(role);
+        setJobRoleRecommendations(res.data);
+        setShowJobRolePanel(true);
+      } else {
+        alert(res.data.error || "Failed to load recommendations");
+      }
+    } catch (error) {
+      console.error("Error loading job role recommendations:", error);
+      alert("Failed to load recommendations");
     }
   };
 
@@ -114,6 +144,112 @@ const TechnicalPrepHome = () => {
         </div>
       )}
 
+      {/* Job Role Selector */}
+      <div className="job-role-section" style={{ marginBottom: "40px" }}>
+        <h2>🎯 Find Challenges for Your Role</h2>
+        <p style={{ color: "#6b7280", marginBottom: "16px" }}>Select your job role to get personalized challenge recommendations</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "10px" }}>
+          {jobRoles.map((role) => (
+            <button
+              key={role}
+              onClick={() => handleJobRoleSelect(role)}
+              style={{
+                padding: "12px 16px",
+                borderRadius: "8px",
+                border: selectedJobRole === role ? "2px solid #3b82f6" : "1px solid #e5e7eb",
+                backgroundColor: selectedJobRole === role ? "#dbeafe" : "#ffffff",
+                color: selectedJobRole === role ? "#1e40af" : "#374151",
+                cursor: "pointer",
+                fontSize: "0.9rem",
+                fontWeight: selectedJobRole === role ? "600" : "500",
+                transition: "all 0.3s"
+              }}
+            >
+              {role.replace(/_/g, " ")}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Job Role Recommendations Panel */}
+      {showJobRolePanel && jobRoleRecommendations && (
+        <div className="recommendations-panel" style={{
+          backgroundColor: "#f0f9ff",
+          border: "2px solid #93c5fd",
+          borderRadius: "8px",
+          padding: "20px",
+          marginBottom: "40px"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "16px" }}>
+            <div>
+              <h3 style={{ color: "#1e40af", marginBottom: "4px" }}>
+                Personalized Recommendations for {selectedJobRole.replace(/_/g, " ")}
+              </h3>
+              <p style={{ color: "#6b7280" }}>{jobRoleRecommendations.role_description}</p>
+            </div>
+            <button
+              onClick={() => setShowJobRolePanel(false)}
+              style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {jobRoleRecommendations.recommended_skills && jobRoleRecommendations.recommended_skills.length > 0 && (
+            <div style={{ marginBottom: "16px" }}>
+              <p style={{ fontWeight: "600", marginBottom: "8px" }}>Recommended Skills:</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {jobRoleRecommendations.recommended_skills.map((skill, idx) => (
+                  <span key={idx} style={{
+                    backgroundColor: "#e0e7ff",
+                    color: "#4338ca",
+                    padding: "4px 12px",
+                    borderRadius: "16px",
+                    fontSize: "0.85rem"
+                  }}>
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p style={{ color: "#6b7280", marginBottom: "12px" }}>
+            📌 {jobRoleRecommendations.total_challenges} challenges available for this role
+          </p>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px" }}>
+            {Object.entries(jobRoleRecommendations.challenges).map(([type, items]) => (
+              items.length > 0 && (
+                <button
+                  key={type}
+                  onClick={() => {
+                    const typeMap = {
+                      "coding": "/technical-prep/coding",
+                      "system_design": "/technical-prep/system-design",
+                      "case_study": "/technical-prep/case-study"
+                    };
+                    navigate(typeMap[type]);
+                  }}
+                  style={{
+                    padding: "12px",
+                    backgroundColor: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "0.9rem",
+                    fontWeight: "600"
+                  }}
+                >
+                  {type.replace(/_/g, " ")} ({items.length})
+                </button>
+              )
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Quick Action Cards */}
       <div className="quick-actions">
         <div className="action-card" onClick={() => navigate("/technical-prep/coding")}>
@@ -135,6 +271,13 @@ const TechnicalPrepHome = () => {
           <h3>Case Studies</h3>
           <p>Ace consulting interviews with strategic thinking</p>
           <button className="action-btn">Start Case Study</button>
+        </div>
+
+        <div className="action-card" onClick={() => navigate("/technical-prep/whiteboarding")}>
+          <div className="action-icon">✏️</div>
+          <h3>Whiteboarding Tips</h3>
+          <p>Master essential techniques and approaches for interviews</p>
+          <button className="action-btn">Learn Tips</button>
         </div>
       </div>
 

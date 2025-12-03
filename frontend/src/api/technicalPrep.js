@@ -137,6 +137,18 @@ const technicalPrepAPI = {
     return api.get(`/technical-prep/challenge/${challengeId}/solution`, {
       params: { language }
     });
+  },
+
+  // ============ JOB ROLE BASED RECOMMENDATIONS ============
+
+  // Get available job roles
+  getAvailableJobRoles: async () => {
+    return api.get("/technical-prep/job-roles");
+  },
+
+  // Get personalized challenges based on job role
+  getJobRoleRecommendations: async (uuid, jobRole) => {
+    return api.get(`/technical-prep/job-role-recommendations/${uuid}/${jobRole}`);
   }
 };
 

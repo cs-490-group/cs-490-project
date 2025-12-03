@@ -96,10 +96,13 @@ const ChallengeWorkspace = () => {
       if (res.data.success) {
         setGeneratedSolution(res.data.solution);
         setActiveTab("solution");
+      } else {
+        // Show error message if solution generation failed
+        alert(res.data.error || "Failed to generate solution. Please try again later.");
       }
     } catch (error) {
       console.error("Error generating solution:", error);
-      alert("Failed to generate solution. Please try again.");
+      alert("Failed to generate solution. Please check your connection and try again.");
     } finally {
       setGeneratingSolution(false);
     }

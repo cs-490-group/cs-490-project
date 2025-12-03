@@ -53,6 +53,37 @@ async def get_all_challenges(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@technical_prep_router.get("/job-roles")
+async def get_available_job_roles():
+    """Get list of available job roles for challenge recommendations"""
+    try:
+        from services.technical_prep_service import JOB_ROLE_MAPPINGS
+        roles = {
+            role: config.get("description")
+            for role, config in JOB_ROLE_MAPPINGS.items()
+        }
+        return {
+            "success": True,
+            "available_roles": roles
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@technical_prep_router.get("/job-role-recommendations/{uuid}/{job_role}")
+async def get_job_role_recommendations(uuid: str, job_role: str):
+    """Get personalized challenges based on job role"""
+    try:
+        recommendations = await technical_prep_service.get_job_role_recommendations(
+            uuid, job_role
+        )
+        if "error" in recommendations:
+            raise HTTPException(status_code=400, detail=recommendations.get("error"))
+        return recommendations
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @technical_prep_router.get("/challenges/recommended/{uuid}")
 async def get_recommended_challenges(
     uuid: str,
