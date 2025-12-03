@@ -60,7 +60,7 @@ class QuestionIndustryDAO:
 class QuestionRoleDAO:
     """Data Access Object for question roles"""
 
-    def __init__(self, db_client: AsyncIOMotorDatabase):
+    def __init__(self, db_client: AsyncDatabase):
         self.db = db_client
         self.collection = db_client["question_roles"]
 
@@ -117,7 +117,7 @@ class QuestionRoleDAO:
 class QuestionDAO:
     """Data Access Object for questions"""
 
-    def __init__(self, db_client: AsyncIOMotorDatabase):
+    def __init__(self, db_client: AsyncDatabase):
         self.db = db_client
         self.collection = db_client["questions"]
 
@@ -166,7 +166,7 @@ class QuestionDAO:
 class UserPracticedQuestionDAO:
     """Data Access Object for user practiced questions"""
 
-    def __init__(self, db_client: AsyncIOMotorDatabase):
+    def __init__(self, db_client: AsyncDatabase):
         self.db = db_client
         self.collection = db_client["user_practiced_questions"]
 
