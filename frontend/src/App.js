@@ -21,6 +21,7 @@ import EducationList from "./pages/education/EducationList";
 import CertificationList from "./pages/certifications/CertificationList";
 import ProjectsList from "./pages/projects/ProjectList";
 import JobsList from "./pages/jobs/JobList";
+import OffersPage from "./pages/offers/OffersPage";
 import CoverLetter from "./pages/coverLetter/coverLetter";
 import CoverLetterEditPage from "./pages/coverLetter/CoverLetterEditPage";
 import ResumeList from "./pages/resumes/ResumeList";
@@ -89,6 +90,7 @@ export function App() {
               <Route path="/certifications" element={<CertificationList />} />
               <Route path="/projects" element={<ProjectsList />} />
               <Route path="/jobs" element={<JobsList />} />
+              <Route path="/offers" element={<OffersPage />} />
               <Route path="/resumes" element={<ResumeList />} />
               <Route path="/resumes/templates" element={<TemplateLibraryPage />} />
               <Route path="/resumes/edit/:id" element={<ResumeEditor />} />

@@ -263,6 +263,10 @@ const Nav = () => {
                   Jobs
                 </BootstrapNav.Link>
 
+                <BootstrapNav.Link as={NavLink} to="/offers" className="mx-3">
+                  Offers
+                </BootstrapNav.Link>
+
                 <BootstrapNav.Link as={NavLink} to="/resumes" className="mx-3">
                   Resumes
                 </BootstrapNav.Link>

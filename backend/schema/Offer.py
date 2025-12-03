@@ -82,6 +82,11 @@ class NegotiationPrep(BaseModel):
     common_mistakes: Optional[List[str]] = None          # What to avoid
     red_flags: Optional[List[str]] = None               # Warning signs in offers
 
+    # Offer Analysis & Scoring
+    offer_analysis: Optional[Dict[str, Any]] = None      # Score, percentile, breakdown, recommendations
+    readiness_assessment: Optional[Dict[str, Any]] = None  # Readiness score and component breakdown
+    negotiation_focus: Optional[Dict[str, Any]] = None   # Primary/secondary focus, action items
+
     # Generated Summary
     executive_summary: Optional[str] = None
     generated_at: Optional[str] = None

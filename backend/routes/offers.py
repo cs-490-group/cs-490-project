@@ -15,8 +15,11 @@ from datetime import datetime
 import json
 from io import BytesIO
 
-from mongo.offers_dao import OffersDAO
+from mongo.offers_dao import offers_dao
 from mongo.jobs_dao import jobs_dao
+from mongo.employment_dao import employment_dao
+from mongo.projects_dao import projects_dao
+from mongo.resumes_dao import resumes_dao
 from sessions.session_authorizer import authorize
 from schema.Offer import (
     Offer, SalaryDetails, NegotiationPrep,
@@ -24,15 +27,51 @@ from schema.Offer import (
 )
 from services.salary_negotiation_service import generate_full_negotiation_prep
 from services.pdf_export import export_negotiation_to_pdf, export_negotiation_to_docx
+from services.market_data_cache import get_cache_stats
 
 offers_router = APIRouter(prefix="/offers")
 
-offers_dao = None
 
-def set_offers_dao(dao: OffersDAO):
-    """Set the DAO instance"""
-    global offers_dao
-    offers_dao = dao
+async def extract_user_achievements(uuid: str) -> list:
+    """
+    Extract achievements from user's existing data:
+    - Employment history (job titles, responsibilities, accomplishments)
+    - Projects (descriptions, impacts)
+    - Resume highlights
+    """
+    achievements = []
+
+    try:
+        # Get employment history
+        employment_list = await employment_dao.get_all_employment(uuid)
+        for emp in employment_list:
+            if emp.get("job_title"):
+                achievements.append(f"Worked as {emp.get('job_title')} at {emp.get('company_name', 'various companies')}")
+            if emp.get("accomplishments"):
+                accomplishments = emp.get("accomplishments")
+                if isinstance(accomplishments, list):
+                    achievements.extend(accomplishments[:2])  # Top 2 accomplishments
+                elif isinstance(accomplishments, str):
+                    achievements.append(accomplishments)
+
+        # Get projects
+        projects_list = await projects_dao.get_all_projects(uuid)
+        for project in projects_list:
+            if project.get("title"):
+                achievements.append(f"Project: {project.get('title')} - {project.get('description', '')[:100]}")
+
+        # Get resume highlights
+        resumes = await resumes_dao.get_all_resumes(uuid)
+        if resumes:
+            # Take first resume's summary
+            resume = resumes[0]
+            if resume.get("summary"):
+                achievements.append(resume.get("summary")[:150])
+
+    except Exception as e:
+        print(f"Error extracting achievements: {e}")
+
+    return achievements[:10]  # Return top 10 achievements
 
 
 # =============================================================================
@@ -180,10 +219,13 @@ async def delete_offer(offer_id: str, uuid: str = Depends(authorize)):
 @offers_router.post("/{offer_id}/generate-negotiation-prep", tags=["offers", "negotiation"])
 async def generate_negotiation_prep(
     offer_id: str,
-    achievements: list = Body(default=[], description="List of key achievements"),
     uuid: str = Depends(authorize)
 ):
-    """Generate comprehensive salary negotiation preparation materials - UC-083"""
+    """Generate comprehensive salary negotiation preparation materials - UC-083
+
+    Automatically extracts achievements from user's employment history, projects, and resume.
+    No manual input required - uses existing profile data.
+    """
     try:
         offer = await offers_dao.get_offer(offer_id)
 
@@ -194,6 +236,11 @@ async def generate_negotiation_prep(
             raise HTTPException(403, "Not authorized to access this offer")
 
         print(f"🔍 Generating negotiation prep for offer {offer_id}")
+        print(f"📋 Extracting achievements from user profile...")
+
+        # Auto-extract achievements from user's existing data
+        achievements = await extract_user_achievements(uuid)
+        print(f"✅ Found {len(achievements)} achievements from profile")
 
         prep = await generate_full_negotiation_prep(
             job_id=offer.get("job_id"),
@@ -453,3 +500,21 @@ async def export_negotiation_json(offer_id: str, uuid: str = Depends(authorize))
     except Exception as e:
         print(f"Error exporting to JSON: {e}")
         raise HTTPException(500, str(e))
+
+
+# =============================================================================
+# MONITORING & ANALYTICS
+# =============================================================================
+
+@offers_router.get("/analytics/cache-stats", tags=["analytics"])
+async def get_market_cache_statistics(uuid: str = Depends(authorize)):
+    """
+    Get market salary data cache statistics (admin/monitoring endpoint).
+
+    Returns cache hit rate, number of cached entries, and TTL information.
+    This helps monitor API quota efficiency and system performance.
+
+    Returns:
+        dict: Cache statistics including hit rate and entry count
+    """
+    return get_cache_stats()

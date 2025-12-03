@@ -15,10 +15,99 @@ from .salary_research import (
     research_market_salary,
     generate_negotiation_talking_points,
     generate_negotiation_scripts,
-    generate_counter_offer_templates,
+    generate_counteroffer_template,
     generate_confidence_exercises,
-    generate_negotiation_warnings
+    generate_total_compensation_framework
 )
+from .market_data_cache import get_or_fetch_market_data, get_cache_stats
+from .offer_analysis import analyze_offer, calculate_negotiation_readiness, generate_negotiation_focus
+
+
+# Helper functions to transform simple API returns into proper structures for frontend
+def transform_talking_points(points: List[str]) -> List[Dict[str, Any]]:
+    """Convert simple talking point strings into structured objects"""
+    return [
+        {
+            "point": point,
+            "category": "achievement" if any(keyword in point.lower() for keyword in ["led", "managed", "built", "achieved", "increased"])
+                       else "market_data" if any(keyword in point.lower() for keyword in ["market", "research", "rate", "salary", "data"])
+                       else "experience",
+            "supporting_data": None,
+            "confidence_level": 7
+        }
+        for point in points if isinstance(point, str) and point.strip()
+    ]
+
+
+def transform_negotiation_scripts(scripts_dict: Dict[str, str]) -> List[Dict[str, Any]]:
+    """Convert simple script dict into structured script objects"""
+    return [
+        {
+            "scenario": "Initial Offer Response",
+            "opening_statement": scripts_dict.get("initial_offer_response", "Thank you for the offer."),
+            "talking_points": ["Review the complete offer", "Research market rates"],
+            "potential_objections": ["Budget constraints", "This is our best offer"],
+            "your_responses": ["I appreciate that. Let me research comparable positions.", "I understand, and I'd like to discuss other components."],
+            "closing_statement": "I'd like to take some time to review and get back to you.",
+            "tone_tips": "Be professional and positive. Show genuine interest."
+        },
+        {
+            "scenario": "Counter-Offer Request",
+            "opening_statement": "Based on my research and experience, I'd like to discuss the compensation package.",
+            "talking_points": [
+                scripts_dict.get("counteroffer_request", "Market rates for this role are higher."),
+                "My experience adds significant value",
+                "Industry standards suggest a higher range"
+            ],
+            "potential_objections": ["We can't match that", "No room in the budget"],
+            "your_responses": ["I understand. Could we explore other components like equity or signing bonus?", "Would flexibility on other benefits be possible?"],
+            "closing_statement": "I'm excited about this opportunity and want to find a win-win solution.",
+            "tone_tips": "Be data-driven. Reference market research. Remain collaborative."
+        },
+        {
+            "scenario": "Benefits Negotiation",
+            "opening_statement": "If the base salary is at its maximum, I'd like to discuss the overall package.",
+            "talking_points": [
+                scripts_dict.get("benefits_negotiation", "Alternative benefits can be very valuable."),
+                "Remote flexibility improves work-life balance",
+                "Professional development shows investment in growth"
+            ],
+            "potential_objections": ["All salaries are fixed", "Benefits are standard"],
+            "your_responses": ["Understood. What other components might be negotiable?", "Are there any flexible benefits we could discuss?"],
+            "closing_statement": "Let's find the best total compensation package for both of us.",
+            "tone_tips": "Show flexibility. Emphasize non-salary benefits that matter to you."
+        }
+    ]
+
+
+def transform_counter_offers(template_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Convert simple counter-offer template into structured objects"""
+    fields = template_dict.get("offer_comparison_fields", [])
+    return [
+        {
+            "metric": field.get("field", "Metric"),
+            "offered_value": "TBD",
+            "market_value": "TBD",
+            "suggested_counter": "TBD",
+            "reasoning": f"Adjust based on {field.get('field', 'this component')}",
+            "priority_level": field.get("importance", "medium").lower()
+        }
+        for field in fields if isinstance(field, dict) and field.get("field")
+    ]
+
+
+def transform_confidence_exercises(exercises: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Convert confidence exercises to use 'duration' instead of 'time'"""
+    return [
+        {
+            "title": ex.get("title", "Exercise"),
+            "description": ex.get("description", ""),
+            "duration": ex.get("duration") or ex.get("time"),  # Support both field names
+            "tips": ex.get("tips")
+        }
+        for ex in exercises if isinstance(ex, dict)
+    ]
+
 
 async def generate_full_negotiation_prep(
     job_id: str,
@@ -49,19 +138,20 @@ async def generate_full_negotiation_prep(
     try:
         print(f"🔍 Generating salary negotiation prep for {role} at {company}")
 
-        # 1. Research market salary
+        # 1. Research market salary (cached to reduce API calls)
         print("📊 Researching market salary data...")
-        market_salary_data = await research_market_salary(
+        market_salary_data = await get_or_fetch_market_data(
             role=role,
             location=location,
-            years_of_experience=years_of_experience,
+            years_experience=years_of_experience,
             company=company,
-            company_size=company_size
+            company_size=company_size,
+            fetch_function=research_market_salary
         )
 
         # 2. Generate talking points
         print("💬 Generating negotiation talking points...")
-        talking_points = await generate_negotiation_talking_points(
+        talking_points_raw = await generate_negotiation_talking_points(
             role=role,
             company=company,
             location=location,
@@ -69,30 +159,55 @@ async def generate_full_negotiation_prep(
             achievements=achievements,
             market_salary=market_salary_data
         )
+        # Transform into proper structure for frontend
+        talking_points = transform_talking_points(talking_points_raw)
 
         # 3. Generate negotiation scripts
         print("📝 Creating negotiation scripts...")
-        negotiation_scripts = await generate_negotiation_scripts(
-            role=role,
+        scripts_raw = await generate_negotiation_scripts(
+            job_title=role,
             company=company,
-            offered_salary=offered_salary,
-            market_salary=market_salary_data
+            location=location
         )
+        # Transform into proper structure for frontend
+        negotiation_scripts = transform_negotiation_scripts(scripts_raw)
 
         # 4. Generate counter-offer templates
         print("📋 Building counter-offer templates...")
-        counter_offer_templates = await generate_counter_offer_templates(
-            offered_salary=offered_salary,
-            market_salary=market_salary_data
+        counter_templates_raw = await generate_counteroffer_template(
+            job_title=role,
+            company=company
         )
+        # Transform into proper structure for frontend
+        counter_offer_templates = transform_counter_offers(counter_templates_raw)
 
         # 5. Generate confidence exercises
         print("💪 Preparing confidence exercises...")
-        confidence_exercises = await generate_confidence_exercises()
+        exercises_raw = await generate_confidence_exercises(
+            job_title=role,
+            company=company
+        )
+        # Transform into proper structure for frontend
+        confidence_exercises = transform_confidence_exercises(exercises_raw)
 
         # 6. Get common mistakes and red flags
         print("⚠️ Compiling warnings and best practices...")
-        warnings = await generate_negotiation_warnings()
+        warnings = {
+            "common_mistakes": [
+                "Never accept the first offer",
+                "Don't reveal your previous salary",
+                "Don't negotiate via email alone",
+                "Don't accept under time pressure",
+                "Don't be negative about current employer"
+            ],
+            "red_flags": [
+                "Unexpectedly low offer for your level",
+                "Vague compensation details",
+                "No benefits or equity mentioned",
+                "Pressure to decide immediately",
+                "Inconsistent salary information"
+            ]
+        }
 
         # 7. Generate timing strategy
         timing_strategy = generate_timing_strategy(years_of_experience)
@@ -103,12 +218,59 @@ async def generate_full_negotiation_prep(
         # 9. Generate best practices
         best_practices = generate_best_practices()
 
-        # 10. Generate executive summary
+        # 10. Generate total compensation framework
+        print("💰 Building total compensation framework...")
+        compensation_framework = await generate_total_compensation_framework(
+            job_title=role,
+            company=company,
+            market_salary=market_salary_data
+        )
+
+        # 11. Generate executive summary
         executive_summary = generate_executive_summary(
             role=role,
             company=company,
             offered_salary=offered_salary,
             market_salary=market_salary_data
+        )
+
+        # 12. Analyze the offer and generate scoring/focus
+        print("📊 Analyzing offer and generating recommendations...")
+
+        # Build temp prep dict for readiness calculation
+        temp_prep = {
+            "talking_points": talking_points,
+            "market_salary_data": market_salary_data,
+            "negotiation_scripts": negotiation_scripts,
+            "confidence_exercises": confidence_exercises
+        }
+
+        # Analyze the offer
+        offer_analysis = analyze_offer(
+            offered_salary=offered_salary,
+            offered_bonus=None,
+            offered_equity=None,
+            offered_benefits=None,
+            market_data=market_salary_data,
+            user_experience=years_of_experience,
+            role=role,
+            company_size=company_size or "mid-size"
+        )
+
+        # Calculate readiness
+        readiness_assessment = calculate_negotiation_readiness(
+            prep_data=temp_prep,
+            offer_score=offer_analysis.get("offer_score", 50),
+            user_experience=years_of_experience
+        )
+
+        # Generate focus recommendations
+        negotiation_focus = generate_negotiation_focus(
+            offer_score=offer_analysis.get("offer_score", 50),
+            market_percentile=offer_analysis.get("market_percentile", 50),
+            talking_points=talking_points,
+            market_data=market_salary_data,
+            user_experience=years_of_experience
         )
 
         # Compile everything
@@ -121,6 +283,7 @@ async def generate_full_negotiation_prep(
             "talking_points": talking_points,
             "negotiation_scripts": negotiation_scripts,
             "counter_offer_templates": counter_offer_templates,
+            "compensation_framework": compensation_framework,
             "timing_strategy": timing_strategy,
             "power_dynamics_analysis": power_dynamics,
             "best_practices": best_practices,
@@ -128,6 +291,9 @@ async def generate_full_negotiation_prep(
             "common_mistakes": warnings.get("common_mistakes", []),
             "red_flags": warnings.get("red_flags", []),
             "executive_summary": executive_summary,
+            "offer_analysis": offer_analysis,
+            "readiness_assessment": readiness_assessment,
+            "negotiation_focus": negotiation_focus,
             "generated_at": datetime.utcnow().isoformat(),
             "generated_by_model": "cohere-command-r-plus"
         }

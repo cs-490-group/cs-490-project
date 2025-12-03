@@ -6,8 +6,6 @@ import {
     Button,
     Alert,
     Spinner,
-    Modal,
-    Form,
 } from "react-bootstrap";
 import OffersAPI from "../../api/offers";
 import OfferForm from "./OfferForm";
@@ -25,9 +23,6 @@ export default function OffersPage() {
     const [showDetails, setShowDetails] = useState(false);
     const [showNegotiationPrep, setShowNegotiationPrep] = useState(false);
     const [generatingPrep, setGeneratingPrep] = useState(null);
-    const [showAchievementsModal, setShowAchievementsModal] = useState(null);
-    const [achievements, setAchievements] = useState([]);
-    const [newAchievement, setNewAchievement] = useState("");
 
     useEffect(() => {
         loadOffers();
@@ -73,47 +68,40 @@ export default function OffersPage() {
     };
 
     const handleGenerateNegotiationPrep = async (offerId) => {
-        setShowAchievementsModal(offerId);
-        setAchievements([]);
-        setNewAchievement("");
-    };
-
-    const handleConfirmGeneratePrep = async () => {
-        if (!showAchievementsModal) return;
-
         try {
-            setGeneratingPrep(showAchievementsModal);
+            setGeneratingPrep(offerId);
+            setError(null);
 
-            const response = await OffersAPI.generateNegotiationPrep(
-                showAchievementsModal,
-                achievements
-            );
+            // Backend automatically extracts achievements from user profile
+            // No manual input required!
+            await OffersAPI.generateNegotiationPrep(offerId);
 
             await loadOffers();
 
-            const updatedOffer = await OffersAPI.get(showAchievementsModal);
+            const updatedOffer = await OffersAPI.get(offerId);
             setSelectedOffer(updatedOffer.data);
             setShowNegotiationPrep(true);
             setShowDetails(false);
-
-            setShowAchievementsModal(null);
         } catch (err) {
             console.error("Error generating prep:", err);
-            setError(err.response?.data?.detail || "Failed to generate negotiation prep");
+            let errorMessage = "Failed to generate negotiation prep";
+
+            // Handle different error response formats
+            if (err.response?.data?.detail) {
+                errorMessage = err.response.data.detail;
+            } else if (Array.isArray(err.response?.data)) {
+                // Pydantic validation errors - extract messages
+                errorMessage = err.response.data
+                    .map(e => e.msg || JSON.stringify(e))
+                    .join("; ");
+            } else if (typeof err.response?.data === 'string') {
+                errorMessage = err.response.data;
+            }
+
+            setError(errorMessage);
         } finally {
             setGeneratingPrep(null);
         }
-    };
-
-    const handleAddAchievement = () => {
-        if (newAchievement.trim()) {
-            setAchievements([...achievements, newAchievement]);
-            setNewAchievement("");
-        }
-    };
-
-    const handleRemoveAchievement = (idx) => {
-        setAchievements(achievements.filter((_, i) => i !== idx));
     };
 
     if (showDetails && selectedOffer) {
@@ -249,95 +237,6 @@ export default function OffersPage() {
                 </Row>
             )}
 
-            <Modal
-                show={!!showAchievementsModal}
-                onHide={() => setShowAchievementsModal(null)}
-                size="lg"
-            >
-                <Modal.Header closeButton>
-                    <Modal.Title>📝 Add Key Achievements</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <p className="text-muted">
-                        Add your key achievements to strengthen your negotiation talking points.
-                    </p>
-
-                    <div className="mb-3">
-                        <Form.Group>
-                            <Form.Label>Achievement</Form.Label>
-                            <div className="d-flex gap-2">
-                                <Form.Control
-                                    type="text"
-                                    placeholder="e.g., Led team of 5 engineers, increased productivity by 30%"
-                                    value={newAchievement}
-                                    onChange={(e) => setNewAchievement(e.target.value)}
-                                    onKeyPress={(e) => {
-                                        if (e.key === "Enter") {
-                                            handleAddAchievement();
-                                        }
-                                    }}
-                                />
-                                <Button
-                                    variant="outline-primary"
-                                    onClick={handleAddAchievement}
-                                >
-                                    Add
-                                </Button>
-                            </div>
-                        </Form.Group>
-                    </div>
-
-                    {achievements.length > 0 && (
-                        <div>
-                            <h6>Your Achievements</h6>
-                            <div className="list-group">
-                                {achievements.map((achievement, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="list-group-item d-flex justify-content-between align-items-center"
-                                    >
-                                        <span>✓ {achievement}</span>
-                                        <Button
-                                            variant="outline-danger"
-                                            size="sm"
-                                            onClick={() => handleRemoveAchievement(idx)}
-                                        >
-                                            Remove
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button
-                        variant="secondary"
-                        onClick={() => setShowAchievementsModal(null)}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="primary"
-                        onClick={handleConfirmGeneratePrep}
-                        disabled={generatingPrep}
-                    >
-                        {generatingPrep ? (
-                            <>
-                                <Spinner
-                                    as="span"
-                                    animation="border"
-                                    size="sm"
-                                    className="me-2"
-                                />
-                                Generating...
-                            </>
-                        ) : (
-                            "Generate Negotiation Prep"
-                        )}
-                    </Button>
-                </Modal.Footer>
-            </Modal>
         </Container>
     );
 }

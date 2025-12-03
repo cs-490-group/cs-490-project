@@ -2,13 +2,13 @@ from bson.objectid import ObjectId
 from pymongo import ASCENDING
 from datetime import datetime
 import uuid
+from mongo.dao_setup import db_client, OFFERS
 
 class OffersDAO:
     """Data Access Object for managing job offers and salary negotiation"""
 
-    def __init__(self, db):
-        self.db = db
-        self.offers_collection = db["offers"]
+    def __init__(self):
+        self.offers_collection = db_client.get_collection(OFFERS)
 
     async def create_offer(self, offer_data: dict, user_uuid: str) -> str:
         """Create a new offer and return the offer ID"""
@@ -117,3 +117,7 @@ class OffersDAO:
         await self.offers_collection.create_index([("job_id", ASCENDING)])
         await self.offers_collection.create_index([("offer_status", ASCENDING)])
         await self.offers_collection.create_index([("date_created", ASCENDING)])
+
+
+# Singleton instance for use throughout the application
+offers_dao = OffersDAO()

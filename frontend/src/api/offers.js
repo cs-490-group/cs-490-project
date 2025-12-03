@@ -29,10 +29,9 @@ class OffersAPI {
     }
 
     // Salary Negotiation Preparation
-    generateNegotiationPrep(offerId, achievements = []) {
-        return api.post(`${BASE_URL}/${offerId}/generate-negotiation-prep`, {
-            achievements
-        });
+    // Backend automatically extracts achievements from user's employment, projects, and resume
+    generateNegotiationPrep(offerId) {
+        return api.post(`${BASE_URL}/${offerId}/generate-negotiation-prep`);
     }
 
     getNegotiationPrep(offerId) {

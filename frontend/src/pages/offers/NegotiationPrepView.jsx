@@ -171,14 +171,277 @@ export default function NegotiationPrepView({ offer, onBack }) {
 
             <div className="tab-content">
                 {activeTab === "summary" && (
-                    <Card className="mb-4">
-                        <Card.Body>
-                            <h6 className="mb-3">Executive Summary</h6>
-                            <p style={{ whiteSpace: "pre-wrap" }}>
-                                {prep.executive_summary}
-                            </p>
-                        </Card.Body>
-                    </Card>
+                    <div>
+                        {/* Offer Analysis Card */}
+                        {prep.offer_analysis && (
+                            <Card className="mb-4 border-primary">
+                                <Card.Body>
+                                    <h5 className="mb-4">💼 Confident Negotiation Backed by Data</h5>
+
+                                    {/* Offer Score */}
+                                    <Row className="mb-4">
+                                        <Col md={6} className="text-center">
+                                            <div className="p-3 bg-light rounded">
+                                                <h2 className="mb-2">
+                                                    <span style={{ fontSize: "3em", color: "#0066cc" }}>
+                                                        {prep.offer_analysis.offer_score || 0}
+                                                    </span>
+                                                    <span className="text-muted">/100</span>
+                                                </h2>
+                                                <p className="mb-0 fw-bold">Offer Score</p>
+                                                <small className="text-muted">
+                                                    {prep.offer_analysis.score_interpretation || "Evaluating..."}
+                                                </small>
+                                            </div>
+                                        </Col>
+
+                                        {/* Market Percentile */}
+                                        <Col md={6} className="text-center">
+                                            <div className="p-3 bg-light rounded">
+                                                <h3 className="mb-2" style={{ color: "#28a745" }}>
+                                                    {prep.offer_analysis.market_percentile || 50}
+                                                    <sup>th</sup>
+                                                </h3>
+                                                <p className="mb-0 fw-bold">Market Percentile</p>
+                                                <small className="text-muted">
+                                                    {prep.offer_analysis.market_percentile >= 75
+                                                        ? "Excellent Position"
+                                                        : prep.offer_analysis.market_percentile >= 50
+                                                        ? "Competitive Position"
+                                                        : "Below Market"}
+                                                </small>
+                                            </div>
+                                        </Col>
+                                    </Row>
+
+                                    {/* Offer vs Market */}
+                                    {prep.offer_analysis.vs_median && (
+                                        <Alert
+                                            variant={
+                                                prep.offer_analysis.vs_median === "above"
+                                                    ? "success"
+                                                    : prep.offer_analysis.vs_median === "at"
+                                                    ? "info"
+                                                    : "warning"
+                                            }
+                                            className="mb-3"
+                                        >
+                                            <strong>Position vs Market Median:</strong>{" "}
+                                            {prep.offer_analysis.vs_median === "above"
+                                                ? "✅ Above Market Median"
+                                                : prep.offer_analysis.vs_median === "at"
+                                                ? "✓ At Market Median"
+                                                : "⚠️ Below Market Median"}
+                                        </Alert>
+                                    )}
+
+                                    {/* Component Breakdown */}
+                                    {prep.offer_analysis.breakdown && (
+                                        <div className="mb-3">
+                                            <h6 className="mb-2">Component Scores</h6>
+                                            <Table borderless responsive size="sm" className="mb-0">
+                                                <tbody>
+                                                    <tr className="border-bottom">
+                                                        <td className="fw-bold">Base Salary</td>
+                                                        <td className="text-end">
+                                                            <Badge bg="primary">
+                                                                {prep.offer_analysis.breakdown.salary || 0}/100
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-bottom">
+                                                        <td className="fw-bold">Bonus</td>
+                                                        <td className="text-end">
+                                                            <Badge bg="secondary">
+                                                                {prep.offer_analysis.breakdown.bonus || 0}/100
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-bottom">
+                                                        <td className="fw-bold">Equity</td>
+                                                        <td className="text-end">
+                                                            <Badge bg="info">
+                                                                {prep.offer_analysis.breakdown.equity || 0}/100
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="fw-bold">Benefits</td>
+                                                        <td className="text-end">
+                                                            <Badge bg="success">
+                                                                {prep.offer_analysis.breakdown.benefits || 0}/100
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </Table>
+                                        </div>
+                                    )}
+                                </Card.Body>
+                            </Card>
+                        )}
+
+                        {/* Negotiation Readiness Assessment */}
+                        {prep.readiness_assessment && (
+                            <Card className="mb-4">
+                                <Card.Body>
+                                    <h5 className="mb-3">
+                                        💪 Negotiation Readiness Assessment
+                                    </h5>
+
+                                    <Row className="mb-3">
+                                        <Col md={8}>
+                                            <div>
+                                                <p className="mb-2">
+                                                    <strong>Readiness Score:</strong>{" "}
+                                                    <Badge
+                                                        bg={
+                                                            prep.readiness_assessment.readiness_score >= 85 ? "success" :
+                                                            prep.readiness_assessment.readiness_score >= 70 ? "info" :
+                                                            prep.readiness_assessment.readiness_score >= 50 ? "warning" :
+                                                            "danger"
+                                                        }
+                                                    >
+                                                        {prep.readiness_assessment.readiness_score || 0}/100
+                                                    </Badge>
+                                                </p>
+                                                <p className="mb-2">
+                                                    <strong>Status:</strong>{" "}
+                                                    <span style={{ fontSize: "1.2em" }}>
+                                                        {prep.readiness_assessment.emoji || ""}
+                                                    </span>{" "}
+                                                    {prep.readiness_assessment.interpretation}
+                                                </p>
+                                            </div>
+                                        </Col>
+                                    </Row>
+
+                                    {/* Readiness Components */}
+                                    {prep.readiness_assessment.components && (
+                                        <div className="mb-3">
+                                            <h6 className="mb-2">Preparation Materials</h6>
+                                            <Table borderless responsive size="sm" className="mb-0">
+                                                <tbody>
+                                                    {prep.readiness_assessment.components.talking_points && (
+                                                        <tr className="border-bottom">
+                                                            <td>✓ Talking Points</td>
+                                                            <td className="text-end">
+                                                                {prep.readiness_assessment.components.talking_points.count} points
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    {prep.readiness_assessment.components.market_data && (
+                                                        <tr className="border-bottom">
+                                                            <td>✓ Market Data</td>
+                                                            <td className="text-end">Ready</td>
+                                                        </tr>
+                                                    )}
+                                                    {prep.readiness_assessment.components.scripts && (
+                                                        <tr className="border-bottom">
+                                                            <td>✓ Negotiation Scripts</td>
+                                                            <td className="text-end">
+                                                                {prep.readiness_assessment.components.scripts.count} scripts
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    {prep.readiness_assessment.components.exercises && (
+                                                        <tr>
+                                                            <td>✓ Confidence Exercises</td>
+                                                            <td className="text-end">
+                                                                {prep.readiness_assessment.components.exercises.count} exercises
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </Table>
+                                        </div>
+                                    )}
+
+                                    {/* Advice */}
+                                    {prep.readiness_assessment.advice && (
+                                        <Alert variant="light" className="mb-0">
+                                            <strong>💡 Advice:</strong> {prep.readiness_assessment.advice}
+                                        </Alert>
+                                    )}
+                                </Card.Body>
+                            </Card>
+                        )}
+
+                        {/* Negotiation Focus Recommendations */}
+                        {prep.negotiation_focus && (
+                            <Card className="mb-4 border-warning">
+                                <Card.Body>
+                                    <h5 className="mb-3">
+                                        🎯 Recommended Negotiation Strategy
+                                    </h5>
+
+                                    {/* Primary Focus */}
+                                    <div className="mb-3 p-3 rounded" style={{ backgroundColor: "#fff3cd" }}>
+                                        <h6 className="mb-2">
+                                            {prep.negotiation_focus.emoji || "🎯"} Primary Focus: <strong>{prep.negotiation_focus.primary || "Not determined"}</strong>
+                                        </h6>
+                                        <p className="mb-2">{prep.negotiation_focus.reasoning}</p>
+
+                                        {/* Urgency Badge */}
+                                        {prep.negotiation_focus.urgency && (
+                                            <Badge
+                                                bg={
+                                                    prep.negotiation_focus.urgency === "HIGH"
+                                                        ? "danger"
+                                                        : prep.negotiation_focus.urgency === "MEDIUM"
+                                                        ? "warning"
+                                                        : "success"
+                                                }
+                                                className="me-2"
+                                            >
+                                                {prep.negotiation_focus.urgency} Priority
+                                            </Badge>
+                                        )}
+                                    </div>
+
+                                    {/* Secondary Focus */}
+                                    {prep.negotiation_focus.secondary && prep.negotiation_focus.secondary.length > 0 && (
+                                        <div className="mb-3">
+                                            <h6 className="mb-2">Secondary Focus Areas</h6>
+                                            <div>
+                                                {prep.negotiation_focus.secondary.map((item, idx) => (
+                                                    <Badge key={idx} bg="light" text="dark" className="me-2 mb-2">
+                                                        {item}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Action Items */}
+                                    {prep.negotiation_focus.action_items && prep.negotiation_focus.action_items.length > 0 && (
+                                        <div>
+                                            <h6 className="mb-2">Action Items</h6>
+                                            <ol className="ps-3 mb-0">
+                                                {prep.negotiation_focus.action_items.map((item, idx) => (
+                                                    <li key={idx} className="mb-1">
+                                                        {item}
+                                                    </li>
+                                                ))}
+                                            </ol>
+                                        </div>
+                                    )}
+                                </Card.Body>
+                            </Card>
+                        )}
+
+                        {/* Executive Summary Section */}
+                        {prep.executive_summary && (
+                            <Card className="mb-4">
+                                <Card.Body>
+                                    <h6 className="mb-3">📝 Executive Summary</h6>
+                                    <p style={{ whiteSpace: "pre-wrap" }}>
+                                        {prep.executive_summary}
+                                    </p>
+                                </Card.Body>
+                            </Card>
+                        )}
+                    </div>
                 )}
 
                 {activeTab === "market" && (
@@ -267,44 +530,52 @@ export default function NegotiationPrepView({ offer, onBack }) {
                         <Card.Body>
                             <h6 className="mb-3">💬 Key Talking Points</h6>
                             <Accordion defaultActiveKey="0">
-                                {prep.talking_points.map((point, idx) => (
-                                    <Accordion.Item eventKey={String(idx)} key={idx}>
-                                        <Accordion.Header>
-                                            <Badge
-                                                bg={
-                                                    point.category === "market_data"
-                                        ? "info"
-                                        : point.category === "experience"
-                                        ? "success"
-                                        : point.category === "achievements"
-                                        ? "warning"
-                                        : "secondary"
-                                                }
-                                                className="me-2"
-                                            >
-                                                {point.category}
-                                            </Badge>
-                                            {point.point.substring(0, 60)}...
-                                        </Accordion.Header>
-                                        <Accordion.Body>
-                                            <p>
-                                                <strong>Point:</strong> {point.point}
-                                            </p>
-                                            {point.supporting_data && (
+                                {(prep.talking_points || []).map((point, idx) => {
+                                    // Handle both old string format and new object format
+                                    const pointText = typeof point === 'string' ? point : (point?.point || '');
+                                    const category = typeof point === 'string' ? 'experience' : (point?.category || 'experience');
+                                    const supportingData = typeof point === 'string' ? null : point?.supporting_data;
+                                    const confidenceLevel = typeof point === 'string' ? null : point?.confidence_level;
+
+                                    return (
+                                        <Accordion.Item eventKey={String(idx)} key={idx}>
+                                            <Accordion.Header>
+                                                <Badge
+                                                    bg={
+                                                        category === "market_data"
+                                            ? "info"
+                                            : category === "experience"
+                                            ? "success"
+                                            : category === "achievement"
+                                            ? "warning"
+                                            : "secondary"
+                                                    }
+                                                    className="me-2"
+                                                >
+                                                    {category}
+                                                </Badge>
+                                                {pointText ? pointText.substring(0, 60) + '...' : 'No text'}
+                                            </Accordion.Header>
+                                            <Accordion.Body>
                                                 <p>
-                                                    <strong>Supporting Data:</strong>{" "}
-                                                    {point.supporting_data}
+                                                    <strong>Point:</strong> {pointText}
                                                 </p>
-                                            )}
-                                            {point.confidence_level && (
-                                                <p>
-                                                    <strong>Confidence Level:</strong>{" "}
-                                                    {point.confidence_level}/10
-                                                </p>
-                                            )}
-                                        </Accordion.Body>
-                                    </Accordion.Item>
-                                ))}
+                                                {supportingData && (
+                                                    <p>
+                                                        <strong>Supporting Data:</strong>{" "}
+                                                        {supportingData}
+                                                    </p>
+                                                )}
+                                                {confidenceLevel && (
+                                                    <p>
+                                                        <strong>Confidence Level:</strong>{" "}
+                                                        {confidenceLevel}/10
+                                                    </p>
+                                                )}
+                                            </Accordion.Body>
+                                        </Accordion.Item>
+                                    );
+                                })}
                             </Accordion>
                         </Card.Body>
                     </Card>
@@ -314,58 +585,85 @@ export default function NegotiationPrepView({ offer, onBack }) {
                     <Card className="mb-4">
                         <Card.Body>
                             <h6 className="mb-3">📝 Negotiation Scripts</h6>
-                            <Accordion defaultActiveKey="0">
-                                {prep.negotiation_scripts.map((script, idx) => (
-                                    <Accordion.Item eventKey={String(idx)} key={idx}>
-                                        <Accordion.Header>{script.scenario}</Accordion.Header>
-                                        <Accordion.Body>
-                                            <h6 className="mt-3 mb-2">Opening Statement</h6>
-                                            <p className="bg-light p-3 rounded">
-                                                "{script.opening_statement}"
-                                            </p>
+                            {!prep.negotiation_scripts || prep.negotiation_scripts.length === 0 ? (
+                                <p className="text-muted">No negotiation scripts available.</p>
+                            ) : (
+                                <Accordion defaultActiveKey="0">
+                                    {prep.negotiation_scripts.map((script, idx) => {
+                                        // Handle both string keys (old format) and object format
+                                        const scenario = script?.scenario || `Scenario ${idx + 1}`;
+                                        const openingStatement = script?.opening_statement || '';
+                                        const talkingPoints = script?.talking_points || [];
+                                        const potential_objections = script?.potential_objections || [];
+                                        const your_responses = script?.your_responses || [];
+                                        const closingStatement = script?.closing_statement || '';
+                                        const toneTips = script?.tone_tips || '';
 
-                                            <h6 className="mt-3 mb-2">Talking Points</h6>
-                                            <ul>
-                                                {script.talking_points.map((tp, tidx) => (
-                                                    <li key={tidx}>{tp}</li>
-                                                ))}
-                                            </ul>
+                                        return (
+                                            <Accordion.Item eventKey={String(idx)} key={idx}>
+                                                <Accordion.Header>{scenario}</Accordion.Header>
+                                                <Accordion.Body>
+                                                    {openingStatement && (
+                                                        <>
+                                                            <h6 className="mt-3 mb-2">Opening Statement</h6>
+                                                            <p className="bg-light p-3 rounded">
+                                                                "{openingStatement}"
+                                                            </p>
+                                                        </>
+                                                    )}
 
-                                            {script.potential_objections &&
-                                                script.potential_objections.length > 0 && (
-                                                    <>
-                                                        <h6 className="mt-3 mb-2">
-                                                            Potential Objections & Responses
-                                                        </h6>
-                                                        {script.potential_objections.map(
-                                                            (obj, oidx) => (
-                                                                <div key={oidx} className="mb-2">
-                                                                    <strong>Objection:</strong>{" "}
-                                                                    {obj}
-                                                                    <br />
-                                                                    <strong>Your Response:</strong>{" "}
-                                                                    {script.your_responses[oidx]}
-                                                                </div>
-                                                            )
+                                                    {talkingPoints.length > 0 && (
+                                                        <>
+                                                            <h6 className="mt-3 mb-2">Talking Points</h6>
+                                                            <ul>
+                                                                {talkingPoints.map((tp, tidx) => (
+                                                                    <li key={tidx}>{tp || 'Point'}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </>
+                                                    )}
+
+                                                    {potential_objections &&
+                                                        potential_objections.length > 0 && (
+                                                            <>
+                                                                <h6 className="mt-3 mb-2">
+                                                                    Potential Objections & Responses
+                                                                </h6>
+                                                                {potential_objections.map(
+                                                                    (obj, oidx) => (
+                                                                        <div key={oidx} className="mb-2">
+                                                                            <strong>Objection:</strong>{" "}
+                                                                            {obj}
+                                                                            <br />
+                                                                            <strong>Your Response:</strong>{" "}
+                                                                            {your_responses?.[oidx] || 'Response'}
+                                                                        </div>
+                                                                    )
+                                                                )}
+                                                            </>
                                                         )}
-                                                    </>
-                                                )}
 
-                                            <h6 className="mt-3 mb-2">Closing Statement</h6>
-                                            <p className="bg-light p-3 rounded">
-                                                "{script.closing_statement}"
-                                            </p>
+                                                    {closingStatement && (
+                                                        <>
+                                                            <h6 className="mt-3 mb-2">Closing Statement</h6>
+                                                            <p className="bg-light p-3 rounded">
+                                                                "{closingStatement}"
+                                                            </p>
+                                                        </>
+                                                    )}
 
-                                            {script.tone_tips && (
-                                                <>
-                                                    <h6 className="mt-3 mb-2">Tone Tips</h6>
-                                                    <p>{script.tone_tips}</p>
-                                                </>
-                                            )}
-                                        </Accordion.Body>
-                                    </Accordion.Item>
-                                ))}
-                            </Accordion>
+                                                    {toneTips && (
+                                                        <>
+                                                            <h6 className="mt-3 mb-2">Tone Tips</h6>
+                                                            <p>{toneTips}</p>
+                                                        </>
+                                                    )}
+                                                </Accordion.Body>
+                                            </Accordion.Item>
+                                        );
+                                    })}
+                                </Accordion>
+                            )}
                         </Card.Body>
                     </Card>
                 )}
@@ -374,44 +672,48 @@ export default function NegotiationPrepView({ offer, onBack }) {
                     <Card className="mb-4">
                         <Card.Body>
                             <h6 className="mb-3">⚔️ Counter-Offer Templates</h6>
-                            <Table responsive>
-                                <thead className="table-light">
-                                    <tr>
-                                        <th>Metric</th>
-                                        <th>Offered</th>
-                                        <th>Market</th>
-                                        <th>Suggested Counter</th>
-                                        <th>Priority</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {prep.counter_offer_templates.map((template, idx) => (
-                                        <tr key={idx}>
-                                            <td className="fw-bold">
-                                                {template.metric}
-                                            </td>
-                                            <td>{template.offered_value}</td>
-                                            <td>{template.market_value}</td>
-                                            <td className="fw-bold text-success">
-                                                {template.suggested_counter}
-                                            </td>
-                                            <td>
-                                                <Badge
-                                                    bg={
-                                                        template.priority_level === "critical"
-                                                            ? "danger"
-                                                            : template.priority_level === "high"
-                                                            ? "warning"
-                                                            : "info"
-                                                    }
-                                                >
-                                                    {template.priority_level}
-                                                </Badge>
-                                            </td>
+                            {!prep.counter_offer_templates || prep.counter_offer_templates.length === 0 ? (
+                                <p className="text-muted">No counter-offer templates available.</p>
+                            ) : (
+                                <Table responsive>
+                                    <thead className="table-light">
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th>Offered</th>
+                                            <th>Market</th>
+                                            <th>Suggested Counter</th>
+                                            <th>Priority</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
+                                    </thead>
+                                    <tbody>
+                                        {prep.counter_offer_templates.map((template, idx) => (
+                                            <tr key={idx}>
+                                                <td className="fw-bold">
+                                                    {template?.metric || 'N/A'}
+                                                </td>
+                                                <td>{template?.offered_value || 'N/A'}</td>
+                                                <td>{template?.market_value || 'N/A'}</td>
+                                                <td className="fw-bold text-success">
+                                                    {template?.suggested_counter || 'N/A'}
+                                                </td>
+                                                <td>
+                                                    <Badge
+                                                        bg={
+                                                            template?.priority_level === "critical"
+                                                                ? "danger"
+                                                                : template?.priority_level === "high"
+                                                                ? "warning"
+                                                                : "info"
+                                                        }
+                                                    >
+                                                        {template?.priority_level || 'medium'}
+                                                    </Badge>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </Table>
+                            )}
                         </Card.Body>
                     </Card>
                 )}
