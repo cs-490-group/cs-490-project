@@ -2,6 +2,12 @@ import uuid
 from datetime import datetime, timezone
 from bson import ObjectId
 from pymongo.asynchronous.database import AsyncDatabase
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
+class QuestionRoleDAO:
+    def __init__(self, db_client: AsyncIOMotorDatabase):
+        self.db = db_client
+
 
 class QuestionIndustryDAO:
     """Data Access Object for question industries"""

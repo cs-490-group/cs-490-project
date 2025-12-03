@@ -1,48 +1,52 @@
 import JobsAPI from "../../../api/jobs";
 
-export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, setUndoStack, jobs, autoArchiveDays, autoArchiveEnabled) {
+export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, setUndoStack, jobs, autoArchiveDays, autoArchiveEnabled, setView) {
   
-  const loadJobs = async (setLoading) => {
+  const loadJobs = async (setLoading, preserveView = false) => {
     try {
       if (setLoading) setLoading(true);
 
       const res = await JobsAPI.getAll();
 
       const transformedJobs = (res.data || []).map(job => {
-  console.log("JOB FROM BACKEND:", job);
+        console.log("JOB FROM BACKEND:", job);
 
-  const t = {
-    id: job._id,
-    title: job.title,
-    company: typeof job.company === "string" ? job.company : job.company?.name,
-    companyData: job.company_data || null,
-    company_news: job.company_news || null,
-    company_research: job.company_research || null,
-    salary_negotiation: job.salary_negotiation || null,
-    location: job.location,
-    salary: job.salary,
-    url: job.url,
-    deadline: job.deadline,
-    industry: job.industry,
-    job_type: job.job_type,
-    description: job.description,
-    status: job.status,
-    archived: job.archived,
-    notes: job.notes,
-    contacts: job.contacts,
-    salary_notes: job.salary_notes,
-    interview_notes: job.interview_notes,
-    status_history: job.status_history || [],
-    materials: job.materials || null,
-    materials_history: job.materials_history || [],
-  };
+        const t = {
+          id: job._id,
+          title: job.title,
+          company: typeof job.company === "string" ? job.company : job.company?.name,
+          companyData: job.company_data || null,
+          company_news: job.company_news || null,
+          company_research: job.company_research || null,
+          salary_negotiation: job.salary_negotiation || null,
+          location: job.location,
+          salary: job.salary,
+          url: job.url,
+          deadline: job.deadline,
+          industry: job.industry,
+          job_type: job.job_type,
+          description: job.description,
+          status: job.status,
+          archived: job.archived,
+          notes: job.notes,
+          contacts: job.contacts,
+          salary_notes: job.salary_notes,
+          interview_notes: job.interview_notes,
+          status_history: job.status_history || [],
+          materials: job.materials || null,
+          materials_history: job.materials_history || [],
+        };
 
-  console.log("TRANSFORMED JOB:", t);
-  return t;
-});
-
+        console.log("TRANSFORMED JOB:", t);
+        return t;
+      });
 
       setJobs(transformedJobs);
+      
+      // Only switch to pipeline view if preserveView is true
+      if (preserveView && setView) {
+        setView("pipeline");
+      }
     } catch (error) {
       console.error("Failed to load jobs:", error);
       setJobs([]);
@@ -81,7 +85,7 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
     try {
       const backendData = {
         title: jobData.title,
-        company: jobData.company,              // <-- ALWAYS THE STRING NAME
+        company: jobData.company,
         location: jobData.location,
         salary: jobData.salary,
         url: jobData.url,
@@ -95,10 +99,6 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
         salary_notes: jobData.salary_notes,
         interview_notes: jobData.interview_notes,
         status_history: jobData.status_history,
-
-      
-
-        // company_data goes here, NOT inside "company"
         company_data: jobData.companyData || null
       };
 
@@ -107,7 +107,7 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
       const res = await JobsAPI.add(backendData);
 
       if (res && res.data.job_id) {
-        // Use the full job object from backend if available, which includes all generated data
+        // Backend now returns the full job object
         const backendJob = res.data.job;
 
         const newJob = backendJob ? {
@@ -150,6 +150,20 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
         };
 
         setJobs(prev => [...prev, newJob]);
+        
+        // Show success message
+        //alert("✅ Job added successfully! Research data is being generated in the background.");
+        setView("pipeline");
+        // Optional: Poll for research completion and switch to pipeline view
+        if (backendJob && !backendJob.company_research) {
+          console.log("📊 Research pending for job:", newJob.id);
+          setTimeout(() => {
+            loadJobs(null, true); // Refresh to get research data and switch to pipeline
+          }, 5000); // Check after 5 seconds
+        } else if (setView) {
+          // If research is already complete, switch to pipeline immediately
+          setView("pipeline");
+        }
       }
     } catch (error) {
       console.error("Failed to add job:", error);
@@ -171,7 +185,6 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
       
       console.log('✅ Update response:', response);
       
-      // Get enriched materials from response if available
       const enrichedMaterials = response?.data?.materials || jobData.materials;
       
       console.log('📦 Enriched materials:', enrichedMaterials);
@@ -181,7 +194,7 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
           return {
             ...job,
             ...jobData,
-            materials: enrichedMaterials, // Use enriched materials from backend
+            materials: enrichedMaterials,
             updatedAt: new Date().toISOString()
           };
         }
@@ -190,13 +203,12 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
 
       setSelectedJob(null);
       
-      // Show success message
       console.log('✅ Job updated successfully with materials:', enrichedMaterials);
       
     } catch (error) {
       console.error("Failed to update job:", error);
       alert(error.response?.data?.detail || "Failed to update job. Please try again.");
-      loadJobs(); // Reload to get correct state from backend
+      loadJobs();
     }
   };
 
@@ -330,6 +342,25 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
     }
   };
 
+  const retryJobResearch = async (jobId) => {
+    try {
+      console.log(`🔄 Retrying research for job ${jobId}`);
+      
+      const res = await JobsAPI.retryResearch(jobId);
+      
+      if (res && res.data) {
+        console.log(`✅ Research completed:`, res.data.updated_fields);
+        
+        await loadJobs();
+        
+        alert(`✅ Research completed successfully!\nUpdated: ${res.data.updated_fields.join(', ')}`);
+      }
+    } catch (error) {
+      console.error("Failed to retry research:", error);
+      alert(error.response?.data?.detail || "Failed to retry research. Please try again later.");
+    }
+  };
+
   return {
     addJob,
     updateJob,
@@ -338,6 +369,7 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
     restoreJob,
     restoreDeletedJob,
     loadJobs,
-    checkAutoArchive
+    checkAutoArchive,
+    retryJobResearch
   };
 }

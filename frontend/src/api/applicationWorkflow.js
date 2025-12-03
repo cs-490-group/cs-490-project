@@ -169,6 +169,14 @@ class ApplicationWorkflowAPI {
     updateGoalProgress(goalId, progress) {
         return api.put(`${BASE_URL}/goals/${goalId}`, { progress });
     }
+ 
+    deleteGoal(goalId) {
+        return api.delete(`${BASE_URL}/goals/${goalId}`);
+    }
+
+    updateGoal(goalId, data) {
+        return api.put(`${BASE_URL}/goals/${goalId}`, data);
+    }
 }
 
 export default new ApplicationWorkflowAPI();
