@@ -320,6 +320,10 @@ const Nav = () => {
                     Follow Up
                   </NavDropdown.Item>
                   <NavDropdown.Divider />
+                  <NavDropdown.Item as={NavLink} to="/technical-prep">
+                    Technical Interview Prep
+                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
                   <NavDropdown.Item as={NavLink} to="/offers">
                     Offers
                   </NavDropdown.Item>

@@ -90,6 +90,10 @@ class ResumesAPI {
     getSharedResume(token) {
         return api.get(`${BASE_URL}/public/${token}`);
     }
+    // new - Anthony (UC - 110)
+    updatePublicStatus(token, status) {
+        return api.post(`${BASE_URL}/public/${token}/status`, { status });
+    }
 
     validateResume(resumeId) {
         return api.post(`${BASE_URL}/${resumeId}/validate`);
@@ -132,6 +136,10 @@ class ResumesAPI {
         return api.post(`${BASE_URL}/${resumeId}/generate-docx`, {}, {
             responseType: 'blob'
         });
+    }
+    // For checking the impact that resume reviews have on overall success.
+    getReviewImpact() {
+        return api.get(`${BASE_URL}/analytics/impact`);
     }
 }
 

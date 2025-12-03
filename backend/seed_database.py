@@ -1125,5 +1125,942 @@ async def seed_database():
         raise
 
 
+async def seed_technical_challenges():
+    """Seed technical interview challenges (coding, system design, case studies)"""
+    from datetime import datetime, timezone
+
+    db = db_client
+
+    # Coding Challenges - Easy
+    EASY_CODING_CHALLENGES = [
+        {
+            "title": "Two Sum",
+            "description": "Given an array of integers, find the two numbers that add up to a target value.",
+            "difficulty": "easy",
+            "challenge_type": "coding",
+            "required_skills": ["Arrays", "Hash Maps"],
+            "required_tech_stack": ["Python", "JavaScript", "Java"],
+            "time_limit_minutes": 20,
+            "tags": ["array", "hash-map", "two-pointer"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Two Sum",
+                "description": "Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target.",
+                "difficulty": "easy",
+                "required_languages": ["Python", "JavaScript", "Java"],
+                "required_skills": ["Arrays", "Hash Maps"],
+                "time_limit_minutes": 20,
+                "constraints": ["1 <= nums.length <= 10^4", "-10^9 <= nums[i] <= 10^9"],
+                "example_input": "nums = [2,7,11,15], target = 9",
+                "example_output": "[0,1]",
+                "test_cases": [
+                    {"input": {"nums": [2, 7, 11, 15], "target": 9}, "expected_output": [0, 1], "description": "Basic case", "is_hidden": False},
+                    {"input": {"nums": [3, 2, 4], "target": 6}, "expected_output": [1, 2], "description": "Another case", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Hash Map Approach",
+                    "overview": "Use a hash map to store values and their indices for O(n) solution",
+                    "steps": ["Create a hash map", "Iterate through array", "Check if complement exists", "Return indices"],
+                    "pseudocode": "hash_map = {}\nfor i, num in enumerate(nums):\n    if target - num in hash_map:\n        return [hash_map[target - num], i]\n    hash_map[num] = i",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(n)",
+                    "common_mistakes": ["Using nested loops", "Not handling duplicates correctly"],
+                    "alternative_approaches": ["Brute force O(n^2)", "Two pointer on sorted array"],
+                    "real_world_correlation": "Recommendation systems use similar pair-finding techniques",
+                    "whiteboard_checklist": ["Clarify requirements", "Discuss tradeoffs", "Code clearly"]
+                },
+                "follow_up_questions": ["What if we need all pairs?", "Can we do O(1) space?"]
+            }
+        },
+        {
+            "title": "Reverse String",
+            "description": "Reverse a given string in-place.",
+            "difficulty": "easy",
+            "challenge_type": "coding",
+            "required_skills": ["Strings"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 15,
+            "tags": ["string", "two-pointer"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Reverse String",
+                "description": "Reverse a given string",
+                "difficulty": "easy",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Strings"],
+                "time_limit_minutes": 15,
+                "constraints": ["0 <= s.length <= 10^5"],
+                "example_input": "s = 'hello'",
+                "example_output": "'olleh'",
+                "test_cases": [
+                    {"input": {"s": "hello"}, "expected_output": "olleh", "description": "Basic string", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Two Pointer Approach",
+                    "overview": "Swap characters from both ends moving towards center",
+                    "steps": ["Initialize pointers at both ends", "Swap characters", "Move pointers inward"],
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(1)",
+                    "common_mistakes": ["Forgetting to move pointers"],
+                    "real_world_correlation": "String manipulation is fundamental in text processing",
+                    "whiteboard_checklist": ["Explain approach", "Code the solution"]
+                }
+            }
+        },
+        {
+            "title": "Palindrome Check",
+            "description": "Check if a string is a palindrome.",
+            "difficulty": "easy",
+            "challenge_type": "coding",
+            "required_skills": ["Strings"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 15,
+            "tags": ["string"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Palindrome Check",
+                "description": "Check if a string is a palindrome (ignoring spaces and punctuation)",
+                "difficulty": "easy",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Strings"],
+                "time_limit_minutes": 15,
+                "test_cases": [
+                    {"input": {"s": "A man, a plan, a canal: Panama"}, "expected_output": True, "description": "Valid palindrome", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Two Pointer Approach",
+                    "overview": "Compare characters from both ends, ignoring non-alphanumeric",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(1)",
+                    "real_world_correlation": "Palindrome detection is used in spell-checking and data validation"
+                }
+            }
+        },
+        {
+            "title": "Fibonacci Number",
+            "description": "Return the nth Fibonacci number.",
+            "difficulty": "easy",
+            "challenge_type": "coding",
+            "required_skills": ["Recursion", "Dynamic Programming"],
+            "required_tech_stack": ["Python", "JavaScript", "Java"],
+            "time_limit_minutes": 20,
+            "tags": ["recursion", "dynamic-programming"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Fibonacci",
+                "description": "Return the nth Fibonacci number",
+                "difficulty": "easy",
+                "required_languages": ["Python", "JavaScript", "Java"],
+                "required_skills": ["Recursion", "DP"],
+                "time_limit_minutes": 20,
+                "test_cases": [
+                    {"input": {"n": 6}, "expected_output": 8, "description": "Fib(6) = 8", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Dynamic Programming Approach",
+                    "overview": "Use memoization to avoid recalculating values",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(n)",
+                    "common_mistakes": ["Naive recursion is O(2^n)"],
+                    "real_world_correlation": "DP is used in optimization algorithms"
+                }
+            }
+        },
+        {
+            "title": "Contains Duplicate",
+            "description": "Check if array contains duplicate elements.",
+            "difficulty": "easy",
+            "challenge_type": "coding",
+            "required_skills": ["Hash Sets"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 15,
+            "tags": ["hash-set", "array"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Contains Duplicate",
+                "description": "Check if an array contains any duplicate values",
+                "difficulty": "easy",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Hash Sets"],
+                "time_limit_minutes": 15,
+                "test_cases": [
+                    {"input": {"nums": [1, 2, 3, 1]}, "expected_output": True, "description": "Has duplicate", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Hash Set Approach",
+                    "overview": "Track seen numbers in a set",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(n)",
+                    "real_world_correlation": "Duplicate detection is used in data validation"
+                }
+            }
+        },
+        {
+            "title": "Valid Parentheses",
+            "description": "Check if parentheses are balanced in a string.",
+            "difficulty": "easy",
+            "challenge_type": "coding",
+            "required_skills": ["Stack"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 20,
+            "tags": ["stack", "string"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Valid Parentheses",
+                "description": "Check if brackets are balanced",
+                "difficulty": "easy",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Stack"],
+                "time_limit_minutes": 20,
+                "test_cases": [
+                    {"input": {"s": "()"}, "expected_output": True, "description": "Valid", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Stack Approach",
+                    "overview": "Use stack to match opening and closing brackets",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(n)",
+                    "real_world_correlation": "Compiler syntax validation uses this technique"
+                }
+            }
+        },
+        {
+            "title": "Max Subarray",
+            "description": "Find the contiguous subarray with maximum sum.",
+            "difficulty": "easy",
+            "challenge_type": "coding",
+            "required_skills": ["Dynamic Programming"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 25,
+            "tags": ["dynamic-programming", "array"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Maximum Subarray",
+                "description": "Find the contiguous subarray with the largest sum (Kadane's Algorithm)",
+                "difficulty": "easy",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["DP"],
+                "time_limit_minutes": 25,
+                "test_cases": [
+                    {"input": {"nums": [-2, 1, -3, 4, -1, 2, 1, -5, 4]}, "expected_output": 6, "description": "[4, -1, 2, 1]", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Kadane's Algorithm",
+                    "overview": "Keep track of max sum ending at current position",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(1)",
+                    "real_world_correlation": "Stock trading: find best time to buy and sell"
+                }
+            }
+        },
+        {
+            "title": "Missing Number",
+            "description": "Find the missing number in an array of n unique numbers from 1 to n.",
+            "difficulty": "easy",
+            "challenge_type": "coding",
+            "required_skills": ["Math", "Arrays"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 15,
+            "tags": ["array", "math"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Missing Number",
+                "description": "Find the single missing number in array containing 0 to n",
+                "difficulty": "easy",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Math"],
+                "time_limit_minutes": 15,
+                "test_cases": [
+                    {"input": {"nums": [3, 0, 1]}, "expected_output": 2, "description": "Missing 2", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "XOR or Math Approach",
+                    "overview": "Use XOR or sum formula",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(1)",
+                    "real_world_correlation": "Data integrity checking in distributed systems"
+                }
+            }
+        },
+        {
+            "title": "Merge Two Sorted Lists",
+            "description": "Merge two sorted arrays into one sorted array.",
+            "difficulty": "easy",
+            "challenge_type": "coding",
+            "required_skills": ["Arrays", "Two Pointers"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 20,
+            "tags": ["array", "two-pointer", "merge"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Merge Sorted Array",
+                "description": "Merge two sorted arrays in-place",
+                "difficulty": "easy",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Arrays", "Two Pointers"],
+                "time_limit_minutes": 20,
+                "test_cases": [
+                    {"input": {"nums1": [1, 2, 3], "nums2": [2, 5, 6]}, "expected_output": [1, 2, 2, 3, 5, 6], "description": "Merge sorted", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Two Pointer Approach",
+                    "overview": "Compare elements from both arrays and place smaller one",
+                    "time_complexity": "O(n + m)",
+                    "space_complexity": "O(1)",
+                    "real_world_correlation": "Merge step in Merge Sort, database query optimization"
+                }
+            }
+        },
+        {
+            "title": "First Unique Character",
+            "description": "Find the first unique character in a string.",
+            "difficulty": "easy",
+            "challenge_type": "coding",
+            "required_skills": ["Hash Maps"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 15,
+            "tags": ["hash-map", "string"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "First Unique Character",
+                "description": "Find the index of first non-repeating character",
+                "difficulty": "easy",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Hash Maps"],
+                "time_limit_minutes": 15,
+                "test_cases": [
+                    {"input": {"s": "leetcode"}, "expected_output": 0, "description": "l is first unique", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Hash Map Approach",
+                    "overview": "Count character frequencies, find first with count 1",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(1)",
+                    "real_world_correlation": "Text analysis and compression algorithms"
+                }
+            }
+        }
+    ]
+
+    # Medium Challenges (10)
+    MEDIUM_CODING_CHALLENGES = [
+        {
+            "title": "Longest Substring Without Repeating Characters",
+            "description": "Find the length of the longest substring without repeating characters.",
+            "difficulty": "medium",
+            "challenge_type": "coding",
+            "required_skills": ["Strings", "Sliding Window"],
+            "required_tech_stack": ["Python", "JavaScript", "Java"],
+            "time_limit_minutes": 30,
+            "tags": ["string", "sliding-window"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Longest Substring Without Repeating",
+                "description": "Find length of longest substring with unique characters",
+                "difficulty": "medium",
+                "required_languages": ["Python", "JavaScript", "Java"],
+                "required_skills": ["Strings", "Sliding Window"],
+                "time_limit_minutes": 30,
+                "test_cases": [
+                    {"input": {"s": "abcabcbb"}, "expected_output": 3, "description": "abc", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Sliding Window",
+                    "overview": "Use two pointers to track window of unique characters",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(min(m,n))",
+                    "real_world_correlation": "Token identification in compilers"
+                }
+            }
+        },
+        {
+            "title": "3Sum",
+            "description": "Find all unique triplets that sum to zero.",
+            "difficulty": "medium",
+            "challenge_type": "coding",
+            "required_skills": ["Arrays", "Sorting"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 35,
+            "tags": ["array", "sorting"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "3Sum",
+                "description": "Find all unique triplets that sum to 0",
+                "difficulty": "medium",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Arrays", "Sorting"],
+                "time_limit_minutes": 35,
+                "test_cases": [
+                    {"input": {"nums": [-1, 0, 1, 2, -1, -4]}, "expected_output": [[-1, -1, 2], [-1, 0, 1]], "description": "Unique triplets", "is_hidden": False}
+                ],
+                "solution_framework": {
+                    "title": "Sort + Two Pointer",
+                    "overview": "Sort array, fix one element, use two pointers for remainder",
+                    "time_complexity": "O(n^2)",
+                    "space_complexity": "O(1)",
+                    "real_world_correlation": "Portfolio optimization in finance"
+                }
+            }
+        },
+        {
+            "title": "Binary Tree Level Order Traversal",
+            "description": "Traverse a binary tree level by level.",
+            "difficulty": "medium",
+            "challenge_type": "coding",
+            "required_skills": ["Trees", "BFS"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 30,
+            "tags": ["tree", "bfs", "queue"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Level Order Traversal",
+                "description": "Return nodes at each level of a binary tree",
+                "difficulty": "medium",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Trees", "BFS"],
+                "time_limit_minutes": 30,
+                "solution_framework": {
+                    "title": "BFS with Queue",
+                    "overview": "Use queue to process nodes level by level",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(w)",
+                    "real_world_correlation": "Graph algorithms in social networks"
+                }
+            }
+        },
+        {
+            "title": "LRU Cache",
+            "description": "Implement an LRU (Least Recently Used) cache.",
+            "difficulty": "medium",
+            "challenge_type": "coding",
+            "required_skills": ["Hash Maps", "Linked Lists"],
+            "required_tech_stack": ["Python", "Java"],
+            "time_limit_minutes": 40,
+            "tags": ["hash-map", "linked-list"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "LRU Cache",
+                "description": "Design and implement an LRU cache with get and put operations",
+                "difficulty": "medium",
+                "required_languages": ["Python", "Java"],
+                "required_skills": ["Hash Maps", "Linked Lists"],
+                "time_limit_minutes": 40,
+                "solution_framework": {
+                    "title": "Hash Map + Doubly Linked List",
+                    "overview": "Combine hash map for O(1) access with linked list for ordering",
+                    "time_complexity": "O(1) for get/put",
+                    "space_complexity": "O(capacity)",
+                    "real_world_correlation": "CPU caching, web server caching, CDN optimization"
+                }
+            }
+        },
+        {
+            "title": "Word Ladder",
+            "description": "Find the shortest path between two words by changing one letter at a time.",
+            "difficulty": "medium",
+            "challenge_type": "coding",
+            "required_skills": ["Graphs", "BFS"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 40,
+            "tags": ["graph", "bfs"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Word Ladder",
+                "description": "Find shortest transformation sequence from start to end word",
+                "difficulty": "medium",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Graphs", "BFS"],
+                "time_limit_minutes": 40,
+                "solution_framework": {
+                    "title": "BFS Approach",
+                    "overview": "Model as graph where edges connect words differing by one letter",
+                    "time_complexity": "O(n * l^2)",
+                    "space_complexity": "O(n)",
+                    "real_world_correlation": "Spell checking, autocorrection algorithms"
+                }
+            }
+        },
+        {
+            "title": "Coin Change",
+            "description": "Find minimum number of coins to make a given amount.",
+            "difficulty": "medium",
+            "challenge_type": "coding",
+            "required_skills": ["Dynamic Programming"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 35,
+            "tags": ["dynamic-programming"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Coin Change",
+                "description": "Find fewest coins needed to make target amount",
+                "difficulty": "medium",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["DP"],
+                "time_limit_minutes": 35,
+                "solution_framework": {
+                    "title": "DP Bottom-Up",
+                    "overview": "Build up solutions for amounts from 0 to target",
+                    "time_complexity": "O(n * amount)",
+                    "space_complexity": "O(amount)",
+                    "real_world_correlation": "Vending machines, payment processing"
+                }
+            }
+        },
+        {
+            "title": "Rotate Matrix",
+            "description": "Rotate an n×n matrix 90 degrees clockwise in-place.",
+            "difficulty": "medium",
+            "challenge_type": "coding",
+            "required_skills": ["Arrays", "Matrix"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 30,
+            "tags": ["array", "matrix"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Rotate Matrix",
+                "description": "Rotate an n×n matrix 90 degrees clockwise in-place",
+                "difficulty": "medium",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Arrays", "Matrix"],
+                "time_limit_minutes": 30,
+                "solution_framework": {
+                    "title": "Layer-by-layer rotation",
+                    "overview": "Rotate matrix layer by layer from outside to inside",
+                    "time_complexity": "O(n^2)",
+                    "space_complexity": "O(1)",
+                    "real_world_correlation": "Image processing and computer graphics"
+                }
+            }
+        },
+        {
+            "title": "Backtracking: Combinations",
+            "description": "Generate all combinations of k elements from n elements.",
+            "difficulty": "medium",
+            "challenge_type": "coding",
+            "required_skills": ["Backtracking", "Recursion"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 35,
+            "tags": ["backtracking", "recursion"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Combinations",
+                "description": "Generate all k-length combinations of 1..n",
+                "difficulty": "medium",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Backtracking"],
+                "time_limit_minutes": 35,
+                "solution_framework": {
+                    "title": "Backtracking",
+                    "overview": "Recursively build combinations by choosing/not choosing elements",
+                    "time_complexity": "O(C(n,k))",
+                    "space_complexity": "O(k)",
+                    "real_world_correlation": "Scheduling algorithms, game tree search"
+                }
+            }
+        },
+        {
+            "title": "Decode String",
+            "description": "Decode a string encoded with numbers and brackets.",
+            "difficulty": "medium",
+            "challenge_type": "coding",
+            "required_skills": ["Stack", "Strings"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 30,
+            "tags": ["stack", "string"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Decode String",
+                "description": "Decode a string like '3[a2[c]]' to 'accaccacc'",
+                "difficulty": "medium",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Stack"],
+                "time_limit_minutes": 30,
+                "solution_framework": {
+                    "title": "Stack-based approach",
+                    "overview": "Use stack to handle nested encodings",
+                    "time_complexity": "O(max_depth * n)",
+                    "space_complexity": "O(max_depth)",
+                    "real_world_correlation": "Compression algorithms, template processing"
+                }
+            }
+        },
+        {
+            "title": "Graph Valid Tree",
+            "description": "Check if a graph is a valid tree.",
+            "difficulty": "medium",
+            "challenge_type": "coding",
+            "required_skills": ["Graphs", "Union-Find"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 35,
+            "tags": ["graph", "union-find"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Valid Tree",
+                "description": "Check if undirected graph is a valid tree",
+                "difficulty": "medium",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Graphs", "Union-Find"],
+                "time_limit_minutes": 35,
+                "solution_framework": {
+                    "title": "Union-Find Approach",
+                    "overview": "Use union-find to detect cycles",
+                    "time_complexity": "O(n * α(n))",
+                    "space_complexity": "O(n)",
+                    "real_world_correlation": "Network topology verification, social networks"
+                }
+            }
+        }
+    ]
+
+    # Hard Challenges (10)
+    HARD_CODING_CHALLENGES = [
+        {
+            "title": "Serialize and Deserialize Binary Tree",
+            "description": "Serialize a binary tree and deserialize it back.",
+            "difficulty": "hard",
+            "challenge_type": "coding",
+            "required_skills": ["Trees", "Design"],
+            "required_tech_stack": ["Python", "Java"],
+            "time_limit_minutes": 45,
+            "tags": ["tree", "serialization"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Serialize/Deserialize Tree",
+                "description": "Convert tree to string and back",
+                "difficulty": "hard",
+                "required_languages": ["Python", "Java"],
+                "required_skills": ["Trees", "Design"],
+                "time_limit_minutes": 45,
+                "solution_framework": {
+                    "title": "Pre-order Traversal approach",
+                    "overview": "Use pre-order traversal with markers for null nodes",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(n)",
+                    "real_world_correlation": "Message serialization in distributed systems, database storage"
+                }
+            }
+        },
+        {
+            "title": "Word Ladder II",
+            "description": "Find all shortest transformation sequences between two words.",
+            "difficulty": "hard",
+            "challenge_type": "coding",
+            "required_skills": ["Graphs", "Backtracking", "BFS"],
+            "required_tech_stack": ["Python"],
+            "time_limit_minutes": 50,
+            "tags": ["graph", "backtracking", "bfs"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Word Ladder II",
+                "description": "Find all shortest transformation sequences",
+                "difficulty": "hard",
+                "required_languages": ["Python"],
+                "required_skills": ["Graphs", "Backtracking", "BFS"],
+                "time_limit_minutes": 50,
+                "solution_framework": {
+                    "title": "BFS + Backtracking",
+                    "overview": "Use BFS to find levels, then backtrack to build paths",
+                    "time_complexity": "O(n * 26^l)",
+                    "space_complexity": "O(n)",
+                    "real_world_correlation": "Search algorithm optimization"
+                }
+            }
+        },
+        {
+            "title": "Median of Two Sorted Arrays",
+            "description": "Find median of two sorted arrays in O(log(min(m,n))) time.",
+            "difficulty": "hard",
+            "challenge_type": "coding",
+            "required_skills": ["Binary Search"],
+            "required_tech_stack": ["Python", "Java"],
+            "time_limit_minutes": 50,
+            "tags": ["binary-search"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Median Two Arrays",
+                "description": "Find median in O(log(min(m,n))) time",
+                "difficulty": "hard",
+                "required_languages": ["Python", "Java"],
+                "required_skills": ["Binary Search"],
+                "time_limit_minutes": 50,
+                "solution_framework": {
+                    "title": "Binary Search approach",
+                    "overview": "Partition arrays to find median",
+                    "time_complexity": "O(log(min(m,n)))",
+                    "space_complexity": "O(1)",
+                    "real_world_correlation": "Statistical analysis, database queries"
+                }
+            }
+        },
+        {
+            "title": "Trapping Rain Water",
+            "description": "Calculate how much rain water can be trapped between elevation heights.",
+            "difficulty": "hard",
+            "challenge_type": "coding",
+            "required_skills": ["Arrays", "Two Pointers"],
+            "required_tech_stack": ["Python", "JavaScript"],
+            "time_limit_minutes": 45,
+            "tags": ["array", "two-pointer"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Trapping Rain",
+                "description": "Calculate trapped rainwater between elevations",
+                "difficulty": "hard",
+                "required_languages": ["Python", "JavaScript"],
+                "required_skills": ["Arrays", "Two Pointers"],
+                "time_limit_minutes": 45,
+                "solution_framework": {
+                    "title": "Two Pointer approach",
+                    "overview": "Track max heights from both sides",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(1)",
+                    "real_world_correlation": "Terrain analysis, water resource management"
+                }
+            }
+        },
+        {
+            "title": "Edit Distance",
+            "description": "Find minimum edits (insert, delete, replace) to transform one string to another.",
+            "difficulty": "hard",
+            "challenge_type": "coding",
+            "required_skills": ["Dynamic Programming", "Strings"],
+            "required_tech_stack": ["Python"],
+            "time_limit_minutes": 45,
+            "tags": ["dynamic-programming", "string"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Edit Distance (Levenshtein)",
+                "description": "Minimum operations to transform word1 to word2",
+                "difficulty": "hard",
+                "required_languages": ["Python"],
+                "required_skills": ["DP"],
+                "time_limit_minutes": 45,
+                "solution_framework": {
+                    "title": "DP 2D Table",
+                    "overview": "Build table of minimum edits for substrings",
+                    "time_complexity": "O(m*n)",
+                    "space_complexity": "O(m*n)",
+                    "real_world_correlation": "Spell checking, DNA sequence alignment, plagiarism detection"
+                }
+            }
+        },
+        {
+            "title": "Largest Rectangle in Histogram",
+            "description": "Find the largest rectangle in a histogram.",
+            "difficulty": "hard",
+            "challenge_type": "coding",
+            "required_skills": ["Stack", "Arrays"],
+            "required_tech_stack": ["Python", "Java"],
+            "time_limit_minutes": 45,
+            "tags": ["stack", "array"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Largest Rectangle",
+                "description": "Find largest rectangle area in histogram",
+                "difficulty": "hard",
+                "required_languages": ["Python", "Java"],
+                "required_skills": ["Stack"],
+                "time_limit_minutes": 45,
+                "solution_framework": {
+                    "title": "Monotonic Stack",
+                    "overview": "Use stack to track potential rectangles",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(n)",
+                    "real_world_correlation": "Graphics rendering, warehouse optimization"
+                }
+            }
+        },
+        {
+            "title": "Critical Connections (Bridges)",
+            "description": "Find all critical connections in a network (bridges in a graph).",
+            "difficulty": "hard",
+            "challenge_type": "coding",
+            "required_skills": ["Graphs", "DFS", "Tarjan's Algorithm"],
+            "required_tech_stack": ["Python"],
+            "time_limit_minutes": 50,
+            "tags": ["graph", "dfs"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Critical Connections",
+                "description": "Find bridge edges that disconnect the graph",
+                "difficulty": "hard",
+                "required_languages": ["Python"],
+                "required_skills": ["Graphs", "DFS"],
+                "time_limit_minutes": 50,
+                "solution_framework": {
+                    "title": "Tarjan's Algorithm",
+                    "overview": "Use DFS with discovery/low times to find bridges",
+                    "time_complexity": "O(n + e)",
+                    "space_complexity": "O(n)",
+                    "real_world_correlation": "Network robustness analysis, infrastructure planning"
+                }
+            }
+        },
+        {
+            "title": "Burst Balloons",
+            "description": "Maximize coins earned by bursting balloons in optimal order.",
+            "difficulty": "hard",
+            "challenge_type": "coding",
+            "required_skills": ["Dynamic Programming"],
+            "required_tech_stack": ["Python"],
+            "time_limit_minutes": 50,
+            "tags": ["dynamic-programming"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Burst Balloons",
+                "description": "Maximize reward by bursting balloons optimally",
+                "difficulty": "hard",
+                "required_languages": ["Python"],
+                "required_skills": ["DP"],
+                "time_limit_minutes": 50,
+                "solution_framework": {
+                    "title": "Reverse DP approach",
+                    "overview": "Think of last balloon to burst instead of first",
+                    "time_complexity": "O(n^3)",
+                    "space_complexity": "O(n^2)",
+                    "real_world_correlation": "Game theory, optimization under constraints"
+                }
+            }
+        },
+        {
+            "title": "Regular Expression Matching",
+            "description": "Implement regex with '.' (any char) and '*' (0+ repetitions) support.",
+            "difficulty": "hard",
+            "challenge_type": "coding",
+            "required_skills": ["Dynamic Programming", "Strings"],
+            "required_tech_stack": ["Python"],
+            "time_limit_minutes": 50,
+            "tags": ["dynamic-programming", "string"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Regex Matching",
+                "description": "Match string with regex pattern (. and *)",
+                "difficulty": "hard",
+                "required_languages": ["Python"],
+                "required_skills": ["DP"],
+                "time_limit_minutes": 50,
+                "solution_framework": {
+                    "title": "DP 2D Table",
+                    "overview": "Build table tracking pattern matches",
+                    "time_complexity": "O(m*n)",
+                    "space_complexity": "O(m*n)",
+                    "real_world_correlation": "Text processing, parsing, validation engines"
+                }
+            }
+        },
+        {
+            "title": "Sliding Window Maximum",
+            "description": "Find maximum in each sliding window of an array.",
+            "difficulty": "hard",
+            "challenge_type": "coding",
+            "required_skills": ["Deque", "Sliding Window"],
+            "required_tech_stack": ["Python", "Java"],
+            "time_limit_minutes": 45,
+            "tags": ["sliding-window", "deque"],
+            "source": "template",
+            "ai_generated": False,
+            "coding_challenge": {
+                "title": "Sliding Max",
+                "description": "Find maximum in each k-window",
+                "difficulty": "hard",
+                "required_languages": ["Python", "Java"],
+                "required_skills": ["Deque"],
+                "time_limit_minutes": 45,
+                "solution_framework": {
+                    "title": "Deque approach",
+                    "overview": "Use deque to maintain decreasing elements",
+                    "time_complexity": "O(n)",
+                    "space_complexity": "O(k)",
+                    "real_world_correlation": "Time series analysis, stock moving averages"
+                }
+            }
+        }
+    ]
+
+    try:
+        collection = db.get_collection("technical_challenges")
+        now = datetime.now(timezone.utc)
+
+        print("\n[*] Seeding Technical Coding Challenges...")
+
+        # Insert Easy challenges
+        for challenge in EASY_CODING_CHALLENGES:
+            challenge["uuid"] = ""  # Will be set by application
+            challenge["created_at"] = now
+            challenge["updated_at"] = now
+            challenge["ai_generated"] = False
+
+            existing = await collection.find_one({"title": challenge["title"]})
+            if not existing:
+                await collection.insert_one(challenge)
+
+        print(f"  [+] Added {len(EASY_CODING_CHALLENGES)} Easy Challenges")
+
+        # Insert Medium challenges
+        for challenge in MEDIUM_CODING_CHALLENGES:
+            challenge["uuid"] = ""
+            challenge["created_at"] = now
+            challenge["updated_at"] = now
+            challenge["ai_generated"] = False
+
+            existing = await collection.find_one({"title": challenge["title"]})
+            if not existing:
+                await collection.insert_one(challenge)
+
+        print(f"  [+] Added {len(MEDIUM_CODING_CHALLENGES)} Medium Challenges")
+
+        # Insert Hard challenges
+        for challenge in HARD_CODING_CHALLENGES:
+            challenge["uuid"] = ""
+            challenge["created_at"] = now
+            challenge["updated_at"] = now
+            challenge["ai_generated"] = False
+
+            existing = await collection.find_one({"title": challenge["title"]})
+            if not existing:
+                await collection.insert_one(challenge)
+
+        print(f"  [+] Added {len(HARD_CODING_CHALLENGES)} Hard Challenges")
+        total = len(EASY_CODING_CHALLENGES) + len(MEDIUM_CODING_CHALLENGES) + len(HARD_CODING_CHALLENGES)
+        print(f"\n[OK] Technical Challenges seeding complete! ({total} total)")
+
+    except Exception as e:
+        print(f"[ERROR] Error seeding technical challenges: {e}")
+        raise
+
+
 if __name__ == "__main__":
-    asyncio.run(seed_database())
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "challenges":
+        asyncio.run(seed_technical_challenges())
+    else:
+        asyncio.run(seed_database())
