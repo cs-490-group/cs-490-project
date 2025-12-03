@@ -1,0 +1,400 @@
+.analytics-dashboard {
+  padding: 2rem;
+  background: #f8f9fa;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.analytics-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.analytics-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: #333;
+}
+
+.analytics-header p {
+  margin: 0;
+  color: #666;
+}
+
+/* Timeframe Selector */
+.timeframe-selector {
+  display: flex;
+  gap: 0.5rem;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.timeframe-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  font-weight: 400;
+  transition: all 0.2s ease;
+}
+
+.timeframe-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.timeframe-btn.active {
+  border: 2px solid #667eea;
+  background: #f0f4ff;
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* Metric Cards Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.metric-card.clickable {
+  cursor: pointer;
+}
+
+.metric-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 0.75rem;
+}
+
+.metric-title {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.metric-icon {
+  font-size: 1.5rem;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  color: #667eea;
+}
+
+.metric-subtitle {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.metric-trend {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.trend-icon {
+  font-size: 1rem;
+}
+
+/* Charts Grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-container {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.chart-container h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+/* Insights Panel */
+.insights-panel {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 2rem;
+}
+
+.insights-panel h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.insights-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.insights-sections h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+}
+
+.insights-sections ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #666;
+}
+
+.insights-sections li {
+  margin-bottom: 0.5rem;
+}
+
+.recommendations-box {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.recommendations-box h4 {
+  margin: 0 0 0.75rem 0;
+}
+
+.recommendations-box ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+/* Benchmark Comparison */
+.benchmark-comparison {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.benchmark-comparison h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.2rem;
+}
+
+.benchmark-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.benchmark-item {
+  text-align: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.benchmark-item.highlight {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+}
+
+.benchmark-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.benchmark-value {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.benchmark-note {
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+/* Comparison Table */
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.comparison-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+}
+
+.comparison-table tr:hover {
+  background: #f8f9fa;
+}
+
+/* Trend Indicators */
+.trend-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.trend-indicator.up {
+  background: #d4edda;
+  color: #28a745;
+}
+
+.trend-indicator.down {
+  background: #f8d7da;
+  color: #dc3545;
+}
+
+.trend-indicator.stable {
+  background: #f0f0f0;
+  color: #6c757d;
+}
+
+/* Score Colors */
+.score-high {
+  color: #28a745;
+}
+
+.score-medium {
+  color: #ffc107;
+}
+
+.score-low {
+  color: #dc3545;
+}
+
+/* Loading State */
+.analytics-loading {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #666;
+}
+
+.analytics-loading .spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f0f0f0;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .analytics-dashboard {
+    padding: 1rem;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .insights-sections {
+    grid-template-columns: 1fr;
+  }
+  
+  .benchmark-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .analytics-dashboard {
+    background: white;
+  }
+  
+  .timeframe-selector {
+    display: none;
+  }
+  
+  .metric-card,
+  .chart-container,
+  .insights-panel,
+  .benchmark-comparison {
+    page-break-inside: avoid;
+    box-shadow: none;
+  }
+}
+
+/* Dark Mode Support (Optional) */
+@media (prefers-color-scheme: dark) {
+  .analytics-dashboard {
+    background: #1a1a1a;
+    color: #e0e0e0;
+  }
+  
+  .metric-card,
+  .chart-container,
+  .insights-panel,
+  .benchmark-comparison {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+  
+  .metric-title,
+  .metric-subtitle {
+    color: #b0b0b0;
+  }
+  
+  .analytics-header h1,
+  .metric-value {
+    color: #e0e0e0;
+  }
+}

@@ -22,6 +22,7 @@ import EducationList from "./pages/education/EducationList";
 import CertificationList from "./pages/certifications/CertificationList";
 import ProjectsList from "./pages/projects/ProjectList";
 import JobsList from "./pages/jobs/JobList";
+import OffersPage from "./pages/offers/OffersPage";
 import CoverLetter from "./pages/coverLetter/coverLetter";
 import CoverLetterEditPage from "./pages/coverLetter/CoverLetterEditPage";
 import CoverLetterSharingPage from "./pages/coverLetter/CoverLetterSharingPage";
@@ -43,6 +44,16 @@ import Progress from "./pages/interview/Progress";
 import MockInterviewStart from "./pages/interview/MockInterviewStart";
 import MockInterviewQuestion from "./pages/interview/MockInterviewQuestion";
 import MockInterviewSummary from "./pages/interview/MockInterviewSummary";
+import ScheduleInterview from './pages/interview/ScheduleInterview';
+import InterviewPreparation from './pages/interview/InterviewPreparation';
+import InterviewAnalytics from './pages/interview/InterviewAnalytics';
+import FollowUpManager from './pages/interview/FollowUpManager';
+import WritingPractice from './pages/interview/WritingPractice';
+import SuccessProbability from './pages/interview/SuccessProbability';
+import CompleteInterview from './pages/interview/CompleteInterview';
+import InterviewCalendar from './pages/interview/InterviewCalendar';
+import InterviewPerformanceTracking from './pages/interview/InterviewPerformanceTracking';
+import PipelineManagement from './pages/pipeline/PipelineManagement';
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -95,6 +106,7 @@ export function App() {
               <Route path="/certifications" element={<CertificationList />} />
               <Route path="/projects" element={<ProjectsList />} />
               <Route path="/jobs" element={<JobsList />} />
+              <Route path="/offers" element={<OffersPage />} />
               <Route path="/resumes" element={<ResumeList />} />
               <Route path="/resumes/templates" element={<TemplateLibraryPage />} />
               <Route path="/resumes/edit/:id" element={<ResumeEditor />} />
@@ -116,6 +128,18 @@ export function App() {
               <Route path="/interview/mock-interview-start" element={<MockInterviewStart />} />
               <Route path="/interview/mock-interview/:sessionId" element={<MockInterviewQuestion />} />
               <Route path="/interview/mock-interview-summary/:sessionId" element={<MockInterviewSummary />} />
+              
+              {/* Other Interview Routes */}
+              <Route path="/interview/schedule-interview" element={<ScheduleInterview />} />
+              <Route path="/interview/prepare/:scheduleId" element={<InterviewPreparation />} />
+              <Route path="/interview/analytics" element={<InterviewAnalytics />} />
+              <Route path="/interview/follow-up" element={<FollowUpManager />} />
+              <Route path="/interview/writing-practice" element={<WritingPractice />} />
+              <Route path="/interview/success-probability" element={<SuccessProbability />} />
+              <Route path="/interview/complete/:scheduleId" element={<CompleteInterview />} />
+              <Route path="/interview/calendar" element={<InterviewCalendar />} />
+              <Route path="/interview/performance" element={<InterviewPerformanceTracking />} />
+              <Route path="/pipeline-management" element={<PipelineManagement />} />
               </Routes>
             </JobProvider>
             </FlashProvider>
