@@ -14,9 +14,11 @@ from mongo.interview_schedule_dao import (
 )
 from mongo.jobs_dao import JobsDAO
 from mongo.profiles_dao import UserDataDAO
+from mongo.writing_practice_dao import WritingPracticeDAO
 from services.calendar_service import calendar_service
 from services.PreparationTaskGenerator import PreparationTaskGenerator
 from services.followup_service import followup_service
+from services.writing_practice_service import WritingPracticeService
 from mongo.dao_setup import db_client
 from sessions.session_authorizer import authorize
 import services.reminder_scheduler
@@ -29,6 +31,8 @@ schedule_dao = InterviewScheduleDAO()
 followup_dao = FollowUpTemplateDAO()
 jobs_dao = JobsDAO()
 profile_dao = UserDataDAO()
+writing_practice_dao = WritingPracticeDAO(db_client)
+writing_practice_service = WritingPracticeService(db_client)
 
 # In-memory storage for calendar credentials
 calendar_credentials_store = {}
@@ -1437,15 +1441,15 @@ async def mark_response_received(
     try:
         uuid_val = get_uuid_from_headers(request)
         template = await followup_dao.get_template(template_id)
-        
+
         if not template:
             raise HTTPException(404, "Template not found")
-        
+
         if template["user_uuid"] != uuid_val:
             raise HTTPException(403, "Unauthorized")
-        
+
         await followup_dao.mark_response_received(template_id, sentiment)
-        
+
         return {
             "detail": "Response recorded",
             "received_at": datetime.now(timezone.utc).isoformat()
@@ -1454,4 +1458,335 @@ async def mark_response_received(
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to mark response: {str(e)}")
-    
+
+# ============================================================================
+# WRITING PRACTICE ENDPOINTS (UC-084)
+# ============================================================================
+
+@interview_router.post("/writing-practice/start")
+async def start_writing_practice_session(request: Request):
+    """Start a new writing practice session with a timed exercise"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        body = await request.json()
+
+        question_id = body.get("question_id")
+        category = body.get("category", "general")
+        time_limit_seconds = body.get("time_limit_seconds", 300)  # Default 5 minutes
+
+        # Get the question
+        question = await writing_practice_dao.get_question(question_id) if question_id else None
+
+        # If no question ID provided, get a random question in that category
+        if not question and category:
+            question = await writing_practice_dao.get_random_question(category)
+
+        if not question:
+            raise HTTPException(400, "No writing practice question found")
+
+        # Create session
+        session_data = {
+            "uuid": uuid_val,
+            "question_id": question.get("_id"),
+            "question_text": question.get("text"),
+            "question_category": category,
+            "time_limit_seconds": time_limit_seconds,
+            "start_time": datetime.now(timezone.utc),
+            "status": "in_progress",
+            "word_count": 0,
+            "response_text": ""
+        }
+
+        session_id = await writing_practice_dao.create_session(session_data)
+
+        return {
+            "detail": "Writing practice session started",
+            "session_id": session_id,
+            "question": {
+                "question_id": str(question.get("_id")),
+                "text": question.get("text"),
+                "category": question.get("category", category),
+                "difficulty": question.get("difficulty", "intermediate")
+            },
+            "time_limit_seconds": time_limit_seconds
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Writing Practice Start] Error: {str(e)}")
+        raise HTTPException(500, f"Failed to start writing practice session: {str(e)}")
+
+
+@interview_router.post("/writing-practice/submit")
+async def submit_writing_practice_response(request: Request):
+    """Submit a writing practice response for AI analysis"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+        body = await request.json()
+
+        session_id = body.get("session_id")
+        response_text = body.get("response_text", "")
+
+        if not session_id:
+            raise HTTPException(400, "session_id is required")
+
+        if not response_text or len(response_text.strip()) == 0:
+            raise HTTPException(400, "response_text cannot be empty")
+
+        # Get the session
+        session = await writing_practice_dao.get_session(session_id)
+
+        if not session:
+            raise HTTPException(404, "Session not found")
+
+        if session.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+
+        # Calculate word count
+        word_count = len(response_text.split())
+
+        # Analyze response with AI
+        question_text = session.get("question_text", "")
+        question_category = session.get("question_category", "general")
+
+        ai_analysis = await writing_practice_service.analyze_with_ai(
+            response_text=response_text,
+            question=question_text,
+            question_category=question_category
+        )
+
+        # Update session with results
+        end_time = datetime.now(timezone.utc)
+        start_time = session.get("start_time", end_time)
+        # Ensure start_time is timezone-aware
+        if start_time and isinstance(start_time, datetime):
+            start_time = make_aware(start_time)
+        duration_seconds = (end_time - start_time).total_seconds()
+
+        clarity_score = ai_analysis.get("clarity_score", 70)
+        professionalism_score = ai_analysis.get("professionalism_score", 70)
+        structure_score = ai_analysis.get("structure_score", 70)
+        storytelling_score = ai_analysis.get("storytelling_score", 70)
+
+        update_data = {
+            "response_text": response_text,
+            "word_count": word_count,
+            "status": "completed",
+            "end_time": end_time,
+            "duration_seconds": duration_seconds,
+            "clarity_score": clarity_score,
+            "professionalism_score": professionalism_score,
+            "structure_score": structure_score,
+            "storytelling_score": storytelling_score,
+            "star_compliance": ai_analysis.get("star_compliance", {}),
+            "ai_feedback": ai_analysis.get("feedback", ""),
+            "ai_analysis": ai_analysis
+        }
+
+        await writing_practice_dao.update_session(session_id, update_data)
+
+        return {
+            "detail": "Response submitted and analyzed",
+            "session_id": session_id,
+            "metrics": {
+                "word_count": word_count,
+                "duration_seconds": int(duration_seconds),
+                "clarity_score": clarity_score,
+                "professionalism_score": professionalism_score,
+                "structure_score": structure_score,
+                "storytelling_score": storytelling_score,
+                "overall_score": round((clarity_score + professionalism_score + structure_score + storytelling_score) / 4, 1)
+            },
+            "feedback": ai_analysis.get("feedback", ""),
+            "star_analysis": ai_analysis.get("star_compliance", {}),
+            "improvement_checklist": writing_practice_service.generate_improvement_checklist(ai_analysis)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Writing Practice Submit] Error: {str(e)}")
+        raise HTTPException(500, f"Failed to submit writing practice response: {str(e)}")
+
+
+@interview_router.get("/writing-practice/sessions")
+async def get_user_writing_sessions(request: Request, limit: int = 50):
+    """Get all writing practice sessions for the user"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+
+        sessions = await writing_practice_dao.get_user_sessions(uuid_val, limit=limit)
+
+        # Calculate overall stats
+        stats = await writing_practice_dao.get_user_stats(uuid_val)
+
+        return {
+            "sessions": sessions,
+            "total_sessions": len(sessions),
+            "stats": stats
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Get Writing Sessions] Error: {str(e)}")
+        raise HTTPException(500, f"Failed to get writing sessions: {str(e)}")
+
+
+@interview_router.get("/writing-practice/sessions/{session_id}")
+async def get_writing_session_details(session_id: str, request: Request):
+    """Get details for a specific writing practice session"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+
+        session = await writing_practice_dao.get_session(session_id)
+
+        if not session:
+            raise HTTPException(404, "Session not found")
+
+        if session.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+
+        return {
+            "session": session
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Get Writing Session] Error: {str(e)}")
+        raise HTTPException(500, f"Failed to get writing session: {str(e)}")
+
+
+@interview_router.get("/writing-practice/sessions/question/{question_id}")
+async def get_sessions_by_question(question_id: str, request: Request):
+    """Get all writing practice sessions for a specific question"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+
+        sessions = await writing_practice_dao.get_sessions_by_question(uuid_val, question_id)
+
+        return {
+            "sessions": sessions,
+            "question_id": question_id,
+            "total_attempts": len(sessions)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Get Sessions by Question] Error: {str(e)}")
+        raise HTTPException(500, f"Failed to get sessions by question: {str(e)}")
+
+
+@interview_router.get("/writing-practice/compare/{session_id}")
+async def compare_writing_sessions(session_id: str, request: Request):
+    """Compare current session with previous session and get improvement analysis"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+
+        current_session = await writing_practice_dao.get_session(session_id)
+
+        if not current_session:
+            raise HTTPException(404, "Session not found")
+
+        if current_session.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+
+        # Get previous session for same question
+        question_id = current_session.get("question_id")
+        previous_sessions = await writing_practice_dao.get_sessions_by_question(uuid_val, question_id)
+
+        # Find the previous session (skip current one)
+        previous_session = None
+        for session in previous_sessions:
+            if session.get("_id") != session_id:
+                previous_session = session
+                break
+
+        if not previous_session:
+            return {
+                "current_session": current_session,
+                "previous_session": None,
+                "comparison": {
+                    "is_improvement": None,
+                    "detail": "No previous session available for comparison"
+                },
+                "improvement_areas": writing_practice_service.generate_improvement_checklist(
+                    current_session.get("ai_analysis", {})
+                )
+            }
+
+        # Generate detailed comparison
+        comparison = writing_practice_service.generate_detailed_comparison(
+            current_session,
+            previous_session
+        )
+
+        return {
+            "current_session": current_session,
+            "previous_session": previous_session,
+            "comparison": comparison,
+            "improvement_areas": comparison.get("areas_to_focus", []),
+            "highlights": comparison.get("improvements", [])
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Compare Writing Sessions] Error: {str(e)}")
+        raise HTTPException(500, f"Failed to compare sessions: {str(e)}")
+
+
+@interview_router.get("/writing-practice/tips")
+async def get_writing_tips(request: Request):
+    """Get writing tips and best practices for interview responses"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+
+        tips = writing_practice_service.get_writing_tips()
+
+        return {
+            "tips": tips,
+            "categories": list(tips.keys())
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Get Writing Tips] Error: {str(e)}")
+        raise HTTPException(500, f"Failed to get writing tips: {str(e)}")
+
+
+@interview_router.get("/writing-practice/exercises")
+async def get_nerves_management_exercises(request: Request):
+    """Get nerves management exercises to help reduce anxiety before interviews"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+
+        exercises = writing_practice_service.get_nerves_management_exercises()
+
+        return {
+            "exercises": exercises,
+            "total_exercises": len(exercises)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Get Nerves Exercises] Error: {str(e)}")
+        raise HTTPException(500, f"Failed to get exercises: {str(e)}")
+
+
+@interview_router.get("/writing-practice/questions")
+async def get_writing_practice_questions(request: Request, category: Optional[str] = None):
+    """Get available writing practice questions"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+
+        questions = await writing_practice_dao.get_all_questions(category=category)
+
+        return {
+            "questions": questions,
+            "total_questions": len(questions),
+            "category_filter": category
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Get Writing Questions] Error: {str(e)}")
+        raise HTTPException(500, f"Failed to get writing questions: {str(e)}")
+

@@ -564,20 +564,53 @@ async def get_goals(uuid: str = Depends(authorize)):
         raise HTTPException(500, f"Failed to fetch goals: {str(e)}")
 
 @workflow_router.put("/goals/{goal_id}", tags=["analytics"])
-async def update_goal_progress(
+async def update_goal(
     goal_id: str,
-    progress: float = Body(...),
+    goal: GoalUpdate,
     uuid: str = Depends(authorize)
 ):
-    """Update goal progress"""
+    """Update a goal"""
     try:
-        updated = await application_analytics_dao.update_goal_progress(goal_id, progress)
+        # Verify ownership
+        existing_goals = await application_analytics_dao.get_user_goals(uuid)
+        existing_goal = next((g for g in existing_goals if g.get("_id") == goal_id), None)
+        
+        if not existing_goal:
+            raise HTTPException(404, "Goal not found")
+        
+        data = goal.model_dump(exclude_unset=True)
+        updated = await application_analytics_dao.update_goal(goal_id, data)
         
         if updated == 0:
             raise HTTPException(400, "Goal not found")
         
-        return {"detail": "Goal progress updated successfully"}
+        return {"detail": "Goal updated successfully"}
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to update goal: {str(e)}")
+
+@workflow_router.delete("/goals/{goal_id}", tags=["analytics"])
+async def delete_goal(
+    goal_id: str,
+    uuid: str = Depends(authorize)
+):
+    """Delete a goal"""
+    try:
+        # Verify ownership
+        existing_goals = await application_analytics_dao.get_user_goals(uuid)
+        existing_goal = next((g for g in existing_goals if g.get("_id") == goal_id), None)
+        
+        if not existing_goal:
+            raise HTTPException(404, "Goal not found")
+        
+        deleted = await application_analytics_dao.delete_goal(goal_id)
+        
+        if deleted == 0:
+            raise HTTPException(400, "Goal not found")
+        
+        return {"detail": "Goal deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to delete goal: {str(e)}")

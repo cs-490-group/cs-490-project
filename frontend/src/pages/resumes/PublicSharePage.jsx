@@ -147,13 +147,13 @@ export default function PublicSharePage() {
                 className="btn btn-outline-warning"
                 onClick={() => handleStatusChange('changes_requested')}
               >
-                ⚠️ Request Changes
+               Request Changes
               </button>
               <button 
                 className="btn btn-success"
                 onClick={() => handleStatusChange('approved')}
               >
-                ✅ Approve
+                Approve
               </button>
             </div>
           )}

@@ -32,6 +32,7 @@ from routes.interview_router import (interview_router)
 from routes.interview_analytics_routes import analytics_router, prediction_router
 from routes.coaching import coaching_router
 from routes.offers import offers_router
+from routes.technical_prep import technical_prep_router
 from routes.application_workflow_router import workflow_router
 from routes.networks import networks_router
 from routes.referrals import referrals_router
@@ -88,10 +89,11 @@ app.include_router(ai_router, prefix=api_prefix)
 
 app.include_router(coaching_router, prefix = api_prefix)
 app.include_router(offers_router, prefix = api_prefix)
+app.include_router(technical_prep_router, prefix = api_prefix)
 
 app.include_router(ai_router, prefix=api_prefix)
 
-app.include_router(workflow_router)
+app.include_router(workflow_router, prefix=api_prefix)
 app.include_router(networks_router, prefix = api_prefix)
 app.include_router(referrals_router, prefix = api_prefix)
 app.include_router(network_events_router, prefix = api_prefix)

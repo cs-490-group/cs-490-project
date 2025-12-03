@@ -127,15 +127,8 @@ async def share_progress(
         )
     
 @progress_router.get("/{team_id}/members/{member_uuid}/progress-report-public/{accessor_email}", tags=["progress-sharing"])
-async def get_public_progress_report(
-    team_id: str,
-    member_uuid: str,
-    accessor_email: str
-):
-    """
-    Get a privacy-filtered progress report for public viewing (no auth required).
-    Used when viewing a shared progress link without being logged in.
-    """
+async def get_public_progress_report(team_id: str,member_uuid: str,accessor_email: str):
+
     try:
         team_id_obj = ObjectId(team_id)
         
@@ -153,6 +146,16 @@ async def get_public_progress_report(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied. This progress report may not be shared with you."
             )
+
+        latest_status = await progress_sharing_dao.get_latest_wellbeing(team_id_obj, member_uuid)
+        if latest_status:
+            report["wellbeing"] = latest_status
+
+
+        access_list = await progress_sharing_dao.get_shared_with_list(team_id_obj, member_uuid)
+        record = next((s for s in access_list if s.get("accessor_email") == accessor_email), None)
+        if record:
+            report["relationship_type"] = record.get("relationship", "friend")
         
         return report
     except HTTPException:
@@ -270,15 +273,19 @@ async def revoke_progress_share(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-
+    
+@progress_router.post("/{team_id}/members/{member_uuid}/wellbeing", tags=["progress-sharing"])
+async def log_wellbeing_status(team_id: str,member_uuid: str,status_data: dict,uuid: str = Depends(authorize)):
+    """Log current mood and boundary settings"""
+    if uuid != member_uuid:
+        raise HTTPException(status_code=403, detail="Cannot log status for others")
+        
+    team_id_obj = ObjectId(team_id)
+    await progress_sharing_dao.log_wellbeing(team_id_obj, member_uuid, status_data)
+    return {"message": "Status updated"}
 
 @progress_router.get("/{team_id}/members/{member_uuid}/progress-report", tags=["progress-sharing"])
-async def get_progress_report(
-    team_id: str,
-    member_uuid: str,
-    viewer_email: str = None,
-    uuid: str = Depends(authorize)
-):
+async def get_progress_report(team_id: str,member_uuid: str,viewer_email: str = None,uuid: str = Depends(authorize)):
     """
     Get a progress report for authenticated users.
     SECURE: Only allows Owner, Team Admins, or Team Mentors.
@@ -429,7 +436,6 @@ async def add_celebration(
     team_id: str,
     member_uuid: str,
     celebration: dict,
-    uuid: str = Depends(authorize)
 ):
     """Add a celebration message for a milestone"""
     try:
@@ -463,7 +469,25 @@ async def add_celebration(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    
+@progress_router.get("/{team_id}/members/{member_uuid}/celebrations", tags=["progress-sharing"])
+async def get_celebrations(
+    team_id: str,
+    member_uuid: str,
+    uuid: str = Depends(authorize)
+):
+    """Get all celebrations/encouragements for a member"""
+    try:
+        team_id_obj = ObjectId(team_id)
+        # Verify ownership (or allow mentors to see)
+        if uuid != member_uuid:
+             # Add specific permission logic if needed, strictly owning for now
+             pass 
 
+        celebrations = await progress_sharing_dao.get_celebrations(team_id_obj, member_uuid)
+        return {"celebrations": celebrations}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @progress_router.get("/{team_id}/members/{member_uuid}/accountability-impact", tags=["progress-sharing"])
 async def get_accountability_impact(

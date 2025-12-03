@@ -225,11 +225,6 @@ export default function PublicCoverLetterPage() {
           </div>
         )}
 
-        {/* FOOTER */}
-        <div className="text-center mt-5 text-white-50">
-          <small>Powered by Metamorphosis Job Tracker</small>
-        </div>
-
       </div>
     </div>
   );

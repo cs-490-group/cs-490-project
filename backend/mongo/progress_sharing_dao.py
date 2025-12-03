@@ -375,8 +375,8 @@ class ProgressSharingDAO:
         """
         Updates the default privacy settings AND applies them to all existing shared links.
         """
-        # 1. Update the default settings for future shares
-        # 2. Update the settings for ALL existing people in the shared_with array
+        # Update the default settings for future shares and
+        # Update the settings for ALL existing people in the shared_with array
         result = await self.collection.update_one(
             {"_id": team_id, "members.uuid": member_uuid},
             {
@@ -387,6 +387,39 @@ class ProgressSharingDAO:
             }
         )
         return result.modified_count > 0
+    
+
+    #Stuff for UC-113 (emotional well-being)
+    async def log_wellbeing(self, team_id: ObjectId, member_uuid: str, data: dict) -> bool:
+        """Log a mood/status update for family visibility"""
+        entry = {
+            "id": f"wb_{datetime.utcnow().timestamp()}",
+            "mood_score": data.get("mood_score", 5), # 1-10
+            "status_message": data.get("status_message", "Doing okay"),
+            "boundary_level": data.get("boundary_level", "green"), 
+            "needs": data.get("needs", []), 
+            "created_at": datetime.utcnow()
+        }
+        
+        result = await self.collection.update_one(
+            {"_id": team_id, "members.uuid": member_uuid},
+            {"$push": {"members.$.wellbeing_log": entry}}
+        )
+        return result.modified_count > 0
+
+    async def get_latest_wellbeing(self, team_id: ObjectId, member_uuid: str) -> Optional[Dict]:
+        """Get the user's current status for the dashboard"""
+        team = await self.collection.find_one({"_id": team_id})
+        if not team: return None
+        
+        member = next((m for m in team.get("members", []) if m.get("uuid") == member_uuid), None)
+        if not member: return None
+        
+        logs = member.get("wellbeing_log", [])
+        if not logs: return None
+        
+        # Return newest log
+        return sorted(logs, key=lambda x: x.get("created_at"), reverse=True)[0]
 
 
 progress_sharing_dao = ProgressSharingDAO()
