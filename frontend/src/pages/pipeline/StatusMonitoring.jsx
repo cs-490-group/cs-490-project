@@ -24,9 +24,9 @@ export default function StatusMonitoring() {
         id: job._id,
         title: job.title,
         company: typeof job.company === 'string' ? job.company : job.company?.name || 'Unknown Company',
-        status: job.status?.toLowerCase() || 'applied',
+        status: job.status || 'Applied',
         lastUpdate: job.date_updated || job.date_created,
-        statusHistory: job.status_history || [[job.status?.toLowerCase() || 'applied', job.date_created]],
+        statusHistory: job.status_history || [[job.status || 'Applied', job.date_created]],
         nextAction: job.notes || '',
         daysInStage: calculateDaysInStage(job.status_history),
         responseTime: calculateResponseTime(job.status_history),
@@ -67,7 +67,7 @@ export default function StatusMonitoring() {
     const currentJob = jobs.find(j => j.id === jobId);
     
     // Clean status string (remove any emojis or extra characters)
-    const cleanStatus = newStatus.toLowerCase().trim().replace(/[^\w\s]/g, '').trim();
+    const cleanStatus = newStatus;
     
     // Build new status history entry
     const newHistoryEntry = [cleanStatus, new Date().toISOString()];
@@ -96,7 +96,7 @@ export default function StatusMonitoring() {
   const handleBulkStatusUpdate = async (newStatus, notes = '') => {
   try {
     // Clean status string (remove any emojis or extra characters)
-    const cleanStatus = newStatus.toLowerCase().trim().replace(/[^\w\s]/g, '').trim();
+    const cleanStatus = newStatus
     
     const updatePromises = Array.from(selectedJobs).map(jobId => {
       const currentJob = jobs.find(j => j.id === jobId);
@@ -132,21 +132,21 @@ export default function StatusMonitoring() {
   };
 
   const statusColors = {
-    interested: '#9e9e9e',
-    applied: '#2196f3',
-    screening: '#ff9800',
-    interview: '#9c27b0',
-    offer: '#4caf50',
-    rejected: '#f44336'
+    Interested: '#9e9e9e',
+    Applied: '#2196f3',
+    Screening: '#ff9800',
+    Interview: '#9c27b0',
+    Offer: '#4caf50',
+    Rejected: '#f44336'
   };
 
   const statusIcons = {
-    interested: '👀',
-    applied: '📤',
-    screening: '📋',
-    interview: '💼',
-    offer: '🎉',
-    rejected: '❌'
+    Interested: '👀',
+    Applied: '📤',
+    Screening: '📋',
+    Interview: '💼',
+    Offer: '🎉',
+    Rejected: '❌'
   };
 
   const filteredJobs = filter === 'all'
@@ -758,7 +758,7 @@ const StatusUpdateModal = ({ jobs, onClose, onUpdate, statusColors, statusIcons 
   const [newStatus, setNewStatus] = useState('');
   const [notes, setNotes] = useState('');
 
-  const statuses = ['applied', 'screening', 'interview', 'offer', 'rejected'];
+  const statuses = ['Interested', 'Applied', 'Screening', 'Interview', 'Offer', 'Rejected'];
   
   const selectedJob = jobs.find(j => j.id === selectedJobId);
 
@@ -934,7 +934,7 @@ opacity: selectedJobId ? 1 : 0.5
 const BulkUpdateModal = ({ selectedCount, onClose, onUpdate, statusColors, statusIcons }) => {
 const [newStatus, setNewStatus] = useState('');
 const [notes, setNotes] = useState('');
-const statuses = ['applied', 'screening', 'interview', 'offer', 'rejected'];
+const statuses = ['Applied', 'Screening', 'Interview', 'Offer', 'Rejected'];
 return (
 <div
 style={{
