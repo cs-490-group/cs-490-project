@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import WritingPracticeAPI from '../../api/writingPractice';
+import '../../styles/writingPracticeAnalysis.css';
 
 function WritingPractice() {
   const [selectedQuestion, setSelectedQuestion] = useState(null);
@@ -178,22 +179,87 @@ function WritingPractice() {
     return '#dc3545';
   };
 
-  const ScoreCard = ({ title, score, icon }) => (
-    <div style={{
-      padding: '1.5rem',
-      background: 'white',
-      border: '1px solid #e0e0e0',
-      borderRadius: '8px',
-      textAlign: 'center'
-    }}>
-      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{icon}</div>
-      <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>{title}</div>
-      <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: getScoreColor(score) }}>
-        {Math.round(score)}
+  // Helper functions for improvement checklist parsing
+  const priorityColorClass = (priority) => {
+    switch (priority?.toLowerCase()) {
+      case 'high':
+        return 'text-red-600';
+      case 'medium':
+        return 'text-amber-600';
+      case 'low':
+      default:
+        return 'text-emerald-600';
+    }
+  };
+
+  const parseImprovementStep = (step) => {
+    // If already an object with expected shape
+    if (typeof step === 'object' && step.item) {
+      return step;
+    }
+    // If it's a string, try to parse as JSON
+    if (typeof step === 'string') {
+      try {
+        const parsed = JSON.parse(step);
+        if (parsed.item) return parsed;
+      } catch (e) {
+        // Not JSON, treat as plain string
+      }
+      // Return as plain text step
+      return { item: step, category: 'Improvement', priority: 'medium' };
+    }
+    // Fallback
+    return { item: 'Complete your practice', category: 'General', priority: 'medium' };
+  };
+
+  const renderImprovementStep = (step, index) => {
+    const parsed = parseImprovementStep(step);
+    const { category, item, priority, why } = parsed;
+
+    return (
+      <li key={index} className="mb-4 pb-4 border-b border-slate-200 last:border-b-0 last:mb-0 last:pb-0">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider">{category}</div>
+          <span className={`text-xs font-bold uppercase tracking-wide ${priorityColorClass(priority)}`}>
+            {priority} priority
+          </span>
+        </div>
+        <div className="text-sm text-slate-700 font-medium mb-1">{item}</div>
+        {why && <div className="text-xs text-slate-500 italic">Why: {why}</div>}
+      </li>
+    );
+  };
+
+  const getMetricScoreClass = (score) => {
+    if (score >= 75) return 'score-good';
+    if (score >= 50) return 'score-fair';
+    return 'score-poor';
+  };
+
+  const getStatValueClass = (value) => {
+    if (value >= 75 && value <= 150) return 'value-good';
+    if (value < 75 || value > 150) return 'value-warning';
+    return 'value-danger';
+  };
+
+  const ScoreCard = ({ title, score, icon }) => {
+    const scoreColor = score >= 75
+      ? 'text-green-600'
+      : score >= 50
+        ? 'text-amber-500'
+        : 'text-red-600';
+
+    return (
+      <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 border border-gray-100 p-6 text-center">
+        <div className="text-4xl mb-4">{icon}</div>
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">{title}</h4>
+        <div className={`text-5xl font-bold mt-4 ${scoreColor}`}>
+          {Math.round(score)}
+        </div>
+        <div className="text-xs text-gray-400 mt-3 font-medium">out of 100</div>
       </div>
-      <div style={{ fontSize: '0.85rem', color: '#666' }}>out of 100</div>
-    </div>
-  );
+    );
+  };
 
   const LoadingModal = () => (
     <div style={{
@@ -294,8 +360,8 @@ function WritingPractice() {
       {isAnalyzing && <LoadingModal />}
 
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '2rem' }}>Interview Writing Practice</h1>
-        <p style={{ color: '#666', margin: 0 }}>Practice timed responses, get AI feedback, and track your improvement</p>
+        <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '2rem', color: '#1f3a70' }}>Interview Writing Practice</h1>
+        <p style={{ color: '#333', margin: 0, fontSize: '1rem' }}>Practice timed responses, get AI feedback, and track your improvement</p>
       </div>
 
       {/* Error Banner */}
@@ -328,7 +394,7 @@ function WritingPractice() {
               style={{
                 padding: '0.75rem 1.5rem',
                 background: activeTab === tab ? '#667eea' : 'transparent',
-                color: activeTab === tab ? 'white' : '#666',
+                color: activeTab === tab ? 'white' : '#1f3a70',
                 border: 'none',
                 borderRadius: '6px 6px 0 0',
                 cursor: 'pointer',
@@ -680,98 +746,133 @@ function WritingPractice() {
           </div>
         </div>
       ) : (
-        <div>
-          {/* RESULTS SCREEN */}
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <h2 style={{ margin: '0 0 0.5rem 0' }}>Analysis Complete</h2>
-            <p style={{ color: '#666' }}>Here's your performance breakdown with AI insights</p>
+        <div className="writing-analysis-container">
+          {/* RESULTS SCREEN - PROFESSIONAL DASHBOARD LAYOUT */}
+
+          {/* Header Section */}
+          <div className="analysis-header">
+            <h1>Analysis Complete</h1>
+            <p>Here's your performance breakdown with AI insights</p>
           </div>
 
-          <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            padding: '2rem',
-            borderRadius: '12px',
-            textAlign: 'center',
-            marginBottom: '2rem'
-          }}>
-            <div style={{ fontSize: '1rem', marginBottom: '0.5rem', opacity: 0.9 }}>Overall Score</div>
-            <div style={{ fontSize: '4rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+          {/* Main Score Card - Hero Section */}
+          <div className="overall-score-hero">
+            <div className="score-label">Overall Score</div>
+            <div className="score-number">
               {Math.round(analysisResult?.overall_score || 70)}
             </div>
-            <div style={{ fontSize: '1.1rem', opacity: 0.9 }}>
-              {(analysisResult?.overall_score || 70) >= 75 ? 'Excellent!' : (analysisResult?.overall_score || 70) >= 50 ? 'Good Progress' : 'Needs Improvement'}
+            <div className="score-status">
+              {(analysisResult?.overall_score || 70) >= 75
+                ? '🎉 Excellent!'
+                : (analysisResult?.overall_score || 70) >= 50
+                  ? '👍 Good Progress'
+                  : '📚 Needs Improvement'}
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-            <ScoreCard title="Clarity" score={analysisResult?.clarity_score || 70} icon="💡" />
-            <ScoreCard title="Structure" score={analysisResult?.structure_score || 70} icon="🏗️" />
-            <ScoreCard title="Professionalism" score={analysisResult?.professionalism_score || 70} icon="👔" />
-            <ScoreCard title="Storytelling" score={analysisResult?.storytelling_score || 70} icon="📖" />
+          {/* Score Cards Grid */}
+          <div className="metrics-grid">
+            <div className="metric-card">
+              <div className="metric-icon">💡</div>
+              <div className="metric-label">Clarity</div>
+              <div className={`metric-score ${getMetricScoreClass(analysisResult?.clarity_score)}`}>
+                {Math.round(analysisResult?.clarity_score || 70)}
+              </div>
+              <div className="metric-out-of">out of 100</div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-icon">📜</div>
+              <div className="metric-label">Structure</div>
+              <div className={`metric-score ${getMetricScoreClass(analysisResult?.structure_score)}`}>
+                {Math.round(analysisResult?.structure_score || 70)}
+              </div>
+              <div className="metric-out-of">out of 100</div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-icon">👔</div>
+              <div className="metric-label">Professionalism</div>
+              <div className={`metric-score ${getMetricScoreClass(analysisResult?.professionalism_score)}`}>
+                {Math.round(analysisResult?.professionalism_score || 70)}
+              </div>
+              <div className="metric-out-of">out of 100</div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-icon">📖</div>
+              <div className="metric-label">Storytelling</div>
+              <div className={`metric-score ${getMetricScoreClass(analysisResult?.storytelling_score)}`}>
+                {Math.round(analysisResult?.storytelling_score || 70)}
+              </div>
+              <div className="metric-out-of">out of 100</div>
+            </div>
           </div>
 
-          {/* Feedback */}
-          {analysisResult?.feedback && (
-            <div style={{ padding: '1.5rem', background: '#f0f4ff', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #667eea' }}>
-              <h3 style={{ margin: '0 0 1rem 0', color: '#667eea' }}>💬 AI Feedback</h3>
-              <p style={{ margin: 0, color: '#333', lineHeight: '1.6' }}>{analysisResult.feedback}</p>
-            </div>
-          )}
+          {/* Feedback & Next Steps Section */}
+          <section className="feedback-section">
+            {/* AI Feedback Card */}
+            {analysisResult?.feedback && (
+              <div className="feedback-card">
+                <div className="feedback-header">
+                  <span className="feedback-icon">💬</span>
+                  <h3 className="feedback-title">AI Feedback</h3>
+                </div>
+                <p className="feedback-content">
+                  {analysisResult.feedback}
+                </p>
+              </div>
+            )}
 
-          {/* Improvement Checklist */}
-          {analysisResult?.improvement_checklist && Array.isArray(analysisResult.improvement_checklist) && (
-            <div style={{ padding: '1.5rem', background: '#fff3cd', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #ffeaa7' }}>
-              <h3 style={{ margin: '0 0 1rem 0', color: '#856404' }}>⚡ Next Steps for Improvement</h3>
-              <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#333' }}>
-                {analysisResult.improvement_checklist.slice(0, 5).map((item, i) => (
-                  <li key={i} style={{ marginBottom: '0.5rem' }}>
-                    {typeof item === 'string' ? item : item.title || JSON.stringify(item)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            {/* Next Steps Card */}
+            {analysisResult?.improvement_checklist && Array.isArray(analysisResult.improvement_checklist) && (
+              <div className="feedback-card">
+                <div className="feedback-header">
+                  <span className="feedback-icon">⚡</span>
+                  <h3 className="feedback-title">Next Steps for Improvement</h3>
+                </div>
+                <ul className="next-steps-list">
+                  {analysisResult.improvement_checklist.slice(0, 5).map((item, i) =>
+                    renderImprovementStep(item, i)
+                  )}
+                </ul>
+              </div>
+            )}
+          </section>
 
-          {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-            <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.25rem' }}>Word Count</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: getScoreColor(analysisResult?.overall_score || 70) }}>
+          {/* Stats Panel */}
+          <div className="stats-panel">
+            <div className="stat-item">
+              <div className="stat-label">Word Count</div>
+              <div className={`stat-value ${getStatValueClass(analysisResult?.word_count)}`}>
                 {analysisResult?.word_count || 0}
               </div>
             </div>
-            <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.25rem' }}>Time Taken</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+
+            <div className="stat-item">
+              <div className="stat-label">Time Taken</div>
+              <div className="stat-value">
                 {formatTime(analysisResult?.time_taken || 0)}
               </div>
             </div>
-            <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.25rem' }}>Category</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', textTransform: 'capitalize' }}>
+
+            <div className="stat-item">
+              <div className="stat-label">Category</div>
+              <div className="stat-value" style={{ textTransform: 'capitalize' }}>
                 {selectedQuestion?.category || 'Unknown'}
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          {/* Action Buttons */}
+          <div className="action-buttons">
             <button
               onClick={() => {
                 setSelectedQuestion(null);
                 setShowResults(false);
                 setActiveTab('practice');
               }}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: 'white',
-                color: '#666',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                flex: 1
-              }}
+              className="btn-base btn-secondary"
             >
               Practice Another Question
             </button>
@@ -782,17 +883,7 @@ function WritingPractice() {
                 setTimeRemaining(timeLimit);
                 setResponseText('');
               }}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                fontSize: '1rem',
-                flex: 1
-              }}
+              className="btn-base btn-primary"
             >
               Retry This Question
             </button>

@@ -1563,16 +1563,21 @@ async def submit_writing_practice_response(request: Request):
             start_time = make_aware(start_time)
         duration_seconds = (end_time - start_time).total_seconds()
 
+        clarity_score = ai_analysis.get("clarity_score", 70)
+        professionalism_score = ai_analysis.get("professionalism_score", 70)
+        structure_score = ai_analysis.get("structure_score", 70)
+        storytelling_score = ai_analysis.get("storytelling_score", 70)
+
         update_data = {
             "response_text": response_text,
             "word_count": word_count,
             "status": "completed",
             "end_time": end_time,
             "duration_seconds": duration_seconds,
-            "clarity_score": ai_analysis.get("clarity", 70),
-            "professionalism_score": ai_analysis.get("professionalism", 70),
-            "structure_score": ai_analysis.get("structure_analysis", {}).get("score", 70),
-            "storytelling_score": ai_analysis.get("storytelling_effectiveness", {}).get("score", 70),
+            "clarity_score": clarity_score,
+            "professionalism_score": professionalism_score,
+            "structure_score": structure_score,
+            "storytelling_score": storytelling_score,
             "star_compliance": ai_analysis.get("star_compliance", {}),
             "ai_feedback": ai_analysis.get("feedback", ""),
             "ai_analysis": ai_analysis
@@ -1586,11 +1591,11 @@ async def submit_writing_practice_response(request: Request):
             "metrics": {
                 "word_count": word_count,
                 "duration_seconds": int(duration_seconds),
-                "clarity_score": ai_analysis.get("clarity", 70),
-                "professionalism_score": ai_analysis.get("professionalism", 70),
-                "structure_score": ai_analysis.get("structure_analysis", {}).get("score", 70),
-                "storytelling_score": ai_analysis.get("storytelling_effectiveness", {}).get("score", 70),
-                "overall_score": round((ai_analysis.get("clarity", 70) + ai_analysis.get("professionalism", 70) + ai_analysis.get("structure_analysis", {}).get("score", 70) + ai_analysis.get("storytelling_effectiveness", {}).get("score", 70)) / 4, 1)
+                "clarity_score": clarity_score,
+                "professionalism_score": professionalism_score,
+                "structure_score": structure_score,
+                "storytelling_score": storytelling_score,
+                "overall_score": round((clarity_score + professionalism_score + structure_score + storytelling_score) / 4, 1)
             },
             "feedback": ai_analysis.get("feedback", ""),
             "star_analysis": ai_analysis.get("star_compliance", {}),

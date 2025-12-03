@@ -430,7 +430,7 @@ Provide analysis in JSON format with these exact fields:
 }}"""
 
             response = client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",
                 messages=[
                     {
                         "role": "system",
@@ -454,32 +454,41 @@ Provide analysis in JSON format with these exact fields:
                 # If JSON parsing fails, format manual analysis with required fields
                 manual_analysis["ai_feedback_available"] = False
                 manual_analysis["note"] = "Using standard analysis (AI parsing failed)"
-                manual_analysis["clarity"] = manual_analysis.get("clarity_score", 70)
-                manual_analysis["professionalism"] = manual_analysis.get("professionalism_score", 70)
-                manual_analysis["structure_analysis"] = {"score": manual_analysis.get("structure_score", 70)}
-                manual_analysis["storytelling_effectiveness"] = {"score": manual_analysis.get("conciseness_score", 70)}
+                clarity = manual_analysis.get("clarity_score", 50)
+                professionalism = manual_analysis.get("professionalism_score", 50)
+                structure = manual_analysis.get("structure_score", 50)
+                conciseness = manual_analysis.get("conciseness_score", 50)
+
+                manual_analysis["clarity_score"] = clarity
+                manual_analysis["professionalism_score"] = professionalism
+                manual_analysis["structure_score"] = structure
+                manual_analysis["storytelling_score"] = conciseness
+                manual_analysis["structure_analysis"] = {"score": structure}
+                manual_analysis["storytelling_effectiveness"] = {"score": conciseness}
                 manual_analysis["feedback"] = f"Review your response. {' '.join(manual_analysis.get('specific_suggestions', [])[:2])}"
-                manual_analysis["engagement_level"] = 75
+                manual_analysis["engagement_level"] = (clarity + professionalism + structure + conciseness) / 4
                 return manual_analysis
 
             # Merge AI insights with manual analysis
             overall_feedback = ai_feedback.get("overall_feedback", "")
             merged = {
                 **manual_analysis,
-                "clarity": ai_feedback.get("clarity_score", manual_analysis.get("clarity_score", 70)),
-                "professionalism": ai_feedback.get("professionalism_score", manual_analysis.get("professionalism_score", 70)),
+                "clarity_score": ai_feedback.get("clarity_score", manual_analysis.get("clarity_score", 50)),
+                "professionalism_score": ai_feedback.get("professionalism_score", manual_analysis.get("professionalism_score", 50)),
+                "structure_score": manual_analysis.get("structure_score", 50),
+                "storytelling_score": ai_feedback.get("storytelling_effectiveness", manual_analysis.get("conciseness_score", 50)),
                 "structure_analysis": {
                     "text": ai_feedback.get("structure_analysis", ""),
-                    "score": manual_analysis.get("structure_score", 70)
+                    "score": manual_analysis.get("structure_score", 50)
                 },
                 "storytelling_effectiveness": {
-                    "score": ai_feedback.get("storytelling_effectiveness", 75),
+                    "score": ai_feedback.get("storytelling_effectiveness", manual_analysis.get("conciseness_score", 50)),
                     "feedback": ai_feedback.get("overall_feedback", "")
                 },
                 "star_compliance": ai_feedback.get("star_compliance", {}),
                 "overall_feedback": overall_feedback,
                 "feedback": overall_feedback,
-                "engagement_level": ai_feedback.get("engagement_level", 75),
+                "engagement_level": ai_feedback.get("engagement_level", manual_analysis.get("overall_score", 50)),
                 "ai_feedback_available": True,
                 "strengths": ai_feedback.get("strengths", manual_analysis.get("strengths", [])),
                 "specific_suggestions": ai_feedback.get("improvement_suggestions", manual_analysis.get("specific_suggestions", [])),
@@ -488,18 +497,28 @@ Provide analysis in JSON format with these exact fields:
             return merged
 
         except Exception as e:
-            print(f"AI analysis error: {e}, falling back to manual analysis")
+            import traceback
+            error_msg = f"AI analysis error: {str(e)}\n{traceback.format_exc()}"
+            print(error_msg)
             # Fall back to manual analysis
             analysis = WritingPracticeService.analyze_response_quality(response_text, question_category)
             analysis["ai_feedback_available"] = False
             analysis["note"] = "Using standard analysis (AI unavailable)"
-            # Map manual analysis fields to expected format
-            analysis["clarity"] = analysis.get("clarity_score", 70)
-            analysis["professionalism"] = analysis.get("professionalism_score", 70)
-            analysis["structure_analysis"] = {"score": analysis.get("structure_score", 70)}
-            analysis["storytelling_effectiveness"] = {"score": analysis.get("conciseness_score", 70)}
+            # Ensure all score fields are present with actual values
+            analysis["clarity_score"] = analysis.get("clarity_score", 50)
+            analysis["professionalism_score"] = analysis.get("professionalism_score", 50)
+            analysis["structure_score"] = analysis.get("structure_score", 50)
+            analysis["storytelling_score"] = analysis.get("conciseness_score", 50)
+
+            clarity = analysis.get("clarity_score", 50)
+            professionalism = analysis.get("professionalism_score", 50)
+            structure = analysis.get("structure_score", 50)
+            conciseness = analysis.get("conciseness_score", 50)
+
+            analysis["structure_analysis"] = {"score": structure}
+            analysis["storytelling_effectiveness"] = {"score": conciseness}
             analysis["feedback"] = f"Review your response focusing on: {', '.join(analysis.get('areas_for_improvement', [])[:3])}" if analysis.get('areas_for_improvement') else "Consider the suggestions above for improvement."
-            analysis["engagement_level"] = 75
+            analysis["engagement_level"] = (clarity + professionalism + structure + conciseness) / 4
             return analysis
 
     @staticmethod
