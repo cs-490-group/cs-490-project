@@ -57,13 +57,11 @@ export default function SharingAndFeedbackPage() {
       const token = response.data?.share_link || response.share_link || response.data?.share_data?.token;
 
       if (!token) {
-        alert('Failed to generate share link: No token in response');
         return;
       }
 
       setShareLink(`${baseUrl}/resumes/public/${token}`);
       setIsSharing(true);
-      alert('Share link generated successfully!');
     } catch (err) {
       alert('Failed to generate share link: ' + err.message);
     }
@@ -71,7 +69,6 @@ export default function SharingAndFeedbackPage() {
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareLink);
-    alert('Share link copied to clipboard!');
   };
 
   const handleAddComment = async () => {
@@ -97,7 +94,6 @@ export default function SharingAndFeedbackPage() {
       };
       setFeedback([...feedback, comment]);
       setNewComment('');
-      alert('Comment added successfully!');
     } catch (err) {
       alert('Failed to add comment: ' + err.message);
     }
@@ -110,7 +106,7 @@ export default function SharingAndFeedbackPage() {
         resolved: !currentStatus,
       });
 
-      // Optimistic update
+      
       setFeedback(
         feedback.map((f) =>
           f._id === feedbackId ? { ...f, resolved: !currentStatus } : f
@@ -139,7 +135,6 @@ export default function SharingAndFeedbackPage() {
         await ResumesAPI.revokeShareLink(id);
         setShareLink('');
         setIsSharing(false);
-        alert('Share link revoked successfully!');
       } catch (err) {
         alert('Failed to revoke share link: ' + err.message);
       }
@@ -148,7 +143,6 @@ export default function SharingAndFeedbackPage() {
 
   const handleAnalyzeFeedback = async () => {
     if (feedback.length === 0) {
-      alert("No feedback to analyze yet!");
       return;
     }
 
@@ -314,8 +308,8 @@ export default function SharingAndFeedbackPage() {
               <div className="mt-2">
                 <p><strong>Permissions:</strong></p>
                 <ul>
-                  <li>Comments: {shareSettings.can_comment ? '✓ Allowed' : '✗ Disabled'}</li>
-                  <li>Download: {shareSettings.can_download ? '✓ Allowed' : '✗ Disabled'}</li>
+                  <li>Comments: {shareSettings.can_comment ? ' Allowed' : ' Disabled'}</li>
+                  <li>Download: {shareSettings.can_download ? ' Allowed' : ' Disabled'}</li>
                   <li>Expires in: {shareSettings.expiration_days} days</li>
                 </ul>
               </div>
