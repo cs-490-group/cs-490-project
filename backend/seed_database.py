@@ -6,16 +6,12 @@ All questions are tailored to specific roles, categories, and difficulty levels
 """
 import asyncio
 from datetime import datetime, timezone
-from motor.motor_asyncio import AsyncIOMotorClient
+from mongo.dao_setup import db_client
 from mongo.question_bank_dao import (
     QuestionIndustryDAO,
     QuestionRoleDAO,
     QuestionDAO,
 )
-
-# MongoDB connection
-MONGO_URL = "mongodb://localhost:27017"
-DB_NAME = "interview_prep"
 
 # All industries with their roles
 INDUSTRIES_AND_ROLES = {
@@ -1024,8 +1020,7 @@ async def seed_database():
     print("🌱 Starting comprehensive database seeding...")
     print("📊 Generating role-specific questions for all 39 roles...")
 
-    client = AsyncIOMotorClient(MONGO_URL)
-    db = client[DB_NAME]
+    db = db_client
 
     try:
         industry_dao = QuestionIndustryDAO(db)
@@ -1128,8 +1123,6 @@ async def seed_database():
     except Exception as e:
         print(f"❌ Error during seeding: {e}")
         raise
-    finally:
-        client.close()
 
 
 if __name__ == "__main__":
