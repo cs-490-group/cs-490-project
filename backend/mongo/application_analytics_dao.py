@@ -293,59 +293,87 @@ class ApplicationAnalyticsDAO:
         """Generate optimization recommendations based on analytics"""
         recommendations = []
         
-        # Get various metrics
-        funnel = await self.get_application_funnel(user_uuid)
-        success_rates = await self.analyze_success_rates(user_uuid, group_by="materials")
-        trends = await self.get_application_trends(user_uuid, days=90)
-        
-        # Check interview conversion rate
-        interview_rate = funnel.get("conversion_rates", {}).get("applied_to_screening", 0)
-        if interview_rate < 10:
-            recommendations.append({
-                "category": "materials",
-                "priority": "high",
-                "title": "Improve Application Materials",
-                "description": f"Your interview rate ({interview_rate}%) is below average. Consider tailoring your resume and cover letter more closely to each position.",
-                "action": "Review and improve resume/cover letter quality"
-            })
-        
-        # Check materials usage
-        if "No Materials" in success_rates:
-            no_materials_rate = success_rates["No Materials"].get("offer_rate", 0)
-            with_materials_rate = success_rates.get("Resume + Cover Letter", {}).get("offer_rate", 0)
-            if with_materials_rate > no_materials_rate:
+        try:
+            # Get various metrics
+            funnel = await self.get_application_funnel(user_uuid)
+            success_rates = await self.analyze_success_rates(user_uuid, group_by="materials")
+            trends = await self.get_application_trends(user_uuid, days=90)
+            
+            # Safely get conversion rates
+            conversion_rates = funnel.get("conversion_rates", {})
+            stage_counts = funnel.get("stage_counts", {})
+            
+            # Check interview conversion rate
+            interview_rate = conversion_rates.get("applied_to_screening", 0)
+            if interview_rate < 10:
                 recommendations.append({
                     "category": "materials",
                     "priority": "high",
-                    "title": "Always Include Application Materials",
-                    "description": f"Applications with resume and cover letter have {with_materials_rate}% offer rate vs {no_materials_rate}% without.",
-                    "action": "Attach materials to all applications"
+                    "title": "Improve Application Materials",
+                    "description": f"Your interview rate ({interview_rate}%) is below average. Consider tailoring your resume and cover letter more closely to each position.",
+                    "action": "Review and improve resume/cover letter quality"
                 })
+            
+            # Check materials usage - only if we have data
+            if success_rates and "No Materials" in success_rates:
+                no_materials_rate = success_rates["No Materials"].get("offer_rate", 0)
+                with_materials_rate = success_rates.get("Resume + Cover Letter", {}).get("offer_rate", 0)
+                if with_materials_rate > no_materials_rate:
+                    recommendations.append({
+                        "category": "materials",
+                        "priority": "high",
+                        "title": "Always Include Application Materials",
+                        "description": f"Applications with resume and cover letter have {with_materials_rate}% offer rate vs {no_materials_rate}% without.",
+                        "action": "Attach materials to all applications"
+                    })
+            
+            # Check application volume
+            weekly_avg = trends.get("weekly_average", 0) if trends else 0
+            if weekly_avg < 5:
+                recommendations.append({
+                    "category": "volume",
+                    "priority": "medium",
+                    "title": "Increase Application Volume",
+                    "description": f"You're averaging {weekly_avg} applications per week. Consider increasing to 10-15 per week to improve chances.",
+                    "action": "Set a goal of 10+ applications per week"
+                })
+            
+            # Check offer conversion - only if we have enough data
+            interview_count = stage_counts.get("interview", 0)
+            if interview_count > 5:
+                offer_rate = conversion_rates.get("interview_to_offer", 0)
+                if offer_rate < 20:
+                    recommendations.append({
+                        "category": "interview_skills",
+                        "priority": "high",
+                        "title": "Improve Interview Performance",
+                        "description": f"Your interview-to-offer rate ({offer_rate}%) suggests room for improvement in interviews.",
+                        "action": "Practice mock interviews and refine your responses"
+                    })
+            
+            # If we have no recommendations, add a positive one
+            if not recommendations:
+                recommendations.append({
+                    "category": "general",
+                    "priority": "low",
+                    "title": "Keep Up the Good Work!",
+                    "description": "Your application metrics are looking strong. Continue with your current strategy.",
+                    "action": "Maintain your current application pace and quality"
+                })
+            
+            return recommendations
+            
+        except Exception as e:
+            # Log the error and return a generic recommendation
+            print(f"Error generating recommendations: {str(e)}")
+            return [{
+                "category": "general",
+                "priority": "low",
+                "title": "Track Your Applications",
+                "description": "Continue tracking your applications to get personalized recommendations.",
+                "action": "Keep adding applications to build your analytics"
+            }]
         
-        # Check application volume
-        weekly_avg = trends.get("weekly_average", 0)
-        if weekly_avg < 5:
-            recommendations.append({
-                "category": "volume",
-                "priority": "medium",
-                "title": "Increase Application Volume",
-                "description": f"You're averaging {weekly_avg} applications per week. Consider increasing to 10-15 per week to improve chances.",
-                "action": "Set a goal of 10+ applications per week"
-            })
-        
-        # Check offer conversion
-        offer_rate = funnel.get("conversion_rates", {}).get("interview_to_offer", 0)
-        if offer_rate < 20 and funnel.get("stage_counts", {}).get("interview", 0) > 5:
-            recommendations.append({
-                "category": "interview_skills",
-                "priority": "high",
-                "title": "Improve Interview Performance",
-                "description": f"Your interview-to-offer rate ({offer_rate}%) suggests room for improvement in interviews.",
-                "action": "Practice mock interviews and refine your responses"
-            })
-        
-        return recommendations
-    
     # ============================================
     # GOAL TRACKING (UC-072)
     # ============================================
