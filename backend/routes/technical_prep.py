@@ -21,17 +21,25 @@ async def get_all_challenges(
 ):
     """Get all available challenges with filters"""
     try:
+        challenges = []
+
         if search:
+            # Search takes precedence
             challenges = await technical_prep_dao.search_challenges(
                 search, challenge_type=challenge_type, limit=limit
             )
+        elif challenge_type and difficulty:
+            # Both type and difficulty specified
+            type_challenges = await technical_prep_dao.get_challenges_by_type(challenge_type, limit=limit)
+            challenges = [c for c in type_challenges if c.get("difficulty") == difficulty]
         elif challenge_type:
+            # Only type specified
             challenges = await technical_prep_dao.get_challenges_by_type(challenge_type, limit=limit)
         elif difficulty:
+            # Only difficulty specified
             challenges = await technical_prep_dao.get_challenges_by_difficulty(difficulty, limit=limit)
         else:
-            challenges = []
-            # Get sample of each type
+            # No filters - get sample of each type
             for ctype in ["coding", "system_design", "case_study"]:
                 type_challenges = await technical_prep_dao.get_challenges_by_type(ctype, limit=5)
                 challenges.extend(type_challenges)
@@ -265,5 +273,20 @@ async def get_challenge_leaderboard(
             "count": len(leaderboard),
             "leaderboard": leaderboard
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@technical_prep_router.get("/challenge/{challenge_id}/solution")
+async def generate_solution(
+    challenge_id: str,
+    language: str = Query("python")
+):
+    """Generate a solution for a challenge using AI"""
+    try:
+        result = await technical_prep_service.generate_solution(challenge_id, language)
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("error"))
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

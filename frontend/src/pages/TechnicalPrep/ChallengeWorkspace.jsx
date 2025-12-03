@@ -19,6 +19,8 @@ const ChallengeWorkspace = () => {
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("problem");
   const [loading, setLoading] = useState(true);
+  const [generatedSolution, setGeneratedSolution] = useState(null);
+  const [generatingSolution, setGeneratingSolution] = useState(false);
 
   useEffect(() => {
     loadChallenge();
@@ -84,6 +86,22 @@ const ChallengeWorkspace = () => {
       console.error("Error completing challenge:", error);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleGenerateSolution = async () => {
+    try {
+      setGeneratingSolution(true);
+      const res = await technicalPrepAPI.generateSolution(challengeId, language);
+      if (res.data.success) {
+        setGeneratedSolution(res.data.solution);
+        setActiveTab("solution");
+      }
+    } catch (error) {
+      console.error("Error generating solution:", error);
+      alert("Failed to generate solution. Please try again.");
+    } finally {
+      setGeneratingSolution(false);
     }
   };
 
@@ -155,40 +173,65 @@ const ChallengeWorkspace = () => {
 
           {activeTab === "problem" && (
             <div className="problem-content">
-              <h2>Problem Description</h2>
-              <p>{challenge.description}</p>
+              <h2>{challenge.title || "Problem"}</h2>
+
+              {/* Main description with proper formatting */}
+              <div style={{
+                whiteSpace: "pre-wrap",
+                lineHeight: "1.7",
+                marginBottom: "24px",
+                color: "#1f2937",
+                fontSize: "1rem"
+              }}>
+                {challenge.description}
+              </div>
 
               {coding && (
                 <>
-                  {coding.constraints && coding.constraints.length > 0 && (
-                    <div className="section">
-                      <h3>Constraints:</h3>
-                      <ul>
+                  {/* Constraints section */}
+                  {coding?.constraints && Array.isArray(coding.constraints) && coding.constraints.length > 0 && (
+                    <div className="section" style={{ marginBottom: "24px" }}>
+                      <h3 style={{ fontSize: "1.1rem", marginBottom: "12px", color: "#111827" }}>Constraints</h3>
+                      <ul style={{ paddingLeft: "20px" }}>
                         {coding.constraints.map((c, idx) => (
-                          <li key={idx}>{c}</li>
+                          <li key={idx} style={{ marginBottom: "6px", color: "#6b7280" }}>{c}</li>
                         ))}
                       </ul>
                     </div>
                   )}
 
-                  {coding.example_input && (
-                    <div className="section">
-                      <h3>Example:</h3>
-                      <div className="code-block">
-                        <strong>Input:</strong> {coding.example_input}
+                  {/* Examples section */}
+                  {coding?.example_input && (
+                    <div className="section" style={{ marginBottom: "24px" }}>
+                      <h3 style={{ fontSize: "1.1rem", marginBottom: "12px", color: "#111827" }}>Examples</h3>
+                      <div className="code-block" style={{ marginBottom: "10px" }}>
+                        <div style={{ marginBottom: "8px" }}>
+                          <strong style={{ color: "#6b7280" }}>Input:</strong> <span style={{ fontFamily: "monospace" }}>{JSON.stringify(coding.example_input)}</span>
+                        </div>
                       </div>
                       <div className="code-block">
-                        <strong>Output:</strong> {coding.example_output}
+                        <div>
+                          <strong style={{ color: "#6b7280" }}>Output:</strong> <span style={{ fontFamily: "monospace" }}>{JSON.stringify(coding.example_output)}</span>
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {coding.test_cases && coding.test_cases.length > 0 && !coding.test_cases[0].is_hidden && (
+                  {/* Sample test cases */}
+                  {coding?.test_cases && Array.isArray(coding.test_cases) && coding.test_cases.length > 0 && (
                     <div className="section">
-                      <h3>Sample Test Cases:</h3>
-                      {coding.test_cases.slice(0, 2).map((tc, idx) => (
-                        <div key={idx} className="test-case">
-                          <p><strong>Test {idx + 1}:</strong> {tc.description}</p>
+                      <h3 style={{ fontSize: "1.1rem", marginBottom: "12px", color: "#111827" }}>Sample Test Cases</h3>
+                      {coding.test_cases.slice(0, 3).map((tc, idx) => (
+                        <div key={idx} className="test-case" style={{ marginBottom: "16px" }}>
+                          <p style={{ marginBottom: "8px", fontWeight: "600", color: "#111827" }}>
+                            Example {idx + 1}: {tc.description}
+                          </p>
+                          <div style={{ fontSize: "0.95rem", color: "#6b7280", marginBottom: "6px", fontFamily: "monospace" }}>
+                            <strong>Input:</strong> {JSON.stringify(tc.input)}
+                          </div>
+                          <div style={{ fontSize: "0.95rem", color: "#6b7280", fontFamily: "monospace" }}>
+                            <strong>Output:</strong> {JSON.stringify(tc.expected_output)}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -198,45 +241,159 @@ const ChallengeWorkspace = () => {
             </div>
           )}
 
-          {activeTab === "solution" && coding?.solution_framework && (
+          {activeTab === "solution" && (
             <div className="solution-content">
-              <h2>{coding.solution_framework.title}</h2>
-              <p>{coding.solution_framework.overview}</p>
+              {generatedSolution ? (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                    <h2>AI-Generated Solution</h2>
+                    <button
+                      onClick={() => setGeneratedSolution(null)}
+                      style={{
+                        padding: "8px 16px",
+                        background: "#e5e7eb",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontSize: "0.9rem"
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    overflow: "hidden"
+                  }}>
+                    <div style={{
+                      padding: "10px 15px",
+                      backgroundColor: "#f3f4f6",
+                      fontWeight: "600",
+                      borderBottom: "1px solid #e5e7eb"
+                    }}>
+                      {language.charAt(0).toUpperCase() + language.slice(1)}
+                    </div>
+                    <pre style={{
+                      margin: "0",
+                      padding: "15px",
+                      backgroundColor: "#1f2937",
+                      color: "#f3f4f6",
+                      fontSize: "0.85rem",
+                      overflow: "auto",
+                      maxHeight: "500px"
+                    }}>
+                      <code>{generatedSolution}</code>
+                    </pre>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2>{coding?.solution_framework?.title || "Solution"}</h2>
+                  <p>{coding?.solution_framework?.overview}</p>
 
-              <div className="section">
-                <h3>Approach:</h3>
-                <ol>
-                  {coding.solution_framework.steps.map((step, idx) => (
-                    <li key={idx}>{step}</li>
-                  ))}
-                </ol>
-              </div>
+                  <div style={{ marginBottom: "20px" }}>
+                    <button
+                      onClick={handleGenerateSolution}
+                      disabled={generatingSolution}
+                      style={{
+                        padding: "10px 20px",
+                        background: "#3b82f6",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontWeight: "600"
+                      }}
+                    >
+                      {generatingSolution ? "Generating..." : "Generate Solution with AI"}
+                    </button>
+                  </div>
 
-              {coding.solution_framework.pseudocode && (
-                <div className="section">
-                  <h3>Pseudocode:</h3>
-                  <pre className="pseudocode">{coding.solution_framework.pseudocode}</pre>
+                  {coding?.solution_framework?.steps && Array.isArray(coding.solution_framework.steps) && coding.solution_framework.steps.length > 0 && (
+                    <div className="section">
+                      <h3>Approach:</h3>
+                      <ol>
+                        {coding.solution_framework.steps.map((step, idx) => (
+                          <li key={idx}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+
+                  {coding?.solution_framework?.solution_code && Object.keys(coding.solution_framework.solution_code).length > 0 && (
+                    <div className="section">
+                      <h3>Solution Code:</h3>
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                    gap: "15px",
+                    marginBottom: "20px"
+                  }}>
+                    {Object.entries(coding.solution_framework.solution_code).map(([lang, code]) => (
+                      <div key={lang} style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        overflow: "hidden"
+                      }}>
+                        <div style={{
+                          padding: "10px 15px",
+                          backgroundColor: "#f3f4f6",
+                          fontWeight: "600",
+                          borderBottom: "1px solid #e5e7eb"
+                        }}>
+                          {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                        </div>
+                        <pre style={{
+                          margin: "0",
+                          padding: "15px",
+                          backgroundColor: "#1f2937",
+                          color: "#f3f4f6",
+                          fontSize: "0.85rem",
+                          overflow: "auto",
+                          maxHeight: "400px"
+                        }}>
+                          <code>{code}</code>
+                        </pre>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="complexity-section">
-                <div className="complexity-item">
-                  <strong>Time Complexity:</strong> {coding.solution_framework.time_complexity}
-                </div>
-                <div className="complexity-item">
-                  <strong>Space Complexity:</strong> {coding.solution_framework.space_complexity}
-                </div>
-              </div>
+                  {coding?.solution_framework?.pseudocode && (
+                    <div className="section">
+                      <h3>Pseudocode:</h3>
+                      <pre className="pseudocode">{coding.solution_framework.pseudocode}</pre>
+                    </div>
+                  )}
 
-              {coding.solution_framework.common_mistakes && (
-                <div className="section">
-                  <h3>Common Mistakes:</h3>
-                  <ul>
-                    {coding.solution_framework.common_mistakes.map((mistake, idx) => (
-                      <li key={idx}>{mistake}</li>
-                    ))}
-                  </ul>
-                </div>
+                  {coding?.solution_framework?.time_complexity || coding?.solution_framework?.space_complexity ? (
+                    <div className="complexity-section">
+                      {coding?.solution_framework?.time_complexity && (
+                        <div className="complexity-item">
+                          <strong>Time Complexity:</strong> {coding.solution_framework.time_complexity}
+                        </div>
+                      )}
+                      {coding?.solution_framework?.space_complexity && (
+                        <div className="complexity-item">
+                          <strong>Space Complexity:</strong> {coding.solution_framework.space_complexity}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {coding?.solution_framework?.common_mistakes && Array.isArray(coding.solution_framework.common_mistakes) && coding.solution_framework.common_mistakes.length > 0 && (
+                    <div className="section">
+                      <h3>Common Mistakes:</h3>
+                      <ul>
+                        {coding.solution_framework.common_mistakes.map((mistake, idx) => (
+                          <li key={idx}>{mistake}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -251,21 +408,42 @@ const ChallengeWorkspace = () => {
                 </div>
                 <div className="result-stat">
                   <span>Passed Tests:</span>
-                  <strong>{testResults.passed}/{testResults.total}</strong>
+                  <strong>{testResults.passed || 0}/{testResults.total || 0}</strong>
                 </div>
               </div>
 
-              {testResults.test_results && (
+              {testResults?.test_results && Array.isArray(testResults.test_results) && testResults.test_results.length > 0 ? (
                 <div className="test-list">
                   {testResults.test_results.map((test, idx) => (
                     <div key={idx} className={`test-item ${test.passed ? "passed" : "failed"}`}>
-                      <span className={`status ${test.passed ? "✓" : "✗"}`}>
-                        {test.passed ? "✓" : "✗"}
-                      </span>
-                      <span className="test-name">{test.description || `Test ${idx + 1}`}</span>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", width: "100%" }}>
+                        <span className={`status ${test.passed ? "pass" : "fail"}`} style={{ marginTop: "4px" }}>
+                          {test.passed ? "✓" : "✗"}
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <span className="test-name" style={{ display: "block", marginBottom: "8px" }}>
+                            {test.description || `Test ${idx + 1}`}
+                          </span>
+                          {test.input && (
+                            <div style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "6px" }}>
+                              <strong>Input:</strong> {JSON.stringify(test.input)}
+                            </div>
+                          )}
+                          <div style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "6px" }}>
+                            <strong>Expected:</strong> {JSON.stringify(test.expected)}
+                          </div>
+                          {test.actual && (
+                            <div style={{ fontSize: "0.85rem", color: test.passed ? "#10b981" : "#ef4444", marginBottom: "6px" }}>
+                              <strong>Got:</strong> {test.actual}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
+              ) : (
+                <p style={{ color: "#6b7280", marginTop: "20px" }}>No test results available</p>
               )}
             </div>
           )}

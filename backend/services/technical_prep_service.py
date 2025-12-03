@@ -1,5 +1,7 @@
 import json
 import random
+import cohere
+import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from mongo.technical_prep_dao import technical_prep_dao
@@ -12,7 +14,37 @@ from schema.TechnicalChallenge import (
 CODING_CHALLENGES_TEMPLATES = [
     {
         "title": "Two Sum",
-        "description": "Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target.",
+        "description": """Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target.
+
+You may assume that each input has exactly one solution, and you may not use the same element twice.
+
+You can return the answer in any order.
+
+Example 1:
+Input: nums = [2,7,11,15], target = 9
+Output: [0,1]
+Explanation: The sum of nums[0] and nums[1] is 9. We return [0, 1].
+
+Example 2:
+Input: nums = [3,2,4], target = 6
+Output: [1,2]
+Explanation: The sum of nums[1] and nums[2] is 6. We return [1, 2].
+
+Example 3:
+Input: nums = [3,3], target = 6
+Output: [0,1]
+Explanation: The sum of nums[0] and nums[1] is 6. We return [0, 1].
+
+Constraints:
+• 2 <= nums.length <= 10^4
+• -10^9 <= nums[i] <= 10^9
+• -10^9 <= target <= 10^9
+• Only one valid answer exists.
+
+Note:
+• You cannot use the same element twice.
+• The returned indices do not need to be in order.
+""",
         "difficulty": "easy",
         "required_languages": ["Python", "JavaScript", "Java"],
         "required_skills": ["Arrays", "Hash Maps"],
@@ -22,7 +54,37 @@ CODING_CHALLENGES_TEMPLATES = [
         "example_output": "[0,1]",
         "coding_challenge": {
             "title": "Two Sum",
-            "description": "Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target.",
+            "description": """Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target.
+
+You may assume that each input has exactly one solution, and you may not use the same element twice.
+
+You can return the answer in any order.
+
+Example 1:
+Input: nums = [2,7,11,15], target = 9
+Output: [0,1]
+Explanation: The sum of nums[0] and nums[1] is 9. We return [0, 1].
+
+Example 2:
+Input: nums = [3,2,4], target = 6
+Output: [1,2]
+Explanation: The sum of nums[1] and nums[2] is 6. We return [1, 2].
+
+Example 3:
+Input: nums = [3,3], target = 6
+Output: [0,1]
+Explanation: The sum of nums[0] and nums[1] is 6. We return [0, 1].
+
+Constraints:
+• 2 <= nums.length <= 10^4
+• -10^9 <= nums[i] <= 10^9
+• -10^9 <= target <= 10^9
+• Only one valid answer exists.
+
+Note:
+• You cannot use the same element twice.
+• The returned indices do not need to be in order.
+""",
             "difficulty": "easy",
             "required_languages": ["Python", "JavaScript", "Java"],
             "required_skills": ["Arrays", "Hash Maps"],
@@ -51,6 +113,55 @@ for i, num in enumerate(nums):
     hash_map[num] = i
 return []
                 """,
+                "solution_code": {
+                    "python": """def twoSum(nums, target):
+    # Dictionary to store value and its index
+    num_map = {}
+
+    for i, num in enumerate(nums):
+        # Check if complement exists in map
+        complement = target - num
+        if complement in num_map:
+            return [num_map[complement], i]
+        # Store current number and index
+        num_map[num] = i
+
+    return []  # No solution found""",
+                    "javascript": """function twoSum(nums, target) {
+    // Map to store value and its index
+    const numMap = new Map();
+
+    for (let i = 0; i < nums.length; i++) {
+        // Check if complement exists in map
+        const complement = target - nums[i];
+        if (numMap.has(complement)) {
+            return [numMap.get(complement), i];
+        }
+        // Store current number and index
+        numMap.set(nums[i], i);
+    }
+
+    return [];  // No solution found
+}""",
+                    "java": """public class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        // HashMap to store value and its index
+        Map<Integer, Integer> numMap = new HashMap<>();
+
+        for (int i = 0; i < nums.length; i++) {
+            // Check if complement exists in map
+            int complement = target - nums[i];
+            if (numMap.containsKey(complement)) {
+                return new int[]{numMap.get(complement), i};
+            }
+            // Store current number and index
+            numMap.put(nums[i], i);
+        }
+
+        return new int[]{};  // No solution found
+    }
+}"""
+                },
                 "time_complexity": "O(n)",
                 "space_complexity": "O(n)",
                 "common_mistakes": [
@@ -494,27 +605,96 @@ class TechnicalPrepService:
         )
 
     async def _run_tests(self, challenge: Dict[str, Any], code: str, language: str) -> List[Dict[str, Any]]:
-        """Simulate running tests (real implementation would compile and execute code)"""
+        """Run tests against submitted code using Cohere"""
         test_cases = []
 
         if challenge.get("challenge_type") == "coding":
             coding = challenge.get("coding_challenge", {})
             test_cases = coding.get("test_cases", [])
 
-        # For now, simulate test results
+        # Run tests
         results = []
+        co = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
+
         for i, test in enumerate(test_cases):
-            # In production, this would actually compile and run the code
-            passed = i == 0  # Simulate first test passes
-            results.append({
-                "test_number": i + 1,
-                "input": test.get("input"),
-                "expected": test.get("expected_output"),
-                "passed": passed,
-                "description": test.get("description")
-            })
+            try:
+                test_input = test.get("input", {})
+                expected_output = test.get("expected_output")
+
+                # Create prompt to execute code
+                execution_prompt = self._create_execution_prompt(code, language, test_input)
+
+                # Call Cohere to execute code
+                response = co.chat(
+                    model="command-r-plus-04-2024",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": execution_prompt
+                        }
+                    ],
+                    max_tokens=500,
+                    temperature=0,
+                )
+
+                actual_output_text = response.message.content[0].text.strip() if response.message.content else ""
+
+                # Try to parse and compare output
+                passed = self._compare_outputs(actual_output_text, expected_output, language)
+
+                results.append({
+                    "test_number": i + 1,
+                    "input": test_input,
+                    "expected": expected_output,
+                    "actual": actual_output_text,
+                    "passed": passed,
+                    "description": test.get("description", f"Test {i + 1}")
+                })
+            except Exception as e:
+                results.append({
+                    "test_number": i + 1,
+                    "input": test.get("input", {}),
+                    "expected": test.get("expected_output"),
+                    "actual": f"Error: {str(e)}",
+                    "passed": False,
+                    "description": test.get("description", f"Test {i + 1}")
+                })
 
         return results
+
+    def _create_execution_prompt(self, code: str, language: str, test_input: Dict[str, Any]) -> str:
+        """Create a prompt for Cohere to execute code"""
+        # Convert test input to function arguments
+        if isinstance(test_input, dict):
+            args_str = ", ".join([f"{k}={json.dumps(v)}" for k, v in test_input.items()])
+        else:
+            args_str = str(test_input)
+
+        prompt = f"""Execute this {language.capitalize()} code and return ONLY the output value (no explanation):
+
+{code}
+
+Call the function with these inputs: {args_str}
+
+Output:"""
+        return prompt
+
+    def _compare_outputs(self, actual: str, expected: Any, language: str) -> bool:
+        """Compare actual output with expected output"""
+        try:
+            # Try to parse actual output as JSON if expected is complex type
+            if isinstance(expected, (list, dict)):
+                try:
+                    actual_parsed = json.loads(actual)
+                    return actual_parsed == expected
+                except:
+                    # If JSON parse fails, try string comparison
+                    return str(actual).strip() == str(expected).strip()
+            else:
+                # For simple types, compare as strings
+                return str(actual).strip() == str(expected).strip()
+        except:
+            return False
 
     async def get_user_progress(self, uuid: str) -> Dict[str, Any]:
         """Get user's technical prep progress"""
@@ -540,6 +720,88 @@ class TechnicalPrepService:
         ]
 
         return leaderboard[:limit]
+
+    async def generate_solution(self, challenge_id: str, language: str = "python") -> Dict[str, Any]:
+        """Generate a solution for a challenge using Cohere"""
+        try:
+            # Get challenge
+            challenge = await technical_prep_dao.get_challenge(challenge_id)
+            if not challenge:
+                return {"success": False, "error": "Challenge not found"}
+
+            # Get the title and description
+            title = challenge.get("title", "")
+            description = challenge.get("description", "")
+
+            # Get more details from coding_challenge if available
+            coding = challenge.get("coding_challenge", {})
+            example_input = coding.get("example_input", "")
+            example_output = coding.get("example_output", "")
+
+            # Create prompt for Cohere
+            prompt = f"""Generate a clean, well-commented {language.capitalize()} solution for this coding problem:
+
+Problem: {title}
+
+Description:
+{description}
+
+{f'Example Input: {example_input}' if example_input else ''}
+{f'Example Output: {example_output}' if example_output else ''}
+
+Requirements:
+- Provide a complete, working solution
+- Include helpful comments explaining the approach
+- Make the code efficient and readable
+- The function signature should match the problem requirements
+- Return only the code solution without explanations
+
+Solution:"""
+
+            # Call Cohere API with error handling
+            try:
+                co = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
+                response = co.chat(
+                    model="command-r-plus-04-2024",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    max_tokens=1000,
+                    temperature=0.7,
+                )
+
+                solution_code = response.message.content[0].text.strip() if response.message.content else ""
+            except Exception as cohere_error:
+                # If Cohere API fails (rate limit, etc), return template solution if available
+                if coding.get("solution_framework", {}).get("solution_code", {}).get(language):
+                    solution_code = coding["solution_framework"]["solution_code"][language]
+                    return {
+                        "success": True,
+                        "language": language,
+                        "solution": solution_code,
+                        "title": title,
+                        "note": "Using template solution (Cohere API unavailable)"
+                    }
+                else:
+                    raise cohere_error
+
+            return {
+                "success": True,
+                "language": language,
+                "solution": solution_code,
+                "title": title
+            }
+
+        except Exception as e:
+            import traceback
+            print(f"Solution generation error: {traceback.format_exc()}")
+            return {
+                "success": False,
+                "error": f"Failed to generate solution: {str(e)}"
+            }
 
 
 # Export singleton

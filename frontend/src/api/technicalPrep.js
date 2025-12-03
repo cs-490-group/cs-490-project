@@ -130,6 +130,13 @@ const technicalPrepAPI = {
     return api.get(`/technical-prep/challenge/${challengeId}/leaderboard`, {
       params: { limit }
     });
+  },
+
+  // Get AI-generated solution
+  generateSolution: async (challengeId, language = "python") => {
+    return api.get(`/technical-prep/challenge/${challengeId}/solution`, {
+      params: { language }
+    });
   }
 };
 
