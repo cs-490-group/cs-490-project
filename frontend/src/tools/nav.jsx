@@ -18,6 +18,7 @@ const Nav = () => {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
   const [showInterviewDropdown, setShowInterviewDropdown] = React.useState(false);
+  const [showNetworkDropdown, setShowNetworkDropdown] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState(null);
   const [username, setUsername] = React.useState(localStorage.getItem("username") || "");
   const hasValidated = React.useRef(false);
@@ -310,8 +311,11 @@ const Nav = () => {
                       Network
                     </span>
                   }
-                  id="interview-dropdown"
+                  id="network-dropdown"
                   className="mx-3"
+                  show={showNetworkDropdown}
+                  onMouseEnter={() => setShowNetworkDropdown(true)}
+                  onMouseLeave={() => setShowNetworkDropdown(false)}
                 >
                   <NavDropdown.Item as={NavLink} to="/network/referrals">
                     Referrals
