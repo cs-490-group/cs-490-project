@@ -81,7 +81,7 @@ const SuccessPredictionAPI = {
   compareInterviews: (interviewIds) => {
     return axios.post(
       `${API_BASE_URL}/success-prediction/compare`,
-      { interview_ids: interviewIds },
+      interviewIds,  // Send as array directly, not nested in object
       { headers: getAuthHeaders() }
     );
   }

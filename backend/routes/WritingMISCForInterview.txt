@@ -217,3 +217,55 @@ const WritingPracticeAPI = {
     );
   }
 };
+
+
+# ============================================================================
+# WRITING PRACTICE SCHEMAS
+# ============================================================================
+
+class WritingPracticeSession(BaseModel):
+    """Schema for a timed writing practice session"""
+    uuid: str
+    user_uuid: str
+    question_uuid: str
+    
+    # Timing
+    time_limit_seconds: int = Field(default=300, description="5 minutes default")
+    time_taken_seconds: int
+    started_at: datetime
+    completed_at: datetime
+    
+    # Response
+    response_text: str
+    word_count: int
+    
+    # Analysis
+    clarity_score: Optional[float] = Field(None, description="0-100")
+    structure_score: Optional[float] = Field(None, description="STAR framework adherence")
+    conciseness_score: Optional[float] = Field(None, description="0-100")
+    professionalism_score: Optional[float] = Field(None, description="0-100")
+    overall_score: Optional[float] = Field(None, description="Average of above")
+    
+    # Detailed feedback
+    strengths: List[str] = Field(default_factory=list)
+    areas_for_improvement: List[str] = Field(default_factory=list)
+    specific_suggestions: List[str] = Field(default_factory=list)
+    
+    # Comparison
+    comparison_with_previous: Optional[Dict[str, Any]] = None
+    
+    date_created: datetime = Field(default_factory=datetime.utcnow)
+
+
+class WritingAnalysisResult(BaseModel):
+    """Result of analyzing a written response"""
+    clarity_score: float
+    structure_score: float
+    conciseness_score: float
+    professionalism_score: float
+    overall_score: float
+    strengths: List[str]
+    areas_for_improvement: List[str]
+    specific_suggestions: List[str]
+    sentence_complexity_avg: float
+    vocabulary_diversity_score: float

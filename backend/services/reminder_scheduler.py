@@ -136,7 +136,7 @@ async def check_and_send_reminders():
                         print(f"❌ Failed to send 2h: {e}")
                     continue
                 
-                print(f"✓ No reminders needed")
+                #print(f"✓ No reminders needed")
                 
             except Exception as e:
                 print(f"❌ Error processing interview {interview.get('_id')}: {e}")

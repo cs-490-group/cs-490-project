@@ -27,12 +27,7 @@ from routes.AI import ai_router
 from routes.question_bank import question_bank_router
 from routes.mock_interview import mock_interview_router
 from routes.interview_router import (interview_router)
-from routes.interview_analytics_routes import (
-    analytics_router,
-    followup_router,
-    writing_router,
-    prediction_router
-)
+from routes.interview_analytics_routes import analytics_router, prediction_router
 
 app = FastAPI()
 
@@ -81,8 +76,6 @@ app.include_router(question_bank_router, prefix = api_prefix)
 app.include_router(mock_interview_router, prefix = api_prefix)
 app.include_router(interview_router, prefix=api_prefix)
 app.include_router(analytics_router, prefix=api_prefix)
-app.include_router(followup_router, prefix=api_prefix)
-app.include_router(writing_router, prefix=api_prefix)
 app.include_router(prediction_router, prefix=api_prefix)
 app.include_router(ai_router, prefix=api_prefix)
 

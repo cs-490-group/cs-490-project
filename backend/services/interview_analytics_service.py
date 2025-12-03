@@ -1,416 +1,265 @@
 """
 Interview Analytics Service
-Provides performance metrics, trend analysis, and insights
+Implements UC-080: Interview Performance Analytics
 """
-
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from datetime import datetime, timezone, timedelta
+from typing import Dict, List, Optional, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
 class InterviewAnalyticsService:
-    """Service for analyzing interview performance and generating insights"""
+    """Service for interview performance analytics (UC-080)"""
     
     def __init__(self, db_client: AsyncIOMotorDatabase):
         self.db = db_client
-        self.schedules_collection = db_client["interview_schedules"]
-        self.mock_sessions_collection = db_client["mock_interview_sessions"]
-        self.practice_sessions_collection = db_client["writing_practice_sessions"]
+        self.schedules = db_client["interview_schedules"]
+        self.mock_sessions = db_client["mock_interview_sessions"]
     
     async def get_performance_dashboard(self, user_uuid: str) -> Dict[str, Any]:
-        """
-        Get comprehensive performance dashboard data
+        """Get comprehensive analytics dashboard"""
         
-        Returns metrics for display on analytics dashboard
-        """
-        # Get basic metrics
-        total_interviews = await self.schedules_collection.count_documents({
-            "user_uuid": user_uuid
-        })
+        # Get all interviews for user
+        all_interviews = await self.schedules.find({"uuid": user_uuid}).to_list(length=None)
         
-        completed_interviews = await self.schedules_collection.count_documents({
+        if not all_interviews:
+            return {
+                "total_interviews": 0,
+                "completed_interviews": 0,
+                "offers_received": 0,
+                "conversion_rate": 0.0,
+                "format_performance": {},
+                "category_performance": [],
+                "strongest_areas": [],
+                "weakest_areas": [],
+                "performance_trend": "insufficient_data",
+                "recommendations": ["Schedule your first interview to start tracking performance!"]
+            }
+        
+        # Calculate basic metrics
+        total_interviews = len(all_interviews)
+        completed = [i for i in all_interviews if i.get("status") == "completed"]
+        completed_count = len(completed)
+        
+        offers = [i for i in completed if i.get("outcome") == "passed"]
+        offers_count = len(offers)
+        
+        conversion_rate = (offers_count / completed_count * 100) if completed_count > 0 else 0
+        
+        # Format performance
+        format_performance = {}
+        for fmt in ["video", "phone", "in-person"]:
+            fmt_interviews = [i for i in completed if i.get("location_type") == fmt]
+            fmt_passed = [i for i in fmt_interviews if i.get("outcome") == "passed"]
+            if fmt_interviews:
+                format_performance[fmt] = (len(fmt_passed) / len(fmt_interviews) * 100)
+        
+        # Get mock interview data for category performance
+        mock_sessions = await self.mock_sessions.find({
             "user_uuid": user_uuid,
             "status": "completed"
-        })
+        }).to_list(length=None)
         
-        pending_interviews = await self.schedules_collection.count_documents({
-            "user_uuid": user_uuid,
-            "status": "scheduled"
-        })
+        category_performance = []
+        category_scores = {}
         
-        cancelled_interviews = await self.schedules_collection.count_documents({
-            "user_uuid": user_uuid,
-            "status": "cancelled"
-        })
+        for session in mock_sessions:
+            responses = session.get("responses", [])
+            for response in responses:
+                category = response.get("question_category", "unknown")
+                score = response.get("coaching_score", 70)  # Default score
+                
+                if category not in category_scores:
+                    category_scores[category] = []
+                category_scores[category].append(score)
         
-        # Get outcome metrics
-        passed_interviews = await self.schedules_collection.count_documents({
-            "user_uuid": user_uuid,
-            "status": "completed",
-            "outcome": "passed"
-        })
+        # Calculate average scores per category
+        for category, scores in category_scores.items():
+            if scores:
+                avg_score = sum(scores) / len(scores)
+                category_performance.append({
+                    "category": category.capitalize(),
+                    "score": round(avg_score, 1)
+                })
         
-        rejected_interviews = await self.schedules_collection.count_documents({
-            "user_uuid": user_uuid,
-            "status": "completed",
-            "outcome": "rejected"
-        })
+        # Determine strengths and weaknesses
+        if category_performance:
+            sorted_cats = sorted(category_performance, key=lambda x: x["score"], reverse=True)
+            strongest_areas = [c["category"].lower() for c in sorted_cats[:2]]
+            weakest_areas = [c["category"].lower() for c in sorted_cats[-2:]]
+        else:
+            strongest_areas = []
+            weakest_areas = []
         
-        # Calculate conversion rate
-        offer_conversion_rate = (
-            (passed_interviews / completed_interviews * 100)
-            if completed_interviews > 0 else 0
+        # Performance trend
+        performance_trend = self._calculate_trend(completed)
+        
+        # Generate recommendations
+        recommendations = self._generate_recommendations(
+            conversion_rate=conversion_rate,
+            weakest_areas=weakest_areas,
+            format_performance=format_performance,
+            mock_session_count=len(mock_sessions)
         )
-        
-        # Get performance by format
-        format_performance = await self._get_format_performance(user_uuid)
-        
-        # Get performance by company type
-        company_performance = await self._get_company_performance(user_uuid)
-        
-        # Get mock interview data
-        mock_performance = await self._get_mock_interview_performance(user_uuid)
-        
-        # Get trend
-        trend = await self._calculate_trend(user_uuid)
-        
-        # Get strongest/weakest areas
-        strengths_weaknesses = await self._analyze_strengths_weaknesses(user_uuid)
         
         return {
             "total_interviews": total_interviews,
-            "completed_interviews": completed_interviews,
-            "pending_interviews": pending_interviews,
-            "cancelled_interviews": cancelled_interviews,
-            "passed_interviews": passed_interviews,
-            "rejected_interviews": rejected_interviews,
-            "offer_conversion_rate": round(offer_conversion_rate, 2),
+            "completed_interviews": completed_count,
+            "offers_received": offers_count,
+            "conversion_rate": round(conversion_rate, 2),
             "format_performance": format_performance,
-            "company_performance": company_performance,
-            "mock_interview_performance": mock_performance,
-            "performance_trend": trend,
-            "strongest_areas": strengths_weaknesses["strengths"],
-            "weakest_areas": strengths_weaknesses["weaknesses"],
-            "recommendations": await self._generate_recommendations(user_uuid, strengths_weaknesses)
+            "category_performance": category_performance,
+            "strongest_areas": strongest_areas,
+            "weakest_areas": weakest_areas,
+            "performance_trend": performance_trend,
+            "recommendations": recommendations
         }
     
-    async def _get_format_performance(self, user_uuid: str) -> Dict[str, float]:
-        """Calculate success rate by interview format"""
-        formats = ["phone", "video", "in-person"]
-        performance = {}
+    async def get_trend_analysis(self, user_uuid: str, days: int = 90) -> Dict[str, Any]:
+        """Get detailed trend analysis over time"""
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
         
-        for fmt in formats:
-            total = await self.schedules_collection.count_documents({
-                "user_uuid": user_uuid,
-                "location_type": fmt,
-                "status": "completed"
-            })
-            
-            passed = await self.schedules_collection.count_documents({
-                "user_uuid": user_uuid,
-                "location_type": fmt,
-                "status": "completed",
-                "outcome": "passed"
-            })
-            
-            performance[fmt] = round((passed / total * 100) if total > 0 else 0, 2)
-        
-        return performance
-    
-    async def _get_company_performance(self, user_uuid: str) -> Dict[str, Any]:
-        """
-        Analyze performance by company type
-        This would require company metadata - for now return placeholder
-        """
-        # In production: Join with job applications to get company size, industry
-        return {
-            "startup": {
-                "count": 0,
-                "success_rate": 0
-            },
-            "midsize": {
-                "count": 0,
-                "success_rate": 0
-            },
-            "enterprise": {
-                "count": 0,
-                "success_rate": 0
-            }
-        }
-    
-    async def _get_mock_interview_performance(self, user_uuid: str) -> Dict[str, Any]:
-        """Get performance metrics from mock interviews"""
-        cursor = self.mock_sessions_collection.find({
-            "user_uuid": user_uuid,
-            "status": "completed"
-        })
-        
-        sessions = []
-        async for doc in cursor:
-            sessions.append(doc)
-        
-        if not sessions:
-            return {
-                "total_sessions": 0,
-                "avg_completion_rate": 0,
-                "avg_response_quality": 0
-            }
-        
-        total_completion = sum(
-            len(s.get("responses", [])) / len(s.get("question_sequence", [1])) * 100
-            for s in sessions
-        )
-        avg_completion = total_completion / len(sessions)
-        
-        # Calculate average response quality (word count, timing)
-        all_responses = []
-        for session in sessions:
-            all_responses.extend(session.get("responses", []))
-        
-        avg_word_count = (
-            sum(r.get("word_count", 0) for r in all_responses) / len(all_responses)
-            if all_responses else 0
-        )
-        
-        return {
-            "total_sessions": len(sessions),
-            "avg_completion_rate": round(avg_completion, 2),
-            "avg_word_count": round(avg_word_count, 2),
-            "total_practice_questions": len(all_responses)
-        }
-    
-    async def _calculate_trend(self, user_uuid: str) -> str:
-        """Calculate performance trend over time"""
-        cutoff_date = datetime.utcnow() - timedelta(days=90)
-        
-        cursor = self.schedules_collection.find({
-            "user_uuid": user_uuid,
+        interviews = await self.schedules.find({
+            "uuid": user_uuid,
             "status": "completed",
-            "interview_datetime": {"$gte": cutoff_date}
-        }).sort("interview_datetime", 1)
+            "date_created": {"$gte": cutoff_date}
+        }).sort("interview_datetime", 1).to_list(length=None)
         
-        interviews = []
-        async for doc in cursor:
-            interviews.append({
-                "date": doc["interview_datetime"],
-                "outcome": doc.get("outcome")
+        if len(interviews) < 2:
+            return {
+                "trend": "insufficient_data",
+                "trend_data": [],
+                "total_interviews_in_period": len(interviews),
+                "time_period_days": days
+            }
+        
+        # Group by month and calculate conversion rates
+        monthly_data = {}
+        for interview in interviews:
+            date = interview.get("interview_datetime")
+            if date:
+                month_key = date.strftime("%Y-%m")
+                if month_key not in monthly_data:
+                    monthly_data[month_key] = {"total": 0, "passed": 0}
+                
+                monthly_data[month_key]["total"] += 1
+                if interview.get("outcome") == "passed":
+                    monthly_data[month_key]["passed"] += 1
+        
+        # Create trend data
+        trend_data = []
+        for month, data in sorted(monthly_data.items()):
+            conversion = (data["passed"] / data["total"] * 100) if data["total"] > 0 else 0
+            trend_data.append({
+                "period": month,
+                "conversion_rate": round(conversion, 1),
+                "interviews": data["total"]
             })
         
-        if len(interviews) < 3:
+        # Calculate overall trend
+        if len(trend_data) >= 2:
+            first_half = trend_data[:len(trend_data)//2]
+            second_half = trend_data[len(trend_data)//2:]
+            
+            first_avg = sum(d["conversion_rate"] for d in first_half) / len(first_half)
+            second_avg = sum(d["conversion_rate"] for d in second_half) / len(second_half)
+            
+            if second_avg > first_avg + 5:
+                trend = "improving"
+            elif second_avg < first_avg - 5:
+                trend = "declining"
+            else:
+                trend = "stable"
+        else:
+            trend = "insufficient_data"
+        
+        return {
+            "trend": trend,
+            "trend_data": trend_data,
+            "total_interviews_in_period": len(interviews),
+            "time_period_days": days
+        }
+    
+    async def get_comparison_analysis(
+        self, 
+        user_uuid: str, 
+        compare_with: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Compare user's performance with benchmarks"""
+        
+        # Get user's stats
+        user_interviews = await self.schedules.find({"uuid": user_uuid}).to_list(length=None)
+        completed = [i for i in user_interviews if i.get("status") == "completed"]
+        passed = [i for i in completed if i.get("outcome") == "passed"]
+        
+        user_conversion = (len(passed) / len(completed) * 100) if completed else 0
+        
+        # Industry benchmark (can be made more sophisticated)
+        benchmark_rate = 25.0  # Industry average
+        
+        difference = user_conversion - benchmark_rate
+        performance_vs_benchmark = "above" if difference > 0 else "below"
+        
+        return {
+            "user_conversion_rate": round(user_conversion, 1),
+            "benchmark_conversion_rate": benchmark_rate,
+            "difference": round(difference, 1),
+            "performance_vs_benchmark": performance_vs_benchmark
+        }
+    
+    def _calculate_trend(self, completed_interviews: List[Dict]) -> str:
+        """Calculate performance trend"""
+        if len(completed_interviews) < 4:
             return "insufficient_data"
         
-        # Split into two halves and compare
-        midpoint = len(interviews) // 2
-        recent_half = interviews[midpoint:]
-        earlier_half = interviews[:midpoint]
+        # Sort by date
+        sorted_interviews = sorted(
+            completed_interviews, 
+            key=lambda x: x.get("interview_datetime", datetime.min)
+        )
         
-        recent_success = sum(1 for i in recent_half if i["outcome"] == "passed") / len(recent_half)
-        earlier_success = sum(1 for i in earlier_half if i["outcome"] == "passed") / len(earlier_half)
+        # Split into halves
+        mid = len(sorted_interviews) // 2
+        first_half = sorted_interviews[:mid]
+        second_half = sorted_interviews[mid:]
         
-        if recent_success > earlier_success + 0.15:
+        first_success = sum(1 for i in first_half if i.get("outcome") == "passed") / len(first_half)
+        second_success = sum(1 for i in second_half if i.get("outcome") == "passed") / len(second_half)
+        
+        if second_success > first_success + 0.1:
             return "improving"
-        elif recent_success < earlier_success - 0.15:
+        elif second_success < first_success - 0.1:
             return "declining"
         else:
             return "stable"
     
-    async def _analyze_strengths_weaknesses(self, user_uuid: str) -> Dict[str, List[str]]:
-        """Analyze strongest and weakest areas from mock interviews"""
-        cursor = self.mock_sessions_collection.find({
-            "user_uuid": user_uuid,
-            "status": "completed"
-        })
-        
-        category_performance = {
-            "behavioral": [],
-            "technical": [],
-            "situational": [],
-            "company": []
-        }
-        
-        async for session in cursor:
-            responses = session.get("responses", [])
-            for response in responses:
-                category = response.get("question_category")
-                word_count = response.get("word_count", 0)
-                duration = response.get("response_duration_seconds", 0)
-                
-                # Simple quality score based on word count and time
-                quality_score = min(100, (word_count / 100) * 50 + (min(duration, 180) / 180) * 50)
-                
-                if category in category_performance:
-                    category_performance[category].append(quality_score)
-        
-        # Calculate averages
-        category_avgs = {
-            cat: sum(scores) / len(scores) if scores else 0
-            for cat, scores in category_performance.items()
-        }
-        
-        # Identify strengths (above 70) and weaknesses (below 50)
-        strengths = [cat for cat, avg in category_avgs.items() if avg > 70]
-        weaknesses = [cat for cat, avg in category_avgs.items() if avg < 50 and avg > 0]
-        
-        return {
-            "strengths": strengths,
-            "weaknesses": weaknesses,
-            "scores": category_avgs
-        }
-    
-    async def _generate_recommendations(
+    def _generate_recommendations(
         self,
-        user_uuid: str,
-        strengths_weaknesses: Dict[str, List[str]]
+        conversion_rate: float,
+        weakest_areas: List[str],
+        format_performance: Dict[str, float],
+        mock_session_count: int
     ) -> List[str]:
         """Generate personalized recommendations"""
         recommendations = []
         
-        weaknesses = strengths_weaknesses["weaknesses"]
+        if conversion_rate < 30:
+            recommendations.append("Your conversion rate is below average. Focus on thorough preparation for each interview.")
+        elif conversion_rate >= 70:
+            recommendations.append("Excellent conversion rate! Keep up the great work.")
         
-        if "behavioral" in weaknesses:
-            recommendations.append(
-                "Practice more behavioral questions using the STAR framework"
-            )
+        if weakest_areas:
+            recommendations.append(f"Practice {weakest_areas[0]} questions more - this is your weakest area.")
         
-        if "technical" in weaknesses:
-            recommendations.append(
-                "Focus on technical interview preparation and coding practice"
-            )
+        if mock_session_count < 3:
+            recommendations.append("Complete more mock interviews to improve your performance.")
         
-        if "situational" in weaknesses:
-            recommendations.append(
-                "Work on situational questions and problem-solving scenarios"
-            )
-        
-        # Check mock interview completion
-        mock_count = await self.mock_sessions_collection.count_documents({
-            "user_uuid": user_uuid,
-            "status": "completed"
-        })
-        
-        if mock_count < 3:
-            recommendations.append(
-                "Complete more mock interviews to build confidence and identify improvement areas"
-            )
-        
-        # Check preparation task completion
-        schedules_cursor = self.schedules_collection.find({
-            "user_uuid": user_uuid,
-            "status": "scheduled"
-        })
-        
-        low_prep_count = 0
-        async for schedule in schedules_cursor:
-            if schedule.get("preparation_completion_percentage", 0) < 70:
-                low_prep_count += 1
-        
-        if low_prep_count > 0:
-            recommendations.append(
-                f"Complete preparation checklists for {low_prep_count} upcoming interview(s)"
-            )
+        # Format-specific recommendations
+        if format_performance:
+            worst_format = min(format_performance.items(), key=lambda x: x[1])
+            if worst_format[1] < 50:
+                recommendations.append(f"Practice {worst_format[0]} interviews - your success rate is lower here.")
         
         if not recommendations:
-            recommendations.append(
-                "Keep up the great work! Continue practicing to maintain your strong performance."
-            )
+            recommendations.append("Continue practicing and refining your interview skills!")
         
         return recommendations
-    
-    async def get_trend_analysis(self, user_uuid: str, timeframe_days: int = 90) -> Dict[str, Any]:
-        """
-        Get detailed trend analysis over a specific timeframe
-        
-        Args:
-            user_uuid: User ID
-            timeframe_days: Number of days to analyze (default 90)
-        
-        Returns:
-            Detailed trend data with timestamps
-        """
-        cutoff_date = datetime.utcnow() - timedelta(days=timeframe_days)
-        
-        cursor = self.schedules_collection.find({
-            "user_uuid": user_uuid,
-            "status": "completed",
-            "interview_datetime": {"$gte": cutoff_date}
-        }).sort("interview_datetime", 1)
-        
-        data_points = []
-        async for doc in cursor:
-            data_points.append({
-                "date": doc["interview_datetime"].isoformat(),
-                "outcome": doc.get("outcome"),
-                "location_type": doc.get("location_type")
-            })
-        
-        # Calculate rolling average (last 5 interviews)
-        rolling_success_rates = []
-        for i in range(4, len(data_points)):
-            window = data_points[i-4:i+1]
-            success_count = sum(1 for d in window if d["outcome"] == "passed")
-            rolling_success_rates.append({
-                "date": data_points[i]["date"],
-                "success_rate": (success_count / 5) * 100
-            })
-        
-        return {
-            "timeframe_days": timeframe_days,
-            "total_interviews": len(data_points),
-            "data_points": data_points,
-            "rolling_success_rate": rolling_success_rates,
-            "trend": await self._calculate_trend(user_uuid)
-        }
-    
-    async def get_comparison_analysis(self, user_uuid: str, compare_user_uuid: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Compare user's performance with another user or industry benchmarks
-        
-        Args:
-            user_uuid: Primary user
-            compare_user_uuid: Optional second user for comparison
-        
-        Returns:
-            Comparison metrics
-        """
-        user1_metrics = await self.get_performance_dashboard(user_uuid)
-        
-        if compare_user_uuid:
-            user2_metrics = await self.get_performance_dashboard(compare_user_uuid)
-            
-            return {
-                "user1": {
-                    "uuid": user_uuid,
-                    "metrics": user1_metrics
-                },
-                "user2": {
-                    "uuid": compare_user_uuid,
-                    "metrics": user2_metrics
-                },
-                "comparison": {
-                    "conversion_rate_diff": (
-                        user1_metrics["offer_conversion_rate"] -
-                        user2_metrics["offer_conversion_rate"]
-                    ),
-                    "total_interviews_diff": (
-                        user1_metrics["total_interviews"] -
-                        user2_metrics["total_interviews"]
-                    )
-                }
-            }
-        else:
-            # Compare with industry benchmarks (placeholder values)
-            industry_benchmarks = {
-                "offer_conversion_rate": 25.0,  # Industry average
-                "avg_interviews_per_offer": 4.0
-            }
-            
-            return {
-                "user": user1_metrics,
-                "industry_benchmarks": industry_benchmarks,
-                "comparison": {
-                    "conversion_rate_vs_industry": (
-                        user1_metrics["offer_conversion_rate"] -
-                        industry_benchmarks["offer_conversion_rate"]
-                    )
-                }
-            }

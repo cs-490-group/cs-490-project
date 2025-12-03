@@ -1,29 +1,22 @@
+"""
+Interview Analytics and Success Prediction Router
+Combines UC-080 and UC-085 endpoints
+"""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List
-from datetime import datetime
+from bson import ObjectId
 
-from schema.InterviewSchedule import (
-    GenerateFollowUpRequest,
-    WritingPracticeSession,
-    WritingAnalysisResult
-)
-from services.followup_service import FollowUpService
 from services.interview_analytics_service import InterviewAnalyticsService
-from services.writing_practice_service import WritingPracticeService
 from services.success_prediction_service import SuccessPredictionService
 from mongo.dao_setup import db_client
 from sessions.session_authorizer import authorize
 
 # Initialize routers
 analytics_router = APIRouter(prefix="/interview-analytics", tags=["interview-analytics"])
-followup_router = APIRouter(prefix="/interview-followup", tags=["interview-followup"])
-writing_router = APIRouter(prefix="/writing-practice", tags=["writing-practice"])
 prediction_router = APIRouter(prefix="/success-prediction", tags=["success-prediction"])
 
 # Initialize services
 analytics_service = InterviewAnalyticsService(db_client)
-followup_service = FollowUpService()
-writing_service = WritingPracticeService()
 prediction_service = SuccessPredictionService(db_client)
 
 # ============================================================================
@@ -42,6 +35,7 @@ async def get_analytics_dashboard(uuid_val: str = Depends(authorize)):
         }
     
     except Exception as e:
+        print(f"[Analytics Dashboard] Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error loading dashboard: {str(e)}")
 
 
@@ -60,6 +54,7 @@ async def get_trend_analysis(
         }
     
     except Exception as e:
+        print(f"[Analytics Trends] Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error analyzing trends: {str(e)}")
 
 
@@ -81,6 +76,7 @@ async def get_comparison_analysis(
         }
     
     except Exception as e:
+        print(f"[Analytics Comparison] Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error in comparison: {str(e)}")
 
 
@@ -95,9 +91,15 @@ async def get_success_probability(
 ):
     """Calculate interview success probability"""
     try:
+        # Validate ObjectId
+        try:
+            obj_id = ObjectId(interview_id)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid interview ID format")
+        
         prediction = await prediction_service.calculate_success_probability(
             uuid_val,
-            interview_id
+            obj_id
         )
         
         if "error" in prediction:
@@ -111,6 +113,9 @@ async def get_success_probability(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[Success Prediction] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error calculating probability: {str(e)}")
 
 
@@ -127,9 +132,17 @@ async def compare_interview_probabilities(
                 detail="At least 2 interviews required for comparison"
             )
         
+        # Validate all ObjectIds
+        validated_ids = []
+        for iid in interview_ids:
+            try:
+                validated_ids.append(ObjectId(iid))
+            except Exception:
+                raise HTTPException(status_code=400, detail=f"Invalid interview ID: {iid}")
+        
         comparison = await prediction_service.compare_interview_probabilities(
             uuid_val,
-            interview_ids
+            validated_ids
         )
         
         return {
@@ -140,13 +153,14 @@ async def compare_interview_probabilities(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[Success Comparison] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error in comparison: {str(e)}")
 
 
 # Export all routers
 __all__ = [
     "analytics_router",
-    "followup_router", 
-    "writing_router",
     "prediction_router"
 ]
