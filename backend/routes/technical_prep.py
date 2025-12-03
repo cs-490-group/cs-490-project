@@ -247,20 +247,8 @@ async def generate_case_study(
 
 # ============ ATTEMPT ENDPOINTS ============
 
-@technical_prep_router.post("/attempts/{uuid}/{challenge_id}")
-async def start_challenge_attempt(uuid: str, challenge_id: str):
-    """Start a new challenge attempt"""
-    try:
-        attempt_id = await technical_prep_service.start_challenge_attempt(uuid, challenge_id)
-        attempt = await technical_prep_dao.get_attempt(attempt_id)
-        return {
-            "success": True,
-            "attempt_id": attempt_id,
-            "attempt": attempt
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+# IMPORTANT: More specific routes must come BEFORE generic ones
+# So /submit must come before /{challenge_id}
 
 @technical_prep_router.post("/attempts/{attempt_id}/submit")
 async def submit_code(
@@ -274,6 +262,21 @@ async def submit_code(
         if not result.get("success"):
             raise HTTPException(status_code=400, detail=result.get("error"))
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@technical_prep_router.post("/attempts/{uuid}/{challenge_id}")
+async def start_challenge_attempt(uuid: str, challenge_id: str):
+    """Start a new challenge attempt"""
+    try:
+        attempt_id = await technical_prep_service.start_challenge_attempt(uuid, challenge_id)
+        attempt = await technical_prep_dao.get_attempt(attempt_id)
+        return {
+            "success": True,
+            "attempt_id": attempt_id,
+            "attempt": attempt
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

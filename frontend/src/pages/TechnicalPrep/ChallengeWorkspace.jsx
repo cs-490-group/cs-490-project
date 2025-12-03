@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import technicalPrepAPI from "../../api/technicalPrep";
 import "../../styles/technicalPrep.css";
@@ -22,7 +22,11 @@ const ChallengeWorkspace = () => {
   const [generatedSolution, setGeneratedSolution] = useState(null);
   const [generatingSolution, setGeneratingSolution] = useState(false);
 
+  const attemptInitializedRef = useRef(false);
+
   useEffect(() => {
+    // Reset attempt tracking when challenge changes
+    attemptInitializedRef.current = false;
     loadChallenge();
   }, [challengeId]);
 
@@ -42,10 +46,13 @@ const ChallengeWorkspace = () => {
       const res = await technicalPrepAPI.getChallenge(challengeId);
       setChallenge(res.data.challenge);
 
-      // Start attempt
-      const attemptRes = await technicalPrepAPI.startAttempt(uuid, challengeId);
-      setAttemptId(attemptRes.data.attempt_id);
-      setIsRunning(true);
+      // Only start attempt ONCE per challenge using ref
+      if (!attemptInitializedRef.current) {
+        attemptInitializedRef.current = true;
+        const attemptRes = await technicalPrepAPI.startAttempt(uuid, challengeId);
+        setAttemptId(attemptRes.data.attempt_id);
+        setIsRunning(true);
+      }
     } catch (error) {
       console.error("Error loading challenge:", error);
     } finally {
@@ -66,6 +73,8 @@ const ChallengeWorkspace = () => {
       const res = await technicalPrepAPI.submitCode(attemptId, code, language);
 
       console.log("Test results response:", res.data);
+      console.log("test_results array:", res.data.test_results);
+      console.log("test_results length:", res.data.test_results?.length);
 
       if (res.data.success) {
         setTestResults(res.data);

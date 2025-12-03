@@ -1,9 +1,9 @@
 import json
 import random
-import openai
 import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
+from openai import OpenAI
 from mongo.technical_prep_dao import technical_prep_dao
 from schema.TechnicalChallenge import (
     TechnicalChallenge, CodingChallenge, TestCase, SolutionFramework,
@@ -1374,28 +1374,40 @@ class TechnicalPrepService:
         language: str
     ) -> Dict[str, Any]:
         """Submit code for a challenge"""
+        print(f"[SUBMIT] Starting code submission for attempt: {attempt_id}")
+
         attempt = await technical_prep_dao.get_attempt(attempt_id)
         if not attempt:
+            print(f"[SUBMIT] Attempt not found: {attempt_id}")
             return {"success": False, "error": "Attempt not found"}
+
+        print(f"[SUBMIT] Attempt found, challenge_id: {attempt.get('challenge_id')}")
 
         # Get challenge
         challenge = await technical_prep_dao.get_challenge(attempt["challenge_id"])
         if not challenge:
+            print(f"[SUBMIT] Challenge not found: {attempt['challenge_id']}")
             return {"success": False, "error": "Challenge not found"}
 
-        # Generate test cases if they don't exist
+        print(f"[SUBMIT] Challenge found: {challenge.get('title')}")
+
+        # Always generate test cases for coding challenges
         if challenge.get("challenge_type") == "coding":
             coding = challenge.get("coding_challenge", {})
-            if not coding.get("test_cases") or len(coding.get("test_cases", [])) == 0:
-                # Generate AI test cases
-                test_cases = await self._generate_test_cases(challenge, language)
-                # Update challenge with generated test cases
-                if test_cases:
-                    coding["test_cases"] = test_cases
-                    challenge["coding_challenge"] = coding
+            # Generate fresh AI test cases
+            test_cases = await self._generate_test_cases(challenge, language)
+            print(f"[SUBMIT] Generated {len(test_cases)} test cases: {test_cases}")
+            # Update challenge with generated test cases
+            if test_cases:
+                coding["test_cases"] = test_cases
+                challenge["coding_challenge"] = coding
+                print(f"[SUBMIT] Updated challenge coding_challenge with test_cases")
 
         # Run tests
         test_results = await self._run_tests(challenge, code, language)
+        print(f"[SUBMIT] Got {len(test_results)} test results")
+        if test_results:
+            print(f"[SUBMIT] First result: {test_results[0]}")
 
         passed = sum(1 for t in test_results if t.get("passed"))
         total = len(test_results)
@@ -1415,13 +1427,15 @@ class TechnicalPrepService:
 
         await technical_prep_dao.update_attempt(attempt_id, update_data)
 
-        return {
+        response_data = {
             "success": True,
             "passed": passed,
             "total": total,
             "score": score,
             "test_results": test_results
         }
+        print(f"[SUBMIT] Returning response: {response_data}")
+        return response_data
 
     async def complete_challenge(
         self,
@@ -1440,36 +1454,40 @@ class TechnicalPrepService:
         """Generate 3 test cases for a coding challenge using OpenAI"""
         try:
             coding = challenge.get("coding_challenge", {})
-            title = challenge.get("title", "Coding Challenge")
-            description = coding.get("description", "")
+            title = challenge.get("title", "Test Challenge")
+            description = coding.get("description", "No description provided")
+
+            # Ensure we have content to work with
+            if not title or not description:
+                return self._get_fallback_test_cases()
 
             # Create prompt for OpenAI to generate test cases
-            prompt = f"""Generate exactly 3 test cases for this coding problem. Return ONLY valid JSON array with this exact structure:
+            prompt = f"""Generate exactly 3 test cases for this coding problem. Return ONLY a valid JSON array, no markdown, no explanation.
+
 [
-  {{"input": {{"param1": value, "param2": value}}, "expected_output": expected_value, "description": "Test case 1 description"}},
-  {{"input": {{"param1": value, "param2": value}}, "expected_output": expected_value, "description": "Test case 2 description"}},
-  {{"input": {{"param1": value, "param2": value}}, "expected_output": expected_value, "description": "Test case 3 description"}}
+  {{"input": {{"param1": value, "param2": value}}, "expected_output": expected_value, "description": "Test case 1"}},
+  {{"input": {{"param1": value, "param2": value}}, "expected_output": expected_value, "description": "Test case 2"}},
+  {{"input": {{"param1": value, "param2": value}}, "expected_output": expected_value, "description": "Test case 3"}}
 ]
 
-Problem: {title}
-Description: {description}
+PROBLEM: {title}
+DESCRIPTION: {description}
 
-Requirements:
-- Test case 1: Basic/simple example
-- Test case 2: Edge case or medium complexity
-- Test case 3: Complex or boundary case
-- Input must be a dict with parameter names as keys
-- Expected output must match the problem's expected return value
-- No explanation, just valid JSON array"""
+Create 3 test cases:
+1. Simple/basic case
+2. Medium complexity/edge case
+3. Complex/boundary case
 
-            openai.api_key = os.getenv("OPENAI_API_KEY")
+Return ONLY the JSON array, nothing else."""
 
-            response = openai.ChatCompletion.create(
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+            response = client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a code testing expert. Generate test cases in valid JSON format only. No explanations."
+                        "content": "You are a code testing expert. Return ONLY valid JSON, no other text."
                     },
                     {
                         "role": "user",
@@ -1480,32 +1498,61 @@ Requirements:
                 temperature=0.7,
             )
 
-            response_text = response.choices[0].message.content.strip() if response.choices else ""
+            response_text = response.choices[0].message.content.strip()
+
+            # Clean up response - remove markdown code blocks if present
+            if response_text.startswith("```"):
+                response_text = response_text.split("```")[1]
+                if response_text.startswith("json"):
+                    response_text = response_text[4:]
+                response_text = response_text.strip()
 
             # Parse JSON response
             test_cases = json.loads(response_text)
 
             # Validate and return test cases
             if isinstance(test_cases, list) and len(test_cases) > 0:
-                # Ensure all test cases have required fields
                 validated_cases = []
                 for tc in test_cases:
-                    if "input" in tc and "expected_output" in tc:
+                    if isinstance(tc, dict) and "input" in tc and "expected_output" in tc:
                         validated_cases.append({
                             "input": tc.get("input", {}),
                             "expected_output": tc.get("expected_output"),
-                            "description": tc.get("description", "Auto-generated test case")
+                            "description": tc.get("description", "Test case")
                         })
-                return validated_cases if validated_cases else []
 
-            return []
-        except json.JSONDecodeError:
-            # If JSON parsing fails, return empty list
-            return []
+                if validated_cases:
+                    return validated_cases
+
+            # If parsing succeeded but no valid cases, return fallback
+            return self._get_fallback_test_cases()
+
+        except json.JSONDecodeError as e:
+            print(f"Test case generation - JSON error: {str(e)}")
+            return self._get_fallback_test_cases()
         except Exception as e:
-            # On any error, return empty list and let original flow continue
-            print(f"Error generating test cases: {str(e)}")
-            return []
+            print(f"Test case generation error: {str(e)}")
+            return self._get_fallback_test_cases()
+
+    def _get_fallback_test_cases(self) -> List[Dict[str, Any]]:
+        """Return fallback test cases when generation fails"""
+        return [
+            {
+                "input": {"nums": [1, 2, 3], "target": 5},
+                "expected_output": [1, 2],
+                "description": "Basic test case"
+            },
+            {
+                "input": {"nums": [2, 7, 11, 15], "target": 9},
+                "expected_output": [0, 1],
+                "description": "Medium test case"
+            },
+            {
+                "input": {"nums": [3, 2, 4], "target": 6},
+                "expected_output": [1, 2],
+                "description": "Edge case"
+            }
+        ]
 
     async def _run_tests(self, challenge: Dict[str, Any], code: str, language: str) -> List[Dict[str, Any]]:
         """Run tests against submitted code using OpenAI"""
@@ -1517,7 +1564,7 @@ Requirements:
 
         # Run tests
         results = []
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         rate_limited = False
 
         for i, test in enumerate(test_cases):
@@ -1541,7 +1588,7 @@ Requirements:
                 execution_prompt = self._create_execution_prompt(code, language, test_input)
 
                 # Call OpenAI to execute code
-                response = openai.ChatCompletion.create(
+                response = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
                         {
@@ -1557,7 +1604,7 @@ Requirements:
                     temperature=0,
                 )
 
-                actual_output_text = response.choices[0].message.content.strip() if response.choices else ""
+                actual_output_text = response.choices[0].message.content.strip()
 
                 # Try to parse and compare output
                 passed = self._compare_outputs(actual_output_text, expected_output, language)
@@ -1689,8 +1736,8 @@ Solution:"""
 
             # Call OpenAI API with error handling
             try:
-                openai.api_key = os.getenv("OPENAI_API_KEY")
-                response = openai.ChatCompletion.create(
+                client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+                response = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
                         {
@@ -1706,7 +1753,7 @@ Solution:"""
                     temperature=0.7,
                 )
 
-                solution_code = response.choices[0].message.content.strip() if response.choices else ""
+                solution_code = response.choices[0].message.content.strip()
                 return {
                     "success": True,
                     "language": language,
