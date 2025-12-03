@@ -11,7 +11,7 @@ export default function ReviewImpactWidget() {
         const res = await ResumesAPI.getReviewImpact();
         setStats(res.data);
       } catch (err) {
-        console.error("Failed to load impact stats", err);
+        console.error("Failed to load with error:", err);
       } finally {
         setLoading(false);
       }
@@ -46,7 +46,6 @@ export default function ReviewImpactWidget() {
             </div>
           </div>
 
-          {/* Comparison / Lift */}
           <div className="col-md-4 d-flex flex-column justify-content-center align-items-center">
             <div className={`display-5 fw-bold ${isPositive ? 'text-success' : 'text-secondary'}`}>
               {isPositive ? '+' : ''}{stats.lift.toFixed(1)}%
@@ -54,8 +53,8 @@ export default function ReviewImpactWidget() {
             <div className="text-muted fw-medium">Success Boost</div>
             <p className="small text-muted mt-2 px-2">
               {isPositive 
-                ? "Getting your resume reviewed increases your interview chances!" 
-                : "Keep gathering feedback to improve your results."}
+                ? "Your reviews have increased the overall success of your resumes." 
+                : "Keep gathering feedback to improve resume results."}
             </p>
           </div>
 

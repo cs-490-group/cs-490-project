@@ -103,12 +103,12 @@ class CoverLettersDAO:
 
     async def get_cover_letter_by_token(self, token: str) -> dict | None:
         """Retrieve cover letter via public token"""
-        # 1. Find the share record
+  
         share = await self.shares_collection.find_one({"token": token, "active": True})
         if not share:
             return None
 
-        # 2. Check Expiration
+ 
         now = datetime.now(timezone.utc)
         expires_at = share.get("expires_at")
         if expires_at and expires_at.tzinfo is None:
@@ -117,7 +117,7 @@ class CoverLettersDAO:
         if expires_at and expires_at < now:
             return None
 
-        # 3. Get the Cover Letter data
+   
         letter_id = share.get("cover_letter_id")
         try:
             # Handle both String ID and ObjectId

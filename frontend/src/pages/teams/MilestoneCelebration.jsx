@@ -5,19 +5,25 @@ import progressAPI from "../../api/progressSharing";
 export default function MilestoneCelebration({ teamId, memberId, memberName }) {
   const [milestones, setMilestones] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [celebrations, setCelebrations] = useState([]);
   const [showCelebration, setShowCelebration] = useState(null);
 
   useEffect(() => {
-    fetchMilestones();
+    fetchData();
   }, [memberId]);
 
-  const fetchMilestones = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await progressAPI.getMilestones(teamId, memberId, 30);
-      setMilestones(data.milestones || []);
+      const [milesRes, celebsRes] = await Promise.all([
+        progressAPI.getMilestones(teamId, memberId, 30),
+        progressAPI.getCelebrations(teamId, memberId)
+      ]);
+      
+      setMilestones(milesRes.data.milestones || []);
+      setCelebrations(celebsRes.data.celebrations || []);
     } catch (err) {
-      console.error("Failed to fetch milestones", err);
+      console.error("Failed to fetch data", err);
     } finally {
       setLoading(false);
     }
@@ -39,13 +45,38 @@ export default function MilestoneCelebration({ teamId, memberId, memberName }) {
         emoji: emojis[Math.floor(Math.random() * emojis.length)],
         message: messages[Math.floor(Math.random() * messages.length)]
       });
-      fetchMilestones();
+      fetchData();
     } catch (err) {
       console.error("Failed to add celebration", err);
     }
   };
 
   return (
+    <div>
+    {celebrations.length > 0 && (
+            <div style={{ background: "#fff0f6", padding: "24px", borderRadius: "8px", border: "1px solid #ffdeeb", marginBottom: "24px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+                    <Heart size={24} color="#e91e63" />
+                    <h2 style={{ fontSize: "18px", fontWeight: "bold", margin: 0, color: "#c2185b" }}>
+                        Encouragement Wall
+                    </h2>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {celebrations.map((c, idx) => (
+                        <div key={idx} style={{ background: "white", padding: "12px", borderRadius: "8px", border: "1px solid #ffdeeb", display: "flex", gap: "12px", alignItems: "center" }}>
+                            <div style={{ fontSize: "24px" }}>{c.emoji}</div>
+                            <div>
+                                <div style={{ fontSize: "14px", color: "#333", fontWeight: "500" }}>{c.message}</div>
+                                <div style={{ fontSize: "11px", color: "#999" }}>
+                                    From {c.created_by} • {new Date(c.created_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
+
     <div style={{ background: "#fff8e1", padding: "24px", borderRadius: "8px", border: "1px solid #ffecb3", marginBottom: "24px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
         <Trophy size={24} color="#fbc02d" />
@@ -111,6 +142,7 @@ export default function MilestoneCelebration({ teamId, memberId, memberName }) {
           <p>No milestones yet. Keep pushing forward! 🚀</p>
         </div>
       )}
+    </div>
     </div>
   );
 }
