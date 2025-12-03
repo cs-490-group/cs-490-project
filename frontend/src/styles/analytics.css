@@ -128,566 +128,503 @@
 /* SALARY ANALYTICS SPECIFIC STYLES */
 /* ============================================ */
 
-.salaryAnalytics {
-  max-width: 100%;
-}
-
-.salaryAnalytics-header {
-  margin-bottom: 2rem;
-}
-
-.salaryAnalytics-subtitle {
-  color: #666;
-  font-size: 1rem;
-  margin-top: 0.5rem;
-}
-
-/* Metrics Grid */
-.salaryAnalytics-metricsGrid {
+/* Stats Grid */
+.salary-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
-  margin-bottom: 2.5rem;
+  margin: 2rem 0;
 }
 
-.salaryAnalytics-metricCard {
-  background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+.salary-stat-card {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
   padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #e9ecef;
+  text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.salaryAnalytics-metricCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.salary-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
 }
 
-.salaryAnalytics-metricLabel {
+.salary-stat-label {
   font-size: 0.85rem;
-  color: #6c757d;
+  color: #666;
   text-transform: uppercase;
-  font-weight: 600;
   letter-spacing: 0.5px;
   margin-bottom: 0.5rem;
+  font-weight: 500;
 }
 
-.salaryAnalytics-metricValue {
-  font-size: 2rem;
+.salary-stat-value {
+  font-size: 1.8rem;
   font-weight: 700;
-  color: #007bff;
-  margin-bottom: 0.25rem;
+  color: #333;
 }
 
-.salaryAnalytics-metricSubtext {
+.salary-stat-value.positive {
+  color: #28a745;
+}
+
+.salary-stat-value.negative {
+  color: #dc3545;
+}
+
+/* Market Position Banner */
+.salary-position-banner {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 3px 10px rgba(0, 123, 255, 0.2);
+}
+
+.salary-position-banner strong {
+  font-size: 1.1rem;
+}
+
+.salary-position-indicator {
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.2);
   font-size: 0.9rem;
-  color: #6c757d;
 }
 
-.salaryAnalytics-metricSubtext.trend-up {
-  color: #00c28a;
-  font-weight: 600;
+.salary-position-indicator.positive {
+  background: rgba(40, 167, 69, 0.2);
 }
 
-/* Section Styling */
-.salaryAnalytics-section {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.salaryAnalytics-sectionTitle {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid #e9ecef;
+.salary-position-indicator.negative {
+  background: rgba(220, 53, 69, 0.2);
 }
 
 /* Chart Container */
-.salaryAnalytics-chartContainer {
-  margin-top: 1rem;
+.salary-chart-container {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 2rem;
+  margin: 2rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-/* Two Column Layout */
-.salaryAnalytics-twoColumnSection {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-
-.salaryAnalytics-halfWidth {
-  margin-bottom: 0;
-}
-
-/* Market Comparison */
-.salaryAnalytics-marketComparison {
-  padding: 1rem 0;
-}
-
-.salaryAnalytics-percentileBar {
-  margin-bottom: 2rem;
-}
-
-.salaryAnalytics-percentileLabels {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-  font-size: 0.85rem;
-  color: #6c757d;
-  font-weight: 600;
-}
-
-.salaryAnalytics-percentileTrack {
-  position: relative;
-  height: 60px;
-  background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 33%, #90caf9 66%, #42a5f5 100%);
-  border-radius: 8px;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.salaryAnalytics-percentileMarker {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 2px;
-  height: 40px;
-  background: #333;
-}
-
-.salaryAnalytics-percentileValue {
-  position: absolute;
-  top: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.75rem;
-  font-weight: 600;
+.salary-chart-container h3 {
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
   color: #333;
-  white-space: nowrap;
+  font-weight: 600;
 }
 
-.salaryAnalytics-yourPosition {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-}
-
-.salaryAnalytics-yourPosition::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 16px;
-  height: 16px;
-  background: #ff4444;
-  border: 3px solid white;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(255, 68, 68, 0.5);
-}
-
-.salaryAnalytics-yourPositionLabel {
-  position: absolute;
-  bottom: -35px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #ff4444;
-  white-space: nowrap;
-  background: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.salaryAnalytics-marketStats {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.salaryAnalytics-marketStat {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
+/* Insights Section */
+.salary-insights {
   background: #f8f9fa;
-  border-radius: 6px;
-}
-
-.salaryAnalytics-marketStat .label {
-  font-weight: 600;
-  color: #6c757d;
-  font-size: 0.9rem;
-}
-
-.salaryAnalytics-marketStat .value {
-  font-weight: 700;
-  color: #2c3e50;
-  font-size: 1rem;
-}
-
-.salaryAnalytics-marketStat .value.trend-up {
-  color: #00c28a;
-}
-
-/* Compensation Breakdown */
-.salaryAnalytics-compensationList {
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.salaryAnalytics-compensationItem {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
-  background: #f8f9fa;
-  border-radius: 6px;
-}
-
-.salaryAnalytics-compensationDot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.salaryAnalytics-compensationName {
-  flex-grow: 1;
-  font-weight: 500;
-  color: #495057;
-}
-
-.salaryAnalytics-compensationValue {
-  font-weight: 700;
-  color: #2c3e50;
-}
-
-/* Negotiation Stats */
-.salaryAnalytics-negotiationStats {
-  display: flex;
-  gap: 2rem;
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.salaryAnalytics-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.salaryAnalytics-stat .label {
-  font-size: 0.85rem;
-  color: #6c757d;
-  font-weight: 600;
-}
-
-.salaryAnalytics-stat .value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #007bff;
-}
-
-/* Location Benchmarks */
-.salaryAnalytics-locationBenchmarks {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.salaryAnalytics-locationItem {
-  padding: 1.25rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  transition: all 0.2s;
-}
-
-.salaryAnalytics-locationItem.current {
-  background: #e3f2fd;
-  border-color: #007bff;
-}
-
-.salaryAnalytics-locationItem:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.salaryAnalytics-locationName {
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1.05rem;
-}
-
-.salaryAnalytics-currentBadge {
-  background: #007bff;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.salaryAnalytics-locationBars {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.salaryAnalytics-locationBar {
-  display: grid;
-  grid-template-columns: 120px 1fr 100px;
-  align-items: center;
-  gap: 1rem;
-}
-
-.salaryAnalytics-barLabel {
-  font-size: 0.85rem;
-  color: #6c757d;
-  font-weight: 600;
-}
-
-.salaryAnalytics-barTrack {
-  height: 24px;
-  background: #e9ecef;
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-}
-
-.salaryAnalytics-barFill {
-  height: 100%;
-  border-radius: 12px;
-  transition: width 0.6s ease;
-}
-
-.salaryAnalytics-barFill.market {
-  background: linear-gradient(90deg, #90caf9, #42a5f5);
-}
-
-.salaryAnalytics-barFill.yours {
-  background: linear-gradient(90deg, #66bb6a, #43a047);
-}
-
-.salaryAnalytics-barValue {
-  font-weight: 700;
-  color: #2c3e50;
-  text-align: right;
-  font-size: 0.9rem;
-}
-
-.salaryAnalytics-locationDiff {
-  text-align: right;
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-top: 0.5rem;
-}
-
-.salaryAnalytics-locationDiff.positive {
-  color: #00c28a;
-}
-
-.salaryAnalytics-locationDiff.negative {
-  color: #ff6b6b;
-}
-
-/* Career Progression Impact */
-.salaryAnalytics-impactGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.25rem;
-}
-
-.salaryAnalytics-impactCard {
-  background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
-  padding: 1.5rem;
-  border-radius: 10px;
-  border: 1px solid #e9ecef;
-  text-align: center;
-  transition: all 0.2s;
-}
-
-.salaryAnalytics-impactCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.salaryAnalytics-impactMetric {
-  font-size: 0.85rem;
-  color: #6c757d;
-  text-transform: uppercase;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  letter-spacing: 0.5px;
-}
-
-.salaryAnalytics-impactValue {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.salaryAnalytics-impactValue.trend-up {
-  color: #00c28a;
-}
-
-.salaryAnalytics-impactValue.trend-stable {
-  color: #007bff;
-}
-
-.salaryAnalytics-impactComparison {
-  font-size: 0.85rem;
-  color: #868e96;
-}
-
-/* Recommendations */
-.salaryAnalytics-recommendations {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.salaryAnalytics-recommendationCard {
-  background: white;
-  border: 2px solid #e9ecef;
-  border-radius: 10px;
-  padding: 1.5rem;
-  transition: all 0.2s;
-}
-
-.salaryAnalytics-recommendationCard:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.salaryAnalytics-recommendationCard.priority-high {
-  border-left: 4px solid #ff6b6b;
-  background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
-}
-
-.salaryAnalytics-recommendationCard.priority-medium {
-  border-left: 4px solid #ffa500;
-  background: linear-gradient(135deg, #fff9f0 0%, #fff 100%);
-}
-
-.salaryAnalytics-recommendationCard.priority-low {
-  border-left: 4px solid #42a5f5;
-  background: linear-gradient(135deg, #f0f8ff 0%, #fff 100%);
-}
-
-.salaryAnalytics-recommendationHeader {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.salaryAnalytics-priorityBadge {
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.salaryAnalytics-priorityBadge.priority-high {
-  background: #ff6b6b;
-  color: white;
-}
-
-.salaryAnalytics-priorityBadge.priority-medium {
-  background: #ffa500;
-  color: white;
-}
-
-.salaryAnalytics-priorityBadge.priority-low {
-  background: #42a5f5;
-  color: white;
-}
-
-.salaryAnalytics-categoryBadge {
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: #e9ecef;
-  color: #495057;
-}
-
-.salaryAnalytics-recommendationTitle {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 0.75rem;
-}
-
-.salaryAnalytics-recommendationDesc {
-  color: #495057;
-  line-height: 1.6;
-  margin-bottom: 1rem;
-}
-
-.salaryAnalytics-recommendationAction {
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  color: #495057;
-}
-
-.salaryAnalytics-recommendationAction strong {
-  color: #007bff;
-  font-weight: 600;
-}
-
-/* Context Bar */
-.salaryAnalytics-contextBar {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  background: #f8f9fa;
+  border-left: 4px solid #007bff;
+  padding: 1.5rem 2rem;
   border-radius: 8px;
   margin-top: 2rem;
 }
 
-.salaryAnalytics-contextItem {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  text-align: center;
+.salary-insights h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
 }
 
-.salaryAnalytics-contextItem .label {
-  font-size: 0.8rem;
-  color: #6c757d;
+.salary-insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.salary-insights-list li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.salary-insights-list li:last-child {
+  border-bottom: none;
+}
+
+.insight-icon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+/* ============================================ */
+/* GOAL TRACKING SPECIFIC STYLES */
+/* ============================================ */
+
+/* Goal Stats Grid */
+.goal-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.goal-stat-card {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.goal-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
+}
+
+.goal-stat-label {
+  font-size: 0.85rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.goal-stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.goal-stat-value.success {
+  color: #28a745;
+}
+
+/* Goals Section */
+.goals-section {
+  margin: 2rem 0;
+}
+
+.goals-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.goals-header h3 {
+  font-size: 1.4rem;
+  color: #333;
+  font-weight: 600;
+  margin: 0;
+}
+
+.goal-add-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.goal-add-button:hover {
+  background: #0056b3;
+}
+
+/* Goals List */
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Goal Card */
+.goal-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.goal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.goal-card-header {
+  margin-bottom: 1rem;
+}
+
+.goal-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.goal-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.goal-type-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.salaryAnalytics-contextItem .value {
+.goal-type-badge.short-term {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.goal-type-badge.long-term {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.goal-status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+}
+
+.goal-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.goal-category {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Goal Card Body */
+.goal-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.goal-metrics {
+  font-size: 0.9rem;
+  color: #555;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.goal-metrics strong {
+  color: #333;
+}
+
+/* Progress Section */
+.goal-progress-section {
+  margin: 1rem 0;
+}
+
+.goal-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.goal-deadline {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.goal-progress-bar {
+  height: 12px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.goal-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 10px;
+}
+
+/* Milestones */
+.goal-milestones {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.milestones-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.milestones-header strong {
+  color: #333;
+}
+
+.milestones-count {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.milestones-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.milestones-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: #555;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.milestones-list li:hover {
+  background: white;
+}
+
+.milestones-list li.completed {
+  color: #28a745;
+}
+
+.milestones-list li.completed .milestone-name {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.milestone-checkbox {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.milestones-list li.completed .milestone-checkbox {
+  color: #28a745;
+}
+
+.milestone-name {
+  flex: 1;
+}
+
+/* Goal Insights */
+.goal-insights {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+}
+
+.goal-insights h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.goal-insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.goal-insights-list li {
+  padding: 0.75rem 0;
+  display: flex;
+  align-items: flex-start;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.goal-insights-list li:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.insight-bullet {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
+  color: #ffc107;
+  line-height: 1;
+}
+
+/* Achievement Summary */
+.achievement-summary {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin: 2rem 0;
+  box-shadow: 0 4px 16px rgba(40, 167, 69, 0.2);
+}
+
+.achievement-icon {
+  font-size: 3rem;
+  flex-shrink: 0;
+}
+
+.achievement-text h4 {
+  font-size: 1.3rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+.achievement-text p {
+  margin: 0;
   font-size: 1rem;
-  color: #2c3e50;
-  font-weight: 700;
+  opacity: 0.95;
+  line-height: 1.5;
 }
 
 /* Responsive */
@@ -708,14 +645,6 @@
     border-bottom: none;
     border-right: 1px solid #eee;
   }
-  
-  .salaryAnalytics-twoColumnSection {
-    grid-template-columns: 1fr;
-  }
-  
-  .salaryAnalytics-locationBar {
-    grid-template-columns: 100px 1fr 90px;
-  }
 }
 
 @media (max-width: 768px) {
@@ -726,25 +655,53 @@
     padding: 1rem;
   }
   
-  .salaryAnalytics-section {
-    padding: 1rem;
-  }
-  
-  .salaryAnalytics-metricsGrid {
-    grid-template-columns: 1fr;
-  }
-  
-  .salaryAnalytics-impactGrid {
-    grid-template-columns: 1fr;
-  }
-  
-  .salaryAnalytics-negotiationStats {
-    flex-direction: column;
+  .salary-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
   }
   
-  .salaryAnalytics-contextBar {
+  .salary-stat-card {
+    padding: 1rem;
+  }
+  
+  .salary-stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .salary-chart-container {
+    padding: 1rem;
+  }
+  
+  .salary-position-banner {
     flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+  
+  /* Goal tracking responsive */
+  .goal-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  
+  .goals-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .goal-title-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .goal-card {
+    padding: 1rem;
+  }
+  
+  .achievement-summary {
+    flex-direction: column;
+    text-align: center;
   }
 }
 
@@ -754,16 +711,40 @@
     font-size: 0.9rem;
   }
   
-  .salaryAnalytics-metricValue {
-    font-size: 1.5rem;
-  }
-  
-  .salaryAnalytics-locationBar {
+  .salary-stats-grid {
     grid-template-columns: 1fr;
-    gap: 0.5rem;
   }
   
-  .salaryAnalytics-barValue {
-    text-align: left;
+  .salary-insights {
+    padding: 1rem;
+  }
+  
+  .salary-insights-list li {
+    font-size: 0.9rem;
+  }
+  
+  /* Goal tracking mobile */
+  .goal-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .goal-insights {
+    padding: 1rem;
+  }
+  
+  .goal-insights-list li {
+    font-size: 0.9rem;
+  }
+  
+  .goal-card {
+    padding: 0.75rem;
+  }
+  
+  .achievement-summary {
+    padding: 1.5rem;
+  }
+  
+  .achievement-icon {
+    font-size: 2rem;
   }
 }

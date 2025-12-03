@@ -4,6 +4,8 @@ import JobAnalytics from "./JobAnalytics";
 import NetworkAnalytics from "./NetworkAnalytics";
 import SkillsAnalytics from "./SkillsAnalytics";
 import PerformanceAnalytics from "./PerformanceAnalytics";
+import SalaryAnalytics from "./SalaryAnalytics";
+import GoalTracking from "./GoalTracking";
 import "../../styles/analytics.css";
 
 const AnalyticsPage = () => {
@@ -15,6 +17,8 @@ const AnalyticsPage = () => {
     { id: "network", name: "Network Analytics", icon: "🌐" },
     { id: "skills", name: "Skills Analytics", icon: "🧠" },
     { id: "performance", name: "Performance Analytics", icon: "⚡" },
+    { id: "salary", name: "Salary Analytics", icon: "💰" },
+    { id: "goals", name: "Goal Tracking", icon: "🎯" },
   ];
 
   const renderContent = () => {
@@ -24,6 +28,8 @@ const AnalyticsPage = () => {
       case "network": return <NetworkAnalytics />;
       case "skills": return <SkillsAnalytics />;
       case "performance": return <PerformanceAnalytics />;
+      case "salary": return <SalaryAnalytics />;
+      case "goals": return <GoalTracking />;
       default: return <TimelineAnalytics />;
     }
   };
