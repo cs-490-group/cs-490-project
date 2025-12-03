@@ -1,14 +1,14 @@
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo.asynchronous.database import AsyncDatabase
 from bson import ObjectId
 
 
 class InterviewScheduleDAO:
     """Data Access Object for interview schedules"""
 
-    def __init__(self, db_client: AsyncIOMotorDatabase):
+    def __init__(self, db_client: AsyncDatabase):
         self.db = db_client
         self.collection = db_client["interview_schedules"]
 

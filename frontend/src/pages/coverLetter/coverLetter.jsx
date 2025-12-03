@@ -731,6 +731,13 @@ export default function CoverLetterList() {
               >
                 Download HTML
               </button>
+
+              <button
+                onClick={() => navigate(`/cover-letter/feedback/${letter.id}`)}
+                style={{ padding: "6px 12px", background: "#9c27b0", color: "white", border: "none", borderRadius: "4px" }}
+              >
+                Share & Feedback
+              </button>
             </div>
           </div>
         ))}

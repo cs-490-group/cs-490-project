@@ -42,24 +42,35 @@ export default function EditCoverLetterPage() {
   // Load cover letter
   useEffect(() => {
     if (!id) return;
-    const loadLetter = async () => {
+    const loadData = async () => {
       try {
-        const res = await CoverLetterAPI.get(id);
-        const letter = res.data;
+        // Fetch Letter AND Versions in parallel
+        const [letterRes, versionsRes] = await Promise.all([
+          CoverLetterAPI.get(id),
+          CoverLetterAPI.getVersions(id) // <--- Fetch history
+        ]);
+
+        const letter = letterRes.data;
         setTitle(letter.title || "");
         setCompany(letter.company || "");
         setPosition(letter.position || "");
         contentRef.current = letter.content || "";
         setHtmlContent(letter.content || "");
-        setVersionHistory([{ timestamp: new Date(), content: letter.content }]);
+        
+        // Transform database versions for the UI
+        const history = (versionsRes.data || []).map(v => ({
+          timestamp: new Date(v.created_at),
+          content: v.content_snapshot
+        }));
+        
+        setVersionHistory(history);
         setLetterLoaded(true);
       } catch (err) {
         console.error(err);
-        showFlash("Failed to load cover letter.", "error");
-        navigate("/coverletter");
+        showFlash("Failed to load cover letter data.", "error");
       }
     };
-    loadLetter();
+    loadData();
   }, [id, navigate, showFlash]);
 
   const calculateStats = (text) => {
@@ -200,11 +211,20 @@ export default function EditCoverLetterPage() {
         ? iframeRef.current.contentDocument.documentElement.innerHTML
         : htmlContent;
 
+      // Update main document
       await CoverLetterAPI.update(id, { title, company, position, content: contentToSave });
+      await CoverLetterAPI.createVersion(id, {version_name: `Save: ${new Date().toLocaleTimeString()}`,content_snapshot: contentToSave,title_snapshot: title});
+
+
+      const versionsRes = await CoverLetterAPI.getVersions(id);
+      const history = (versionsRes.data || []).map(v => ({
+        timestamp: new Date(v.created_at),
+        content: v.content_snapshot
+      }));
+      setVersionHistory(history);
+
       setAutoSaveStatus("saved");
-      setVersionHistory(prev => [...prev, { timestamp: new Date(), content: contentToSave }].slice(-10));
       showFlash("Cover letter saved!", "success");
-      navigate("/coverletter");
     } catch (err) {
       console.error(err);
       showFlash("Failed to save cover letter.", "error");
@@ -367,11 +387,11 @@ Return plain text suggestions only. Do not mention html/css elements or tags in 
                 <button onClick={() => setShowAIHelper(!showAIHelper)} title="AI Helper" style={{ padding: "6px 10px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "3px", background: showAIHelper ? "#e0f7fa" : "white" }}><Zap size={16} /></button>
                 <button onClick={handleSave} title="Save Now" style={{ padding: "6px 10px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "3px" }}><Save size={16} /></button>
                 <button 
-                  onClick={() => navigate("/coverletter")} 
+                  onClick={() => navigate("/cover-letter")} 
                   title="Cancel" 
                   style={{ padding: "6px 10px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "3px", marginLeft: "5px", background: "#ff3b30", color: "white" }}
                 >
-                  Cancel
+                  Exit
                 </button>
               </div>
 

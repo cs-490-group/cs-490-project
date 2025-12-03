@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ResumesAPI from '../../api/resumes';
-import FeedbackComments from '../../components/resumes/FeedbackComments';
+import AIAPI from '../../api/AI';
 import SharingControls from '../../components/resumes/SharingControls';
 import '../../styles/resumes.css';
 
-/**
- * SharingAndFeedbackPage Component
- * Share resume and manage feedback from reviewers
- * Related to UC-054
- */
 export default function SharingAndFeedbackPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -23,20 +18,20 @@ export default function SharingAndFeedbackPage() {
   });
   const [feedback, setFeedback] = useState([]);
   const [newComment, setNewComment] = useState('');
+  
+  // AI Analysis State
+  const [analysis, setAnalysis] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
-  // Fetch resume and feedback from backend
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch resume
         const resumeResponse = await ResumesAPI.get(id);
         setResume(resumeResponse.data || resumeResponse);
 
-        // Fetch feedback
         const feedbackResponse = await ResumesAPI.getFeedback(id);
         setFeedback(feedbackResponse.data || feedbackResponse || []);
 
-        // Fetch share link if exists
         try {
           const shareResponse = await ResumesAPI.getShareLink(id);
           const baseUrl = window.location.origin;
@@ -46,7 +41,6 @@ export default function SharingAndFeedbackPage() {
             setIsSharing(true);
           }
         } catch (err) {
-          // No share link exists yet
           setIsSharing(false);
         }
       } catch (err) {
@@ -59,25 +53,19 @@ export default function SharingAndFeedbackPage() {
   const handleGenerateShareLink = async () => {
     try {
       const response = await ResumesAPI.createShareLink(id, shareSettings);
-      console.log('Share link response:', response);
-      console.log('Response data:', response.data);
       const baseUrl = window.location.origin;
-      const token = response.data?.share_link || response.share_link || response.data?.share_data?.token || response.share_data?.token;
-      console.log('Extracted token:', token);
+      const token = response.data?.share_link || response.share_link || response.data?.share_data?.token;
 
       if (!token) {
         alert('Failed to generate share link: No token in response');
         return;
       }
 
-      const fullLink = `${baseUrl}/resumes/public/${token}`;
-      console.log('Full link:', fullLink);
-      setShareLink(fullLink);
+      setShareLink(`${baseUrl}/resumes/public/${token}`);
       setIsSharing(true);
       alert('Share link generated successfully!');
     } catch (err) {
       alert('Failed to generate share link: ' + err.message);
-      console.error('Share link error:', err);
     }
   };
 
@@ -99,7 +87,6 @@ export default function SharingAndFeedbackPage() {
         email: localStorage.getItem('userEmail') || 'user@example.com',
       });
 
-      // Add to local state
       const comment = {
         _id: response.data?.feedback_id || response.feedback_id,
         reviewer: 'Current User',
@@ -116,19 +103,21 @@ export default function SharingAndFeedbackPage() {
     }
   };
 
-  const handleResolveComment = async (feedbackId) => {
+  const handleResolve = async (feedbackId, currentStatus) => {
     try {
-      const currentFeedback = feedback.find((f) => f._id === feedbackId);
+      // Direct API call
       await ResumesAPI.updateFeedback(id, feedbackId, {
-        resolved: !currentFeedback.resolved,
+        resolved: !currentStatus,
       });
 
+      // Optimistic update
       setFeedback(
         feedback.map((f) =>
-          f._id === feedbackId ? { ...f, resolved: !f.resolved } : f
+          f._id === feedbackId ? { ...f, resolved: !currentStatus } : f
         )
       );
     } catch (err) {
+      console.error(err);
       alert('Failed to update comment: ' + err.message);
     }
   };
@@ -154,6 +143,45 @@ export default function SharingAndFeedbackPage() {
       } catch (err) {
         alert('Failed to revoke share link: ' + err.message);
       }
+    }
+  };
+
+  const handleAnalyzeFeedback = async () => {
+    if (feedback.length === 0) {
+      alert("No feedback to analyze yet!");
+      return;
+    }
+
+    setAnalyzing(true);
+    try {
+      const commentsText = feedback
+        .map(f => `- ${f.reviewer}: "${f.comment}"`)
+        .join("\n");
+
+      const res = await AIAPI.generateText({
+        prompt: `
+          Analyze the following feedback on a resume and provide a summary report.
+          
+          Feedback Comments:
+          ${commentsText}
+          
+          Format the output as HTML with these sections (use <h5> for headers):
+          1. <h5>Key Themes</h5> (What are multiple people saying?)
+          2. <h5>Critical Fixes</h5> (What needs immediate attention?)
+          3. <h5>Positive Highlights</h5> (What is working well?)
+          
+          Keep it concise and actionable. In the output, don't include html elements like '''html.
+        `,
+        system_message: "You are a career coach analyzing resume feedback."
+      });
+
+      const result = res.data.response || res.data.result || res.data.text || "";
+      setAnalysis(result);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to analyze feedback");
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -185,7 +213,36 @@ export default function SharingAndFeedbackPage() {
         </div>
 
         <div className="feedback-section">
-          <h3>Feedback & Comments</h3>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h3>Feedback & Comments</h3>
+            
+            {feedback.length > 0 && (
+              <button 
+                onClick={handleAnalyzeFeedback}
+                disabled={analyzing}
+                className="btn btn-outline-primary d-flex align-items-center gap-2"
+              >
+                {analyzing ? "Analyzing..." : "Analyze Feedback"}
+              </button>
+            )}
+          </div>
+
+          {analysis && (
+            <div className="card mb-4 border-info shadow-sm" style={{ backgroundColor: "#f8fdff" }}>
+              <div className="card-header bg-transparent border-info text-info fw-bold d-flex align-items-center gap-2">
+                AI Feedback Report
+              </div>
+              <div className="card-body">
+                <div dangerouslySetInnerHTML={{ __html: analysis }} />
+                <button 
+                  className="btn btn-sm btn-link text-muted mt-2 p-0" 
+                  onClick={() => setAnalysis(null)}
+                >
+                  Close Report
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="add-comment-form mb-4">
             <h5>Add Comment</h5>
@@ -201,20 +258,50 @@ export default function SharingAndFeedbackPage() {
             </button>
           </div>
 
+          {/* INLINE FEEDBACK LIST (Replaces FeedbackComments Component) */}
           <div className="feedback-list">
             {feedback.length === 0 ? (
               <div className="alert alert-info">
                 No feedback yet. Share your resume to get feedback from others!
               </div>
             ) : (
-              <>
+              <div>
                 <h5>{feedback.length} Comment(s)</h5>
-                <FeedbackComments
-                  feedback={feedback}
-                  onResolveComment={handleResolveComment}
-                  onDeleteComment={handleDeleteComment}
-                />
-              </>
+                {feedback.map(fb => (
+                  <div key={fb._id} className="card mb-3 shadow-sm border-0">
+                    <div className={`card-body ${fb.resolved ? 'bg-light opacity-75' : ''}`}>
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                          <strong>{fb.reviewer || "User"}</strong>
+                          <span className="text-muted ms-2 small">
+                            {new Date(fb.date || fb.date_created).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {fb.resolved && <span className="badge bg-success">Resolved</span>}
+                      </div>
+                      
+                      <p className={`card-text ${fb.resolved ? 'text-muted text-decoration-line-through' : ''}`}>
+                        {fb.comment}
+                      </p>
+                      
+                      <div className="d-flex gap-2 mt-3">
+                        <button 
+                          onClick={() => handleResolve(fb._id, fb.resolved)}
+                          className={`btn btn-sm ${fb.resolved ? 'btn-outline-secondary' : 'btn-outline-success'}`}
+                        >
+                          {fb.resolved ? "Mark Unresolved" : "Mark Resolved"}
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteComment(fb._id)}
+                          className="btn btn-sm btn-outline-danger"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -223,16 +310,13 @@ export default function SharingAndFeedbackPage() {
           <h3>Shared With</h3>
           <div className="alert alert-info">
             <p>Share link created. Anyone with the link can view and comment on your resume.</p>
-            <p>
-              <strong>Shared since:</strong> {isSharing ? 'Nov 5, 2024' : 'Not shared yet'}
-            </p>
             {isSharing && (
               <div className="mt-2">
                 <p><strong>Permissions:</strong></p>
                 <ul>
-                  <li>Comments: {shareSettings.canComment ? '✓ Allowed' : '✗ Disabled'}</li>
-                  <li>Download: {shareSettings.canDownload ? '✓ Allowed' : '✗ Disabled'}</li>
-                  <li>Expires in: {shareSettings.expirationDays} days</li>
+                  <li>Comments: {shareSettings.can_comment ? '✓ Allowed' : '✗ Disabled'}</li>
+                  <li>Download: {shareSettings.can_download ? '✓ Allowed' : '✗ Disabled'}</li>
+                  <li>Expires in: {shareSettings.expiration_days} days</li>
                 </ul>
               </div>
             )}
