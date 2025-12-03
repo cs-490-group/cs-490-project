@@ -9,11 +9,16 @@ import json
 from typing import Dict, List, Any
 from collections import Counter
 from openai import OpenAI
+from pymongo.asynchronous.database import AsyncDatabase
 
 
 class WritingPracticeService:
     """Service for analyzing interview response writing quality"""
-    
+
+    def __init__(self, db_client: AsyncDatabase):
+        """Initialize with async database client"""
+        self.db = db_client
+
     @staticmethod
     def analyze_response_quality(response_text: str, question_category: str = "general") -> Dict[str, Any]:
         """
