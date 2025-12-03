@@ -7,7 +7,6 @@ from schema.InterviewSchedule import (
     WritingPracticeSession,
     WritingAnalysisResult
 )
-from mongo.interview_schedule_dao import FollowUpTemplateDAO, WritingPracticeDAO
 from services.followup_service import FollowUpService
 from services.interview_analytics_service import InterviewAnalyticsService
 from services.writing_practice_service import WritingPracticeService
@@ -26,9 +25,6 @@ analytics_service = InterviewAnalyticsService(db_client)
 followup_service = FollowUpService()
 writing_service = WritingPracticeService()
 prediction_service = SuccessPredictionService(db_client)
-followup_dao = FollowUpTemplateDAO(db_client)
-writing_dao = WritingPracticeDAO(db_client)
-
 
 # ============================================================================
 # INTERVIEW ANALYTICS ENDPOINTS (UC-080)
