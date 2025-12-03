@@ -37,6 +37,7 @@ class Resume(BaseModel):
     fonts: Optional[Fonts] = None
     sections: Optional[list[str]] = None
     default_resume: Optional[bool] = False
+    approval_status: Optional[str] = "pending"
 
 # RESUME VERSION SCHEMA
 class ResumeVersion(BaseModel):
@@ -60,3 +61,7 @@ class ResumeShare(BaseModel):
     can_comment: Optional[bool] = True # Allow reviewers to comment
     can_download: Optional[bool] = True # Allow reviewers to download
     expiration_days: Optional[int] = 30 # Number of days before link expires
+
+# RESUME APPROVAL SCHEMA (Anthony UC-110)
+class ApprovalRequest(BaseModel):
+    status: str

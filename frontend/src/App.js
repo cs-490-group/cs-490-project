@@ -24,6 +24,8 @@ import ProjectsList from "./pages/projects/ProjectList";
 import JobsList from "./pages/jobs/JobList";
 import CoverLetter from "./pages/coverLetter/coverLetter";
 import CoverLetterEditPage from "./pages/coverLetter/CoverLetterEditPage";
+import CoverLetterSharingPage from "./pages/coverLetter/CoverLetterSharingPage";
+import PublicCoverLetterPage from "./pages/coverLetter/PublicCoverLetterPage";
 import ResumeList from "./pages/resumes/ResumeList";
 import ResumeEditor from "./pages/resumes/ResumeEditor";
 import ResumePreviewPage from "./pages/resumes/ResumePreviewPage";
@@ -85,6 +87,8 @@ export function App() {
                 <Route path = "/resetPassword/:token" element = {<ResetPassword />}/>
                 <Route path = "/cover-Letter" element = {<CoverLetter />} />
                 <Route path="/cover-letter/edit/:id" element={<CoverLetterEditPage />} />
+                <Route path="/cover-letter/feedback/:id" element={<CoverLetterSharingPage />} />
+                <Route path="/cover-letter/public/:token" element={<PublicCoverLetterPage />} />
 
               <Route path="/skills" element={<SkillsList />} />
               <Route path="/education" element={<EducationList />} />
