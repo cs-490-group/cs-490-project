@@ -299,6 +299,8 @@ class TechnicalPrepService:
 
             # Randomly select instead of always picking first
             selected = random.choice(db_challenges)
+            # Remove _id so it can be re-inserted as a new document
+            selected.pop("_id", None)
             return selected
 
         # Fallback to templates if no database challenges found
@@ -349,6 +351,8 @@ class TechnicalPrepService:
         if db_challenges:
             # Randomly select instead of always picking first
             selected = random.choice(db_challenges)
+            # Remove _id so it can be re-inserted as a new document
+            selected.pop("_id", None)
             return selected
 
         # Fallback to templates if no database challenges found
@@ -384,6 +388,8 @@ class TechnicalPrepService:
         if db_challenges:
             # Randomly select instead of always picking first
             selected = random.choice(db_challenges)
+            # Remove _id so it can be re-inserted as a new document
+            selected.pop("_id", None)
             return selected
 
         # Fallback to templates if no database challenges found
