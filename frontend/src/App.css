@@ -65,27 +65,75 @@
   display: none !important;
 }
 
-/* Reduce spacing between nav items */
+/* Compact navbar items */
 .navbar-nav .nav-link,
 .navbar-nav .dropdown {
-  margin-left: 0.5rem !important;
+  margin-left: 0.15rem !important;
+  margin-right: 0.15rem !important;
+  padding-left: 0.4rem !important;
+  padding-right: 0.4rem !important;
+}
+
+/* Reduce font size to fit more items */
+.navbar-nav {
+  font-size: 0.8rem;
+}
+
+/* Make the brand smaller to save space */
+.navbar-brand {
+  font-size: 1.1rem !important;
   margin-right: 0.5rem !important;
 }
 
-/* Reduce font size slightly to fit more items */
-.navbar-nav {
-  font-size: 0.9rem;
+.navbar-brand img {
+  height: 35px !important;
+  margin-right: 5px !important;
 }
 
-/* Ensure navbar wraps on smaller screens */
-@media (max-width: 1400px) {
+/* Remove extra spacing between brand and nav items */
+.navbar-collapse {
+  margin-left: 0 !important;
+  flex-grow: 1 !important;
+}
+
+.navbar-nav.ms-auto {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  flex-grow: 1 !important;
+  justify-content: space-evenly !important;
+  width: 100% !important;
+}
+
+/* Further reduce spacing on medium screens */
+@media (max-width: 1600px) {
   .navbar-nav {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
   }
   
   .navbar-nav .nav-link,
   .navbar-nav .dropdown {
-    margin-left: 0.25rem !important;
-    margin-right: 0.25rem !important;
+    margin-left: 0.1rem !important;
+    margin-right: 0.1rem !important;
+    padding-left: 0.3rem !important;
+    padding-right: 0.3rem !important;
+  }
+}
+
+/* Even more compact for smaller screens */
+@media (max-width: 1400px) {
+  .navbar-nav {
+    font-size: 0.7rem;
+  }
+  
+  .navbar-nav .nav-link,
+  .navbar-nav .dropdown {
+    margin-left: 0.05rem !important;
+    margin-right: 0.05rem !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+  
+  .navbar-brand {
+    font-size: 1rem !important;
   }
 }
