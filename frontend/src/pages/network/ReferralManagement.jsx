@@ -237,8 +237,8 @@ export default function ReferralManagement() {
             </h1>
 
             <Row>
-                <Col xs={12} className="mb-4">
-                    <Button onClick={() => { setShowModal(true); resetForm(); }}>
+                <Col className="mb-4">
+                    <Button onClick={() => { setShowModal(true); resetForm(); }} style={{margin:"auto"}}>
                         + New Referral Request
                     </Button>
                 </Col>
