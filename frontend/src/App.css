@@ -41,27 +41,51 @@
   z-index: 1 !important;
 }
 
-.navbar .dropdown:hover .dropdown-menu {
-  display: block;
-  margin-top: 0;
-}
-
+/* Remove the hover-based dropdown display since React controls it */
 .navbar .dropdown-menu {
   margin-top: 0;
-}
-
-#dashboard-dropdown::after {
   display: none;
 }
 
-#profile-dropdown::after {
-  display: none;
+.navbar .dropdown-menu.show {
+  display: block;
 }
 
-#interview-dropdown::after {
-  display: none;
+/* Hide all dropdown toggle arrows */
+.navbar .dropdown-toggle::after {
+  display: none !important;
 }
 
-#network-dropdown::after {
-  display: none;
+/* Target all dropdown IDs to ensure arrows are hidden */
+#dashboard-dropdown::after,
+#profile-dropdown::after,
+#interview-dropdown::after,
+#network-dropdown::after,
+#social-dropdown::after {
+  display: none !important;
+}
+
+/* Reduce spacing between nav items */
+.navbar-nav .nav-link,
+.navbar-nav .dropdown {
+  margin-left: 0.5rem !important;
+  margin-right: 0.5rem !important;
+}
+
+/* Reduce font size slightly to fit more items */
+.navbar-nav {
+  font-size: 0.9rem;
+}
+
+/* Ensure navbar wraps on smaller screens */
+@media (max-width: 1400px) {
+  .navbar-nav {
+    font-size: 0.85rem;
+  }
+  
+  .navbar-nav .nav-link,
+  .navbar-nav .dropdown {
+    margin-left: 0.25rem !important;
+    margin-right: 0.25rem !important;
+  }
 }

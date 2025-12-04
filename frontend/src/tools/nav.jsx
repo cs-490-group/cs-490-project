@@ -19,11 +19,12 @@ const Nav = () => {
   const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
   const [showInterviewDropdown, setShowInterviewDropdown] = React.useState(false);
   const [showNetworkDropdown, setShowNetworkDropdown] = React.useState(false);
+  const [showSocialDropdown, setShowSocialDropdown] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState(null);
   const [username, setUsername] = React.useState(localStorage.getItem("username") || "");
   const hasValidated = React.useRef(false);
   React.useEffect(() => {
-    const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword","/shared-progress","/advisor-portal","/resumes/public"];
+    const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword","/shared-progress","/advisor-portal","/resumes/public","/cover-letter/public"];
 
     const shouldSkip = excludedPaths.some(prefix =>
       location.pathname.startsWith(prefix)
@@ -394,6 +395,9 @@ const Nav = () => {
                   title="Social"
                   id="social-dropdown"
                   className="mx-3"
+                  show={showSocialDropdown}
+                  onMouseEnter={() => setShowSocialDropdown(true)}
+                  onMouseLeave={() => setShowSocialDropdown(false)}
                 >
                   {/* Links to Dashboard if they have a team, otherwise Setup page */}
                   <NavDropdown.Item as={NavLink} to={teamId ? "/teams" : "/setup-team"}>
@@ -401,6 +405,9 @@ const Nav = () => {
                   </NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/newGroup">
                     Groups
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/enterprise">
+                    Enterprise Portal
                   </NavDropdown.Item>
                 </NavDropdown>
 

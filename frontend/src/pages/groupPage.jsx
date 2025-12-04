@@ -138,7 +138,7 @@ function GroupPage() {
     : posts.filter(p => p.postType === activeTab);
 
   return (
-    <div className="dashboard-gradient min-vh-100 py-4">
+    <div className="dashboard-gradient min-vh-100 py-4" style={{ paddingTop: "100px" }}>
       <Container>
         {/* Header */}
         <Button variant="link" className="text-white text-decoration-none mb-3 p-0" onClick={() => navigate('/newGroup')}>
