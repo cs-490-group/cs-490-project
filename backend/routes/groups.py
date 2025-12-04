@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from datetime import datetime
 from bson import ObjectId
 from mongo.groups_dao import groups_dao
+from mongo.profiles_dao import profiles_dao
 from schema.groups import *
 
 groups_router = APIRouter(prefix="/groups")
@@ -60,12 +61,29 @@ async def get_group(group_id: str):
         if not group:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
         
+        # Enrich members with profile data
+        members = group.get("members", [])
+        enriched_members = []
+        
+        for member in members:
+            member_data = member.copy()
+            if "uuid" in member:
+                try:
+                    profile = await profiles_dao.get_profile(member["uuid"])
+                    if profile:
+                        member_data["username"] = profile.get("username")
+                        member_data["email"] = profile.get("email")
+                        member_data["name"] = profile.get("full_name") or profile.get("username")
+                except Exception:
+                    pass # Fail silently if profile not found
+            enriched_members.append(member_data)
+
         return {
             "id": str(group["_id"]),
             "name": group.get("name"),
             "category": group.get("category"),
             "maxMembers": group.get("maxMembers"),
-            "members": group.get("members", []),
+            "members": enriched_members, # Return enriched list
             "postsVisibleToNonMembers": group.get("postsVisibleToNonMembers", True),  
             "createdAt": group.get("created_at")
         }
