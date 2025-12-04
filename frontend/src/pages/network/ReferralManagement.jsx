@@ -29,8 +29,7 @@ export default function ReferralManagement() {
         position: "",
         request_date: toLocalDateString(new Date()),
         status: "pending",
-        request_template: "",
-        personalized_message: "",
+        message: "",
         follow_up_date: "",
         response_date: "",
         referral_success: null,
@@ -147,8 +146,7 @@ export default function ReferralManagement() {
             position: referral.position || "",
             request_date: referral.request_date ? toLocalDateString(referral.request_date) : toLocalDateString(new Date()),
             status: referral.status || "pending",
-            request_template: referral.request_template || "",
-            personalized_message: referral.personalized_message || "",
+            message: referral.message || referral.personalized_message || "",
             follow_up_date: referral.follow_up_date ? toLocalDateString(referral.follow_up_date) : "",
             response_date: referral.response_date ? toLocalDateString(referral.response_date) : "",
             referral_success: referral.referral_success || null,
@@ -160,10 +158,10 @@ export default function ReferralManagement() {
         setShowModal(true);
     };
 
-    const handleDelete = async (referral) => {
+    const handleDelete = async (referralId) => {
         if (window.confirm("Are you sure you want to delete this referral request?")) {
             try {
-                await ReferralsAPI.delete(referral._id);
+                await ReferralsAPI.delete(referralId);
                 await fetchData();
             } catch (error) {
                 console.error("Failed to delete referral:", error);
@@ -180,8 +178,7 @@ export default function ReferralManagement() {
             position: "",
             request_date: toLocalDateString(new Date()),
             status: "pending",
-            request_template: "",
-            personalized_message: "",
+            message: "",
             follow_up_date: "",
             response_date: "",
             referral_success: null,
@@ -340,9 +337,9 @@ export default function ReferralManagement() {
                                             )}
                                         </div>
 
-                                        {referral.personalized_message && (
+                                        {referral.message && (
                                             <div className="mb-3">
-                                                <p className="mb-0 small text-muted">{referral.personalized_message.substring(0, 100)}...</p>
+                                                <p className="mb-0 small text-muted">{referral.message.substring(0, 100)}...</p>
                                             </div>
                                         )}
 

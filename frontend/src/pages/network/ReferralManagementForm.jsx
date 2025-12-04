@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Button, Row, Col, Card } from "react-bootstrap";
+import { Modal, Form, Button, Row, Col, Card, Alert, Spinner } from "react-bootstrap";
 import JobSelectionModal from "./JobSelectionModal";
 import ContactSelectionModal from "./ContactSelectionModal";
 import jobsAPI from "../../api/jobs";
+import referralMessagesAPI from "../../api/referralMessages";
+import userAPI from "../../api/user";
+import profilesAPI from "../../api/profiles";
+import skillsAPI from "../../api/skills";
+import experienceAPI from "../../api/employment";
+import educationAPI from "../../api/education";
 
 export default function ReferralManagementForm({
     showModal,
@@ -18,6 +24,9 @@ export default function ReferralManagementForm({
     const [showContactModal, setShowContactModal] = useState(false);
     const [selectedJob, setSelectedJob] = useState(null);
     const [selectedContact, setSelectedContact] = useState(null);
+    const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
+    const [messageError, setMessageError] = useState(null);
+    const [aiMessageData, setAiMessageData] = useState(null);
 
     useEffect(() => {
         // When modal opens, if there's a job_id (either editing or creating with prefill), fetch the job details
@@ -27,6 +36,8 @@ export default function ReferralManagementForm({
             // Clear selected job when modal is closed
             setSelectedJob(null);
             setSelectedContact(null);
+            setAiMessageData(null);
+            setMessageError(null);
         }
     }, [showModal, formData.job_id]);
 
@@ -96,6 +107,76 @@ export default function ReferralManagementForm({
     const handleSubmit = (e) => {
         e.preventDefault();
         handleAddOrUpdate();
+    };
+
+    const handleGenerateAIMessage = async () => {
+        if (!selectedJob || !selectedContact) {
+            setMessageError("Please select both a job and contact before generating a message.");
+            return;
+        }
+
+        setIsGeneratingMessage(true);
+        setMessageError(null);
+
+        try {
+            // Get comprehensive user profile data from multiple sources
+            const userProfile = await getUserProfile();
+            
+            const result = await referralMessagesAPI.generateMessage({
+                user_profile: userProfile,
+                job_details: selectedJob,
+                contact_info: selectedContact,
+                relationship_context: selectedContact.relationship_type || 'professional',
+                tone: 'professional'
+            });
+
+            if (result.success) {
+                const aiData = result.data;
+                setFormData({
+                    ...formData,
+                    message: aiData.message
+                });
+                setAiMessageData(aiData);
+            } else {
+                setMessageError(result.error || 'Failed to generate message');
+            }
+        } catch (error) {
+            console.error('Error generating AI message:', error);
+            setMessageError('Failed to generate message. Please try again.');
+        } finally {
+            setIsGeneratingMessage(false);
+        }
+    };
+
+    const getUserProfile = async () => {
+        try {
+            // Get all user data from the main endpoint
+            const userData = await userAPI.getAllData();
+            
+            // Extract user's name from profile
+            const userName = userData.profile?.full_name || userData.profile?.username || 'User';
+            
+            // Extract and structure profile data for AI
+            return {
+                contact: { name: userName },
+                skills: userData.skills || [],
+                experience: userData.employment || [],
+                education: userData.education || [],
+                summary: userData.profile?.biography || '',
+                profile: userData.profile || {}
+            };
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
+            // Return basic profile data as fallback
+            return {
+                contact: { name: 'User' },
+                skills: [],
+                experience: [],
+                education: [],
+                summary: '',
+                profile: {}
+            };
+        }
     };
 
     return (
@@ -275,23 +356,71 @@ export default function ReferralManagementForm({
                         </Col>
                     </Row>
                     <Form.Group className="mb-3">
-                        <Form.Label>Request Template</Form.Label>
+                        <Form.Label>Message</Form.Label>
+                        <div className="mb-2">
+                            <Button 
+                                variant="outline-primary" 
+                                size="sm"
+                                onClick={handleGenerateAIMessage}
+                                disabled={isGeneratingMessage || !selectedJob || !selectedContact}
+                                className="me-2"
+                            >
+                                {isGeneratingMessage ? (
+                                    <>
+                                        <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                                        <span className="ms-2">Generating AI Message...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        🤖 Generate AI Message
+                                    </>
+                                )}
+                            </Button>
+                            <small className="text-muted">
+                                Requires selected job and contact
+                            </small>
+                        </div>
+                        
+                        {messageError && (
+                            <Alert variant="danger" className="mb-2" dismissible onClose={() => setMessageError(null)}>
+                                {messageError}
+                            </Alert>
+                        )}
+                        
+                        {aiMessageData && (
+                            <Alert variant="success" className="mb-2">
+                                <div className="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>✨ AI Message Generated!</strong>
+                                        <div className="mt-1">
+                                            <small className="text-muted">
+                                                Personalization Score: {aiMessageData.personalization_score}/100 | 
+                                                Word Count: {aiMessageData.word_count} | 
+                                                Tone: {aiMessageData.tone_analysis}
+                                            </small>
+                                        </div>
+                                        {aiMessageData.key_points_used && aiMessageData.key_points_used.length > 0 && (
+                                            <div className="mt-2">
+                                                <small><strong>Key Points Used:</strong></small>
+                                                <ul className="mb-0 mt-1">
+                                                    {aiMessageData.key_points_used.map((point, index) => (
+                                                        <li key={index} className="small">{point}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </Alert>
+                        )}
+                        
                         <Form.Control
                             as="textarea"
-                            rows={3}
-                            value={formData.request_template}
-                            onChange={(e) => setFormData({...formData, request_template: e.target.value})}
-                            placeholder="Template for referral request..."
-                        />
-                    </Form.Group>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Personalized Message</Form.Label>
-                        <Form.Control
-                            as="textarea"
-                            rows={4}
-                            value={formData.personalized_message}
-                            onChange={(e) => setFormData({...formData, personalized_message: e.target.value})}
-                            placeholder="Personalized message to send..."
+                            rows={5}
+                            value={formData.message || formData.personalized_message || ''}
+                            onChange={(e) => setFormData({...formData, message: e.target.value})}
+                            placeholder="Write your referral request message..."
+                            required
                         />
                     </Form.Group>
                     <Form.Group className="mb-3">

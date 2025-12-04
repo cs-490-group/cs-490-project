@@ -11,8 +11,7 @@ class ReferralRequest(BaseModel):
     position: str
     request_date: Optional[str] = None
     status: Optional[Literal["pending", "requested", "accepted", "declined", "completed"]] = "pending"
-    request_template: Optional[str] = None
-    personalized_message: Optional[str] = None
+    message: Optional[str] = None  # Simplified to single message field
     follow_up_date: Optional[str] = None
     response_date: Optional[str] = None
     referral_success: Optional[Literal["pending", "successful", "unsuccessful"]] = None

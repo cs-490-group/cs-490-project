@@ -409,7 +409,7 @@ export default function ContactSelectionModal({
                                 </h5>
                                 <div style={{ display: "flex", flexDirection: "row", overflow: "auto", gap: "0.5rem" }}>
                                     {otherContacts.map((contact) => (
-                                        <Card
+                                        <Card key={contact._id}
                                             className={`contact-card h-100 cursor-pointer ${isSelected(contact) ? 'border-primary bg-light' : ''}`}
                                             onClick={() => handleContactSelect(contact)}
                                             style={{ cursor: 'pointer' }}
