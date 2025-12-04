@@ -121,7 +121,7 @@ export default function ReferralManagementForm({
         try {
             // Get comprehensive user profile data from multiple sources
             const userProfile = await getUserProfile();
-            
+
             const result = await referralMessagesAPI.generateMessage({
                 user_profile: userProfile,
                 job_details: selectedJob,
@@ -152,10 +152,10 @@ export default function ReferralManagementForm({
         try {
             // Get all user data from the main endpoint
             const userData = await userAPI.getAllData();
-            
+
             // Extract user's name from profile
             const userName = userData.profile?.full_name || userData.profile?.username || 'User';
-            
+
             // Extract and structure profile data for AI
             return {
                 contact: { name: userName },
@@ -191,16 +191,16 @@ export default function ReferralManagementForm({
                     {/* Job Selection Section */}
                     <div className="mb-4">
                         <div className="d-flex align-items-center mb-3">
-                            <Button 
-                                variant="outline-primary" 
+                            <Button
+                                variant="outline-primary"
                                 onClick={() => setShowJobModal(true)}
                                 className="me-3"
                             >
                                 {selectedJob ? "Choose Different Job" : "Choose Job"}
                             </Button>
                             {selectedJob && (
-                                <Button 
-                                    variant="outline-secondary" 
+                                <Button
+                                    variant="outline-secondary"
                                     onClick={handleClearJob}
                                     size="sm"
                                 >
@@ -208,7 +208,7 @@ export default function ReferralManagementForm({
                                 </Button>
                             )}
                         </div>
-                        
+
                         {selectedJob && (
                             <Card className="bg-light border-info">
                                 <Card.Body className="py-3">
@@ -230,30 +230,28 @@ export default function ReferralManagementForm({
                             </Card>
                         )}
                     </div>
-                    
+
                     <Row>
                         <Col md={6}>
                             {/* Contact Selection Section */}
                             <div className="mb-4">
-                                <div className="d-flex align-items-center mb-3">
-                                    <Button 
-                                        variant="outline-primary" 
-                                        onClick={() => setShowContactModal(true)}
-                                        className="me-3"
+                                <Button
+                                    variant="outline-primary"
+                                    onClick={() => setShowContactModal(true)}
+                                    className="me-3"
+                                >
+                                    {selectedContact ? "Choose Different Contact" : "Choose Contact"}
+                                </Button>
+                                {selectedContact && (
+                                    <Button
+                                        variant="outline-secondary"
+                                        onClick={handleClearContact}
+                                        size="sm"
                                     >
-                                        {selectedContact ? "Choose Different Contact" : "Choose Contact"}
+                                        Clear Contact
                                     </Button>
-                                    {selectedContact && (
-                                        <Button 
-                                            variant="outline-secondary" 
-                                            onClick={handleClearContact}
-                                            size="sm"
-                                        >
-                                            Clear Contact
-                                        </Button>
-                                    )}
-                                </div>
-                                
+                                )}
+
                                 {selectedContact && (
                                     <Card className="bg-light border-info">
                                         <Card.Body className="py-3">
@@ -284,7 +282,7 @@ export default function ReferralManagementForm({
                                 <Form.Label>Status</Form.Label>
                                 <Form.Select
                                     value={formData.status}
-                                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                 >
                                     <option value="pending">Pending</option>
                                     <option value="requested">Requested</option>
@@ -302,7 +300,7 @@ export default function ReferralManagementForm({
                                 <Form.Control
                                     type="text"
                                     value={formData.company}
-                                    onChange={(e) => setFormData({...formData, company: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                                     required
                                     disabled={!!selectedJob}
                                     placeholder={selectedJob ? "Auto-filled from selected job" : "Enter company name"}
@@ -320,7 +318,7 @@ export default function ReferralManagementForm({
                                 <Form.Control
                                     type="text"
                                     value={formData.position}
-                                    onChange={(e) => setFormData({...formData, position: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                                     required
                                     disabled={!!selectedJob}
                                     placeholder={selectedJob ? "Auto-filled from selected job" : "Enter position"}
@@ -340,7 +338,7 @@ export default function ReferralManagementForm({
                                 <Form.Control
                                     type="date"
                                     value={formData.request_date}
-                                    onChange={(e) => setFormData({...formData, request_date: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, request_date: e.target.value })}
                                 />
                             </Form.Group>
                         </Col>
@@ -350,7 +348,7 @@ export default function ReferralManagementForm({
                                 <Form.Control
                                     type="date"
                                     value={formData.follow_up_date}
-                                    onChange={(e) => setFormData({...formData, follow_up_date: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, follow_up_date: e.target.value })}
                                 />
                             </Form.Group>
                         </Col>
@@ -358,8 +356,8 @@ export default function ReferralManagementForm({
                     <Form.Group className="mb-3">
                         <Form.Label>Message</Form.Label>
                         <div className="mb-2">
-                            <Button 
-                                variant="outline-primary" 
+                            <Button
+                                variant="outline-primary"
                                 size="sm"
                                 onClick={handleGenerateAIMessage}
                                 disabled={isGeneratingMessage || !selectedJob || !selectedContact}
@@ -380,13 +378,13 @@ export default function ReferralManagementForm({
                                 Requires selected job and contact
                             </small>
                         </div>
-                        
+
                         {messageError && (
                             <Alert variant="danger" className="mb-2" dismissible onClose={() => setMessageError(null)}>
                                 {messageError}
                             </Alert>
                         )}
-                        
+
                         {aiMessageData && (
                             <Alert variant="success" className="mb-2">
                                 <div className="d-flex justify-content-between align-items-start">
@@ -394,8 +392,8 @@ export default function ReferralManagementForm({
                                         <strong>✨ AI Message Generated!</strong>
                                         <div className="mt-1">
                                             <small className="text-muted">
-                                                Personalization Score: {aiMessageData.personalization_score}/100 | 
-                                                Word Count: {aiMessageData.word_count} | 
+                                                Personalization Score: {aiMessageData.personalization_score}/100 |
+                                                Word Count: {aiMessageData.word_count} |
                                                 Tone: {aiMessageData.tone_analysis}
                                             </small>
                                         </div>
@@ -413,12 +411,12 @@ export default function ReferralManagementForm({
                                 </div>
                             </Alert>
                         )}
-                        
+
                         <Form.Control
                             as="textarea"
                             rows={5}
                             value={formData.message || formData.personalized_message || ''}
-                            onChange={(e) => setFormData({...formData, message: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                             placeholder="Write your referral request message..."
                             required
                         />
@@ -429,7 +427,7 @@ export default function ReferralManagementForm({
                             as="textarea"
                             rows={3}
                             value={formData.notes}
-                            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                             placeholder="Additional notes..."
                         />
                     </Form.Group>
@@ -443,15 +441,15 @@ export default function ReferralManagementForm({
                     {editing ? "Update" : "Create"} Referral Request
                 </Button>
             </Modal.Footer>
-            
-            <JobSelectionModal 
+
+            <JobSelectionModal
                 showModal={showJobModal}
                 setShowModal={setShowJobModal}
                 onJobSelect={handleJobSelect}
                 selectedJobId={selectedJob?.id || selectedJob?._id}
             />
-            
-            <ContactSelectionModal 
+
+            <ContactSelectionModal
                 showModal={showContactModal}
                 setShowModal={setShowContactModal}
                 onContactSelect={handleContactSelect}
