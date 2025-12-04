@@ -244,7 +244,7 @@ const Nav = () => {
 
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
-          <BootstrapNav className="ms-auto gap-3 align-items-center">
+          <BootstrapNav className={`${isAuthenticated ? "ms-auto" : "ms-right"} gap-3 align-items-center`}>
             {isAuthenticated ? (
               <>
                 <NavDropdown
@@ -357,33 +357,31 @@ const Nav = () => {
                   onMouseEnter={() => setShowInterviewDropdown(true)}
                   onMouseLeave={() => setShowInterviewDropdown(false)}
                 >
-                  <NavDropdown.Item as={NavLink} to="/interview/question-library">
-                    Question Library
-                  </NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/interview/my-practice">
                     My Practice
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/question-library">
+                    Question Library
                   </NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/interview/progress">
                     Progress
                   </NavDropdown.Item>
+                  <NavDropdown.Divider />
                   <NavDropdown.Item as={NavLink} to="/interview/calendar">
-                    Interview Calendar
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/interview/performance">
-                    Performance Analytics
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/interview/writing-practice">
-                    Writing Practice
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/interview/success-probability">
-                    Success Predictor
+                    My Interviews
                   </NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/interview/follow-up">
                     Follow Up
                   </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/success-probability">
+                    Success Predictor
+                  </NavDropdown.Item>
                   <NavDropdown.Divider />
                   <NavDropdown.Item as={NavLink} to="/technical-prep">
                     Technical Interview Prep
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/performance">
+                    Performance Analytics
                   </NavDropdown.Item>
                   <NavDropdown.Divider />
                   <NavDropdown.Item as={NavLink} to="/offers">
@@ -450,6 +448,10 @@ const Nav = () => {
                   <NavDropdown.Item as={NavLink} to="/profile">
                     <i className="fas fa-user" style={{ marginRight: "8px" }}></i>
                     Profile
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/analytics">
+                    <i className="fas fa-chart-line" style={{ marginRight: "8px" }}></i>
+                    Analytics
                   </NavDropdown.Item>
                   <NavDropdown.Item onClick={logout}>
                     <i className="fas fa-sign-out-alt" style={{ marginRight: "8px" }}></i>

@@ -96,9 +96,9 @@ const NetworkingAnalytics = () => {
           <p className="text-muted">Track your networking performance and ROI</p>
         </div>
         <div className="d-flex gap-2">
-          <select 
-            className="form-select" 
-            value={period} 
+          <select
+            className="form-select"
+            value={period}
             onChange={(e) => setPeriod(parseInt(e.target.value))}
             style={{ width: '150px' }}
           >
@@ -113,6 +113,22 @@ const NetworkingAnalytics = () => {
         </div>
       </div>
 
+      {/* Recommendations */}
+        {recommendations.length > 0 && (
+          <Card className="mt-4" style={{marginBottom:"1rem"}}>
+            <Card.Header>
+              <h5>Recommendations</h5>
+            </Card.Header>
+            <Card.Body>
+              {recommendations.map((recommendation, index) => (
+                <Alert key={index} variant="info" className="mb-2">
+                  {recommendation}
+                </Alert>
+              ))}
+            </Card.Body>
+          </Card>
+        )}
+
       {/* Key Metrics Cards */}
       <Row className="mb-4">
         <Col md={3}>
@@ -121,7 +137,7 @@ const NetworkingAnalytics = () => {
               <h3 className="text-primary">{performanceMetrics.networking_activities || 0}</h3>
               <p className="text-muted mb-0">Networking Activities</p>
               <small className="text-success">
-                {industryBenchmarks.avg_networking_activities_per_month && 
+                {industryBenchmarks.avg_networking_activities_per_month &&
                   `Industry avg: ${industryBenchmarks.avg_networking_activities_per_month}/month`
                 }
               </small>
@@ -237,32 +253,32 @@ const NetworkingAnalytics = () => {
                   <Card.Body>
                     <div className="mb-3">
                       <label>Conversation Quality</label>
-                      <ProgressBar 
-                        now={(performanceMetrics.quality_conversations_ratio || 0) * 100} 
+                      <ProgressBar
+                        now={(performanceMetrics.quality_conversations_ratio || 0) * 100}
                         label={`${((performanceMetrics.quality_conversations_ratio || 0) * 100).toFixed(1)}%`}
                         variant="info"
                       />
                     </div>
                     <div className="mb-3">
                       <label>Event Satisfaction</label>
-                      <ProgressBar 
-                        now={(performanceMetrics.average_event_satisfaction || 0) * 10} 
+                      <ProgressBar
+                        now={(performanceMetrics.average_event_satisfaction || 0) * 10}
                         label={`${(performanceMetrics.average_event_satisfaction || 0).toFixed(1)}/10`}
                         variant="success"
                       />
                     </div>
                     <div className="mb-3">
                       <label>Response Rate</label>
-                      <ProgressBar 
-                        now={engagementAnalytics.average_response_rate || 0} 
+                      <ProgressBar
+                        now={engagementAnalytics.average_response_rate || 0}
                         label={`${(engagementAnalytics.average_response_rate || 0).toFixed(1)}%`}
                         variant="warning"
                       />
                     </div>
                     <div className="mb-3">
                       <label>Follow-up Completion</label>
-                      <ProgressBar 
-                        now={(engagementAnalytics.follow_up_completion_rate || 0) * 100} 
+                      <ProgressBar
+                        now={(engagementAnalytics.follow_up_completion_rate || 0) * 100}
                         label={`${((engagementAnalytics.follow_up_completion_rate || 0) * 100).toFixed(1)}%`}
                         variant="primary"
                       />
@@ -326,16 +342,16 @@ const NetworkingAnalytics = () => {
                     </Row>
                     <div className="mb-3">
                       <label>Average Trust Score</label>
-                      <ProgressBar 
-                        now={(relationshipAnalytics.average_trust_score || 0) * 10} 
+                      <ProgressBar
+                        now={(relationshipAnalytics.average_trust_score || 0) * 10}
                         label={`${(relationshipAnalytics.average_trust_score || 0).toFixed(1)}/10`}
                         variant="success"
                       />
                     </div>
                     <div className="mb-3">
                       <label>Industry Benchmark</label>
-                      <ProgressBar 
-                        now={(industryBenchmarks.avg_relationship_strength_score || 0) * 10} 
+                      <ProgressBar
+                        now={(industryBenchmarks.avg_relationship_strength_score || 0) * 10}
                         label={`${(industryBenchmarks.avg_relationship_strength_score || 0).toFixed(1)}/10`}
                         variant="info"
                       />
@@ -456,10 +472,10 @@ const NetworkingAnalytics = () => {
                         <span>Interviews</span>
                         <span>{opportunityAnalytics.interviews_from_networking || 0}</span>
                       </div>
-                      <ProgressBar 
-                        now={opportunityAnalytics.referrals_generated ? 
-                          (opportunityAnalytics.interviews_from_networking / opportunityAnalytics.referrals_generated) * 100 : 0} 
-                        variant="info" 
+                      <ProgressBar
+                        now={opportunityAnalytics.referrals_generated ?
+                          (opportunityAnalytics.interviews_from_networking / opportunityAnalytics.referrals_generated) * 100 : 0}
+                        variant="info"
                       />
                     </div>
                     <div className="mb-2">
@@ -467,10 +483,10 @@ const NetworkingAnalytics = () => {
                         <span>Offers</span>
                         <span>{opportunityAnalytics.offers_from_networking || 0}</span>
                       </div>
-                      <ProgressBar 
-                        now={opportunityAnalytics.interviews_from_networking ? 
-                          (opportunityAnalytics.offers_from_networking / opportunityAnalytics.interviews_from_networking) * 100 : 0} 
-                        variant="warning" 
+                      <ProgressBar
+                        now={opportunityAnalytics.interviews_from_networking ?
+                          (opportunityAnalytics.offers_from_networking / opportunityAnalytics.interviews_from_networking) * 100 : 0}
+                        variant="warning"
                       />
                     </div>
                     <div className="mb-2">
@@ -478,10 +494,10 @@ const NetworkingAnalytics = () => {
                         <span>Accepted</span>
                         <span>{opportunityAnalytics.accepted_offers_from_networking || 0}</span>
                       </div>
-                      <ProgressBar 
-                        now={opportunityAnalytics.offers_from_networking ? 
-                          (opportunityAnalytics.accepted_offers_from_networking / opportunityAnalytics.offers_from_networking) * 100 : 0} 
-                        variant="success" 
+                      <ProgressBar
+                        now={opportunityAnalytics.offers_from_networking ?
+                          (opportunityAnalytics.accepted_offers_from_networking / opportunityAnalytics.offers_from_networking) * 100 : 0}
+                        variant="success"
                       />
                     </div>
                   </Card.Body>
@@ -501,8 +517,8 @@ const NetworkingAnalytics = () => {
                   <Card.Body>
                     <div className="mb-3">
                       <label>Average Response Rate</label>
-                      <ProgressBar 
-                        now={engagementAnalytics.average_response_rate || 0} 
+                      <ProgressBar
+                        now={engagementAnalytics.average_response_rate || 0}
                         label={`${(engagementAnalytics.average_response_rate || 0).toFixed(1)}%`}
                         variant="primary"
                       />
@@ -512,8 +528,8 @@ const NetworkingAnalytics = () => {
                     </div>
                     <div className="mb-3">
                       <label>Follow-up Completion Rate</label>
-                      <ProgressBar 
-                        now={(engagementAnalytics.follow_up_completion_rate || 0) * 100} 
+                      <ProgressBar
+                        now={(engagementAnalytics.follow_up_completion_rate || 0) * 100}
                         label={`${((engagementAnalytics.follow_up_completion_rate || 0) * 100).toFixed(1)}%`}
                         variant="success"
                       />
@@ -521,10 +537,9 @@ const NetworkingAnalytics = () => {
                     <div className="mb-3">
                       <label>Interaction Frequency Trend</label>
                       <div className="text-center">
-                        <span className={`badge bg-${
-                          engagementAnalytics.interaction_frequency_trend === 'increasing' ? 'success' :
+                        <span className={`badge bg-${engagementAnalytics.interaction_frequency_trend === 'increasing' ? 'success' :
                           engagementAnalytics.interaction_frequency_trend === 'decreasing' ? 'danger' : 'warning'
-                        }`}>
+                          }`}>
                           {engagementAnalytics.interaction_frequency_trend?.toUpperCase() || 'STABLE'}
                         </span>
                       </div>
@@ -551,61 +566,6 @@ const NetworkingAnalytics = () => {
           </Tab.Pane>
         </Tab.Content>
       </Tab.Container>
-
-      {/* Recommendations */}
-      {recommendations.length > 0 && (
-        <Card className="mt-4">
-          <Card.Header>
-            <h5>Recommendations</h5>
-          </Card.Header>
-          <Card.Body>
-            {recommendations.map((recommendation, index) => (
-              <Alert key={index} variant="info" className="mb-2">
-                {recommendation}
-              </Alert>
-            ))}
-          </Card.Body>
-        </Card>
-      )}
-
-      {/* ROI Tracking */}
-      <Card className="mt-4">
-        <Card.Header>
-          <h5>Track ROI Outcome</h5>
-        </Card.Header>
-        <Card.Body>
-          <p>Track specific outcomes from your networking activities to measure ROI.</p>
-          <Button variant="primary" onClick={() => {
-            const roiData = {
-              roi_metric: 'job_opportunity',
-              value_description: 'New job opportunity from networking',
-              monetary_value: 80000,
-              confidence: 90
-            };
-            trackROI(roiData);
-          }}>
-            Track Job Opportunity
-          </Button>
-          <Button variant="outline-primary" className="ms-2" onClick={() => {
-            const roiData = {
-              roi_metric: 'referral',
-              value_description: 'Referral from network contact'
-            };
-            trackROI(roiData);
-          }}>
-            Track Referral
-          </Button>
-          <Button variant="outline-primary" className="ms-2" onClick={() => {
-            const roiData = {
-              roi_metric: 'interview',
-              value_description: 'Interview from networking'
-            };
-            trackROI(roiData);
-          }}>
-            Track Interview
-          </Button>
-        </Card.Body>
-      </Card>
     </div>
   );
 };

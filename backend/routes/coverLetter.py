@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 
 from schema.CoverLetter import CoverLetterIn, CoverLetterOut, CoverLetterUpdate,CoverLetterShare, CoverLetterFeedback,ApprovalRequest,CoverLetterVersion
 from mongo.cover_letters_dao import cover_letters_dao
+from mongo.jobs_dao import jobs_dao
 from sessions.session_authorizer import authorize
 
 coverletter_router = APIRouter(prefix="/cover-letters")
@@ -575,3 +576,36 @@ async def delete_version(letter_id: str, version_id: str, uuid: str = Depends(au
 
     await cover_letters_dao.delete_version(version_id)
     return {"detail": "Version deleted"}
+
+@coverletter_router.get("/analytics/performance", tags=["cover-letters"])
+async def get_cover_letter_analytics(uuid: str = Depends(authorize)):
+    """
+    Get performance metrics for cover letters based on job outcomes.
+    Used for A/B testing different styles.
+    """
+    try:
+        stats = await cover_letters_dao.get_performance_stats(uuid, jobs_dao)
+        
+        # Generate Insights
+        insights = []
+        styles = stats.get("styles", [])
+        
+        if styles:
+            # Find best performing style
+            best_style = max(styles, key=lambda x: x["interview_rate"])
+            if best_style["interview_rate"] > 0:
+                insights.append(f"🏆 Your '{best_style['style']}' letters have the highest interview rate ({best_style['interview_rate']}%)")
+            
+            # A/B Test Recommendation
+            if len(styles) > 1:
+                worst_style = min(styles, key=lambda x: x["interview_rate"])
+                diff = best_style["interview_rate"] - worst_style["interview_rate"]
+                if diff > 10:
+                    insights.append(f"💡 Switching from '{worst_style['style']}' to '{best_style['style']}' could boost your interviews by {diff:.1f}%")
+        
+        stats["insights"] = insights
+        return stats
+        
+    except Exception as e:
+        print(f"Analytics Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate analytics")
