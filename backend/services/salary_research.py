@@ -107,28 +107,31 @@ async def generate_negotiation_talking_points(
             percentile_90 = market_salary.get("percentile_90", "top 10%")
             market_context = f"\n\nMarket Context:\n- Median salary for this role: ${median:,}\n- 90th percentile: ${percentile_90:,}"
 
-        prompt = f"""You are a salary negotiation expert. Generate 5 personalized and specific talking points for salary negotiation.
+        prompt = f"""You are an expert salary negotiation coach. Generate 5 highly personalized and specific talking points for salary negotiation at {company}.
 
 Role: {role}
 Company: {company}
 Location: {location}
 Years of Experience: {years_of_experience}{achievements_text}{market_context}
 
-Generate talking points that:
-1. Reference the candidate's specific achievements
-2. Use market data to support salary requests
-3. Show the candidate's unique value proposition
-4. Are specific and actionable
+Create talking points that:
+1. SPECIFICALLY mention {company} and the role
+2. Reference the candidate's actual achievements and experience
+3. Address what {company} values in this role
+4. Use concrete market data to support higher compensation requests
+5. Show clear ROI for {company} hiring this candidate
 
-Return ONLY a valid JSON array of strings:
-["Point 1 with specific details", "Point 2 with specific details", "Point 3 with specific details", "Point 4 with specific details", "Point 5 with specific details"]
+Return ONLY a valid JSON array of 5 strings. Each point should be 1-2 sentences:
+["Point 1 specific to {company} and candidate", "Point 2 specific to {company} and candidate", ...]
 
 Rules:
-- Each point MUST be specific to this candidate (reference their achievements)
-- Make talking points compelling and detailed
-- Return exactly 5 points
-- NO markdown or extra text
-- ONLY return clean JSON array"""
+- MUST personalize to {company} - not generic
+- Reference candidate achievements where provided
+- Include specific numbers/percentages from market data
+- Make each point compelling and negotiation-focused
+- Return EXACTLY 5 points in clean JSON array
+- NO markdown, NO extra text
+- ONLY return the JSON array"""
 
         response_text = await call_cohere_api(prompt)
 
@@ -195,26 +198,42 @@ Rules:
 async def generate_negotiation_scripts(
     job_title: str,
     company: str,
-    location: str
+    location: str = "",
+    market_salary: Optional[Dict[str, Any]] = None,
+    offered_salary: Optional[int] = None
 ) -> Dict[str, str]:
-    """Generate negotiation scripts for different scenarios"""
+    """Generate detailed, company-personalized negotiation scripts for different scenarios"""
     try:
-        prompt = f"""Create negotiation scripts for a {job_title} at {company} in {location}.
-Provide 3 key scenarios with sample dialogue.
+        # Add market context if available
+        market_context = ""
+        if market_salary and offered_salary:
+            median = market_salary.get("median_salary", 0)
+            p90 = market_salary.get("percentile_90", 0)
+            market_context = f"""
+Market Context for Negotiation:
+- Role {job_title} median salary in {location}: ${median:,}
+- 90th percentile: ${p90:,}
+- Your offer: ${offered_salary:,}
+- Your offer is {'ABOVE' if offered_salary >= p90 else 'at' if offered_salary >= median else 'BELOW'} market median"""
+
+        prompt = f"""You are a senior salary negotiation coach. Create DETAILED, company-specific negotiation scripts for a {job_title} role at {company} in {location}.{market_context}
+
+Generate 3 critical scenarios with realistic dialogue. Each script should be detailed (3-4 sentences) and specifically reference {company} and the {job_title} role.
 
 Return as JSON with this structure:
 {{
-  "initial_offer_response": "<A script for when you receive the initial offer. Be professional and positive>",
-  "counteroffer_request": "<A script for requesting a higher salary based on market research>",
-  "benefits_negotiation": "<A script for negotiating additional benefits if salary is fixed>"
+  "initial_offer_response": "<Detailed response when receiving initial offer - acknowledge, express enthusiasm, ask for time to review, mention research>",
+  "counteroffer_request": "<Request for higher salary with specific references to market data and value. 3-4 sentences with concrete reasoning>",
+  "benefits_negotiation": "<Script for negotiating benefits/equity if salary is fixed. Reference specific benefits valuable for this role>"
 }}
 
 Rules:
-- Each script should be 2-3 sentences
-- Use professional language
-- Make them adaptable templates
-- NO markdown or extra text.
-- ONLY return clean JSON."""
+- Reference {company} specifically - not generic
+- Each script should be 3-4 sentences with concrete details
+- Scripts should feel natural and professional
+- For counteroffer_request: mention market research, your experience, value to {company}
+- NO markdown or extra text
+- ONLY return clean JSON"""
 
         response_text = await call_cohere_api(prompt)
         clean = response_text.replace("```json", "").replace("```", "").strip()
@@ -228,43 +247,62 @@ Rules:
     except Exception as e:
         print(f"Error generating negotiation scripts: {str(e)}")
         return {
-            "initial_offer_response": "Thank you for the offer. I'm excited about this opportunity. I'd like to review the details and get back to you within 48 hours.",
-            "counteroffer_request": "Based on my research of market rates for this role in this location, combined with my experience, I believe a salary of $X would be fair. Would you be able to match that?",
-            "benefits_negotiation": "If the salary is at its maximum, I'd like to discuss other components like additional PTO, flexible work arrangements, or professional development budget."
+            "initial_offer_response": "Thank you for the offer. I'm genuinely excited about this opportunity to join your team. I'd like to thoroughly review the complete compensation package and do some market research - can I get back to you within 48 hours?",
+            "counteroffer_request": "Based on my research and experience, I'd like to discuss the compensation package for this role. Would you have flexibility to adjust the base salary closer to the market median for this position?",
+            "benefits_negotiation": "If the base salary is at its maximum, I'd love to discuss other valuable components like additional PTO, flexible work arrangements, or a professional development budget."
         }
 
 
 async def generate_counteroffer_template(
     job_title: str,
-    company: str
+    company: str,
+    market_salary: Optional[Dict[str, Any]] = None,
+    offered_salary: Optional[int] = None
 ) -> Dict[str, Any]:
-    """Generate counteroffer evaluation template"""
+    """Generate counteroffer evaluation template with market context and specific guidance"""
     try:
-        prompt = f"""Create a counteroffer evaluation template for comparing offers for a {job_title} position.
-Provide a template that helps someone evaluate and compare multiple offers.
+        # Build market context for the prompt
+        market_context = ""
+        if market_salary and offered_salary:
+            median = market_salary.get("median_salary", 0)
+            p75 = market_salary.get("percentile_75", 0)
+            p90 = market_salary.get("percentile_90", 0)
+
+            if offered_salary < median:
+                gap_info = f"Your offer (${offered_salary:,}) is ${median - offered_salary:,} below market median (${median:,})"
+            elif offered_salary < p75:
+                gap_info = f"Your offer (${offered_salary:,}) is below 75th percentile (${p75:,})"
+            else:
+                gap_info = f"Your offer (${offered_salary:,}) is competitive"
+
+            market_context = f"""
+Current Offer Context:
+{gap_info}
+- 75th percentile for {job_title}: ${p75:,}
+- 90th percentile: ${p90:,}
+
+Use these benchmarks when evaluating counteroffer importance."""
+
+        prompt = f"""Create a detailed counteroffer evaluation template for a {job_title} position at {company}.{market_context}
+
+Generate the compensation components that should be prioritized for this specific role, ordered by importance.
+For a {job_title} at {company}, determine which components are most valuable and negotiable.
 
 Return as JSON with this structure:
 {{
   "offer_comparison_fields": [
-    {{"field": "Base Salary", "importance": "Critical"}},
-    {{"field": "Signing Bonus", "importance": "High"}},
-    {{"field": "Annual Bonus", "importance": "High"}},
-    {{"field": "Equity/Stock Options", "importance": "Medium"}},
-    {{"field": "Health Insurance", "importance": "High"}},
-    {{"field": "Retirement (401k)", "importance": "High"}},
-    {{"field": "PTO Days", "importance": "High"}},
-    {{"field": "Remote Work Policy", "importance": "Medium"}},
-    {{"field": "Professional Development", "importance": "Medium"}},
-    {{"field": "Job Security/Growth", "importance": "Medium"}}
+    {{"field": "ComponentName", "importance": "Critical|High|Medium"}},
+    ...
   ],
-  "evaluation_note": "<Brief note on how to use this template>"
+  "evaluation_note": "<Specific guidance for this role and company>"
 }}
 
 Rules:
-- Order by importance
-- Include realistic fields for this role
-- NO markdown or extra text.
-- ONLY return clean JSON."""
+- Order by importance and negotiability for this specific role
+- Include 8-10 realistic components for a {job_title}
+- Consider what matters for {job_title} roles in this industry
+- NO markdown or extra text
+- ONLY return clean JSON"""
 
         response_text = await call_cohere_api(prompt)
         clean = response_text.replace("```json", "").replace("```", "").strip()
@@ -281,14 +319,16 @@ Rules:
             "offer_comparison_fields": [
                 {"field": "Base Salary", "importance": "Critical"},
                 {"field": "Signing Bonus", "importance": "High"},
-                {"field": "Annual Bonus", "importance": "High"},
-                {"field": "Equity/Stock Options", "importance": "Medium"},
-                {"field": "Health Insurance", "importance": "High"},
-                {"field": "PTO Days", "importance": "High"},
-                {"field": "Remote Work Policy", "importance": "Medium"},
-                {"field": "Professional Development", "importance": "Medium"}
+                {"field": "Annual Bonus/Target Bonus", "importance": "High"},
+                {"field": "Equity/Stock Options", "importance": "High"},
+                {"field": "Health Insurance Coverage", "importance": "High"},
+                {"field": "Retirement (401k/Match)", "importance": "High"},
+                {"field": "PTO Days", "importance": "Medium"},
+                {"field": "Remote Work Flexibility", "importance": "Medium"},
+                {"field": "Professional Development Budget", "importance": "Medium"},
+                {"field": "Career Growth Path", "importance": "Medium"}
             ],
-            "evaluation_note": "Fill in values for each offer and compare them side-by-side"
+            "evaluation_note": "Prioritize Base Salary if below market median, then Signing Bonus, then other components"
         }
 
 
