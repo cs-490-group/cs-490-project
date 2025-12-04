@@ -5,7 +5,8 @@ import UserProfile from "./otherProfile";
 import TeamReports from "./teams/TeamReports";
 import GoalTracker from "./teams/GoalTracker";
 import ProgressSharingHub from "./teams/ProgressSharingHub";
-import MilestoneCelebration from "./teams/MilestoneCelebration";
+import MilestoneCelebration from "./teams/MilestoneCelebration"; // Maybe delete later.
+import CoachingDashboard from "../components/coaching/CoachingDashboard";
 
 function TeamsDashboard() {
   const [team, setTeam] = useState(null);
@@ -24,6 +25,7 @@ function TeamsDashboard() {
   const [progress, setProgress] = useState(null);
   const [currentUserUuid, setCurrentUserUuid] = useState(null);
   const [viewingUserProfile, setViewingUserProfile] = useState(null);
+  
   
 
   useEffect(() => {
@@ -51,8 +53,10 @@ function TeamsDashboard() {
     }
   };
 
+  const renderCoaching = () => <CoachingDashboard />;;
+
   const extractGoalsData = (memberProgressData) => {
-  // If the progress data already has goals calculated, use those
+    
   if (memberProgressData?.goals && Array.isArray(memberProgressData.goals)) {
     const completed = memberProgressData.goals.filter(g => g.completed).length;
     const total = memberProgressData.goals.length;
@@ -868,7 +872,7 @@ const renderSharing = () => {
     <div style={{ background: "white", minHeight: "100vh" }}>
       <div style={{ background: "white", borderBottom: "1px solid #e0e0e0", position: "sticky", top: 0, zIndex: 40 }}>
         <div style={{ display: "flex", gap: "24px", padding: "0 24px", maxWidth: "100%" }}>
-          {["overview", "members", "reports"].map((tabId) => (
+          {["overview", "members", "reports","coaching"].map((tabId) => (
             <button
               key={tabId}
               onClick={() => setActiveTab(tabId)}
@@ -930,8 +934,10 @@ const renderSharing = () => {
         {activeTab === "overview" && renderOverview()}
         {activeTab === "members" && renderMembers()}
         {activeTab === "reports" && renderReports()}
+        {activeTab === "coaching" && renderCoaching()}
         {activeTab === "sharing" && renderSharing()}
         {activeTab === "billing" && renderBilling()}
+        
       </div>
 
       
