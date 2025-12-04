@@ -13,6 +13,10 @@ class OrganizationsAPI {
     return api.get(`${BASE_URL}/dashboard`);
   }
 
+  join(orgId) {
+    return api.post(`${BASE_URL}/join`, { org_id: orgId });
+  }
+
   // UC-114: Bulk Onboarding
   bulkImportUsers(formData) {
     return api.post(`${BASE_URL}/import`, formData, {
@@ -28,6 +32,16 @@ class OrganizationsAPI {
   // Get list of all cohorts (teams) managed by this org
   getCohorts() {
       return api.get(`${BASE_URL}/cohorts`);
+  }
+
+  getInsights() {
+    return api.get(`${BASE_URL}/insights`);
+  }
+
+  exportROI() {
+    return api.get(`${BASE_URL}/export/roi`, { 
+        responseType: 'blob' 
+    });
   }
 }
 
