@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Form, Button, Row, Col, Card } from "react-bootstrap";
 import JobSelectionModal from "./JobSelectionModal";
+import ContactSelectionModal from "./ContactSelectionModal";
 import jobsAPI from "../../api/jobs";
 
 export default function ReferralManagementForm({
@@ -14,7 +15,9 @@ export default function ReferralManagementForm({
     resetForm
 }) {
     const [showJobModal, setShowJobModal] = useState(false);
+    const [showContactModal, setShowContactModal] = useState(false);
     const [selectedJob, setSelectedJob] = useState(null);
+    const [selectedContact, setSelectedContact] = useState(null);
 
     useEffect(() => {
         // When modal opens, if there's a job_id (either editing or creating with prefill), fetch the job details
@@ -23,8 +26,17 @@ export default function ReferralManagementForm({
         } else if (!showModal) {
             // Clear selected job when modal is closed
             setSelectedJob(null);
+            setSelectedContact(null);
         }
     }, [showModal, formData.job_id]);
+
+    useEffect(() => {
+        // When modal opens, if there's a contact_id (editing), set the selected contact
+        if (showModal && formData.contact_id && contacts.length > 0) {
+            const contact = contacts.find(c => c._id === formData.contact_id);
+            setSelectedContact(contact || null);
+        }
+    }, [showModal, formData.contact_id, contacts]);
 
     const fetchJobDetails = async (jobId) => {
         try {
@@ -42,6 +54,7 @@ export default function ReferralManagementForm({
         setShowModal(false);
         resetForm();
         setSelectedJob(null);
+        setSelectedContact(null);
     };
 
     const handleJobSelect = (job) => {
@@ -51,6 +64,22 @@ export default function ReferralManagementForm({
             job_id: job.id || job._id,
             company: job.company,
             position: job.title
+        });
+    };
+
+    const handleContactSelect = (contact) => {
+        setSelectedContact(contact);
+        setFormData({
+            ...formData,
+            contact_id: contact._id
+        });
+    };
+
+    const handleClearContact = () => {
+        setSelectedContact(null);
+        setFormData({
+            ...formData,
+            contact_id: ""
         });
     };
 
@@ -123,21 +152,51 @@ export default function ReferralManagementForm({
                     
                     <Row>
                         <Col md={6}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Contact</Form.Label>
-                                <Form.Select
-                                    value={formData.contact_id}
-                                    onChange={(e) => setFormData({...formData, contact_id: e.target.value})}
-                                    required
-                                >
-                                    <option value="">Select a contact</option>
-                                    {contacts.map(contact => (
-                                        <option key={contact._id} value={contact._id}>
-                                            {contact.name} - {contact.email}
-                                        </option>
-                                    ))}
-                                </Form.Select>
-                            </Form.Group>
+                            {/* Contact Selection Section */}
+                            <div className="mb-4">
+                                <div className="d-flex align-items-center mb-3">
+                                    <Button 
+                                        variant="outline-primary" 
+                                        onClick={() => setShowContactModal(true)}
+                                        className="me-3"
+                                    >
+                                        {selectedContact ? "Choose Different Contact" : "Choose Contact"}
+                                    </Button>
+                                    {selectedContact && (
+                                        <Button 
+                                            variant="outline-secondary" 
+                                            onClick={handleClearContact}
+                                            size="sm"
+                                        >
+                                            Clear Contact
+                                        </Button>
+                                    )}
+                                </div>
+                                
+                                {selectedContact && (
+                                    <Card className="bg-light border-info">
+                                        <Card.Body className="py-3">
+                                            <div className="row">
+                                                <div className="col-md-6">
+                                                    <h6 className="fw-bold mb-1">{selectedContact.name}</h6>
+                                                    <p className="mb-1 text-muted">{selectedContact.email}</p>
+                                                </div>
+                                                <div className="col-md-6">
+                                                    {selectedContact.employment?.company && (
+                                                        <p className="mb-1 small"><strong>Company:</strong> {selectedContact.employment.company}</p>
+                                                    )}
+                                                    {selectedContact.employment?.position && (
+                                                        <p className="mb-1 small"><strong>Position:</strong> {selectedContact.employment.position}</p>
+                                                    )}
+                                                    {selectedContact.relationship_type && (
+                                                        <p className="mb-1 small"><strong>Relationship:</strong> {selectedContact.relationship_type}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </Card.Body>
+                                    </Card>
+                                )}
+                            </div>
                         </Col>
                         <Col md={6}>
                             <Form.Group className="mb-3">
@@ -261,6 +320,15 @@ export default function ReferralManagementForm({
                 setShowModal={setShowJobModal}
                 onJobSelect={handleJobSelect}
                 selectedJobId={selectedJob?.id || selectedJob?._id}
+            />
+            
+            <ContactSelectionModal 
+                showModal={showContactModal}
+                setShowModal={setShowContactModal}
+                onContactSelect={handleContactSelect}
+                selectedContactId={selectedContact?._id}
+                contacts={contacts}
+                jobDetails={selectedJob}
             />
         </Modal>
     );
