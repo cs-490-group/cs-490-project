@@ -1,4 +1,3 @@
-from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime, timezone
 from bson import ObjectId
 from typing import List, Dict, Optional
