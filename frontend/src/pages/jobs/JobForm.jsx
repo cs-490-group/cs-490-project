@@ -16,7 +16,6 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
   const [status, setStatus] = useState("Interested");
   const [notes, setNotes] = useState("");
   const [contacts, setContacts] = useState("");
-  const [salaryNotes, setSalaryNotes] = useState("");
   const [interviewNotes, setInterviewNotes] = useState("");
   const [id, setId] = useState(null);
   const [isScrapingUrl, setIsScrapingUrl] = useState(false);
@@ -47,7 +46,6 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       setStatus(editJob.status || "Interested");
       setNotes(editJob.notes || "");
       setContacts(editJob.contacts || "");
-      setSalaryNotes(editJob.salary_notes || editJob.salaryNotes || "");
       setInterviewNotes(editJob.interview_notes || editJob.interviewNotes || "");
       setId(editJob.id);
 
@@ -78,7 +76,6 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     setStatus("Interested");
     setNotes("");
     setContacts("");
-    setSalaryNotes("");
     setInterviewNotes("");
     setId(null);
     setScrapeError("");
@@ -457,7 +454,6 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       status: status,
       notes: notes.trim() || undefined,
       contacts: contacts.trim() || undefined,
-      salary_notes: salaryNotes.trim() || undefined,
       interview_notes: interviewNotes.trim() || undefined,
       company_data: companyData,
     };
@@ -1008,19 +1004,6 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
           placeholder="Recruiter name, hiring manager, email, phone..."
           value={contacts}
           onChange={(e) => setContacts(e.target.value)}
-        />
-
-        <label style={labelStyle}>Salary Negotiation Notes</label>
-        <textarea
-          style={{
-            ...inputStyle,
-            minHeight: "60px",
-            resize: "vertical",
-            fontFamily: "inherit",
-          }}
-          placeholder="Salary expectations, negotiation points, benefits..."
-          value={salaryNotes}
-          onChange={(e) => setSalaryNotes(e.target.value)}
         />
 
         <label style={labelStyle}>Interview Notes & Feedback</label>
