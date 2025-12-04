@@ -9,6 +9,7 @@ import profilesAPI from "../../api/profiles";
 import skillsAPI from "../../api/skills";
 import experienceAPI from "../../api/employment";
 import educationAPI from "../../api/education";
+import { calculateOptimalReferralTiming, toLocalDateString } from "../../utils/dateUtils";
 
 export default function ReferralManagementForm({
     showModal,
@@ -27,96 +28,48 @@ export default function ReferralManagementForm({
     const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
     const [messageError, setMessageError] = useState(null);
     const [aiMessageData, setAiMessageData] = useState(null);
-    const [datesWereAutoSet, setDatesWereAutoSet] = useState(false);
-
-    const formatToYMD = (date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
-    const getOptimalReferralTiming = (deadline) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (!deadline) {
-            const request = new Date(today);
-            const followUp = new Date(today);
-            followUp.setDate(followUp.getDate() + 5);
-
-            return {
-                requestDate: formatToYMD(request),
-                followUpDate: formatToYMD(followUp)
-            };
-        }
-
-        const deadlineDate = new Date(deadline);
-        if (isNaN(deadlineDate.getTime())) {
-            return {
-                requestDate: formData.request_date,
-                followUpDate: formData.follow_up_date
-            };
-        }
-
-        const request = new Date(deadlineDate);
-        request.setDate(request.getDate() - 10);
-
-        const followUp = new Date(deadlineDate);
-        followUp.setDate(followUp.getDate() - 3);
-
-        if (request < today) {
-            request.setTime(today.getTime());
-        }
-
-        if (followUp <= request) {
-            const adjustedFollowUp = new Date(request);
-            adjustedFollowUp.setDate(adjustedFollowUp.getDate() + 3);
-            return {
-                requestDate: formatToYMD(request),
-                followUpDate: formatToYMD(adjustedFollowUp)
-            };
-        }
-
-        return {
-            requestDate: formatToYMD(request),
-            followUpDate: formatToYMD(followUp)
-        };
-    };
+    const [optimalTiming, setOptimalTiming] = useState(null);
 
     useEffect(() => {
+        // When modal opens, if there's a job_id (either editing or creating with prefill), fetch the job details
         if (showModal && formData.job_id) {
             fetchJobDetails(formData.job_id);
         } else if (!showModal) {
+            // Clear selected job when modal is closed
             setSelectedJob(null);
             setSelectedContact(null);
             setAiMessageData(null);
             setMessageError(null);
+            setOptimalTiming(null);
         }
     }, [showModal, formData.job_id]);
 
     useEffect(() => {
+        // Calculate optimal timing when a job is selected
+        if (selectedJob) {
+            const timing = calculateOptimalReferralTiming(selectedJob.deadline);
+            setOptimalTiming(timing);
+            
+            // Auto-set dates if not already set or if editing with default dates
+            if (!editing || (!formData.request_date || formData.request_date === toLocalDateString(new Date()))) {
+                setFormData(prev => ({
+                    ...prev,
+                    request_date: timing.optimalRequestDate,
+                    follow_up_date: timing.optimalFollowUpDate
+                }));
+            }
+        } else {
+            setOptimalTiming(null);
+        }
+    }, [selectedJob, editing, formData.request_date, setFormData]);
+
+    useEffect(() => {
+        // When modal opens, if there's a contact_id (editing), set the selected contact
         if (showModal && formData.contact_id && contacts.length > 0) {
             const contact = contacts.find(c => c._id === formData.contact_id);
             setSelectedContact(contact || null);
         }
     }, [showModal, formData.contact_id, contacts]);
-
-    useEffect(() => {
-        if (!selectedJob || editing) {
-            return;
-        }
-        if (formData.follow_up_date) {
-            return;
-        }
-        const { requestDate, followUpDate } = getOptimalReferralTiming(selectedJob.deadline);
-        setFormData(prev => ({
-            ...prev,
-            request_date: requestDate,
-            follow_up_date: followUpDate
-        }));
-        setDatesWereAutoSet(true);
-    }, [selectedJob, editing, formData.follow_up_date, setFormData]);
 
     const fetchJobDetails = async (jobId) => {
         try {
@@ -135,42 +88,16 @@ export default function ReferralManagementForm({
         resetForm();
         setSelectedJob(null);
         setSelectedContact(null);
-        setDatesWereAutoSet(false);
     };
 
     const handleJobSelect = (job) => {
         setSelectedJob(job);
-
-        let updatedFields = {
+        setFormData({
+            ...formData,
             job_id: job.id || job._id,
             company: job.company,
             position: job.title
-        };
-
-        if (!editing) {
-            const { requestDate, followUpDate } = getOptimalReferralTiming(job.deadline);
-            updatedFields = {
-                ...updatedFields,
-                request_date: requestDate,
-                follow_up_date: followUpDate
-            };
-        }
-
-        setFormData({
-            ...formData,
-            ...updatedFields
         });
-        setDatesWereAutoSet(!editing);
-    };
-
-    const handleRequestDateChange = (e) => {
-        setFormData({ ...formData, request_date: e.target.value });
-        setDatesWereAutoSet(false);
-    };
-
-    const handleFollowUpDateChange = (e) => {
-        setFormData({ ...formData, follow_up_date: e.target.value });
-        setDatesWereAutoSet(false);
     };
 
     const handleContactSelect = (contact) => {
@@ -319,28 +246,7 @@ export default function ReferralManagementForm({
                                             {selectedJob.location && (
                                                 <p className="mb-1 small"><strong>Location:</strong> {selectedJob.location}</p>
                                             )}
-                                            {selectedJob.deadline && (
-                                                <p className="mb-1 small">
-                                                    <strong>Application deadline:</strong> {new Date(selectedJob.deadline).toLocaleDateString()}
-                                                </p>
-                                            )}
                                         </div>
-                                    </div>
-                                    <div className="mt-2 small text-muted">
-                                        {(() => {
-                                            const { requestDate, followUpDate } = getOptimalReferralTiming(selectedJob.deadline);
-                                            return (
-                                                <>
-                                                    <div>
-                                                        <strong>Suggested request date:</strong> {requestDate}
-                                                        {!selectedJob.deadline && (
-                                                            <span className="text-muted"> (no deadline, based on today)</span>
-                                                        )}
-                                                    </div>
-                                                    <div><strong>Suggested follow-up date:</strong> {followUpDate}</div>
-                                                </>
-                                            );
-                                        })()}
                                     </div>
                                 </Card.Body>
                             </Card>
@@ -450,16 +356,11 @@ export default function ReferralManagementForm({
                     <Row>
                         <Col md={6}>
                             <Form.Group className="mb-3">
-                                {datesWereAutoSet && (
-                                    <div className="mb-1 small text-muted">
-                                        {datesWereAutoSet ? "Auto-filled from optimal timing" : "Manually edited"}
-                                    </div>
-                                )}
                                 <Form.Label>Request Date</Form.Label>
                                 <Form.Control
                                     type="date"
                                     value={formData.request_date}
-                                    onChange={handleRequestDateChange}
+                                    onChange={(e) => setFormData({ ...formData, request_date: e.target.value })}
                                 />
                             </Form.Group>
                         </Col>
@@ -469,7 +370,7 @@ export default function ReferralManagementForm({
                                 <Form.Control
                                     type="date"
                                     value={formData.follow_up_date}
-                                    onChange={handleFollowUpDateChange}
+                                    onChange={(e) => setFormData({ ...formData, follow_up_date: e.target.value })}
                                 />
                             </Form.Group>
                         </Col>

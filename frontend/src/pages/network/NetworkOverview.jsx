@@ -412,7 +412,7 @@ export default function NetworkOverview() {
 
 			<Row>
 				<Col xs={12} className="mb-4">
-					<Button onClick={() => { setShowModal(true); resetForm(); }}>
+					<Button onClick={() => { setShowModal(true); resetForm(); }} style={{margin:"auto"}}>
 						+ Add Contact
 					</Button>
 				</Col>

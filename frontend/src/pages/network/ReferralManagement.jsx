@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Container, Row, Col, Card, Button, Badge, Spinner, Alert, Form } from "react-bootstrap";
+import { Container, Row, Col, Card, Button, Badge, Spinner, Alert, Form, Modal } from "react-bootstrap";
 import ReferralsAPI from "../../api/referrals";
 import NetworksAPI from "../../api/network";
 import ReferralManagementForm from "./ReferralManagementForm";
@@ -15,6 +15,13 @@ export default function ReferralManagement() {
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState(false);
     const [editingReferralId, setEditingReferralId] = useState(null);
+    const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+    const [activeFollowUpReferral, setActiveFollowUpReferral] = useState(null);
+    const [followUpMessage, setFollowUpMessage] = useState("");
+    const [followUpStatus, setFollowUpStatus] = useState("sent");
+    const [followUpKind, setFollowUpKind] = useState("standard");
+    const [savingFollowUp, setSavingFollowUp] = useState(false);
+    const [followUpError, setFollowUpError] = useState(null);
     const [filterText, setFilterText] = useState({
         company: "",
         position: "",
@@ -107,8 +114,166 @@ export default function ReferralManagement() {
         return contact?.name || "Unknown Contact";
     };
 
+    const logContactInteraction = async (contactId, notes) => {
+        if (!contactId || !notes) {
+            return;
+        }
+        try {
+            const contact = contacts.find(c => c._id === contactId);
+            if (!contact) {
+                return;
+            }
+            const now = new Date().toISOString();
+            const newInteraction = {
+                date: now,
+                type: "message",
+                notes
+            };
+            const updatedHistory = [
+                ...(contact.interaction_history || []),
+                newInteraction
+            ];
+            const updatePayload = {
+                interaction_history: updatedHistory,
+                last_interaction_date: now
+            };
+            await NetworksAPI.update(contactId, updatePayload);
+
+            setContacts(prevContacts =>
+                prevContacts.map(c =>
+                    c._id === contactId
+                        ? { ...c, interaction_history: updatedHistory, last_interaction_date: now }
+                        : c
+                )
+            );
+        } catch (error) {
+            console.error("Failed to log contact interaction:", error);
+        }
+    };
+
+    const isOnOrAfterToday = (utcDateString) => {
+        if (!utcDateString) return false;
+        const date = new Date(utcDateString);
+        if (isNaN(date.getTime())) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const cmp = new Date(date.getTime());
+        cmp.setHours(0, 0, 0, 0);
+        return cmp.getTime() <= today.getTime();
+    };
+
+    const hasSentFollowUpOfKind = (referral, kind) => {
+        if (!referral || !Array.isArray(referral.follow_ups)) return false;
+        return referral.follow_ups.some(f => f.status === "sent" && (!kind || f.kind === kind));
+    };
+
+    const shouldShowRequestAlert = (referral) => {
+        if (!referral?.request_date) return false;
+        if (referral.status !== "pending") return false;
+        return isOnOrAfterToday(referral.request_date);
+    };
+
+    const shouldShowStandardFollowUpAlert = (referral) => {
+        if (!referral?.follow_up_date) return false;
+        if (referral.status !== "requested") return false;
+        if (hasSentFollowUpOfKind(referral, "standard")) return false;
+        return isOnOrAfterToday(referral.follow_up_date);
+    };
+
+    const shouldShowThankYouAlert = (referral) => {
+        if (!referral?.follow_up_date) return false;
+        if (!["accepted", "completed"].includes(referral.status)) return false;
+        if (hasSentFollowUpOfKind(referral, "thank_you")) return false;
+        return isOnOrAfterToday(referral.follow_up_date);
+    };
+
+    const openFollowUpModal = (referral, kind = "standard") => {
+        if (!referral) return;
+        const contactName = getContactName(referral.contact_id);
+        let defaultMessage;
+        if (kind === "thank_you") {
+            defaultMessage = `Hi ${contactName},\n\nThank you so much for your help with the referral for the ${referral.position} role at ${referral.company}. I really appreciate your support and the time you took to assist me.\n\nThanks again!`;
+        } else {
+            defaultMessage = `Hi ${contactName},\n\nI wanted to follow up on my referral request for the ${referral.position} role at ${referral.company}. I just wanted to check if you had any updates or needed any more information from me.\n\nThank you again for your help!`;
+        }
+        setActiveFollowUpReferral(referral);
+        setFollowUpMessage(defaultMessage);
+        setFollowUpStatus("sent");
+        setFollowUpKind(kind);
+        setFollowUpError(null);
+        setShowFollowUpModal(true);
+    };
+
+    const handleSendFollowUp = async () => {
+        if (!activeFollowUpReferral || !followUpMessage.trim()) {
+            setFollowUpError("Please enter a follow-up message.");
+            return;
+        }
+        try {
+            setSavingFollowUp(true);
+            setFollowUpError(null);
+            const newFollowUp = {
+                date: new Date().toISOString(),
+                status: followUpStatus,
+                message: followUpMessage.trim(),
+                kind: followUpKind
+            };
+            const existing = Array.isArray(activeFollowUpReferral.follow_ups)
+                ? activeFollowUpReferral.follow_ups
+                : [];
+            const updatedFollowUps = [...existing, newFollowUp];
+            // Send full ReferralRequest payload to satisfy backend schema
+            await ReferralsAPI.update(activeFollowUpReferral._id, {
+                contact_id: activeFollowUpReferral.contact_id,
+                job_id: activeFollowUpReferral.job_id || null,
+                job_application_id: activeFollowUpReferral.job_application_id || null,
+                company: activeFollowUpReferral.company,
+                position: activeFollowUpReferral.position,
+                request_date: activeFollowUpReferral.request_date,
+                status: activeFollowUpReferral.status,
+                message: activeFollowUpReferral.message,
+                follow_up_date: activeFollowUpReferral.follow_up_date,
+                response_date: activeFollowUpReferral.response_date || null,
+                referral_success: activeFollowUpReferral.referral_success || null,
+                notes: activeFollowUpReferral.notes || "",
+                relationship_impact: activeFollowUpReferral.relationship_impact || null,
+                gratitude_sent: activeFollowUpReferral.gratitude_sent || false,
+                gratitude_date: activeFollowUpReferral.gratitude_date || null,
+                follow_ups: updatedFollowUps
+            });
+
+            if (followUpStatus === "sent") {
+                const interactionNote =
+                    followUpKind === "thank_you"
+                        ? `Referral thank-you message sent for ${activeFollowUpReferral.position} at ${activeFollowUpReferral.company}.`
+                        : `Referral follow-up sent for ${activeFollowUpReferral.position} at ${activeFollowUpReferral.company}.`;
+                await logContactInteraction(
+                    activeFollowUpReferral.contact_id,
+                    interactionNote
+                );
+            }
+
+            await fetchData();
+            setShowFollowUpModal(false);
+            setActiveFollowUpReferral(null);
+            setFollowUpMessage("");
+        } catch (error) {
+            console.error("Failed to send follow-up:", error);
+            setFollowUpError("Failed to save follow-up. Please try again.");
+        } finally {
+            setSavingFollowUp(false);
+        }
+    };
+
     const handleAddOrUpdate = async () => {
         try {
+            const isEditingExisting = editing && editingReferralId;
+            let previousStatus = null;
+            if (isEditingExisting) {
+                const existing = referrals.find(r => r._id === editingReferralId);
+                previousStatus = existing?.status || null;
+            }
+
             // Ensure proper data formatting with UTC normalization
             const dataToSend = {
                 ...formData,
@@ -122,7 +287,7 @@ export default function ReferralManagement() {
                 gratitude_sent: formData.gratitude_sent || false
             };
             
-            if (editing && editingReferralId) {
+            if (isEditingExisting) {
                 await ReferralsAPI.update(editingReferralId, dataToSend);
             } else {
                 await ReferralsAPI.add(dataToSend);
@@ -130,6 +295,19 @@ export default function ReferralManagement() {
             await fetchData();
             setShowModal(false);
             resetForm();
+
+            const newStatus = formData.status;
+            const contactIdForInteraction = formData.contact_id;
+            const statusIsTerminal = ["requested", "accepted", "declined", "completed"].includes(newStatus);
+
+            if (contactIdForInteraction && statusIsTerminal) {
+                if (!isEditingExisting || previousStatus !== newStatus) {
+                    await logContactInteraction(
+                        contactIdForInteraction,
+                        `Referral status set to ${newStatus} for ${formData.position} at ${formData.company}.`
+                    );
+                }
+            }
         } catch (error) {
             console.error("Error saving referral:", error);
         }
@@ -315,6 +493,58 @@ export default function ReferralManagement() {
                             {filterReferrals(referrals).map(referral => (
                                 <Card key={referral._id} className="contact-card">
                                     <Card.Body>
+                                        {shouldShowRequestAlert(referral) && (
+                                            <Alert variant="warning" className="mb-3">
+                                                <div className="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>Time to send your referral request.</strong>
+                                                        <div className="small">Request date has been reached for this opportunity.</div>
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline-dark"
+                                                        onClick={() => handleEdit(referral)}
+                                                    >
+                                                        Open request form
+                                                    </Button>
+                                                </div>
+                                            </Alert>
+                                        )}
+
+                                        {shouldShowStandardFollowUpAlert(referral) && (
+                                            <Alert variant="info" className="mb-3">
+                                                <div className="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>Time to follow up.</strong>
+                                                        <div className="small">Follow-up date has been reached for this referral.</div>
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline-dark"
+                                                        onClick={() => openFollowUpModal(referral, "standard")}
+                                                    >
+                                                        Compose follow-up
+                                                    </Button>
+                                                </div>
+                                            </Alert>
+                                        )}
+                                        {shouldShowThankYouAlert(referral) && (
+                                            <Alert variant="success" className="mb-3">
+                                                <div className="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>Send a thank-you message.</strong>
+                                                        <div className="small">This referral has been {referral.status}, it's a great time to thank your contact.</div>
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline-dark"
+                                                        onClick={() => openFollowUpModal(referral, "thank_you")}
+                                                    >
+                                                        Compose thank-you
+                                                    </Button>
+                                                </div>
+                                            </Alert>
+                                        )}
                                         <div className="d-flex justify-content-between align-items-start mb-2">
                                             <Card.Title as="h4">{referral.company}</Card.Title>
                                             <Badge bg={getStatusColor(referral.status)}>
@@ -340,6 +570,20 @@ export default function ReferralManagement() {
                                         {referral.message && (
                                             <div className="mb-3">
                                                 <p className="mb-0 small text-muted">{referral.message.substring(0, 100)}...</p>
+                                            </div>
+                                        )}
+
+                                        {Array.isArray(referral.follow_ups) && referral.follow_ups.length > 0 && (
+                                            <div className="mb-2 small text-info">
+                                                
+                                                {(() => {
+                                                    const sentCount = referral.follow_ups.filter(f => f.status === "sent").length;
+                                                    const totalCount = referral.follow_ups.length;
+                                                    if (sentCount > 0) {
+                                                        return `📧 ${sentCount} follow-up${sentCount !== 1 ? "s" : ""} sent (${totalCount} total)`;
+                                                    }
+                                                    return `📧 ${totalCount} follow-up${totalCount !== 1 ? "s" : ""} planned`;
+                                                })()}
                                             </div>
                                         )}
 
@@ -369,6 +613,55 @@ export default function ReferralManagement() {
                 handleAddOrUpdate={handleAddOrUpdate}
                 resetForm={resetForm}
             />
+
+            <Modal
+                show={showFollowUpModal}
+                onHide={() => setShowFollowUpModal(false)}
+                centered
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>Referral Follow-Up</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {activeFollowUpReferral && (
+                        <div className="mb-3 small text-muted">
+                            Following up on referral for <strong>{activeFollowUpReferral.position}</strong> at <strong>{activeFollowUpReferral.company}</strong>.
+                        </div>
+                    )}
+                    {followUpError && (
+                        <Alert variant="danger" className="mb-2">
+                            {followUpError}
+                        </Alert>
+                    )}
+                    <Form.Group className="mb-3">
+                        <Form.Label>Follow-up Message</Form.Label>
+                        <Form.Control
+                            as="textarea"
+                            rows={5}
+                            value={followUpMessage}
+                            onChange={(e) => setFollowUpMessage(e.target.value)}
+                        />
+                    </Form.Group>
+                    <Form.Group className="mb-2">
+                        <Form.Label>Status</Form.Label>
+                        <Form.Select
+                            value={followUpStatus}
+                            onChange={(e) => setFollowUpStatus(e.target.value)}
+                        >
+                            <option value="pending">Pending</option>
+                            <option value="sent">Sent</option>
+                        </Form.Select>
+                    </Form.Group>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowFollowUpModal(false)}>
+                        Cancel
+                    </Button>
+                    <Button variant="primary" onClick={handleSendFollowUp} disabled={savingFollowUp}>
+                        {savingFollowUp ? "Saving..." : "Save Follow-Up"}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </Container>
     );
 }
