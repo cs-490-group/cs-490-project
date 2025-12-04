@@ -168,7 +168,11 @@ async def generate_followup_template(
             "interviewer_email": interviewer_email,
             "company_name": company_name,
             "job_title": job_title,
-            "specific_topics_discussed": request_data.specific_topics or [],
+            "interview_date": interview_date,
+            "outcome": outcome,
+            "days_since_interview": days_since,
+            "specific_topics": request_data.specific_topics or [], 
+            "custom_notes": request_data.custom_notes,
             "suggested_send_time": suggested_send_time,
             "user_email": user_email
         }
@@ -213,9 +217,80 @@ async def mark_template_sent(template_id: str, request: Request):
         if not recipient_email:
             raise HTTPException(400, "Recipient email is required")
         
-        # Use edited content if provided, otherwise fall back to template
-        final_subject = edited_subject if edited_subject else template["subject_line"]
-        final_body = edited_body if edited_body else template["email_body"]
+        # If user edited the content, use their edits
+        # Otherwise, regenerate the template with saved parameters to ensure topics/notes are included
+        if edited_subject and edited_body:
+            final_subject = edited_subject
+            final_body = edited_body
+        else:
+            # Regenerate template with saved parameters
+            template_type = template["template_type"]
+            interviewer_name = template.get("interviewer_name", "Hiring Team")
+            company_name = template.get("company_name", "Company")
+            job_title = template.get("job_title", "Position")
+            interview_date = make_aware(template.get("interview_date"))
+            outcome = template.get("outcome")
+            days_since = template.get("days_since_interview", 0)
+            specific_topics = template.get("specific_topics", [])
+            custom_notes = template.get("custom_notes")
+            
+            # Get user profile
+            user_full_name = None
+            try:
+                profile = await profile_dao.get_profile(uuid_val)
+                if profile and profile.get("full_name"):
+                    user_full_name = profile.get("full_name")
+            except Exception as e:
+                print(f"Could not fetch profile: {e}")
+            
+            # Regenerate the template
+            if template_type == "thank_you":
+                regenerated = followup_service.generate_thank_you_email(
+                    interviewer_name=interviewer_name,
+                    company_name=company_name,
+                    job_title=job_title,
+                    interview_date=interview_date,
+                    user_full_name=user_full_name,
+                    specific_topics=specific_topics,
+                    custom_notes=custom_notes
+                )
+            elif template_type == "status_inquiry":
+                regenerated = followup_service.generate_status_inquiry(
+                    interviewer_name=interviewer_name,
+                    company_name=company_name,
+                    job_title=job_title,
+                    interview_date=interview_date,
+                    days_since_interview=days_since,
+                    user_full_name=user_full_name,
+                    specific_topics=specific_topics,
+                    custom_notes=custom_notes
+                )
+            elif template_type == "feedback_request":
+                was_selected = outcome == "passed"
+                regenerated = followup_service.generate_feedback_request(
+                    interviewer_name=interviewer_name,
+                    company_name=company_name,
+                    job_title=job_title,
+                    was_selected=was_selected,
+                    user_full_name=user_full_name,
+                    specific_topics=specific_topics,
+                    custom_notes=custom_notes
+                )
+            elif template_type == "networking":
+                regenerated = followup_service.generate_networking_followup(
+                    interviewer_name=interviewer_name,
+                    company_name=company_name,
+                    job_title=job_title,
+                    user_full_name=user_full_name,
+                    connection_request=True,
+                    specific_topics=specific_topics,
+                    custom_notes=custom_notes
+                )
+            else:
+                raise HTTPException(400, f"Invalid template type: {template_type}")
+            
+            final_subject = regenerated["subject"]
+            final_body = regenerated["body"]
         
         # Get user name for "From" field
         user_name = "User"
@@ -228,13 +303,13 @@ async def mark_template_sent(template_id: str, request: Request):
         except Exception as e:
             print(f"Could not fetch profile: {e}")
         
-        # Send the actual email using the follow-up service with edited content
+        # Send the actual email using the follow-up service with final content
         try:
             email_result = followup_service.send_followup_email(
                 recipient_email=recipient_email,
                 sender_name=user_name,
-                subject=final_subject,      # Use edited subject
-                body=final_body,            # Use edited body
+                subject=final_subject,
+                body=final_body,
                 template_type=template["template_type"]
             )
             print(f"✅ Follow-up email sent to {recipient_email}")
@@ -244,8 +319,20 @@ async def mark_template_sent(template_id: str, request: Request):
             print(f"❌ Failed to send email: {e}")
             raise HTTPException(500, f"Failed to send email: {str(e)}")
         
-        # Mark as sent in database (save the edited version)
+        # Mark as sent in database (save the final version that was sent)
         await followup_dao.mark_as_sent(template_id)
+        
+        # Update the template record with what was actually sent
+        await followup_dao.collection.update_one(
+            {"uuid": template_id},
+            {
+                "$set": {
+                    "final_subject_sent": final_subject,
+                    "final_body_sent": final_body,
+                    "sent_to": recipient_email
+                }
+            }
+        )
         
         # Update interview record
         interview_uuid = template["interview_uuid"]
