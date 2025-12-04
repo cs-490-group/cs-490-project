@@ -6,6 +6,7 @@ import SkillsAnalytics from "./SkillsAnalytics";
 import PerformanceAnalytics from "./PerformanceAnalytics";
 import SalaryAnalytics from "./SalaryAnalytics";
 import GoalTracking from "./GoalTracking";
+import TimeTracking from "./TimeTracking";
 import "../../styles/analytics.css";
 
 const AnalyticsPage = () => {
@@ -19,6 +20,7 @@ const AnalyticsPage = () => {
     { id: "performance", name: "Performance Analytics", icon: "⚡" },
     { id: "salary", name: "Salary Analytics", icon: "💰" },
     { id: "goals", name: "Goal Tracking", icon: "🎯" },
+    { id: "time", name: "Time Tracking", icon: "⏱️" },
   ];
 
   const renderContent = () => {
@@ -30,6 +32,7 @@ const AnalyticsPage = () => {
       case "performance": return <PerformanceAnalytics />;
       case "salary": return <SalaryAnalytics />;
       case "goals": return <GoalTracking />;
+      case "time": return <TimeTracking />;
       default: return <TimelineAnalytics />;
     }
   };

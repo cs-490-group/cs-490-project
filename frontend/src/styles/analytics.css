@@ -1019,3 +1019,312 @@
     font-size: 2rem;
   }
 }
+
+/* ============================================ */
+/* TIME TRACKING SPECIFIC STYLES */
+/* ============================================ */
+
+/* Time Tracking Header */
+.time-tracking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #6f42c1;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.time-tracking-header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.time-tracking-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.time-period-select {
+  padding: 0.6rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: white;
+  transition: all 0.2s;
+}
+
+.time-period-select:hover {
+  border-color: #6f42c1;
+}
+
+.time-period-select:focus {
+  outline: none;
+  border-color: #6f42c1;
+  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.1);
+}
+
+.time-add-btn {
+  padding: 0.6rem 1.2rem;
+  background: #6f42c1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.time-add-btn:hover {
+  background: #5a32a3;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(111, 66, 193, 0.3);
+}
+
+/* Time Stats Grid */
+.time-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.time-stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #6f42c1;
+  transition: all 0.2s;
+}
+
+.time-stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.time-stat-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.time-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #6f42c1;
+}
+
+/* Charts Container */
+.time-charts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.time-chart-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.time-chart-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  color: #333;
+  font-weight: 600;
+}
+
+/* Insights Section */
+.time-insights {
+  background: #f8f9fa;
+  border-left: 4px solid #6f42c1;
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+}
+
+.time-insights h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.time-insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.time-insights-list li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.time-insights-list li:last-child {
+  border-bottom: none;
+}
+
+.insight-bullet {
+  color: #6f42c1;
+  font-weight: bold;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* Time Entries Section */
+.time-entries-section {
+  margin-top: 2rem;
+}
+
+.time-entries-section h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.time-entries-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.time-entry-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 1rem 1.25rem;
+  transition: all 0.2s;
+  border-left: 3px solid #6f42c1;
+}
+
+.time-entry-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateX(2px);
+}
+
+.time-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.time-entry-date {
+  font-weight: 600;
+  color: #6f42c1;
+  font-size: 0.95rem;
+}
+
+.time-entry-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.time-action-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.time-action-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.time-edit-btn:hover {
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.time-delete-btn:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.time-entry-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.time-entry-activity {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+  border-left: 3px solid;
+  padding-left: 0.75rem;
+}
+
+.time-entry-duration {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.time-entry-notes {
+  font-size: 0.9rem;
+  color: #555;
+  background: #f8f9fa;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+/* Responsive for Time Tracking */
+@media (max-width: 768px) {
+  .time-charts-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .time-tracking-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .time-tracking-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .time-period-select {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .time-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .time-insights {
+    padding: 1rem;
+  }
+  
+  .time-entry-card {
+    padding: 0.75rem 1rem;
+  }
+}

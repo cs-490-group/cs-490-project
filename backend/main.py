@@ -37,6 +37,7 @@ from routes.offers import offers_router
 from routes.technical_prep import technical_prep_router
 from routes.application_workflow_router import workflow_router
 from routes.goals import goals_router
+from routes.time_tracking import time_tracking_router
 from routes.Salary import salary_router
 
 app = FastAPI()
@@ -97,6 +98,7 @@ app.include_router(matching.router)
 app.include_router(offers_router, prefix = api_prefix)
 app.include_router(technical_prep_router, prefix = api_prefix)
 app.include_router(goals_router, prefix = api_prefix)
+app.include_router(time_tracking_router, prefix = api_prefix)
 app.include_router(salary_router, prefix = api_prefix)
 
 app.include_router(ai_router, prefix=api_prefix)
