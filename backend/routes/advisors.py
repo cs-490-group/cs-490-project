@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends,Body
 from sessions.session_authorizer import authorize
 from mongo.advisors_dao import advisors_dao
 from mongo.teams_dao import teams_dao
+from mongo.jobs_dao import jobs_dao
+from mongo.progress_sharing_dao import progress_sharing_dao
 from schema.advisors import AdvisorInvite, CoachingSession, AdvisorTask
 from uuid import uuid4
 from datetime import datetime
@@ -9,6 +11,7 @@ import smtplib
 from email.mime.text import MIMEText
 import os
 from dotenv import load_dotenv
+from bson import ObjectId
 
 load_dotenv()
 GMAIL_SENDER = os.environ.get("GMAIL_SENDER")
@@ -78,6 +81,29 @@ async def invite_advisor(invite: AdvisorInvite, uuid: str = Depends(authorize)):
         "email_sent": email_sent
     }
 
+
+@advisors_router.post("/{engagement_id}/sessions/{session_id}/rate", tags=["advisors"])
+async def rate_session(
+    engagement_id: str, 
+    session_id: str, 
+    rating: int = Body(..., ge=1, le=5), 
+    feedback: str = Body(...), 
+    uuid: str = Depends(authorize)
+):
+    """Rate a completed coaching session"""
+    success = await advisors_dao.collection.update_one(
+        {"_id": ObjectId(engagement_id), "sessions.id": session_id},
+        {"$set": {
+            "sessions.$.rating": rating, 
+            "sessions.$.feedback": feedback,
+            "sessions.$.rated_at": datetime.utcnow()
+        }}
+    )
+    if not success.modified_count:
+        raise HTTPException(400, "Failed to rate session")
+    return {"message": "Feedback submitted"}
+
+
 @advisors_router.get("/me", tags=["advisors"])
 async def get_my_advisors(uuid: str = Depends(authorize)):
     engagements = await advisors_dao.get_user_engagements(uuid)
@@ -90,9 +116,53 @@ async def update_task_status(engagement_id: str, task_id: str, status: str, uuid
     await advisors_dao.update_task_status(engagement_id, task_id, status)
     return {"message": "Task updated"}
 
+
+@advisors_router.get("/portal/{engagement_id}", tags=["advisors"])
+async def get_advisor_portal(engagement_id: str):
+    """Public view for the advisor - NOW WITH CLIENT DATA"""
+    engagement = await advisors_dao.get_engagement_by_id(engagement_id)
+    if not engagement:
+        raise HTTPException(404, "Engagement not found")
+    
+    engagement["_id"] = str(engagement["_id"])
+
+    # FETCH CLIENT CONTEXT
+    user_uuid = engagement.get("user_uuid")
+    client_data = {
+        "goals": [],
+        "recent_milestones": [],
+        "application_stats": {"total": 0, "interviews": 0, "offers": 0}
+    }
+
+    if user_uuid:
+        user_teams = await teams_dao.get_user_teams(user_uuid)
+        if user_teams:
+            team_id = user_teams[0]["_id"]
+            milestones = await progress_sharing_dao.get_milestones(team_id, user_uuid, days=30)
+            client_data["recent_milestones"] = milestones[:5] # Top 5
+            
+            # Get Goals (from member record)
+            member = next((m for m in user_teams[0].get("members", []) if m["uuid"] == user_uuid), None)
+            if member:
+                goals_config = next((g for g in member.get("goals", []) if g.get("id") == "goals_config"), None)
+                if goals_config:
+                     client_data["goals"] = goals_config.get("data", {})
+
+        # Get Job Stats
+        jobs = await jobs_dao.get_all_jobs(user_uuid)
+        client_data["application_stats"]["total"] = len(jobs)
+        client_data["application_stats"]["interviews"] = len([j for j in jobs if j.get("status") == "Interview"])
+        client_data["application_stats"]["offers"] = len([j for j in jobs if j.get("status") == "Offer"])
+
+    # Attach to response
+    engagement["client_context"] = client_data
+    
+    return engagement
+
+
 @advisors_router.delete("/{engagement_id}", tags=["advisors"])
 async def delete_advisor(engagement_id: str, uuid: str = Depends(authorize)):
-    # Verify ownership
+    
     engagement = await advisors_dao.get_engagement_by_id(engagement_id)
     if not engagement or engagement.get("user_uuid") != uuid:
         raise HTTPException(404, "Advisor not found")
