@@ -40,145 +40,147 @@ export default function OfferCard({
     const days = daysUntilDeadline();
 
     return (
-        <Card className="shadow-sm border-0 mb-3 hover-shadow" style={{ cursor: "pointer" }}>
-            <Card.Body>
-                <Row className="mb-3">
-                    <Col>
-                        <h5 className="mb-1">
-                            {offer.job_title}
+        <Card className="shadow-sm border-0 mb-2 hover-shadow" style={{ cursor: "pointer" }}>
+            <Card.Body style={{ padding: "12px 16px" }}>
+                {/* Header: Title and Salary */}
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
+                            <h6 className="mb-0" style={{ fontSize: "1rem", fontWeight: "600" }}>
+                                {offer.job_title}
+                            </h6>
                             <Badge
                                 bg={getStatusBadgeVariant(offer.offer_status)}
-                                className="ms-2"
+                                style={{ fontSize: "0.75rem", padding: "3px 8px" }}
                             >
                                 {offer.offer_status}
                             </Badge>
-                        </h5>
-                        <p className="text-muted mb-0">{offer.company}</p>
-                        <small className="text-secondary">{offer.location}</small>
-                    </Col>
-                    <Col md={3} className="text-end">
-                        <h6 className="text-primary mb-0">
-                            {formatCurrency(offer.offered_salary_details?.base_salary || 0)}
-                        </h6>
-                        <small className="text-muted">Base Salary</small>
-                    </Col>
-                </Row>
-
-                {/* Compensation breakdown */}
-                <Row className="mb-3">
-                    <Col>
-                        <div className="d-flex flex-wrap gap-2">
-                            {offer.offered_salary_details?.signing_bonus && (
-                                <Badge bg="light" text="dark" className="fs-7">
-                                    💵 Signing: {formatCurrency(offer.offered_salary_details.signing_bonus)}
-                                </Badge>
-                            )}
-                            {offer.offered_salary_details?.annual_bonus && (
-                                <Badge bg="light" text="dark" className="fs-7">
-                                    📊 Bonus: {offer.offered_salary_details.annual_bonus}
-                                </Badge>
-                            )}
-                            {offer.offered_salary_details?.pto_days && (
-                                <Badge bg="light" text="dark" className="fs-7">
-                                    🏖️ PTO: {offer.offered_salary_details.pto_days} days
-                                </Badge>
-                            )}
-                            {offer.offered_salary_details?.remote_flexibility && (
-                                <Badge bg="light" text="dark" className="fs-7">
-                                    🌍 {offer.offered_salary_details.remote_flexibility}
-                                </Badge>
-                            )}
                         </div>
-                    </Col>
-                </Row>
+                        <div style={{ fontSize: "0.85rem", color: "#666", marginBottom: "2px" }}>
+                            {offer.company} • {offer.location}
+                        </div>
+                    </div>
+                    <div style={{ textAlign: "right", marginLeft: "12px", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: "1.1rem", fontWeight: "700", color: "#0066cc", marginBottom: "2px" }}>
+                            {formatCurrency(offer.offered_salary_details?.base_salary || 0)}
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: "#999" }}>Base</div>
+                    </div>
+                </div>
 
-                {/* Decision Deadline */}
-                {days !== null && (
-                    <Row className="mb-3">
-                        <Col>
-                            <div
-                                className={`alert mb-0 ${
-                                    days < 0
-                                        ? "alert-danger"
-                                        : days <= 3
-                                        ? "alert-warning"
-                                        : "alert-info"
-                                }`}
-                            >
-                                <small>
-                                    ⏰ Decision Deadline:{" "}
-                                    {new Date(offer.decision_deadline).toLocaleDateString()} (
-                                    {days < 0
-                                        ? `${Math.abs(days)} days overdue`
-                                        : days === 0
-                                        ? "TODAY"
-                                        : days === 1
-                                        ? "TOMORROW"
-                                        : `${days} days left`}
-                                    )
-                                </small>
-                            </div>
-                        </Col>
-                    </Row>
+                {/* Compensation breakdown - inline */}
+                {(offer.offered_salary_details?.signing_bonus ||
+                    offer.offered_salary_details?.annual_bonus ||
+                    offer.offered_salary_details?.pto_days ||
+                    offer.offered_salary_details?.remote_flexibility) && (
+                    <div className="d-flex flex-wrap gap-1 mb-2" style={{ fontSize: "0.8rem" }}>
+                        {offer.offered_salary_details?.signing_bonus && (
+                            <Badge bg="light" text="dark" style={{ padding: "2px 6px", fontSize: "0.75rem" }}>
+                                💵 {formatCurrency(offer.offered_salary_details.signing_bonus)}
+                            </Badge>
+                        )}
+                        {offer.offered_salary_details?.annual_bonus && (
+                            <Badge bg="light" text="dark" style={{ padding: "2px 6px", fontSize: "0.75rem" }}>
+                                📊 {offer.offered_salary_details.annual_bonus}
+                            </Badge>
+                        )}
+                        {offer.offered_salary_details?.pto_days && (
+                            <Badge bg="light" text="dark" style={{ padding: "2px 6px", fontSize: "0.75rem" }}>
+                                🏖️ {offer.offered_salary_details.pto_days}d
+                            </Badge>
+                        )}
+                        {offer.offered_salary_details?.remote_flexibility && (
+                            <Badge bg="light" text="dark" style={{ padding: "2px 6px", fontSize: "0.75rem" }}>
+                                🌍 {offer.offered_salary_details.remote_flexibility}
+                            </Badge>
+                        )}
+                    </div>
                 )}
 
-                {/* Action Buttons */}
-                <Row className="mt-3 pt-2 border-top">
-                    <Col>
-                        <div className="d-flex gap-2 flex-wrap">
+                {/* Decision Deadline - compact */}
+                {days !== null && (
+                    <div
+                        className={`alert mb-2 ${
+                            days < 0
+                                ? "alert-danger"
+                                : days <= 3
+                                ? "alert-warning"
+                                : "alert-info"
+                        }`}
+                        style={{
+                            padding: "6px 10px",
+                            marginBottom: "8px",
+                            fontSize: "0.8rem",
+                            borderRadius: "4px",
+                            borderLeft: "3px solid"
+                        }}
+                    >
+                        ⏰{" "}
+                        {days < 0
+                            ? `${Math.abs(days)}d overdue`
+                            : days === 0
+                            ? "TODAY"
+                            : days === 1
+                            ? "TOMORROW"
+                            : `${days}d left`}
+                    </div>
+                )}
+
+                {/* Action Buttons - compact */}
+                <div className="d-flex gap-1 flex-wrap" style={{ marginTop: "8px" }}>
+                    <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => onSelect(offer)}
+                        style={{ fontSize: "0.8rem", padding: "4px 10px", flex: 1, minWidth: "100px" }}
+                    >
+                        View
+                    </Button>
+
+                    {!offer.negotiation_prep && (
+                        <OverlayTrigger
+                            placement="top"
+                            overlay={
+                                <Tooltip>
+                                    Generate salary negotiation materials
+                                </Tooltip>
+                            }
+                        >
                             <Button
                                 size="sm"
-                                variant="primary"
-                                onClick={() => onSelect(offer)}
-                                className="flex-grow-1"
+                                variant="success"
+                                onClick={() => onGenNegotiationPrep(offer._id)}
+                                style={{ fontSize: "0.8rem", padding: "4px 10px" }}
                             >
-                                View Details
+                                Gen
                             </Button>
+                        </OverlayTrigger>
+                    )}
 
-                            {!offer.negotiation_prep && (
-                                <OverlayTrigger
-                                    placement="top"
-                                    overlay={
-                                        <Tooltip>
-                                            Generate salary negotiation materials
-                                        </Tooltip>
-                                    }
-                                >
-                                    <Button
-                                        size="sm"
-                                        variant="success"
-                                        onClick={() => onGenNegotiationPrep(offer._id)}
-                                        className="flex-grow-1"
-                                    >
-                                        Generate Prep
-                                    </Button>
-                                </OverlayTrigger>
-                            )}
+                    {offer.negotiation_prep && (
+                        <Badge bg="success" style={{ fontSize: "0.75rem", padding: "4px 8px", display: "flex", alignItems: "center" }}>
+                            ✓ Ready
+                        </Badge>
+                    )}
 
-                            {offer.negotiation_prep && (
-                                <Badge bg="success" className="d-flex align-items-center p-2">
-                                    ✓ Prep Ready
-                                </Badge>
-                            )}
+                    <Button
+                        size="sm"
+                        variant="outline-secondary"
+                        onClick={() => onEdit(offer)}
+                        style={{ fontSize: "0.8rem", padding: "4px 10px" }}
+                    >
+                        Edit
+                    </Button>
 
-                            <Button
-                                size="sm"
-                                variant="outline-secondary"
-                                onClick={() => onEdit(offer)}
-                            >
-                                Edit
-                            </Button>
-
-                            <Button
-                                size="sm"
-                                variant="outline-danger"
-                                onClick={() => onDelete(offer._id)}
-                            >
-                                Delete
-                            </Button>
-                        </div>
-                    </Col>
-                </Row>
+                    <Button
+                        size="sm"
+                        variant="outline-danger"
+                        onClick={() => onDelete(offer._id)}
+                        style={{ fontSize: "0.8rem", padding: "4px 10px" }}
+                    >
+                        Del
+                    </Button>
+                </div>
             </Card.Body>
         </Card>
     );
