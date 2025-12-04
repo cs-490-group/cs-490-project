@@ -2,12 +2,11 @@ import React, { useState, useEffect } from "react";
 import {
   Share2, Users, Trophy, TrendingUp, Heart, MessageSquare,
   Settings, Trash2, Eye, EyeOff, Check, X, Copy, Plus,
-  Zap, Target, AlertCircle, ChevronDown, Calendar
+  Zap, Target, AlertCircle, ChevronDown, Calendar, Globe 
 } from "lucide-react";
 import progressSharingAPI from "../../api/progressSharing";
 import SupportControlCenter from "../../components/teams/SupportControlCenter";
-import MilestoneCelebration from "./MilestoneCelebration";
-
+import MilestoneCelebration from "./MilestoneCelebration"; 
 
 export default function ProgressSharingHub({ teamId, memberId, memberName }) {
   const [activeTab, setActiveTab] = useState("overview");
@@ -18,6 +17,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [revoking, setRevoking] = useState(null);
+  const [creatingPublic, setCreatingPublic] = useState(false); 
 
   const [shareForm, setShareForm] = useState({
     email: "",
@@ -31,7 +31,8 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
     can_see_engagement: true,
     can_see_full_progress: false,
     can_see_milestones: true,
-    can_see_feedback: false
+    can_see_feedback: false,
+    hide_sensitive: false 
   });
 
   useEffect(() => {
@@ -46,12 +47,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
       
       // Fetch shared with list
       const sharedRes = await progressSharingAPI.getSharedWithList(teamId, memberId);
-      // await sharedRes.json();
       setSharedWith(sharedRes.data.sharedWith || []);
-
-      // Fetch milestones
-      const milesRes = await progressSharingAPI.getMilestones(teamId, memberId, 30);
-      setMilestones(milesRes.data.milestones || []);
 
       // Fetch impact data
       const impactRes = await progressSharingAPI.getAccountabilityImpact(teamId, memberId);
@@ -70,7 +66,6 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
     }
     try {
       setLoading(true);
-      // Share Progress
       await progressSharingAPI.shareProgress(teamId, memberId, {
         email: shareForm.email,
         name: shareForm.name || shareForm.email.split("@")[0],
@@ -107,9 +102,8 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
     if (!window.confirm(`Revoke access for ${email}?`)) return;
     try {
       setRevoking(email);
-      //Revoke Access
       await progressSharingAPI.revokeShare(teamId, memberId, email);
-
+      alert("Access revoked");
       await fetchData();
     } catch (err) {
       const msg = err.response?.data?.detail || err.message;
@@ -119,10 +113,32 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
     }
   };
 
-  const shareLink = `${window.location.origin}/shared-progress/${teamId}/${memberId}`;
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(shareLink);
+  const handleCreatePublicLink = async () => {
+    setCreatingPublic(true);
+    try {
+        // Create a special "guest" share
+        await progressSharingAPI.shareProgress(teamId, memberId, {
+            email: "guest@public.share",
+            name: "Public View",
+            relationship: "friend", 
+            privacy_settings: {
+                ...privacySettings,
+                hide_sensitive: true, // Enforce hiding sensitive info for public
+                can_see_feedback: false
+            }
+        });
+        await fetchData();
+        alert("Public link active! You can copy it below.");
+    } catch (err) {
+        alert("Failed to create public link");
+    } finally {
+        setCreatingPublic(false);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -137,9 +153,16 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
     return icons[rel] || "👤";
   };
 
+  // Helper to find if public link exists
+  const publicShare = sharedWith.find(s => s.email === "guest@public.share");
+  const publicLink = publicShare 
+    ? `${window.location.origin}/shared-progress/${teamId}/${memberId}/guest%40public.share`
+    : null;
+
   const renderOverview = () => (
     <div style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
       <SupportControlCenter teamId={teamId} memberId={memberId} />
+      
       <div style={{ marginBottom: "32px" }}>
         <h2 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "16px", color: "#1a1a1a" }}>
           📊 Accountability Impact
@@ -160,7 +183,6 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
                 {impact.activityIncreasePercent > 0 ? "+" : ""}
                 {impact.activityIncreasePercent || 0}%
               </div>
-              
               <div style={{ fontSize: "12px", color: "#666" }}>Since starting accountability</div>
             </div>
 
@@ -170,7 +192,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
                 {impact.applicationsAfterAccountability || 0}
               </div>
               <div style={{ fontSize: "12px", color: "#666" }}>
-                +{(impact.applicationsAfterAccountability || 0) - (impact.applicationsBeforeAccountability || 0)}
+                Total since sharing
               </div>
             </div>
 
@@ -197,17 +219,14 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
       </div>
 
       <div style={{ marginBottom: "32px" }}>
-        <MilestoneCelebration 
-            teamId={teamId} 
-            memberId={memberId} 
-            memberName={memberName} 
-        />
+        <MilestoneCelebration teamId={teamId} memberId={memberId} memberName={memberName} />
       </div>
-      </div>
+    </div>
   );
 
   const renderSharing = () => (
     <div style={{ padding: "24px", maxWidth: "1000px", margin: "0 auto" }}>
+      
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <h2 style={{ fontSize: "24px", fontWeight: "bold", margin: 0, color: "#1a1a1a" }}>
           🔗 Share Your Progress
@@ -215,144 +234,155 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
         <button
           onClick={() => setShowShareModal(true)}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 16px",
-            background: "#2196f3",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "bold"
+            display: "flex", alignItems: "center", gap: "8px", padding: "10px 16px",
+            background: "#2196f3", color: "white", border: "none", borderRadius: "6px",
+            cursor: "pointer", fontSize: "14px", fontWeight: "bold"
           }}
         >
-          <Plus size={18} />
-          Share Progress
+          <Plus size={18} /> Invite Someone
         </button>
       </div>
 
-      <div style={{ background: "white", padding: "20px", borderRadius: "8px", border: "1px solid #e0e0e0", marginBottom: "24px" }}>
-        <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px", fontWeight: "bold" }}>Shareable Link</div>
-        <p style={{ fontSize: "12px", color: "#999", marginBottom: "12px" }}>Share this link with people who can't receive emails:</p>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <input
-            type="text"
-            value={shareLink}
-            readOnly
-            style={{
-              flex: 1,
-              padding: "10px 12px",
-              border: "1px solid #ddd",
-              borderRadius: "6px",
-              fontSize: "13px",
-              background: "#f9f9f9",
-              fontFamily: "monospace"
-            }}
-          />
-          <button
-            onClick={copyToClipboard}
-            style={{
-              padding: "10px 16px",
-              background: "#f0f0f0",
-              color: "#333",
-              border: "1px solid #ddd",
-              borderRadius: "6px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "13px",
-              fontWeight: "bold",
-              whiteSpace: "nowrap"
-            }}
-          >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-            {copied ? "Copied!" : "Copy"}
-          </button>
+
+      <div style={{ background: "white", padding: "24px", borderRadius: "8px", border: "1px solid #e0e0e0", marginBottom: "32px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+            <div>
+                <h3 style={{ fontSize: "18px", fontWeight: "bold", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Globe size={20} className="text-success"/> Public Guest Link
+                </h3>
+                <p style={{ color: "#666", fontSize: "14px", marginTop: "4px", maxWidth: "600px" }}>
+                    Create a universal link that anyone can view without an email invitation. 
+                    Great for sharing with extended family or friends.
+                </p>
+            </div>
+            {!publicLink && (
+                <button 
+                    onClick={handleCreatePublicLink}
+                    disabled={creatingPublic}
+                    style={{
+                        background: "#4caf50", color: "white", border: "none", padding: "8px 16px",
+                        borderRadius: "6px", fontWeight: "bold", cursor: "pointer"
+                    }}
+                >
+                    {creatingPublic ? "Creating..." : "Enable Public Link"}
+                </button>
+            )}
+            {publicLink && (
+                <div style={{ display: "flex", gap: "8px" }}>
+                    <span style={{ padding: "8px 12px", background: "#e8f5e9", color: "#2e7d32", borderRadius: "20px", fontSize: "12px", fontWeight: "bold" }}>
+                        Active
+                    </span>
+                </div>
+            )}
         </div>
+
+        {publicLink && (
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", background: "#f9f9f9", padding: "12px", borderRadius: "6px", border: "1px solid #eee" }}>
+                <input
+                    type="text"
+                    value={publicLink}
+                    readOnly
+                    style={{ flex: 1, border: "none", background: "transparent", fontFamily: "monospace", fontSize: "13px", color: "#333" }}
+                />
+                <button
+                    onClick={() => copyToClipboard(publicLink)}
+                    style={{
+                        background: "white", border: "1px solid #ddd", borderRadius: "4px",
+                        padding: "6px 12px", cursor: "pointer", fontWeight: "bold", fontSize: "12px", color: "#333"
+                    }}
+                >
+                    {copied ? "Copied!" : "Copy Link"}
+                </button>
+                <button
+                    onClick={() => handleRevoke("guest@public.share")}
+                    style={{
+                        background: "#ffebee", border: "1px solid #ffcdd2", borderRadius: "4px",
+                        padding: "6px 12px", cursor: "pointer", fontWeight: "bold", fontSize: "12px", color: "#c62828"
+                    }}
+                >
+                    Disable
+                </button>
+            </div>
+        )}
       </div>
 
+      {/* Private Invites List */}
       <h3 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "16px", color: "#1a1a1a" }}>
-        Sharing With ({sharedWith.length})
+        Private Invites ({sharedWith.filter(s => s.email !== "guest@public.share").length})
       </h3>
 
-      {sharedWith.length > 0 ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
-          {sharedWith.map((share, idx) => (
-            <div key={idx} style={{
-              background: "white",
-              border: "1px solid #e0e0e0",
-              borderRadius: "8px",
-              padding: "16px",
-              position: "relative"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "12px" }}>
-                <div>
-                  <div style={{ fontSize: "16px", marginBottom: "2px" }}>
-                    {getRelationshipIcon(share.relationship)} {share.name}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    {share.email}
-                  </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
+        {sharedWith.filter(s => s.email !== "guest@public.share").map((share, idx) => (
+          <div key={idx} style={{
+            background: "white",
+            border: "1px solid #e0e0e0",
+            borderRadius: "8px",
+            padding: "16px",
+            position: "relative"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "12px" }}>
+              <div>
+                <div style={{ fontSize: "16px", marginBottom: "2px" }}>
+                  {getRelationshipIcon(share.relationship)} {share.name}
+                </div>
+                <div style={{ fontSize: "12px", color: "#666" }}>
+                  {share.email}
                 </div>
               </div>
+            </div>
 
-              <div style={{ fontSize: "12px", color: "#999", marginBottom: "12px" }}>
-                Shared {share.sharedDate ? new Date(share.sharedDate).toLocaleDateString() : "recently"}
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
-                <div style={{ background: "#f5f5f5", padding: "8px", borderRadius: "4px", textAlign: "center" }}>
-                  <div style={{ fontSize: "14px", fontWeight: "bold", color: "#1a1a1a" }}>
-                    {share.viewCount || 0}
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#666" }}>Views</div>
-                </div>
-                <div style={{ background: "#f5f5f5", padding: "8px", borderRadius: "4px", textAlign: "center" }}>
-                  <div style={{ fontSize: "14px", fontWeight: "bold", color: "#1a1a1a" }}>
-                    {share.lastViewed ? new Date(share.lastViewed).toLocaleDateString() : "Never"}
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#666" }}>Last viewed</div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleRevoke(share.email)}
-                disabled={revoking === share.email}
+            <div style={{ fontSize: "12px", color: "#999", marginBottom: "12px" }}>
+              Shared {share.sharedDate ? new Date(share.sharedDate).toLocaleDateString() : "recently"}
+            </div>
+            
+            {/* Specific Copy Link Button */}
+            <button
+                onClick={() => {
+                  const link = `${window.location.origin}/shared-progress/${teamId}/${memberId}/${encodeURIComponent(share.email)}`;
+                  copyToClipboard(link);
+                }}
                 style={{
                   width: "100%",
+                  marginBottom: "8px",
                   padding: "8px",
-                  background: "#ffebee",
-                  color: "#c62828",
-                  border: "1px solid #ffcdd2",
+                  background: "#e3f2fd",
+                  color: "#1565c0",
+                  border: "1px solid #bbdefb",
                   borderRadius: "4px",
-                  cursor: revoking === share.email ? "not-allowed" : "pointer",
+                  cursor: "pointer",
                   fontSize: "12px",
                   fontWeight: "bold",
-                  opacity: revoking === share.email ? 0.6 : 1
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px"
                 }}
-              >
-                <Trash2 size={14} style={{ marginRight: "4px", display: "inline" }} />
-                {revoking === share.email ? "Revoking..." : "Revoke Access"}
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{
-          background: "#f5f5f5",
-          padding: "40px 20px",
-          borderRadius: "8px",
-          textAlign: "center",
-          color: "#999"
-        }}>
-          <Users size={48} style={{ marginBottom: "16px", opacity: 0.5 }} />
-          <p>Not sharing with anyone yet</p>
-          <p style={{ fontSize: "12px" }}>Start sharing to maintain accountability and get support</p>
-        </div>
-      )}
+            >
+                <Copy size={14} /> Copy Link
+            </button>
+
+            <button
+              onClick={() => handleRevoke(share.email)}
+              disabled={revoking === share.email}
+              style={{
+                width: "100%",
+                padding: "8px",
+                background: "#ffebee",
+                color: "#c62828",
+                border: "1px solid #ffcdd2",
+                borderRadius: "4px",
+                cursor: revoking === share.email ? "not-allowed" : "pointer",
+                fontSize: "12px",
+                fontWeight: "bold",
+                opacity: revoking === share.email ? 0.6 : 1
+              }}
+            >
+              <Trash2 size={14} style={{ marginRight: "4px", display: "inline" }} />
+              {revoking === share.email ? "Revoking..." : "Revoke Access"}
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -576,17 +606,6 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
               </select>
             </div>
 
-            <div style={{
-              background: "#e3f2fd",
-              padding: "12px",
-              borderRadius: "6px",
-              marginBottom: "20px",
-              fontSize: "12px",
-              color: "#1976d2"
-            }}>
-              💡 Privacy settings are customized based on relationship type
-            </div>
-
             <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
               <button
                 onClick={() => setShowShareModal(false)}
@@ -597,7 +616,6 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
                   border: "1px solid #ddd",
                   borderRadius: "6px",
                   cursor: "pointer",
-                  fontSize: "14px",
                   fontWeight: "bold"
                 }}
               >
@@ -613,7 +631,6 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
                   border: "none",
                   borderRadius: "6px",
                   cursor: loading ? "not-allowed" : "pointer",
-                  fontSize: "14px",
                   fontWeight: "bold",
                   opacity: loading ? 0.6 : 1
                 }}

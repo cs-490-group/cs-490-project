@@ -16,8 +16,8 @@ analytics_router = APIRouter(prefix="/interview-analytics", tags=["interview-ana
 prediction_router = APIRouter(prefix="/success-prediction", tags=["success-prediction"])
 
 # Initialize services
-analytics_service = InterviewAnalyticsService(db_client)
-prediction_service = SuccessPredictionService(db_client)
+analytics_service = InterviewAnalyticsService()
+prediction_service = SuccessPredictionService()
 
 # ============================================================================
 # INTERVIEW ANALYTICS ENDPOINTS (UC-080)

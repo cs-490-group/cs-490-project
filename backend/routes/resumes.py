@@ -26,7 +26,7 @@ async def add_resume(resume: Resume, uuid: str = Depends(authorize)):
     except DuplicateKeyError:
         raise HTTPException(400, "Resume already exists") # FIXME: redundant since keys are generated uniquely?
     except Exception as e:
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     return {"detail": "Sucessfully added resume", "resume_id": result}
 
@@ -35,7 +35,7 @@ async def get_resume(resume_id: str, uuid: str = Depends(authorize)):
     try:
         result = await resumes_dao.get_resume(resume_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if result:
         result["_id"] = str(result["_id"])
@@ -49,7 +49,7 @@ async def get_all_resumes(uuid: str = Depends(authorize)):
         results = await resumes_dao.get_all_resumes(uuid)
         # NOTE: do not raise http exception for empty resumes, as it can lead to inconsistent behavior on the frontend
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     return results
 
@@ -64,7 +64,7 @@ async def get_shared_resume(token: str):
         print(f"[DEBUG] Got result: {result is not None}")
     except Exception as e:
         print(f"[DEBUG] Exception: {e}")
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if result:
         print(f"[DEBUG] Returning result")
@@ -101,7 +101,7 @@ async def add_feedback_to_shared_resume(token: str, feedback: ResumeFeedback):
         raise
     except Exception as e:
         print(f"[DEBUG] Exception in public feedback: {e}")
-        raise HTTPException(500, f"Encountered internal service error: {str(e)}")
+        raise HTTPException(500, str(e))
 
     return {"detail": "Feedback added successfully", "feedback_id": result}
 
@@ -111,7 +111,7 @@ async def update_resume(resume_id: str, resume: Resume, uuid: str = Depends(auth
         model = resume.model_dump(exclude_unset = True)
         updated = await resumes_dao.update_resume(resume_id, model)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if updated == 0:
         raise HTTPException(400, "Resume not found")
@@ -123,7 +123,7 @@ async def delete_resume(resume_id: str, uuid: str = Depends(authorize)):
     try:
         deleted = await resumes_dao.delete_resume(resume_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if deleted == 0:
         raise HTTPException(400, "Resume not found")
@@ -136,7 +136,7 @@ async def set_default_resume(resume_id: str, uuid: str = Depends(authorize)):
     try:
         updated = await resumes_dao.set_default_resume(resume_id, uuid)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if updated == 0:
         raise HTTPException(400, "Resume not found")
@@ -383,7 +383,7 @@ async def create_resume_version(resume_id: str, version: ResumeVersion, uuid: st
         model = version.model_dump()
         result = await resumes_dao.create_resume_version(resume_id, model)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     return {"detail": "Successfully created version", "version_id": result}
 
@@ -392,7 +392,7 @@ async def get_resume_versions(resume_id: str, uuid: str = Depends(authorize)):
     try:
         results = await resumes_dao.get_resume_versions(resume_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     return results
 
@@ -401,7 +401,7 @@ async def restore_resume_version(resume_id: str, version_id: str, uuid: str = De
     try:
         updated = await resumes_dao.restore_resume_version(resume_id, version_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if updated == 0:
         raise HTTPException(400, "Version or resume not found")
@@ -413,7 +413,7 @@ async def delete_resume_version(resume_id: str, version_id: str, uuid: str = Dep
     try:
         deleted = await resumes_dao.delete_resume_version(version_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if deleted == 0:
         raise HTTPException(400, "Version not found")
@@ -430,7 +430,7 @@ async def rename_resume_version(resume_id: str, version_id: str, name: str, desc
     except HTTPException as http:
         raise http
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if updated == 0:
         raise HTTPException(400, "Version not found")
@@ -445,7 +445,7 @@ async def add_resume_feedback(resume_id: str, feedback: ResumeFeedback, uuid: st
         model["resume_id"] = resume_id
         result = await resumes_dao.add_resume_feedback(model)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     return {"detail": "Feedback added successfully", "feedback_id": result}
 
@@ -454,7 +454,7 @@ async def get_resume_feedback(resume_id: str, uuid: str = Depends(authorize)):
     try:
         results = await resumes_dao.get_resume_feedback(resume_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     return results
 
@@ -464,7 +464,7 @@ async def update_resume_feedback(resume_id: str, feedback_id: str, feedback: Res
         model = feedback.model_dump(exclude_unset = True)
         updated = await resumes_dao.update_resume_feedback(feedback_id, model)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if updated == 0:
         raise HTTPException(400, "Feedback not found")
@@ -476,7 +476,7 @@ async def delete_resume_feedback(resume_id: str, feedback_id: str, uuid: str = D
     try:
         deleted = await resumes_dao.delete_resume_feedback(feedback_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if deleted == 0:
         raise HTTPException(400, "Feedback not found")
@@ -490,7 +490,7 @@ async def create_share_link(resume_id: str, share: ResumeShare, uuid: str = Depe
         model = share.model_dump()
         result = await resumes_dao.create_share_link(resume_id, model)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     return {"detail": "Share link generated", "share_link": result.get("token"), "share_data": result}
 
@@ -499,7 +499,7 @@ async def get_share_link(resume_id: str, uuid: str = Depends(authorize)):
     try:
         result = await resumes_dao.get_share_link(resume_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if result:
         return result
@@ -511,7 +511,7 @@ async def revoke_share_link(resume_id: str, uuid: str = Depends(authorize)):
     try:
         updated = await resumes_dao.revoke_share_link(resume_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if updated == 0:
         raise HTTPException(400, "Share link not found")

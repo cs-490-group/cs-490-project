@@ -1473,12 +1473,22 @@ class TechnicalPrepService:
 PROBLEM: {title}
 DESCRIPTION: {description}
 
-Create 3 test cases:
-1. Simple/basic case
-2. Medium complexity/edge case
-3. Complex/boundary case
+CRITICAL REQUIREMENTS:
+1. Generate 3 test cases (simple, medium complexity, complex)
+2. For EVERY test case, verify the expected_output is MATHEMATICALLY CORRECT
+3. Work through the logic step-by-step to validate each expected output
+4. If generating Two Sum test cases, verify: nums[index1] + nums[index2] == target
+5. If generating any math problem, verify all calculations are correct
+6. Include edge cases (negatives, zeros, duplicates, empty inputs, etc.)
+7. The expected_output MUST be accurate - this is a test to validate user code
 
-Return ONLY the JSON array, nothing else."""
+VALIDATION CHECKLIST FOR EACH TEST CASE:
+- Does the input make sense?
+- Have I calculated the expected_output correctly?
+- Have I verified the math/logic multiple times?
+- Would this test catch incorrect solutions?
+
+Return ONLY the JSON array, nothing else. NO EXPLANATIONS."""
 
             client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -1487,7 +1497,7 @@ Return ONLY the JSON array, nothing else."""
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a code testing expert. Return ONLY valid JSON, no other text."
+                        "content": "You are a rigorous code testing expert. Your job is to generate ACCURATE test cases. Every expected_output MUST be mathematically and logically correct. Verify each test case multiple times before including it. Return ONLY valid JSON, no other text."
                     },
                     {
                         "role": "user",
@@ -1495,7 +1505,7 @@ Return ONLY the JSON array, nothing else."""
                     }
                 ],
                 max_tokens=1000,
-                temperature=0.7,
+                temperature=0.3,  # Reduced from 0.7 to make responses more deterministic and careful
             )
 
             response_text = response.choices[0].message.content.strip()

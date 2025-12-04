@@ -160,6 +160,37 @@ const InterviewScheduleAPI = {
       `${API_BASE_URL}/interview/calendar/disconnect`,
       { headers: getAuthHeaders() }
     );
+  },
+
+  // ============================================================================
+  // COMPANY RESEARCH (UC-074)
+  // ============================================================================
+
+  generateCompanyResearch: (interviewId, regenerate = false, customPrompt = null) => {
+    return axios.post(
+      `${API_BASE_URL}/interview/research/generate`,
+      {
+        interview_id: interviewId,
+        regenerate: regenerate,
+        custom_prompt: customPrompt
+      },
+      { headers: getAuthHeaders() }
+    );
+  },
+
+  getCompanyResearch: (scheduleId) => {
+    return axios.get(
+      `${API_BASE_URL}/interview/research/${scheduleId}`,
+      { headers: getAuthHeaders() }
+    );
+  },
+
+  regenerateCompanyResearch: (scheduleId, customPrompt = null) => {
+    return axios.post(
+      `${API_BASE_URL}/interview/research/${scheduleId}/regenerate`,
+      { custom_prompt: customPrompt },
+      { headers: getAuthHeaders() }
+    );
   }
 };
 

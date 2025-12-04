@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
 import JobsAPI from "../../api/jobs";
 import ProfilesAPI from "../../api/profiles";
+import { formatLocalDate, formatLocalDateTime, toLocalDate, isToday, getLocalDay, getLocalMonth, getLocalYear } from "../../utils/dateUtils";
 
 export function DeadlineWidget({ jobs, onJobClick }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   const jobsWithDeadlines = jobs
     .filter(job => job.deadline)
     .map(job => {
-      const deadlineDate = new Date(job.deadline);
-      deadlineDate.setHours(0, 0, 0, 0);
+      const deadlineDate = toLocalDate(job.deadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       const daysUntil = Math.floor((deadlineDate - today) / (1000 * 60 * 60 * 24));
       return { ...job, daysUntil, deadlineDate };
     })

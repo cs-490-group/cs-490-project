@@ -10,7 +10,7 @@ from services.calendar_service import calendar_service
 from mongo.dao_setup import db_client
 
 # Initialize DAOs
-schedule_dao = InterviewScheduleDAO(db_client)
+schedule_dao = InterviewScheduleDAO()
 profile_dao = UserDataDAO()
 
 # Scheduler instance

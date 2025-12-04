@@ -89,7 +89,8 @@ function CreateGroup() {
   const isUserInGroup = (group) => group.members && group.members.some(m => m.uuid === uuid);
 
   return (
-    <div className="dashboard-gradient min-vh-100 py-5">
+    
+    <div className="dashboard-gradient min-vh-100 py-5" style={{ paddingTop: "100px" }}>
       <Container>
         {/* HEADER */}
         <div className="text-center mb-5 text-white">

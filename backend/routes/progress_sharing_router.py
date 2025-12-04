@@ -474,15 +474,11 @@ async def add_celebration(
 async def get_celebrations(
     team_id: str,
     member_uuid: str,
-    uuid: str = Depends(authorize)
+    #uuid: str = Depends(authorize)
 ):
     """Get all celebrations/encouragements for a member"""
     try:
         team_id_obj = ObjectId(team_id)
-        # Verify ownership (or allow mentors to see)
-        if uuid != member_uuid:
-             # Add specific permission logic if needed, strictly owning for now
-             pass 
 
         celebrations = await progress_sharing_dao.get_celebrations(team_id_obj, member_uuid)
         return {"celebrations": celebrations}
