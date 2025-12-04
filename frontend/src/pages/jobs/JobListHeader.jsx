@@ -1,4 +1,6 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+
 
 export default function JobListHeader({ 
   view, 
@@ -13,9 +15,19 @@ export default function JobListHeader({
   setShowStatistics,
   showMaterials,
   setShowMaterials,
+  showJobMatching,
+  setShowJobMatching,
+  showSkillsGap,
+  setShowSkillsGap,
+  selectedJobId,
   showFloatingWidget,
   toggleFloatingWidget
+
+  
 }) {
+
+  const navigate = useNavigate();
+
   return (
     <div style={{
       display: "flex",
@@ -56,6 +68,8 @@ export default function JobListHeader({
                 setShowCalendar(false);
                 setShowArchived(false);
                 setShowMaterials(false);
+                setShowJobMatching(false);
+                setShowSkillsGap(false);
               }}
               style={{
                 padding: "12px 24px",
@@ -78,6 +92,10 @@ export default function JobListHeader({
                 setShowCalendar(false);
                 setShowArchived(false);
                 setShowMaterials(false);
+                setShowArchived(false);
+                setShowMaterials(false);
+                setShowJobMatching(false);
+                setShowSkillsGap(false);
               }}
               style={{
                 padding: "12px 24px",
@@ -100,6 +118,8 @@ export default function JobListHeader({
                 setShowCalendar(false);
                 setShowArchived(false);
                 setShowMaterials(false);
+                setShowJobMatching(false);
+                setShowSkillsGap(false);
               }}
               style={{
                 padding: "12px 24px",
@@ -122,6 +142,8 @@ export default function JobListHeader({
                 setShowStatistics(false);
                 setShowCalendar(false);
                 setShowArchived(false);
+                setShowJobMatching(false);
+                setShowSkillsGap(false);
               }}
               style={{
                 padding: "12px 24px",
@@ -140,10 +162,70 @@ export default function JobListHeader({
             <button
               onClick={() => {
                 setView("pipeline");
+                setShowJobMatching(true);
+                setShowSkillsGap(false);
+                setShowStatistics(false);
+                setShowCalendar(false);
+                setShowArchived(false);
+                setShowMaterials(false);     
+
+              }}
+              style={{
+                padding: "12px 24px",
+                background: showJobMatching ? "#4caf50" : "#03a9f4",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              🔍 Job Matching
+            </button>
+
+            {/* --- UC-066 Skills Gap Button --- */}
+            <button
+              onClick={() => {
+                if (!selectedJobId) {
+                  alert("Select a job from Job Matching first!");
+                  return;
+                }
+
+                setView("pipeline");
+                setShowSkillsGap(true);
+                setShowJobMatching(false);
+                setShowStatistics(false);
+                setShowCalendar(false);
+                setShowArchived(false);
+                setShowMaterials(false);
+
+                navigate(`/jobs/${selectedJobId}/skills-gap`);
+              }}
+              style={{
+                padding: "12px 24px",
+                background: showSkillsGap ? "#4caf50" : "#ff5722",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              🧠 Skills Gap
+            </button>
+
+            {/* Calendar */}
+            <button
+              onClick={() => {
+                setView("pipeline");
                 setShowCalendar(true);
                 setShowStatistics(false);
                 setShowArchived(false);
                 setShowMaterials(false);
+                setShowJobMatching(false);
+                setShowSkillsGap(false);
               }}
               style={{
                 padding: "12px 24px",
@@ -159,6 +241,7 @@ export default function JobListHeader({
               📅 Calendar
             </button>
             
+            {/* Archive */}
             <button
               onClick={() => {
                 setView("pipeline");
@@ -166,6 +249,8 @@ export default function JobListHeader({
                 setShowStatistics(false);
                 setShowCalendar(false);
                 setShowMaterials(false);
+                setShowJobMatching(false);
+                setShowSkillsGap(false);
               }}
               style={{
                 padding: "12px 24px",

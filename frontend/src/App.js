@@ -13,6 +13,7 @@ import CreateGroup from "./pages/createGroup";
 import GroupPage from "./pages/groupPage";
 import SetupTeam from "./pages/teams/setupTeam";
 import SharedProgressView from "./pages/teams/SharedProgressView";
+import AdvisorPortal from "./pages/coaching/AdvisorPortal";
 import EmploymentList from "./pages/employment/EmploymentList";
 import SetPassword from "./pages/setPassword";
 import ForgotPassword from "./pages/forgotPassword";
@@ -65,7 +66,8 @@ import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
-
+import JobMatchingPage from "./pages/jobs/JobMatchingPage";
+import SkillsGapPage from "./pages/jobs/SkillsGapPage";
 
 // inside your router
 
@@ -98,6 +100,7 @@ export function App() {
                 <Route path="/setup-team" element={<SetupTeam />} />
                 <Route path="/teams" element={<TeamsDashboard />} />
                 <Route path="/shared-progress/:teamId/:memberId/:email?" element={<SharedProgressView />} />
+                <Route path="/advisor-portal/:engagementId" element={<AdvisorPortal />} />
                 <Route path="/employment-history" element={<EmploymentList />} />
                 <Route path = "/forgotPassword" element = {<ForgotPassword />} />
                 <Route path = "/set-password" element = {<SetPassword />} />
@@ -105,6 +108,8 @@ export function App() {
                 <Route path = "/resetPassword/:token" element = {<ResetPassword />}/>
                 <Route path = "/cover-Letter" element = {<CoverLetter />} />
                 <Route path="/cover-letter/edit/:id" element={<CoverLetterEditPage />} />
+                <Route path="/job-matching" element={<JobMatchingPage />} />
+                <Route path="/jobs/:jobId/skills-gap" element={<SkillsGapPage />} />
                 <Route path="/cover-letter/feedback/:id" element={<CoverLetterSharingPage />} />
                 <Route path="/cover-letter/public/:token" element={<PublicCoverLetterPage />} />
 

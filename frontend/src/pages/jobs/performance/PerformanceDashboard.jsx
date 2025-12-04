@@ -54,19 +54,44 @@ export default function PerformanceDashboard({ jobs }) {
           break;
       }
       
-      filtered = filtered.filter(j => new Date(j.createdAt) >= cutoffDate);
+      // Filter by status history activity, not just createdAt
+      filtered = filtered.filter(j => {
+        let statusHistory = j.statusHistory || j.status_history;
+        if (!statusHistory || statusHistory.length === 0) {
+          // Fallback to createdAt if no status history
+          return j.createdAt && new Date(j.createdAt) >= cutoffDate;
+        }
+        
+        // Convert array of arrays to objects if needed
+        if (Array.isArray(statusHistory[0])) {
+          statusHistory = statusHistory.map(([status, timestamp]) => ({ status, timestamp }));
+        }
+        
+        // Check if any status change happened in the date range
+        const hasRecentActivity = statusHistory.some(entry => 
+          new Date(entry.timestamp) >= cutoffDate
+        );
+        
+        return hasRecentActivity;
+      });
     }
     
     if (filterStatus !== "all") {
       filtered = filtered.filter(j => j.status === filterStatus);
     }
     
+    console.log("📊 Dashboard filtering:", {
+      dateRange,
+      filterStatus,
+      totalJobs: jobs.length,
+      filteredCount: filtered.length
+    });
+    
     return filtered;
   }, [jobs, dateRange, filterStatus]);
 
   // Calculate comprehensive metrics
   const metrics = useMetricsCalculator(filteredJobs);
-
 
   const saveGoals = (savedGoals) => {
     setGoals(savedGoals);
@@ -275,14 +300,6 @@ export default function PerformanceDashboard({ jobs }) {
               </div>
             </div>
           </div>
-
-          {/* Rest of dashboard sections would continue here... */}
-          {/* For brevity, I'm showing the structure. You would add: */}
-          {/* - Application Volume Trends */}
-          {/* - Success Patterns */}
-          {/* - Actionable Insights */}
-          {/* - Performance vs Benchmarks */}
-          {/* - Summary Stats */}
         </>
       )}
 
