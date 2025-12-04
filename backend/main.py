@@ -50,7 +50,7 @@ from routes.insights import insights_router
 from routes.referral_message_routes import referral_message_router
 from routes.goals import goals_router
 from routes.time_tracking import time_tracking_router
-from routes.Salary import salary_router
+from routes.salary import salary_router
 
 app = FastAPI()
 
