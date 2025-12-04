@@ -769,6 +769,7 @@ class TestDataValidation:
         ]
         for date in dates:
             # Should validate date format
+            ...
     
     def test_gpa_validation(self):
         """Test GPA format validation"""
