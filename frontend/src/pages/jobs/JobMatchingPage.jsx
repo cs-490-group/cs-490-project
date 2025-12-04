@@ -39,6 +39,13 @@ function JobComparisonPreview({ jobId }) {
   if (!compare)
     return <p className="text-muted small">Loading comparison…</p>;
 
+  // Helper function to safely convert values to strings
+  const formatValue = (value) => {
+    if (value === null || value === undefined) return "None";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  };
+
   return (
     <div className="mt-2 small">
       <strong>Skills:</strong>
@@ -56,14 +63,14 @@ function JobComparisonPreview({ jobId }) {
 
       <div className="mt-2">
         <strong>Experience:</strong>{" "}
-        {(compare.experienceGap?.user ?? 0)} yrs vs{" "}
-        {(compare.experienceGap?.required ?? 0)} yrs
+        {formatValue(compare.experienceGap?.user ?? 0)} yrs vs{" "}
+        {formatValue(compare.experienceGap?.required ?? 0)} yrs
       </div>
 
       <div>
         <strong>Education:</strong>{" "}
-        {(compare.educationGap?.user ?? "None")} vs{" "}
-        {(compare.educationGap?.required ?? "None")}
+        {formatValue(compare.educationGap?.user ?? "None")} vs{" "}
+        {formatValue(compare.educationGap?.required ?? "None")}
       </div>
     </div>
   );
@@ -225,7 +232,9 @@ export default function JobMatchingPage() {
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <div>
                     <h5 className="card-title mb-0">{m.jobTitle}</h5>
-                    <small className="text-muted">{m.company}</small>
+                    <small className="text-muted">
+                      {typeof m.company === 'object' ? m.company?.name || 'Company' : m.company}
+                    </small>
                   </div>
 
                   <span className="badge bg-primary fs-6">
@@ -242,9 +251,3 @@ export default function JobMatchingPage() {
     </div>
   );
 }
-
-
-
-
-
-
