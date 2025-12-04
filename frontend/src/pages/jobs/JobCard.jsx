@@ -2,6 +2,53 @@ import React, { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+function MatchPreview({ jobId }) {
+  const [data, setData] = React.useState(null);
+
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/matching/job-profile-compare/${jobId}`, {
+          headers: {
+            "Content-Type": "application/json",
+            uuid: localStorage.getItem("uuid"),
+            Authorization: `Bearer ${localStorage.getItem("session")}`,
+          },
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        }
+      } catch (err) {
+        console.error("Match preview error:", err);
+      }
+    };
+
+    load();
+  }, [jobId]);
+
+  if (!data) return null;
+
+  return (
+    <div style={{ 
+      background: "#f0f6ff",
+      padding: "6px",
+      marginTop: "6px",
+      borderRadius: "4px",
+      fontSize: "11px"
+    }}>
+      <strong>Match Overview:</strong>
+      <div>
+        <span style={{ color: "green" }}>✓ {data.matchingSkills.length} match</span>{" "}
+        <span style={{ color: "orange" }}>• {data.partialSkills.length} partial</span>{" "}
+        <span style={{ color: "red" }}>• {data.missingSkills.length} missing</span>
+      </div>
+    </div>
+  );
+}
+
+
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -87,6 +134,7 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
               <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>
                 {job.company}
               </div>
+              <MatchPreview jobId={job.id} />
             </div>
           </div>
           <button 

@@ -19,6 +19,14 @@ from schema.Job import Job, UrlBody
 from services.html_pdf_generator import HTMLPDFGenerator
 from services.company_research import run_company_research
 from services.company_news import run_company_news
+from services.job_requirements_extractor import (
+    extract_skills,
+    extract_years_experience,
+    extract_education_level,
+)
+from mongo.job_requirements_extractor_dao import job_requirements_extractor_dao
+
+
 from services.salary_research import generate_job_salary_negotiation
 
 
@@ -282,9 +290,41 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         elif model.get("company"):
             company_name = model["company"]
 
+        # Extract job description for requirements extraction
+        description = model.get("description", "") or ""
+        
+        # Extract requirements from description
+        required_skills = extract_skills(description)
+        min_years = extract_years_experience(description)
+        edu_level = extract_education_level(description)
+
+        # Add extracted requirements to model
+        model["requiredSkills"] = required_skills
+        model["minYearsExperience"] = min_years
+        model["educationLevel"] = edu_level
+
+        print("📌 Auto-extracted requirements:")
+        print("   Skills:", required_skills)
+        print("   Min experience:", min_years)
+        print("   Education:", edu_level)
+
         # PHASE 1: Create the job immediately WITHOUT research data
         job_id = await jobs_dao.add_job(model)
         print(f"✅ Job created successfully with ID: {job_id}")
+
+        # Store extraction snapshot separately for auditing
+        try:
+            await job_requirements_extractor_dao.save_requirements(
+                uuid=uuid,
+                job_id=job_id,
+                description=description,
+                required_skills=required_skills,
+                min_years_experience=min_years,
+                education_level=edu_level,
+            )
+            print(f"✅ Requirements snapshot saved for job {job_id}")
+        except Exception as e:
+            print(f"⚠️ Failed to save requirements snapshot: {str(e)}")
 
         # PHASE 2: Add research data asynchronously (non-blocking)
         # If this fails, the job still exists
@@ -351,8 +391,7 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         print(f"[Jobs Router] Add Error: {e}")
         traceback.print_exc()
         raise HTTPException(500, "Encountered internal server error")
-
-
+        
 # NEW ENDPOINT: Retry research for an existing job
 @jobs_router.post("/{job_id}/retry-research", tags=["jobs"])
 async def retry_job_research(job_id: str, uuid: str = Depends(authorize)):

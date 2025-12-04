@@ -65,7 +65,8 @@ import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
-
+import JobMatchingPage from "./pages/jobs/JobMatchingPage";
+import SkillsGapPage from "./pages/jobs/SkillsGapPage";
 import NetworkOverview from "./pages/network/NetworkOverview";
 import ReferralManagement from "./pages/network/ReferralManagement";
 import NetworkEventManagement from "./pages/network/NetworkEventManagement";
@@ -113,6 +114,8 @@ export function App() {
                 <Route path = "/resetPassword/:token" element = {<ResetPassword />}/>
                 <Route path = "/cover-Letter" element = {<CoverLetter />} />
                 <Route path="/cover-letter/edit/:id" element={<CoverLetterEditPage />} />
+                <Route path="/job-matching" element={<JobMatchingPage />} />
+                <Route path="/jobs/:jobId/skills-gap" element={<SkillsGapPage />} />
                 <Route path="/cover-letter/feedback/:id" element={<CoverLetterSharingPage />} />
                 <Route path="/cover-letter/public/:token" element={<PublicCoverLetterPage />} />
 
