@@ -19,13 +19,14 @@ const Nav = () => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
+  const [showInterviewDropdown, setShowInterviewDropdown] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState(localStorage.getItem("avatarUrl") || null);
   const [username, setUsername] = React.useState(localStorage.getItem("username") || "");
   const hasValidated = React.useRef(false);
 
   console.log(token)
   React.useEffect(() => {
-    const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword"];
+    const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword","/shared-progress"];
 
     const shouldSkip = excludedPaths.some(prefix =>
       location.pathname.startsWith(prefix)
@@ -258,7 +259,11 @@ const Nav = () => {
                     Projects
                   </NavDropdown.Item>
                 </NavDropdown>
-
+                
+                <BootstrapNav.Link as={NavLink} to="/pipeline-management" className="mx-3">
+                  App Pipeline
+                </BootstrapNav.Link>
+                
                 <BootstrapNav.Link as={NavLink} to="/jobs" className="mx-3">
                   Jobs
                 </BootstrapNav.Link>
@@ -286,6 +291,9 @@ const Nav = () => {
                   }
                   id="interview-dropdown"
                   className="mx-3"
+                  show={showInterviewDropdown}
+                  onMouseEnter={() => setShowInterviewDropdown(true)}
+                  onMouseLeave={() => setShowInterviewDropdown(false)}
                 >
                   <NavDropdown.Item as={NavLink} to="/interview/question-library">
                     Question Library
@@ -295,6 +303,29 @@ const Nav = () => {
                   </NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/interview/progress">
                     Progress
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/calendar">
+                    Interview Calendar
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/performance">
+                    Performance Analytics
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/writing-practice">
+                    Writing Practice
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/success-probability">
+                    Success Predictor
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/follow-up">
+                    Follow Up
+                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item as={NavLink} to="/technical-prep">
+                    Technical Interview Prep
+                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item as={NavLink} to="/offers">
+                    Offers
                   </NavDropdown.Item>
                 </NavDropdown>
 

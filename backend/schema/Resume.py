@@ -37,26 +37,31 @@ class Resume(BaseModel):
     fonts: Optional[Fonts] = None
     sections: Optional[list[str]] = None
     default_resume: Optional[bool] = False
+    approval_status: Optional[str] = "pending"
 
-# RESUME VERSION SCHEMA
+
 class ResumeVersion(BaseModel):
-    resume_id: Optional[str] = None # Reference to parent resume
-    name: Optional[str] = None # Version name
-    description: Optional[str] = None # Version description
-    resume_data: Optional[dict] = None # Full resume snapshot
-    job_linked: Optional[str] = None # Linked job ID (optional)
+    resume_id: Optional[str] = None 
+    name: Optional[str] = None 
+    description: Optional[str] = None
+    resume_data: Optional[dict] = None 
+    job_linked: Optional[str] = None 
 
-# RESUME FEEDBACK SCHEMA
+
 class ResumeFeedback(BaseModel):
-    resume_id: Optional[str] = None # Reference to parent resume
-    reviewer: Optional[str] = None # Reviewer name
-    email: Optional[str] = None # Reviewer email
-    comment: Optional[str] = None # Feedback comment
-    resolved: Optional[bool] = False # Whether feedback has been addressed
+    resume_id: Optional[str] = None 
+    reviewer: Optional[str] = None
+    email: Optional[str] = None 
+    comment: Optional[str] = None 
+    resolved: Optional[bool] = False 
 
-# RESUME SHARE SCHEMA
+
 class ResumeShare(BaseModel):
-    resume_id: Optional[str] = None # Reference to parent resume
-    can_comment: Optional[bool] = True # Allow reviewers to comment
-    can_download: Optional[bool] = True # Allow reviewers to download
-    expiration_days: Optional[int] = 30 # Number of days before link expires
+    resume_id: Optional[str] = None 
+    can_comment: Optional[bool] = True 
+    can_download: Optional[bool] = True 
+    expiration_days: Optional[int] = 30 
+
+# RESUME APPROVAL SCHEMA (Anthony UC-110)
+class ApprovalRequest(BaseModel):
+    status: str

@@ -550,7 +550,7 @@ export default function CoverLetterList() {
 
   const handleJobSelect = async (jobId) => {
     try {
-      // Call your API to associate the letter with the job
+      
       await CoverLetterAPI.addToJob(jobLetter, jobId);
       showFlash("Cover letter added to job!", "success");
     } catch (err) {
@@ -730,6 +730,13 @@ export default function CoverLetterList() {
                 title="Download as HTML (can be re-uploaded)"
               >
                 Download HTML
+              </button>
+
+              <button
+                onClick={() => navigate(`/cover-letter/feedback/${letter.id}`)}
+                style={{ padding: "6px 12px", background: "#9c27b0", color: "white", border: "none", borderRadius: "4px" }}
+              >
+                Share & Feedback
               </button>
             </div>
           </div>

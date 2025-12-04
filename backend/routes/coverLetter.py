@@ -12,14 +12,14 @@ import tempfile
 import requests
 from bs4 import BeautifulSoup
 
-from schema.CoverLetter import CoverLetterIn, CoverLetterOut, CoverLetterUpdate
+from schema.CoverLetter import CoverLetterIn, CoverLetterOut, CoverLetterUpdate,CoverLetterShare, CoverLetterFeedback,ApprovalRequest,CoverLetterVersion
 from mongo.cover_letters_dao import cover_letters_dao
 from sessions.session_authorizer import authorize
 
 coverletter_router = APIRouter(prefix="/cover-letters")
 
 # ============================================================
-# GET usage stats aggregated by template type (MUST BE FIRST)
+# GET usage stats aggregated by template type ( THIS MUST BE AT THE TOP)
 # ============================================================
 @coverletter_router.get("/usage/by-type")
 async def get_usage_by_template_type():
@@ -424,3 +424,154 @@ def process_html_element(element, doc):
         if hasattr(element, 'children'):
             for child in element.children:
                 process_html_element(child, doc)
+
+
+@coverletter_router.get("/public/{token}", tags=["cover-letters"])
+async def get_shared_cover_letter(token: str):
+    """Get cover letter via share token (for external reviewers)"""
+    try:
+        result = await cover_letters_dao.get_cover_letter_by_token(token)
+        if result:
+            return result
+        raise HTTPException(400, "Invalid or expired share link")
+    except Exception as e:
+        raise HTTPException(500, f"Error: {str(e)}")
+
+@coverletter_router.post("/public/{token}/feedback", tags=["cover-letters"])
+async def add_public_feedback(token: str, feedback: CoverLetterFeedback):
+    """Allow external reviewers to comment"""
+    try:
+
+        letter = await cover_letters_dao.get_cover_letter_by_token(token)
+        if not letter:
+            raise HTTPException(400, "Invalid token")
+            
+        settings = letter.get("share_settings", {})
+        if not settings.get("can_comment"):
+            raise HTTPException(403, "Comments are disabled for this document")
+
+        model = feedback.model_dump()
+        model["cover_letter_id"] = letter["_id"] # Link to the actual letter ID
+        
+        feedback_id = await cover_letters_dao.add_feedback(model)
+        return {"detail": "Feedback added", "feedback_id": feedback_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+# ============================================================
+# SHARE MANAGEMENT (Authenticated)
+# ============================================================
+@coverletter_router.post("/{letter_id}/share", tags=["cover-letters"])
+async def create_share_link(letter_id: str, share: CoverLetterShare, uuid: str = Depends(authorize)):
+    try:
+        model = share.model_dump()
+        result = await cover_letters_dao.create_share_link(letter_id, model)
+        return {"detail": "Link generated", "share_link": result["token"], "share_data": result}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@coverletter_router.get("/{letter_id}/share", tags=["cover-letters"])
+async def get_share_link(letter_id: str, uuid: str = Depends(authorize)):
+    try:
+        result = await cover_letters_dao.get_share_link(letter_id)
+        if not result:
+            raise HTTPException(400, "No active link found")
+        return result
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@coverletter_router.delete("/{letter_id}/share", tags=["cover-letters"])
+async def revoke_share_link(letter_id: str, uuid: str = Depends(authorize)):
+    await cover_letters_dao.revoke_share_link(letter_id)
+    return {"detail": "Link revoked"}
+
+# ============================================================
+# FEEDBACK MANAGEMENT (Authenticated)
+# ============================================================
+@coverletter_router.get("/{letter_id}/feedback", tags=["cover-letters"])
+async def get_feedback(letter_id: str, uuid: str = Depends(authorize)):
+    return await cover_letters_dao.get_feedback(letter_id)
+
+@coverletter_router.post("/{letter_id}/feedback", tags=["cover-letters"])
+async def add_internal_feedback(letter_id: str, feedback: CoverLetterFeedback, uuid: str = Depends(authorize)):
+    # For when the user adds notes to their own letter
+    model = feedback.model_dump()
+    model["cover_letter_id"] = letter_id
+    res = await cover_letters_dao.add_feedback(model)
+    return {"detail": "Feedback added", "feedback_id": res}
+
+@coverletter_router.put("/{letter_id}/feedback/{feedback_id}", tags=["cover-letters"])
+async def update_feedback(letter_id: str, feedback_id: str, feedback: CoverLetterFeedback, uuid: str = Depends(authorize)):
+    model = feedback.model_dump(exclude_unset=True)
+    await cover_letters_dao.update_feedback(feedback_id, model)
+    return {"detail": "Feedback updated"}
+
+@coverletter_router.delete("/{letter_id}/feedback/{feedback_id}", tags=["cover-letters"])
+async def delete_feedback(letter_id: str, feedback_id: str, uuid: str = Depends(authorize)):
+    await cover_letters_dao.delete_feedback(feedback_id)
+    return {"detail": "Feedback deleted"}
+
+
+@coverletter_router.post("/public/{token}/status", tags=["cover-letters"])
+async def set_public_cover_letter_status(token: str, request: ApprovalRequest):
+    letter = await cover_letters_dao.get_cover_letter_by_token(token)
+    if not letter:
+        raise HTTPException(400, "Invalid token")
+        
+    if not letter.get("share_settings", {}).get("can_comment"):
+        raise HTTPException(403, "Reviewer permissions disabled")
+
+    await cover_letters_dao.update_approval_status(letter["_id"], request.status)
+    return {"detail": f"Status updated to {request.status}"}
+
+
+@coverletter_router.post("/{letter_id}/versions", tags=["cover-letters"])
+async def create_version(letter_id: str, version: CoverLetterVersion, uuid: str = Depends(authorize)):
+    """Save a manual version snapshot"""
+
+    letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
+    if not letter:
+        raise HTTPException(404, "Cover letter not found")
+
+    model = version.model_dump()
+    # Snapshot current state if not provided in body
+    if not model.get("content_snapshot"):
+        model["content_snapshot"] = letter.get("content")
+    if not model.get("title_snapshot"):
+        model["title_snapshot"] = letter.get("title")
+        
+    result = await cover_letters_dao.create_version(letter_id, model)
+    return {"detail": "Version saved", "version_id": result}
+
+@coverletter_router.get("/{letter_id}/versions", tags=["cover-letters"])
+async def get_versions(letter_id: str, uuid: str = Depends(authorize)):
+   
+    letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
+    if not letter:
+        raise HTTPException(404, "Cover letter not found")
+        
+    return await cover_letters_dao.get_versions(letter_id)
+
+@coverletter_router.post("/{letter_id}/versions/{version_id}/restore", tags=["cover-letters"])
+async def restore_version(letter_id: str, version_id: str, uuid: str = Depends(authorize)):
+    
+    letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
+    if not letter:
+        raise HTTPException(404, "Cover letter not found")
+
+    updated = await cover_letters_dao.restore_version(letter_id, version_id)
+    if updated == 0:
+        raise HTTPException(400, "Failed to restore version")
+    return {"detail": "Version restored successfully"}
+
+@coverletter_router.delete("/{letter_id}/versions/{version_id}", tags=["cover-letters"])
+async def delete_version(letter_id: str, version_id: str, uuid: str = Depends(authorize)):
+    # Verify ownership
+    letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
+    if not letter:
+        raise HTTPException(404, "Cover letter not found")
+
+    await cover_letters_dao.delete_version(version_id)
+    return {"detail": "Version deleted"}

@@ -39,7 +39,7 @@ class CoverLetterAPI {
     return api.get(`${BASE_URL}/usage/by-type`);
   }
 
-  // PUT set as default (if you implement this)
+  
   setDefault(coverLetterId) {
     return api.put(`${BASE_URL}/${coverLetterId}/default`);
   }
@@ -49,6 +49,65 @@ class CoverLetterAPI {
         job_id: jobId
     });
 }
+
+// Share Management
+  createShareLink(id, settings) {
+    return api.post(`${BASE_URL}/${id}/share`, settings);
+  }
+
+  getShareLink(id) {
+    return api.get(`${BASE_URL}/${id}/share`);
+  }
+
+  revokeShareLink(id) {
+    return api.delete(`${BASE_URL}/${id}/share`);
+  }
+
+  // Public Access
+  getSharedCoverLetter(token) {
+    return api.get(`${BASE_URL}/public/${token}`);
+  }
+
+  addPublicFeedback(token, data) {
+    return api.post(`${BASE_URL}/public/${token}/feedback`, data);
+  }
+
+  updatePublicStatus(token, status) {
+        return api.post(`${BASE_URL}/public/${token}/status`, { status });
+    }
+
+  // Feedback Management (Internal)
+  getFeedback(id) {
+    return api.get(`${BASE_URL}/${id}/feedback`);
+  }
+
+  addFeedback(id, data) {
+    return api.post(`${BASE_URL}/${id}/feedback`, data);
+  }
+
+  updateFeedback(id, feedbackId, data) {
+    return api.put(`${BASE_URL}/${id}/feedback/${feedbackId}`, data);
+  }
+
+  deleteFeedback(id, feedbackId) {
+    return api.delete(`${BASE_URL}/${id}/feedback/${feedbackId}`);
+  }
+
+  createVersion(id, data) {
+    return api.post(`${BASE_URL}/${id}/versions`, data);
+  }
+
+  getVersions(id) {
+    return api.get(`${BASE_URL}/${id}/versions`);
+  }
+
+  restoreVersion(id, versionId) {
+    return api.post(`${BASE_URL}/${id}/versions/${versionId}/restore`);
+  }
+
+  deleteVersion(id, versionId) {
+    return api.delete(`${BASE_URL}/${id}/versions/${versionId}`);
+  }
 }
 
 export default new CoverLetterAPI();

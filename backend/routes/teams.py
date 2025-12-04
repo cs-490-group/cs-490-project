@@ -7,6 +7,7 @@ from email.mime.text import MIMEText
 from dotenv import load_dotenv
 from mongo.teams_dao import teams_dao
 from mongo.jobs_dao import jobs_dao
+from mongo.progress_sharing_dao import progress_sharing_dao
 from schema.teams import (
     CreateTeamRequest, UpdateTeamRequest, InviteMemberRequest,
     UpdateMemberRequest, UpdateBillingRequest, SendFeedbackRequest,
@@ -19,6 +20,74 @@ GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 teams_router = APIRouter(prefix="/teams")
+
+async def log_milestone_for_event(team_id: ObjectId, member_uuid: str, event_type: str, event_data: dict = None):
+    """
+    Automatically log milestones when significant events occur.
+    Call this whenever a job status changes or goal is completed.
+    """
+    event_data = event_data or {}
+    
+    milestone_map = {
+        "interview_scheduled": {
+            "title": f"🎯 Interview Scheduled!",
+            "description": f"Interview scheduled for {event_data.get('company', 'a company')}",
+            "category": "interview_scheduled",
+            "impact_score": 7
+        },
+        "offer_received": {
+            "title": "🎉 Offer Received!",
+            "description": f"Offer from {event_data.get('company', 'a company')}",
+            "category": "offer_received",
+            "impact_score": 10
+        },
+        "goal_completed": {
+            "title": "✅ Goal Completed!",
+            "description": event_data.get('goal_title', 'You completed a goal'),
+            "category": "goal_completed",
+            "impact_score": 5
+        },
+        "applications_milestone_10": {
+            "title": "📧 10 Applications Sent!",
+            "description": "You've sent 10 job applications",
+            "category": "applications_milestone",
+            "impact_score": 3
+        },
+        "applications_milestone_25": {
+            "title": "📧 25 Applications Sent!",
+            "description": "You've sent 25 job applications",
+            "category": "applications_milestone",
+            "impact_score": 4
+        },
+        "applications_milestone_50": {
+            "title": "📧 50 Applications Sent!",
+            "description": "You've sent 50 job applications",
+            "category": "applications_milestone",
+            "impact_score": 5
+        },
+    }
+    
+    if event_type not in milestone_map:
+        return
+    
+    milestone_template = milestone_map[event_type]
+    
+    milestone = {
+        "id": f"{event_type}_{datetime.utcnow().timestamp()}",
+        "title": milestone_template["title"],
+        "description": milestone_template["description"],
+        "achieved_date": datetime.utcnow(),
+        "category": milestone_template["category"],
+        "impact_score": milestone_template["impact_score"],
+        "celebration_message": None
+    }
+    
+    try:
+        await progress_sharing_dao.log_milestone(team_id, member_uuid, milestone)
+        print(f"Milestone logged: {milestone['title']} for {member_uuid}")
+    except Exception as e:
+        print(f" Failed to log milestone: {e}")
+
 
 
 def send_team_invite_email(to_email: str, team_name: str, team_id: str, inviter_name: str) -> bool:
@@ -463,11 +532,18 @@ async def update_member_goals(team_id: str, member_uuid: str, request: UpdateGoa
         previous_completed = len([g for g in previous_goals if g.get("completed")])
         new_completed = len([g for g in goals if g.get("completed")])
         
-        # If new goals were completed, log the activity
+        # If new goals were completed, log the activity AND milestone
         if new_completed > previous_completed:
             goals_completed = new_completed - previous_completed
             for _ in range(goals_completed):
                 await teams_dao.update_member_activity(team_id_obj, member_uuid, "goal_completed")
+                # Log milestone for each completed goal
+                await log_milestone_for_event(
+                    team_id_obj,
+                    member_uuid,
+                    "goal_completed",
+                    {"goal_title": "a goal"}
+                )
         
         # Update the goals
         result = await teams_dao.update_member_goals(team_id_obj, member_uuid, goals)
@@ -488,7 +564,7 @@ async def update_member_goals(team_id: str, member_uuid: str, request: UpdateGoa
 
 @teams_router.put("/{team_id}/members/{member_uuid}/applications")
 async def update_member_applications(team_id: str, member_uuid: str, applications: list):
-    """Update member applications and track application sent activity"""
+    """Update member applications and track application sent activity + milestones"""
     try:
         team_id_obj = ObjectId(team_id)
         
@@ -510,6 +586,44 @@ async def update_member_applications(team_id: str, member_uuid: str, application
             new_applications = new_count - previous_count
             for _ in range(new_applications):
                 await teams_dao.update_member_activity(team_id_obj, member_uuid, "application_sent")
+        
+        # Check for status changes that should trigger milestones
+        for new_app in applications:
+            # Find corresponding old app
+            old_app = next(
+                (a for a in previous_applications if a.get("id") == new_app.get("id")),
+                None
+            )
+            
+            if old_app:
+                old_status = old_app.get("status", "").lower()
+                new_status = new_app.get("status", "").lower()
+                
+                # Interview milestone
+                if old_status != "interview" and new_status == "interview":
+                    await log_milestone_for_event(
+                        team_id_obj,
+                        member_uuid,
+                        "interview_scheduled",
+                        {"company": new_app.get("company", "a company")}
+                    )
+                
+                # Offer milestone
+                if old_status != "offer" and new_status == "offer":
+                    await log_milestone_for_event(
+                        team_id_obj,
+                        member_uuid,
+                        "offer_received",
+                        {"company": new_app.get("company", "a company")}
+                    )
+        
+        # Check for application count milestones (10, 25, 50)
+        if new_count >= 10 and previous_count < 10:
+            await log_milestone_for_event(team_id_obj, member_uuid, "applications_milestone_10")
+        if new_count >= 25 and previous_count < 25:
+            await log_milestone_for_event(team_id_obj, member_uuid, "applications_milestone_25")
+        if new_count >= 50 and previous_count < 50:
+            await log_milestone_for_event(team_id_obj, member_uuid, "applications_milestone_50")
         
         # Update the applications
         result = await teams_dao.update_member_applications(team_id_obj, member_uuid, applications)
@@ -650,6 +764,35 @@ async def get_member_report(team_id: str, member_uuid: str):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
         
         return member_report
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@teams_router.post("/{team_id}/members/{member_uuid}/manual-milestone")
+async def log_manual_milestone(team_id: str, member_uuid: str, milestone_data: dict):
+    """
+    Manually log a milestone (for special achievements not covered by auto-logging)
+    """
+    try:
+        team_id_obj = ObjectId(team_id)
+        
+        milestone = {
+            "id": f"manual_{datetime.utcnow().timestamp()}",
+            "title": milestone_data.get("title", "Achievement Unlocked"),
+            "description": milestone_data.get("description", ""),
+            "achieved_date": datetime.utcnow(),
+            "category": milestone_data.get("category", "custom"),
+            "impact_score": milestone_data.get("impact_score", 5),
+            "celebration_message": milestone_data.get("celebration_message")
+        }
+        
+        success = await progress_sharing_dao.log_milestone(team_id_obj, member_uuid, milestone)
+        
+        if not success:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to log milestone")
+        
+        return {"message": "Milestone logged", "milestone": milestone}
     except HTTPException:
         raise
     except Exception as e:
