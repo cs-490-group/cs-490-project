@@ -1,646 +1,341 @@
-import React, { useState, useEffect } from "react";
-import { ChevronDown, Plus, Mail, Edit2, Trash2, TrendingUp, CheckCircle, AlertCircle, MessageSquare } from "lucide-react";
-import teamsAPI from "../api/teams";
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useFlash } from "../context/flashContext";
+import groupAPI from "../api/groups";
+import postsAPI from "../api/posts";
+import profilesAPI from "../api/profiles";
+import { Container, Row, Col, Card, Button, Form, Badge, Dropdown, Nav, InputGroup } from 'react-bootstrap';
+import { MessageSquare, ThumbsUp, Trash2, Share2, MoreHorizontal, ArrowLeft, Video, Send } from 'lucide-react';
 
-const ChartPlaceholder = ({ title }) => (
-  <div style={{ border: "1px solid #e5e7eb", padding: "20px", marginBottom: "16px", borderRadius: "8px", backgroundColor: "#f9fafb" }}>
-    <strong className="text-gray-700">{title}</strong>
-    <div style={{ height: "200px", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", marginTop: "12px" }}>
-      [Chart visualization]
-    </div>
-  </div>
-);
+function GroupPage() {
+  const { groupId } = useParams();
+  const navigate = useNavigate();
+  const { showFlash } = useFlash();
+  const uuid = localStorage.getItem('uuid');
 
-function TeamsDashboard() {
-  const [team, setTeam] = useState(null);
-  const [members, setMembers] = useState([]);
-  const [selectedMember, setSelectedMember] = useState(null);
-  const [filterRole, setFilterRole] = useState("all");
-  const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("overview");
-  const [newInvite, setNewInvite] = useState({ email: "", role: "candidate" });
-  const [planModalOpen, setPlanModalOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState("");
-  const [feedback, setFeedback] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [reports, setReports] = useState(null);
+  const [activeTab, setActiveTab] = useState('feed');
+  const [group, setGroup] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Post Form State
+  const [postTitle, setPostTitle] = useState('');
+  const [postContent, setPostContent] = useState('');
+  const [postType, setPostType] = useState('insight');
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  
+  // Webinar State
+  const [webinarTitle, setWebinarTitle] = useState('');
+  const [webinarLink, setWebinarLink] = useState('');
+
+  const [commentTexts, setCommentTexts] = useState({});
+  const [username, setUsername] = useState('');
+  const [postsVisibleToNonMembers, setPostsVisibleToNonMembers] = useState(true);
+
+  const isUserInGroup = () => group?.members?.some(m => m.uuid === uuid);
+  const isUserAdmin = () => group?.members?.some(m => m.uuid === uuid && m.role === 'admin');
 
   useEffect(() => {
-    fetchTeamData();
-  }, []);
+    if (groupId) {
+        fetchGroupData();
+        fetchPosts();
+        fetchUserProfile();
+    }
+  }, [groupId]);
 
-  const fetchTeamData = async () => {
+  const fetchGroupData = async () => {
     try {
-      setLoading(true);
-      const teamId = localStorage.getItem("teamId") || "TEAM_ID";
-      const teamData = await teamsAPI.getTeam(teamId);
-      setTeam(teamData);
-      setMembers(teamData.members || []);
-      setSelectedPlan(teamData.billing?.plan || "basic");
-      
-      // Fetch reports if user is mentor or admin
-      if (teamData.currentUserRole === "mentor" || teamData.currentUserRole === "admin") {
-        const reportsData = await teamsAPI.getTeamReports(teamId);
-        setReports(reportsData);
-      }
-      setError(null);
-    } catch (err) {
-      console.error("Failed to fetch team data", err);
-      setError("Failed to load team data");
-    } finally {
-      setLoading(false);
+      const data = await groupAPI.getGroup(groupId);
+      setGroup(data);
+      setPostsVisibleToNonMembers(data.postsVisibleToNonMembers ?? true);
+    } catch (error) {
+      console.error(error);
     }
   };
 
-  const filteredMembers = members.filter((m) => {
-    const roleMatch = filterRole === "all" || m.role === filterRole;
-    const textMatch = m.name?.toLowerCase().includes(search.toLowerCase()) || 
-                      m.email?.toLowerCase().includes(search.toLowerCase());
-    return roleMatch && textMatch;
-  });
-
-  const isAdmin = () => team?.currentUserRole === "admin";
-  const isMentor = () => team?.currentUserRole === "mentor";
-
-  const getEngagementStatus = (engagement) => {
-    if (engagement >= 90) return { label: "Excellent", color: "text-green-600", bg: "bg-green-50" };
-    if (engagement >= 70) return { label: "Good", color: "text-blue-600", bg: "bg-blue-50" };
-    return { label: "Needs Attention", color: "text-orange-600", bg: "bg-orange-50" };
+  const fetchUserProfile = async () => {
+    try {
+      const response = await profilesAPI.get();
+      if (response.data?.username) setUsername(response.data.username);
+    } catch (error) {}
   };
 
-  // ============ OVERVIEW TAB ============
-  const renderOverview = () => (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">{team?.name || "Team"} Dashboard</h1>
-      
-      {team && (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="text-gray-600 text-sm">Total Members</div>
-              <div className="text-2xl font-bold">{team.memberCount || 0}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="text-gray-600 text-sm">Admins</div>
-              <div className="text-2xl font-bold">{team.admins || 0}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="text-gray-600 text-sm">Mentors</div>
-              <div className="text-2xl font-bold">{team.mentors || 0}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="text-gray-600 text-sm">Candidates</div>
-              <div className="text-2xl font-bold">{team.candidates || 0}</div>
-            </div>
-          </div>
+  const fetchPosts = async () => {
+    setLoading(true);
+    try {
+      const data = await postsAPI.getGroupPosts(groupId);
+      const sorted = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setPosts(sorted);
+    } catch (error) {
+      console.error(error);
+    }
+    setLoading(false);
+  };
 
-          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-            <h2 className="text-xl font-bold mb-4">Aggregate KPIs</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <div className="text-gray-600 text-sm mb-1">Progress</div>
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-blue-600" />
-                  <span className="text-xl font-bold">{team.progress || 0}%</span>
-                </div>
-              </div>
-              <div>
-                <div className="text-gray-600 text-sm mb-1">Goals Completed</div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-xl font-bold">{team.goalsCompleted || 0}</span>
-                </div>
-              </div>
-              <div>
-                <div className="text-gray-600 text-sm mb-1">Applications Sent</div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-purple-600" />
-                  <span className="text-xl font-bold">{team.applicationsSent || 0}</span>
-                </div>
-              </div>
-              <div>
-                <div className="text-gray-600 text-sm mb-1">Avg Engagement</div>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-orange-600" />
-                  <span className="text-xl font-bold">{team.avgEngagement || 0}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
+  const handleCreatePost = async () => {
+    if (!postTitle.trim() || !postContent.trim()) return;
+    try {
+      await postsAPI.createPost({
+        groupId, uuid, title: postTitle, content: postContent, postType, isAnonymous,
+        username: isAnonymous ? "Anonymous" : username,
+      });
+      setPostTitle(''); setPostContent(''); setPostType('insight'); setIsAnonymous(false);
+      fetchPosts();
+      showFlash('Post created!', 'success');
+    } catch (error) { showFlash('Failed to post', 'error'); }
+  };
 
-          <ChartPlaceholder title="Goals Completion Over Time" />
-          <ChartPlaceholder title="Applications Submitted Over Time" />
-          <ChartPlaceholder title="Team Engagement Score" />
-        </>
-      )}
-    </div>
-  );
+  const handleCreateWebinar = async () => {
+    try {
+      await postsAPI.createPost({
+        groupId, uuid, title: webinarTitle, content: webinarLink, postType: 'coaching',
+        isAnonymous: false, username,
+      });
+      setWebinarTitle(''); setWebinarLink('');
+      fetchPosts();
+      showFlash('Webinar posted!', 'success');
+    } catch (error) { showFlash('Failed to post webinar', 'error'); }
+  };
 
-  // ============ BILLING TAB ============
-  const renderBilling = () => (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Billing & Subscription</h1>
-      
-      {!team?.billing ? (
-        <p className="text-gray-600">No billing data found.</p>
-      ) : (
-        <>
-          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-            <h3 className="text-lg font-bold mb-4">Current Plan</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-gray-600 text-sm">Plan</div>
-                <div className="text-lg font-semibold capitalize">{team.billing.plan}</div>
-              </div>
-              <div>
-                <div className="text-gray-600 text-sm">Status</div>
-                <div className="text-lg font-semibold capitalize text-green-600">{team.billing.status}</div>
-              </div>
-              <div>
-                <div className="text-gray-600 text-sm">Price</div>
-                <div className="text-lg font-semibold">${team.billing.price}/month</div>
-              </div>
-              <div>
-                <div className="text-gray-600 text-sm">Renews On</div>
-                <div className="text-lg font-semibold">{team.billing.renewalDate}</div>
-              </div>
-            </div>
-          </div>
+  const handleLikePost = async (postId) => {
+    try { await postsAPI.likePost(groupId, postId, uuid); fetchPosts(); } catch(e){}
+  };
 
-          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-            <h3 className="text-lg font-bold mb-4">Payment Method</h3>
-            <div className="space-y-2">
-              <div className="text-sm"><span className="text-gray-600">Card:</span> {team.billing.cardBrand} •••• {team.billing.last4}</div>
-              <div className="text-sm"><span className="text-gray-600">Expires:</span> {team.billing.expMonth}/{team.billing.expYear}</div>
-            </div>
-          </div>
+  const handleUnlikePost = async (postId) => {
+    try { await postsAPI.unlikePost(groupId, postId, uuid); fetchPosts(); } catch(e){}
+  };
 
-          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-            <h3 className="text-lg font-bold mb-4">Invoices</h3>
-            {team.billing.invoices?.length > 0 ? (
-              <ul className="space-y-2">
-                {team.billing.invoices.map((inv) => (
-                  <li key={inv.id} className="flex justify-between items-center py-2 border-b last:border-b-0">
-                    <div>
-                      <strong>${inv.amount}</strong> — {inv.date}
-                    </div>
-                    <span className="text-sm bg-gray-100 px-2 py-1 rounded capitalize">{inv.status}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-600">No invoices found.</p>
-            )}
-          </div>
+  const handleAddComment = async (postId) => {
+    const text = commentTexts[postId];
+    if (!text?.trim()) return;
+    try {
+      await postsAPI.addComment(groupId, postId, text, uuid, isAnonymous ? "Anonymous" : username);
+      setCommentTexts({ ...commentTexts, [postId]: '' });
+      fetchPosts();
+    } catch(e){}
+  };
 
-          {isAdmin() && (
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setPlanModalOpen(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-              >
-                Update Plan
-              </button>
-              <button 
-                onClick={async () => {
-                  if (!window.confirm("Are you sure you want to cancel the subscription?")) return;
-                  try {
-                    await teamsAPI.cancelSubscription(team.id);
-                    alert("Subscription cancelled!");
-                    fetchTeamData();
-                  } catch (err) {
-                    console.error(err);
-                    alert("Failed to cancel subscription");
-                  }
-                }}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-              >
-                Cancel Subscription
-              </button>
-            </div>
-          )}
+  const handleDeletePost = async (postId) => {
+    if (window.confirm("Delete post?")) {
+        await postsAPI.deletePost(groupId, postId, uuid);
+        fetchPosts();
+    }
+  };
 
-          {planModalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                <h3 className="text-lg font-bold mb-4">Update Plan</h3>
-                <select 
-                  value={selectedPlan} 
-                  onChange={(e) => setSelectedPlan(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg mb-4"
-                >
-                  <option value="basic">Basic</option>
-                  <option value="standard">Standard</option>
-                  <option value="premium">Premium</option>
-                </select>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={async () => {
-                      if (selectedPlan === team.billing.plan) {
-                        alert("Selected plan is the same as current.");
-                        return;
-                      }
-                      try {
-                        await teamsAPI.updateBilling(team.id, { plan: selectedPlan });
-                        alert(`Plan updated to ${selectedPlan}`);
-                        setPlanModalOpen(false);
-                        fetchTeamData();
-                      } catch (err) {
-                        console.error(err);
-                        alert("Failed to update plan");
-                      }
-                    }}
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-                  >
-                    Confirm
-                  </button>
-                  <button 
-                    onClick={() => setPlanModalOpen(false)}
-                    className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
+  const handleDeleteComment = async (postId, commentId, commentUuid) => {
+     if (window.confirm("Delete comment?")) {
+        await postsAPI.deleteComment(groupId, postId, commentId, uuid);
+        fetchPosts();
+     }
+  };
 
-  // ============ MEMBERS TAB ============
-  const renderMembers = () => (
-    <div className="p-6">
-      <div className="grid grid-cols-3 gap-6 h-[calc(100vh-120px)]">
-        {/* LEFT: Member List */}
-        <div className="col-span-1 border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto">
-          <h2 className="text-lg font-bold mb-4">Team Members</h2>
-          
-          <div className="space-y-3 mb-4">
-            <input
-              type="text"
-              placeholder="Search members..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-            />
-            <select 
-              value={filterRole} 
-              onChange={(e) => setFilterRole(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-            >
-              <option value="all">All Roles</option>
-              <option value="admin">Admins</option>
-              <option value="mentor">Mentors</option>
-              <option value="candidate">Candidates</option>
-            </select>
-          </div>
+  if (!group) return <div className="p-5 text-center">Loading...</div>;
 
-          {isAdmin() && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <h4 className="font-bold text-sm mb-2">Invite Member</h4>
-              <input
-                type="email"
-                placeholder="Email"
-                value={newInvite.email}
-                onChange={(e) => setNewInvite({ ...newInvite, email: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded text-sm mb-2"
-              />
-              <select
-                value={newInvite.role}
-                onChange={(e) => setNewInvite({ ...newInvite, role: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded text-sm mb-2"
-              >
-                <option value="admin">Admin</option>
-                <option value="mentor">Mentor</option>
-                <option value="candidate">Candidate</option>
-              </select>
-              <button 
-                onClick={async () => {
-                  if (!newInvite.email) {
-                    alert("Email is required.");
-                    return;
-                  }
-                  try {
-                    await teamsAPI.inviteMember(team.id, newInvite);
-                    alert(`Invitation sent to ${newInvite.email}`);
-                    setNewInvite({ email: "", role: "candidate" });
-                    fetchTeamData();
-                  } catch (err) {
-                    console.error(err);
-                    alert("Failed to invite member");
-                  }
-                }}
-                className="w-full bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
-              >
-                Send Invite
-              </button>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {filteredMembers.map((member) => (
-              <div
-                key={member.uuid}
-                onClick={() => setSelectedMember(member)}
-                className={`p-3 rounded-lg cursor-pointer transition ${
-                  selectedMember?.uuid === member.uuid 
-                    ? "bg-blue-100 border border-blue-300" 
-                    : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
-                }`}
-              >
-                <div className="font-semibold text-sm">{member.name}</div>
-                <div className="text-xs text-gray-600">{member.role}</div>
-                <div className="text-xs text-gray-600 mt-1">Progress: {member.progress?.overall || 0}%</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* RIGHT: Member Detail */}
-        <div className="col-span-2 border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto">
-          {!selectedMember ? (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              Select a team member to view details
-            </div>
-          ) : (
-            <>
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2">{selectedMember.name}</h2>
-                <div className="space-y-1 text-sm text-gray-600">
-                  <div>Email: {selectedMember.email}</div>
-                  <div>Role: <span className="font-semibold capitalize">{selectedMember.role}</span></div>
-                </div>
-              </div>
-
-              {/* KPIs */}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold mb-3">Key Performance Indicators</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
-                    <div className="text-gray-600 text-sm">Completed Goals</div>
-                    <div className="text-2xl font-bold">{selectedMember.kpis?.completedGoals || 0}</div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
-                    <div className="text-gray-600 text-sm">Pending Goals</div>
-                    <div className="text-2xl font-bold">{selectedMember.kpis?.pendingGoals || 0}</div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
-                    <div className="text-gray-600 text-sm">Engagement</div>
-                    <div className="text-2xl font-bold">{selectedMember.kpis?.engagement || 0}%</div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
-                    <div className="text-gray-600 text-sm">Applications Sent</div>
-                    <div className="text-2xl font-bold">{selectedMember.kpis?.applications || 0}</div>
-                  </div>
-                </div>
-                <div className="mt-3 text-sm text-gray-600">
-                  Last Login: {selectedMember.kpis?.lastLogin || "Never"}
-                </div>
-              </div>
-
-              {/* Goals */}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold mb-3">Goals & Milestones</h3>
-                {selectedMember.goals?.length > 0 ? (
-                  <ul className="space-y-2">
-                    {selectedMember.goals.map((goal) => (
-                      <li key={goal.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                        <span className={goal.completed ? "text-green-600" : "text-orange-600"}>
-                          {goal.completed ? "✅" : "⏳"}
-                        </span>
-                        <span className={goal.completed ? "line-through text-gray-500" : ""}>
-                          {goal.title}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-600 text-sm">No goals yet.</p>
-                )}
-              </div>
-
-              {/* Applications */}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold mb-3">Job Applications</h3>
-                {selectedMember.applications?.length > 0 ? (
-                  <div className="space-y-3">
-                    {selectedMember.applications.map((app) => (
-                      <div key={app.id} className="border border-gray-200 rounded p-3 bg-gray-50">
-                        <div className="font-semibold">{app.position}</div>
-                        <div className="text-sm text-gray-600">@ {app.company}</div>
-                        <div className="text-sm mt-1">
-                          Status: <span className="font-semibold capitalize">{app.status}</span>
-                        </div>
-                        {app.materials?.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {app.materials.map((m, idx) => (
-                              <a 
-                                key={idx} 
-                                href={m.link} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-600 hover:underline block"
-                              >
-                                📎 {m.name}
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-600 text-sm">No applications yet.</p>
-                )}
-              </div>
-
-              {/* Mentor Feedback */}
-              {isMentor() && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4" />
-                    Provide Feedback
-                  </h3>
-                  <textarea
-                    value={feedback}
-                    onChange={(e) => setFeedback(e.target.value)}
-                    placeholder="Enter coaching feedback, recommendations, or encouragement..."
-                    className="w-full p-2 border border-gray-300 rounded-lg text-sm mb-2 h-24"
-                  />
-                  <button 
-                    onClick={async () => {
-                      if (!feedback.trim()) {
-                        alert("Please enter feedback");
-                        return;
-                      }
-                      try {
-                        await teamsAPI.sendFeedback(team.id, selectedMember.uuid, {
-                          feedback: feedback,
-                          mentorId: team.members[0]?.uuid
-                        });
-                        alert("Feedback sent successfully!");
-                        setFeedback("");
-                      } catch (err) {
-                        console.error(err);
-                        alert("Failed to send feedback");
-                      }
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
-                  >
-                    Send Feedback
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  // ============ REPORTS TAB ============
-  const renderReports = () => (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Team Reports & Coaching Insights</h1>
-      
-      {reports ? (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="text-gray-600 text-sm">Overall Progress</div>
-              <div className="text-2xl font-bold">{reports.overallProgress || 0}%</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="text-gray-600 text-sm">Goals Completed</div>
-              <div className="text-2xl font-bold">{reports.totalGoalsCompleted || 0}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="text-gray-600 text-sm">Applications Sent</div>
-              <div className="text-2xl font-bold">{reports.totalApplicationsSent || 0}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="text-gray-600 text-sm">Avg Engagement</div>
-              <div className="text-2xl font-bold">{reports.averageEngagement || 0}%</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <ChartPlaceholder title="Team Progress Chart" />
-            <ChartPlaceholder title="Engagement by Role" />
-          </div>
-          
-          <ChartPlaceholder title="Applications vs Goals Achievement" />
-          
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-bold mb-4">Top Performers</h3>
-              <div className="space-y-3">
-                {reports.topPerformers?.map((member, idx) => (
-                  <div key={idx} className="flex justify-between items-center p-3 bg-green-50 rounded border border-green-200">
-                    <div>
-                      <div className="font-semibold">{member.name}</div>
-                      <div className="text-xs text-gray-600 capitalize">{member.role}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-green-600">{member.engagement}%</div>
-                      <div className="text-xs text-gray-600">engagement</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-bold mb-4">Needs Attention</h3>
-              <div className="space-y-3">
-                {reports.needsAttention?.map((member, idx) => (
-                  <div key={idx} className="flex justify-between items-center p-3 bg-orange-50 rounded border border-orange-200">
-                    <div>
-                      <div className="font-semibold">{member.name}</div>
-                      <div className="text-xs text-gray-600 capitalize">{member.role}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-orange-600">{member.engagement}%</div>
-                      <div className="text-xs text-gray-600">engagement</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-bold mb-4">Coaching Insights & Recommendations</h3>
-            <div className="space-y-4">
-              <div className="border-l-4 border-blue-500 pl-4">
-                <div className="font-semibold text-blue-900">Engagement by Role</div>
-                <div className="text-gray-700 text-sm space-y-1 mt-2">
-                  {Object.entries(reports.engagementByRole || {}).map(([role, engagement]) => (
-                    <div key={role}><span className="capitalize font-medium">{role}:</span> {Math.round(engagement)}%</div>
-                  ))}
-                </div>
-              </div>
-              <div className="border-l-4 border-green-500 pl-4">
-                <div className="font-semibold text-green-900">High Performers</div>
-                <p className="text-gray-700 text-sm">Consider recognizing and providing peer-mentoring opportunities for top performers.</p>
-              </div>
-              <div className="border-l-4 border-orange-500 pl-4">
-                <div className="font-semibold text-orange-900">Goal Completion Rate</div>
-                <p className="text-gray-700 text-sm">Focus mentoring efforts on candidates falling behind on milestone targets.</p>
-              </div>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="text-center text-gray-500">
-          {isMentor() || isAdmin() ? "Loading reports..." : "Reports not available for your role."}
-        </div>
-      )}
-    </div>
-  );
-
-  // ============ RENDER ============
-  if (loading) {
-    return <div className="p-6 text-center">Loading team data...</div>;
-  }
-
-  if (error) {
-    return <div className="p-6 text-center text-red-600">{error}</div>;
-  }
+  const filteredPosts = activeTab === 'feed' 
+    ? posts.filter(p => p.postType !== 'coaching')
+    : activeTab === 'coaching'
+    ? posts.filter(p => p.postType === 'coaching')
+    : posts.filter(p => p.postType === activeTab);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Tab Navigation */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="flex gap-4 px-6">
-          {["overview", "members", "reports", "billing"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-4 px-2 font-semibold transition ${
-                activeTab === tab
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
+    <div className="dashboard-gradient min-vh-100 py-4">
+      <Container>
+        {/* Header */}
+        <Button variant="link" className="text-white text-decoration-none mb-3 p-0" onClick={() => navigate('/newGroup')}>
+            <ArrowLeft size={18} className="me-1"/> Back to Groups
+        </Button>
+        
+        <div className="text-white mb-4">
+            <div className="d-flex align-items-center gap-2">
+                <h1 className="fw-bold display-5 mb-0" style={{ fontFamily: '"Playfair Display", serif' }}>{group.name}</h1>
+                <Badge bg="light" text="dark" className="align-self-start mt-2">{group.category}</Badge>
+            </div>
+            <p className="opacity-75">{group.memberCount} members</p>
         </div>
-      </div>
 
-      {/* Tab Content */}
-      <div>
-        {activeTab === "overview" && renderOverview()}
-        {activeTab === "members" && renderMembers()}
-        {activeTab === "reports" && renderReports()}
-        {activeTab === "billing" && renderBilling()}
-      </div>
+        <Row className="g-4">
+            {/* Sidebar */}
+            <Col lg={3}>
+                <Card className="border-0 shadow-sm rounded-4 mb-4">
+                    <Card.Body>
+                        <h6 className="fw-bold text-muted mb-3">FILTERS</h6>
+                        <Nav className="flex-column gap-1 nav-pills">
+                            {[
+                                {id: 'feed', label: 'All Posts'},
+                                {id: 'insight', label: 'Insights'},
+                                {id: 'strategy', label: 'Strategies'},
+                                {id: 'success_story', label: 'Success Stories'},
+                                {id: 'challenge', label: 'Challenges'},
+                                {id: 'coaching', label: 'Webinars'},
+                            ].map(tab => (
+                                <Nav.Link 
+                                    key={tab.id}
+                                    active={activeTab === tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`text-start ${activeTab === tab.id ? 'fw-bold' : 'text-secondary'}`}
+                                >
+                                    {tab.label}
+                                </Nav.Link>
+                            ))}
+                        </Nav>
+                    </Card.Body>
+                </Card>
+
+                {isUserAdmin() && (
+                    <Card className="border-0 shadow-sm rounded-4">
+                        <Card.Body>
+                            <h6 className="fw-bold text-muted mb-2">ADMIN</h6>
+                            <Form.Check 
+                                type="switch"
+                                label="Public Posts"
+                                checked={postsVisibleToNonMembers}
+                                onChange={(e) => {
+                                    setPostsVisibleToNonMembers(e.target.checked);
+                                    groupAPI.updateGroupSettings(groupId, { postsVisibleToNonMembers: e.target.checked });
+                                }}
+                            />
+                        </Card.Body>
+                    </Card>
+                )}
+            </Col>
+
+            {/* Main Feed */}
+            <Col lg={9}>
+                {/* Post Creator */}
+                {isUserInGroup() && activeTab !== 'coaching' && (
+                    <Card className="border-0 shadow-sm rounded-4 mb-4">
+                        <Card.Body>
+                            <h5 className="fw-bold mb-3">Share with the community</h5>
+                            <Form.Control 
+                                className="mb-2 border-0 bg-light" 
+                                placeholder="Post Title" 
+                                value={postTitle}
+                                onChange={e => setPostTitle(e.target.value)}
+                            />
+                            <Form.Control 
+                                as="textarea" 
+                                rows={3} 
+                                className="mb-3 border-0 bg-light" 
+                                placeholder="What's on your mind?" 
+                                value={postContent}
+                                onChange={e => setPostContent(e.target.value)}
+                            />
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div className="d-flex gap-2 align-items-center">
+                                    <Form.Select 
+                                        size="sm" 
+                                        style={{width: '140px'}} 
+                                        value={postType}
+                                        onChange={e => setPostType(e.target.value)}
+                                    >
+                                        <option value="insight">Insight</option>
+                                        <option value="strategy">Strategy</option>
+                                        <option value="success_story">Success Story</option>
+                                        <option value="challenge">Challenge</option>
+                                        <option value="opportunity">Opportunity</option>
+                                    </Form.Select>
+                                    <Form.Check 
+                                        type="checkbox" 
+                                        label="Anonymous" 
+                                        className="small text-muted mb-0"
+                                        checked={isAnonymous}
+                                        onChange={e => setIsAnonymous(e.target.checked)}
+                                    />
+                                </div>
+                                <Button variant="primary" className="fw-bold px-4" onClick={handleCreatePost}>
+                                    Post
+                                </Button>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                )}
+
+                {/* Feed List */}
+                <div className="d-flex flex-column gap-3">
+                    {filteredPosts.map(post => (
+                        <Card key={post.id} className="border-0 shadow-sm rounded-4">
+                            <Card.Body>
+                                <div className="d-flex justify-content-between mb-2">
+                                    <div>
+                                        <Badge bg="light" text="primary" className="me-2 text-uppercase border border-primary-subtle">
+                                            {post.postType.replace('_', ' ')}
+                                        </Badge>
+                                        <span className="fw-bold text-dark me-2">{post.title}</span>
+                                        <small className="text-muted">by {post.username}</small>
+                                    </div>
+                                    {(post.uuid === uuid || isUserAdmin()) && (
+                                        <Button variant="link" className="text-danger p-0" onClick={() => handleDeletePost(post.id)}>
+                                            <Trash2 size={16}/>
+                                        </Button>
+                                    )}
+                                </div>
+                                
+                                <p className="text-secondary mb-3" style={{whiteSpace: 'pre-wrap'}}>{post.content}</p>
+                                
+                                {post.postType === 'coaching' && (
+                                    <div className="bg-light p-3 rounded-3 mb-3 d-flex align-items-center gap-3">
+                                        <div className="bg-white p-2 rounded-circle"><Video className="text-primary"/></div>
+                                        <a href={post.content} target="_blank" rel="noreferrer" className="fw-bold text-decoration-none">
+                                            Join Webinar / View Resource
+                                        </a>
+                                    </div>
+                                )}
+
+                                <div className="d-flex gap-3 border-top pt-3">
+                                    <Button 
+                                        variant="light" 
+                                        size="sm" 
+                                        className={`d-flex align-items-center gap-2 ${post.likes?.includes(uuid) ? 'text-primary' : 'text-muted'}`}
+                                        onClick={() => post.likes?.includes(uuid) ? handleUnlikePost(post.id) : handleLikePost(post.id)}
+                                    >
+                                        <ThumbsUp size={16} fill={post.likes?.includes(uuid) ? "currentColor" : "none"} /> 
+                                        {post.likes?.length || 0} Likes
+                                    </Button>
+                                </div>
+
+                                {/* Comments */}
+                                <div className="mt-3 bg-light rounded-3 p-3">
+                                    {post.comments?.map(c => (
+                                        <div key={c.id} className="d-flex justify-content-between align-items-start mb-2 border-bottom pb-2 last-0">
+                                            <div>
+                                                <strong className="small">{c.username}: </strong>
+                                                <span className="small text-secondary">{c.text}</span>
+                                            </div>
+                                            {(c.uuid === uuid || isUserAdmin()) && (
+                                                <Button variant="link" className="p-0 text-muted" onClick={() => handleDeleteComment(post.id, c.id, c.uuid)}>
+                                                    <Trash2 size={12}/>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {isUserInGroup() && (
+                                        <InputGroup size="sm" className="mt-2">
+                                            <Form.Control 
+                                                placeholder="Write a comment..." 
+                                                value={commentTexts[post.id] || ''}
+                                                onChange={e => setCommentTexts({...commentTexts, [post.id]: e.target.value})}
+                                            />
+                                            <Button variant="outline-primary" onClick={() => handleAddComment(post.id)}>
+                                                <Send size={14}/>
+                                            </Button>
+                                        </InputGroup>
+                                    )}
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    ))}
+                    {filteredPosts.length === 0 && (
+                        <div className="text-center text-white py-5">
+                            <h5>No posts yet</h5>
+                            <p className="opacity-75">Be the first to share something!</p>
+                        </div>
+                    )}
+                </div>
+            </Col>
+        </Row>
+      </Container>
     </div>
   );
 }
 
-export default TeamsDashboard;
+export default GroupPage;
