@@ -39,9 +39,11 @@ class Job(BaseModel):
     archived: Optional[bool] = False
     archive_reason: Optional[str] = None
     archive_date: Optional[str] = None
-    company_data: Optional[Union[dict, Company]] = None 
+    company_data: Optional[Union[dict, Company]] = None
     materials: Optional[Union[dict, JobMaterials]] = None
     materials_history: Optional[List[Union[dict, MaterialsHistoryEntry]]] = None
+    offers: Optional[List[str]] = []  # Array of offer IDs (UC-083 salary negotiation)
+    salary_negotiation: Optional[dict] = None  # Salary research & negotiation prep for this job
 
 class UrlBody(BaseModel):
     url: str
