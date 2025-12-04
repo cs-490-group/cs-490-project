@@ -64,7 +64,13 @@ class InterviewSchedule(BaseModel):
     )
     thank_you_note_sent: bool = Field(default=False, description="Thank you email sent")
     thank_you_note_sent_at: Optional[datetime] = Field(None, description="When thank you was sent")
-    
+
+    # Company Research (UC-074)
+    research: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Company research report with insights for interview preparation"
+    )
+
     # Metadata
     notes: Optional[str] = Field(None, description="Additional notes")
     attachments: List[Dict[str, str]] = Field(default_factory=list, description="Documents, links")
@@ -270,3 +276,68 @@ class GenerateFollowUpRequest(BaseModel):
     template_type: str
     custom_notes: Optional[str] = None
     specific_topics: Optional[List[str]] = None
+
+
+# ============================================================================
+# COMPANY RESEARCH SCHEMAS (UC-074)
+# ============================================================================
+
+class CompanyResearchReport(BaseModel):
+    """Complete company research report for interview preparation"""
+    company_profile: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Company overview: name, description, size, industry, location, website"
+    )
+    history: Optional[str] = Field(
+        default=None,
+        description="Company founding date and major milestones"
+    )
+    mission_and_values: Optional[str] = Field(
+        default=None,
+        description="Company mission statement and core values"
+    )
+    leadership_team: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="List of key leaders with names, titles, and background"
+    )
+    recent_news: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Recent announcements, partnerships, press releases"
+    )
+    funding: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Funding rounds, investors, total raised (for startups)"
+    )
+    competition: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Competitors, market position, market threats and opportunities"
+    )
+    market_position: Optional[str] = Field(
+        default=None,
+        description="Market overview, differentiation, competitive advantages"
+    )
+    talking_points: Optional[List[str]] = Field(
+        default=None,
+        description="6-10 personalized talking points based on role and company"
+    )
+    intelligent_questions: Optional[Dict[str, List[str]]] = Field(
+        default=None,
+        description="Questions organized by category: role_alignment, strategy, team_culture, projects"
+    )
+    generated_at: Optional[datetime] = Field(
+        default=None,
+        description="Timestamp when research was generated"
+    )
+
+
+class GenerateCompanyResearchRequest(BaseModel):
+    """Request to generate company research for an interview"""
+    interview_id: str = Field(..., description="MongoDB _id of the interview schedule")
+    regenerate: bool = Field(
+        default=False,
+        description="Force regenerate even if research exists"
+    )
+    custom_prompt: Optional[str] = Field(
+        default=None,
+        description="Custom instructions for research generation"
+    )

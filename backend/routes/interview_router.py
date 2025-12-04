@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from schema.InterviewSchedule import GenerateFollowUpRequest
+from schema.InterviewSchedule import GenerateFollowUpRequest, GenerateCompanyResearchRequest
 from mongo.interview_schedule_dao import (
     InterviewScheduleDAO,
     FollowUpTemplateDAO
@@ -18,6 +18,7 @@ from mongo.writing_practice_dao import WritingPracticeDAO
 from services.calendar_service import calendar_service
 from services.PreparationTaskGenerator import PreparationTaskGenerator
 from services.followup_service import followup_service
+from services.company_research_service import company_research_service
 from services.writing_practice_service import WritingPracticeService
 from mongo.dao_setup import db_client
 from sessions.session_authorizer import authorize
@@ -1551,6 +1552,217 @@ async def mark_response_received(
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to mark response: {str(e)}")
+
+
+# ============================================================================
+# COMPANY RESEARCH ENDPOINTS (UC-074)
+# ============================================================================
+
+@interview_router.post("/research/generate")
+async def generate_company_research(
+    request_data: GenerateCompanyResearchRequest,
+    request: Request
+):
+    """Generate company research report for an interview"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+
+        # Fetch the interview
+        interview = await schedule_dao.get_schedule(request_data.interview_id)
+
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+
+        if interview.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+
+        # Check if research already exists and regenerate flag is not set
+        existing_research = interview.get("research")
+        if existing_research and not request_data.regenerate:
+            return {
+                "detail": "Research already exists",
+                "research": existing_research
+            }
+
+        # Extract interview information
+        company_name = interview.get("company_name", "Unknown Company")
+        job_role = interview.get("scenario_name", "Position")
+        industry = interview.get("industry", "Technology")
+        job_application_uuid = interview.get("job_application_uuid")
+
+        # Fetch job application for more context
+        job_description = None
+        company_website = None
+        company_size = None
+
+        try:
+            if job_application_uuid:
+                job = await jobs_dao.get_job(job_application_uuid)
+                if job:
+                    job_description = job.get("description")
+                    company_data = job.get("company", {})
+                    if isinstance(company_data, dict):
+                        company_website = company_data.get("website")
+                        company_size = company_data.get("size")
+                        if not company_name or company_name == "Unknown Company":
+                            company_name = company_data.get("name", company_name)
+        except Exception as e:
+            print(f"Could not fetch job details: {e}")
+
+        # Generate research using the service
+        research_report = await company_research_service.generate_company_research(
+            company_name=company_name,
+            job_role=job_role,
+            job_description=job_description,
+            industry=industry,
+            company_website=company_website,
+            company_info={
+                "size": company_size,
+                "industry": industry
+            },
+            custom_prompt=request_data.custom_prompt
+        )
+
+        # Update the interview with the research data
+        await schedule_dao.update_schedule(
+            request_data.interview_id,
+            {"research": research_report}
+        )
+
+        return {
+            "detail": "Research generated successfully",
+            "research": research_report
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating company research: {str(e)}")
+        raise HTTPException(500, f"Failed to generate research: {str(e)}")
+
+
+@interview_router.get("/research/{schedule_id}")
+async def get_company_research(
+    schedule_id: str,
+    request: Request
+):
+    """Retrieve company research for an interview"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+
+        # Fetch the interview
+        interview = await schedule_dao.get_schedule(schedule_id)
+
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+
+        if interview.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+
+        research = interview.get("research")
+
+        if not research:
+            return {
+                "detail": "No research available",
+                "research": None
+            }
+
+        return {
+            "detail": "Research retrieved successfully",
+            "research": research
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to retrieve research: {str(e)}")
+
+
+@interview_router.post("/research/{schedule_id}/regenerate")
+async def regenerate_company_research(
+    schedule_id: str,
+    request: Request,
+    custom_prompt: Optional[str] = None
+):
+    """Regenerate company research for an interview"""
+    try:
+        uuid_val = get_uuid_from_headers(request)
+
+        # Create a generate request with regenerate flag
+        generate_request = GenerateCompanyResearchRequest(
+            interview_id=schedule_id,
+            regenerate=True,
+            custom_prompt=custom_prompt
+        )
+
+        # Use the generate endpoint logic
+        request_data = generate_request
+
+        # Fetch the interview
+        interview = await schedule_dao.get_schedule(schedule_id)
+
+        if not interview:
+            raise HTTPException(404, "Interview not found")
+
+        if interview.get("uuid") != uuid_val:
+            raise HTTPException(403, "Unauthorized")
+
+        # Extract interview information
+        company_name = interview.get("company_name", "Unknown Company")
+        job_role = interview.get("scenario_name", "Position")
+        industry = interview.get("industry", "Technology")
+        job_application_uuid = interview.get("job_application_uuid")
+
+        # Fetch job application for more context
+        job_description = None
+        company_website = None
+        company_size = None
+
+        try:
+            if job_application_uuid:
+                job = await jobs_dao.get_job(job_application_uuid)
+                if job:
+                    job_description = job.get("description")
+                    company_data = job.get("company", {})
+                    if isinstance(company_data, dict):
+                        company_website = company_data.get("website")
+                        company_size = company_data.get("size")
+                        if not company_name or company_name == "Unknown Company":
+                            company_name = company_data.get("name", company_name)
+        except Exception as e:
+            print(f"Could not fetch job details: {e}")
+
+        # Generate research using the service
+        research_report = await company_research_service.generate_company_research(
+            company_name=company_name,
+            job_role=job_role,
+            job_description=job_description,
+            industry=industry,
+            company_website=company_website,
+            company_info={
+                "size": company_size,
+                "industry": industry
+            },
+            custom_prompt=custom_prompt
+        )
+
+        # Update the interview with the research data
+        await schedule_dao.update_schedule(
+            schedule_id,
+            {"research": research_report}
+        )
+
+        return {
+            "detail": "Research regenerated successfully",
+            "research": research_report
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error regenerating company research: {str(e)}")
+        raise HTTPException(500, f"Failed to regenerate research: {str(e)}")
+
 
 # ============================================================================
 # WRITING PRACTICE ENDPOINTS (UC-084)

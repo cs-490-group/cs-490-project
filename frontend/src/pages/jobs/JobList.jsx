@@ -21,7 +21,7 @@ import { useJobFilters } from "./hooks/useJobFilters";
 import { useJobOperations } from "./hooks/useJobOperations";
 import JobMatchingPage from "./JobMatchingPage";
 import SkillsGapPage from "./SkillsGapPage";
-
+import InterviewInsights from "./InterviewInsights";
 
 export default function JobList() {
   const [jobs, setJobs] = useState([]);
@@ -303,6 +303,10 @@ export default function JobList() {
         <PerformanceDashboard jobs={jobs} />
       )}
 
+      {view === "interviewInsights" && (
+        <InterviewInsights />
+      )}
+
       {view === "pipeline" && (
         <>
           {showCalendar && <DeadlineCalendar jobs={jobs.filter(j => !j.archived)} />}
@@ -313,7 +317,8 @@ export default function JobList() {
         </>
       )}
 
-      <BulkActionsBar
+      {view === "pipeline" && (
+        <BulkActionsBar
         view={view}
         selectedJobIds={selectedJobIds}
         bulkSetDeadline={bulkSetDeadline}
@@ -321,6 +326,7 @@ export default function JobList() {
         bulkDelete={bulkDelete}
         clearSelection={clearSelection}
       />
+      )}
 
       {view === "pipeline" && !showCalendar && !showStatistics && !showMaterials && (
         <FilterBar

@@ -22,6 +22,7 @@ from typing import Dict, Optional, Any
 import json
 import hashlib
 from pathlib import Path
+import tempfile
 
 
 class MarketSalaryCache:
@@ -50,7 +51,8 @@ class MarketSalaryCache:
         self.hits = 0
         self.misses = 0
         self.persist = persist_to_file
-        self.cache_file = Path("/tmp/market_salary_cache.json")
+        # Use system temp directory (cross-platform compatible)
+        self.cache_file = Path(tempfile.gettempdir()) / "market_salary_cache.json"
 
         if persist_to_file:
             self._load_from_file()

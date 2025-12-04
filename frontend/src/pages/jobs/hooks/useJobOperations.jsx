@@ -18,7 +18,6 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
           companyData: job.company_data || null,
           company_news: job.company_news || null,
           company_research: job.company_research || null,
-          salary_negotiation: job.salary_negotiation || null,
           location: job.location,
           salary: job.salary,
           url: job.url,
@@ -30,7 +29,6 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
           archived: job.archived,
           notes: job.notes,
           contacts: job.contacts,
-          salary_notes: job.salary_notes,
           interview_notes: job.interview_notes,
           status_history: job.status_history || [],
           materials: job.materials || null,
@@ -96,7 +94,6 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
         status: jobData.status,
         notes: jobData.notes,
         contacts: jobData.contacts,
-        salary_notes: jobData.salary_notes,
         interview_notes: jobData.interview_notes,
         status_history: jobData.status_history,
         company_data: jobData.company_data || null
@@ -129,7 +126,6 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
           archived: backendJob.archived || false,
           notes: backendJob.notes,
           contacts: backendJob.contacts,
-          salary_notes: backendJob.salary_notes,
           interview_notes: backendJob.interview_notes,
           status_history: backendJob.status_history || [],
           materials: backendJob.materials || null,
@@ -142,7 +138,6 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
           company: jobData.company,
           companyData: jobData.companyData,
           jobType: jobData.job_type,
-          salaryNotes: jobData.salary_notes,
           interviewNotes: jobData.interview_notes,
           statusHistory: (jobData.status_history || []).map(([status, timestamp]) => ({ status, timestamp })),
           createdAt: new Date().toISOString(),
@@ -228,7 +223,6 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
         status_history: job.status_history,
         notes: job.notes,
         contacts: job.contacts,
-        salary_notes: job.salaryNotes || job.salary_notes,
         interview_notes: job.interviewNotes || job.interview_notes
       });
 

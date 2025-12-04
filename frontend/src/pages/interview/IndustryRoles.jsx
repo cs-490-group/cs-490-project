@@ -102,7 +102,30 @@ function IndustryRoles() {
     try {
       // Try to load from API first
       const response = await QuestionBankAPI.getRolesByIndustry(industryId);
-      setRoles(response.data || response);
+      const roles = response.data || response;
+
+      // Fetch question counts for each role
+      const rolesWithCounts = await Promise.all(
+        roles.map(async (role) => {
+          try {
+            const questionsResponse = await QuestionBankAPI.getQuestionsByRole(role.uuid);
+            const questions = questionsResponse.data || questionsResponse;
+            return {
+              ...role,
+              questionCount: Array.isArray(questions) ? questions.length : 0
+            };
+          } catch (error) {
+            console.log(`Could not fetch questions for role ${role.uuid}`);
+            // If we can't fetch questions, try to use existing questionCount or default to 0
+            return {
+              ...role,
+              questionCount: role.questionCount || 0
+            };
+          }
+        })
+      );
+
+      setRoles(rolesWithCounts);
     } catch (error) {
       console.log("Using dummy data for roles");
       // Fall back to dummy data

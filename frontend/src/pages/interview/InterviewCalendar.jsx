@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
 import { useFlash } from '../../context/flashContext';
+import CompanyResearchReport from '../../components/interview/CompanyResearchReport';
 import '../../styles/interviewCalendar.css';
 
 function InterviewCalendar() {
@@ -15,6 +16,8 @@ function InterviewCalendar() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState(null);
   const [viewMode, setViewMode] = useState('upcoming');
+  const [detailsTab, setDetailsTab] = useState('details'); // 'details' or 'research'
+  const [researchGenerating, setResearchGenerating] = useState(false);
   
   useEffect(() => {
     loadInterviews();
@@ -83,6 +86,7 @@ function InterviewCalendar() {
   const handleInterviewClick = (interview) => {
     setSelectedInterview(interview);
     setShowDetails(true);
+    setDetailsTab('details'); // Reset to details tab when opening
   };
   
   const handleScheduleNew = () => {
@@ -357,6 +361,26 @@ function InterviewCalendar() {
     window.open(url, '_blank');
   };
 
+  // Generate company research for interview (UC-074)
+  const generateCompanyResearch = async (interviewId) => {
+    setResearchGenerating(true);
+    try {
+      const response = await InterviewScheduleAPI.generateCompanyResearch(interviewId);
+      showFlash('Company research generated successfully!', 'success');
+      // Update the selected interview with the new research data
+      setSelectedInterview(prev => ({
+        ...prev,
+        research: response.data.research
+      }));
+      setDetailsTab('research');
+    } catch (error) {
+      console.error('Failed to generate research:', error);
+      showFlash('Failed to generate company research. Please try again.', 'error');
+    } finally {
+      setResearchGenerating(false);
+    }
+  };
+
   const formatDateTime = (datetime) => {
     const date = parseUTCDateTime(datetime);
     
@@ -581,115 +605,197 @@ function InterviewCalendar() {
 
       {showDetails && selectedInterview && (
         <div className="modal-overlay" onClick={() => setShowDetails(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1100px' }}>
             <div className="modal-header">
               <h2>Interview Details</h2>
               <button className="close-btn" onClick={() => setShowDetails(false)}>×</button>
             </div>
-            
+
+            {/* Interview Details Tabs */}
+            <div style={{ borderBottom: '2px solid #e5e7eb', display: 'flex', gap: '8px', padding: '0 24px' }}>
+              <button
+                onClick={() => setDetailsTab('details')}
+                style={{
+                  padding: '12px 20px',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  borderBottom: detailsTab === 'details' ? '3px solid #667eea' : 'none',
+                  color: detailsTab === 'details' ? '#667eea' : '#666',
+                  fontWeight: detailsTab === 'details' ? '600' : '500',
+                  fontSize: '14px',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Interview Details
+              </button>
+              <button
+                onClick={() => setDetailsTab('research')}
+                style={{
+                  padding: '12px 20px',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  borderBottom: detailsTab === 'research' ? '3px solid #667eea' : 'none',
+                  color: detailsTab === 'research' ? '#667eea' : '#666',
+                  fontWeight: detailsTab === 'research' ? '600' : '500',
+                  fontSize: '14px',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Company Research
+              </button>
+            </div>
+
             <div className="modal-body">
-              <div className="detail-section">
-                <h4>Position & Company</h4>
-                <p><strong>{selectedInterview.scenario_name || 'Interview'}</strong> at {selectedInterview.company_name || 'Company'}</p>
-              </div>
-              
-              <div className="detail-section">
-                <h4>Date & Time (Local)</h4>
-                <p>{formatDateTime(selectedInterview.interview_datetime).fullDateTime}</p>
-                <p className="time-until-detail">
-                  <strong>Status:</strong> {getTimeUntil(selectedInterview.interview_datetime)}
-                </p>
-              </div>
-              
-              <div className="detail-section">
-                <h4>Location</h4>
-                <p>
-                  {getLocationIcon(selectedInterview.location_type)} {selectedInterview.location_type}
-                </p>
-                {selectedInterview.video_link && (
-                  <a href={selectedInterview.video_link} target="_blank" rel="noopener noreferrer" className="video-link">
-                    Join Meeting
-                  </a>
-                )}
-                {selectedInterview.location_details && (
-                  <p>{selectedInterview.location_details}</p>
-                )}
-                {selectedInterview.phone_number && (
-                  <p>📞 {selectedInterview.phone_number}</p>
-                )}
-              </div>
-              
-              {selectedInterview.interviewer_name && (
-                <div className="detail-section">
-                  <h4>Interviewer</h4>
-                  <p>
-                    {selectedInterview.interviewer_name}
-                    {selectedInterview.interviewer_title && ` - ${selectedInterview.interviewer_title}`}
-                  </p>
-                  {selectedInterview.interviewer_email && (
-                    <p className="contact-info">📧 {selectedInterview.interviewer_email}</p>
+              {/* Details Tab */}
+              {detailsTab === 'details' && (
+                <>
+                  <div className="detail-section">
+                    <h4>Position & Company</h4>
+                    <p><strong>{selectedInterview.scenario_name || 'Interview'}</strong> at {selectedInterview.company_name || 'Company'}</p>
+                  </div>
+
+                  <div className="detail-section">
+                    <h4>Date & Time (Local)</h4>
+                    <p>{formatDateTime(selectedInterview.interview_datetime).fullDateTime}</p>
+                    <p className="time-until-detail">
+                      <strong>Status:</strong> {getTimeUntil(selectedInterview.interview_datetime)}
+                    </p>
+                  </div>
+
+                  <div className="detail-section">
+                    <h4>Location</h4>
+                    <p>
+                      {getLocationIcon(selectedInterview.location_type)} {selectedInterview.location_type}
+                    </p>
+                    {selectedInterview.video_link && (
+                      <a href={selectedInterview.video_link} target="_blank" rel="noopener noreferrer" className="video-link">
+                        Join Meeting
+                      </a>
+                    )}
+                    {selectedInterview.location_details && (
+                      <p>{selectedInterview.location_details}</p>
+                    )}
+                    {selectedInterview.phone_number && (
+                      <p>📞 {selectedInterview.phone_number}</p>
+                    )}
+                  </div>
+
+                  {selectedInterview.interviewer_name && (
+                    <div className="detail-section">
+                      <h4>Interviewer</h4>
+                      <p>
+                        {selectedInterview.interviewer_name}
+                        {selectedInterview.interviewer_title && ` - ${selectedInterview.interviewer_title}`}
+                      </p>
+                      {selectedInterview.interviewer_email && (
+                        <p className="contact-info">📧 {selectedInterview.interviewer_email}</p>
+                      )}
+                      {selectedInterview.interviewer_phone && (
+                        <p className="contact-info">📞 {selectedInterview.interviewer_phone}</p>
+                      )}
+                    </div>
                   )}
-                  {selectedInterview.interviewer_phone && (
-                    <p className="contact-info">📞 {selectedInterview.interviewer_phone}</p>
+
+                  {selectedInterview.notes && (
+                    <div className="detail-section">
+                      <h4>Notes</h4>
+                      <p>{selectedInterview.notes}</p>
+                    </div>
+                  )}
+
+                  <div className="detail-section">
+                    <h4>Add to Calendar</h4>
+                    <p style={{ marginBottom: '12px', color: '#666', fontSize: '14px', textAlign: 'center' }}>
+                      Save this interview to your calendar
+                    </p>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <button
+                        onClick={() => addToGoogleCalendar(selectedInterview)}
+                        style={{
+                          padding: '10px 20px',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          background: 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '14px',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                      >
+                        <span style={{ fontSize: '18px' }}>📅</span>
+                        Add to Google Calendar
+                      </button>
+                      <button
+                        onClick={() => downloadICS(selectedInterview)}
+                        style={{
+                          padding: '10px 20px',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          background: 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '14px',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                      >
+                        <span style={{ fontSize: '18px' }}>⬇️</span>
+                        Download .ics (Outlook/Apple)
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Research Tab */}
+              {detailsTab === 'research' && (
+                <div style={{ padding: '20px 0' }}>
+                  {selectedInterview.research ? (
+                    <CompanyResearchReport
+                      interview={selectedInterview}
+                      onRegenerateComplete={(newResearch) => {
+                        setSelectedInterview(prev => ({
+                          ...prev,
+                          research: newResearch
+                        }));
+                      }}
+                    />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                      <p style={{ marginBottom: '20px', color: '#666', fontSize: '16px' }}>
+                        No company research generated yet.
+                      </p>
+                      <button
+                        onClick={() => generateCompanyResearch(selectedInterview._id)}
+                        disabled={researchGenerating}
+                        style={{
+                          padding: '12px 24px',
+                          background: '#667eea',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: researchGenerating ? 'not-allowed' : 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          opacity: researchGenerating ? 0.6 : 1,
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        {researchGenerating ? 'Generating Research...' : 'Generate Company Research'}
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
-              
-              {selectedInterview.notes && (
-                <div className="detail-section">
-                  <h4>Notes</h4>
-                  <p>{selectedInterview.notes}</p>
-                </div>
-              )}
-              
-              <div className="detail-section">
-                <h4>Add to Calendar</h4>
-                <p style={{ marginBottom: '12px', color: '#666', fontSize: '14px', textAlign: 'center' }}>
-                  Save this interview to your calendar
-                </p>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <button
-                    onClick={() => addToGoogleCalendar(selectedInterview)}
-                    style={{
-                      padding: '10px 20px',
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      background: 'white',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                  >
-                    <span style={{ fontSize: '18px' }}>📅</span>
-                    Add to Google Calendar
-                  </button>
-                  <button
-                    onClick={() => downloadICS(selectedInterview)}
-                    style={{
-                      padding: '10px 20px',
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      background: 'white',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                  >
-                    <span style={{ fontSize: '18px' }}>⬇️</span>
-                    Download .ics (Outlook/Apple)
-                  </button>
-                </div>
-              </div>
             </div>
             
             <div className="modal-footer">
