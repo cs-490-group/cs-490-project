@@ -57,11 +57,12 @@ export default function JobListHeader({
       {/* Buttons Row */}
       <div style={{ 
         display: "flex", 
-        gap: "8px", 
+        gap: "5px", 
         flexWrap: "nowrap",
         justifyContent: "center",
+        padding: "5px 0",
         overflowX: "auto",
-        padding: "5px 0"
+        maxWidth: "100%"
       }}>
         {/* Main view buttons */}
         {(view === "pipeline" || view === "dashboard") && (
@@ -77,14 +78,14 @@ export default function JobListHeader({
                 setShowSkillsGap(false);
               }}
               style={{
-                padding: "10px 18px",
+                padding: "7px 12px",
                 background: view === "dashboard" ? "#4caf50" : "#9c27b0",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "13px",
+                fontSize: "11px",
                 whiteSpace: "nowrap",
                 minWidth: "fit-content"
               }}
@@ -103,14 +104,14 @@ export default function JobListHeader({
                 setShowSkillsGap(false);
               }}
               style={{
-                padding: "10px 18px",
-                background: view === "pipeline" && !showStatistics && !showCalendar && !showArchived && !showMaterials ? "#4caf50" : "#e91e63",
+                padding: "7px 12px",
+                background: view === "pipeline" && !showStatistics && !showCalendar && !showArchived && !showMaterials && !showJobMatching && !showSkillsGap ? "#4caf50" : "#e91e63",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "13px",
+                fontSize: "11px",
                 whiteSpace: "nowrap",
                 minWidth: "fit-content"
               }}
@@ -129,19 +130,19 @@ export default function JobListHeader({
                 setShowSkillsGap(false);
               }}
               style={{
-                padding: "10px 18px",
+                padding: "7px 12px",
                 background: showStatistics ? "#4caf50" : "#213df3ff",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "13px",
+                fontSize: "11px",
                 whiteSpace: "nowrap",
                 minWidth: "fit-content"
               }}
             >
-              📊 Statistics
+              📊 Stats
             </button>
             
             <button
@@ -155,14 +156,14 @@ export default function JobListHeader({
                 setShowSkillsGap(false);
               }}
               style={{
-                padding: "10px 18px",
+                padding: "7px 12px",
                 background: showMaterials ? "#4caf50" : "#ff9800",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "13px",
+                fontSize: "11px",
                 whiteSpace: "nowrap",
                 minWidth: "fit-content"
               }}
@@ -181,19 +182,19 @@ export default function JobListHeader({
                 setShowMaterials(false);     
               }}
               style={{
-                padding: "10px 18px",
+                padding: "7px 12px",
                 background: showJobMatching ? "#4caf50" : "#03a9f4",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "13px",
+                fontSize: "11px",
                 whiteSpace: "nowrap",
                 minWidth: "fit-content"
               }}
             >
-              🔍 Matching
+              🔍 Match
             </button>
 
             <button
@@ -214,19 +215,19 @@ export default function JobListHeader({
                 navigate(`/jobs/${selectedJobId}/skills-gap`);
               }}
               style={{
-                padding: "10px 18px",
+                padding: "7px 12px",
                 background: showSkillsGap ? "#4caf50" : "#ff5722",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "13px",
+                fontSize: "11px",
                 whiteSpace: "nowrap",
                 minWidth: "fit-content"
               }}
             >
-              🧠 Skills Gap
+              🧠 Gap
             </button>
 
             <button
@@ -240,14 +241,14 @@ export default function JobListHeader({
                 setShowSkillsGap(false);
               }}
               style={{
-                padding: "10px 18px",
+                padding: "7px 12px",
                 background: showCalendar ? "#4caf50" : "#03a9f4",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "13px",
+                fontSize: "11px",
                 whiteSpace: "nowrap",
                 minWidth: "fit-content"
               }}
@@ -266,14 +267,14 @@ export default function JobListHeader({
                 setShowSkillsGap(false);
               }}
               style={{
-                padding: "10px 18px",
+                padding: "7px 12px",
                 background: showArchived ? "#4caf50" : "#607d8b",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "13px",
+                fontSize: "11px",
                 whiteSpace: "nowrap",
                 minWidth: "fit-content"
               }}
@@ -288,21 +289,21 @@ export default function JobListHeader({
                 setShowCalendar(false);
                 setShowArchived(false);
                 setShowMaterials(false);
-                //setShowJobMatching(false);
-                //setShowSkillsGap(false);
               }}
               style={{
-                padding: "12px 24px",
+                padding: "7px 12px",
                 background: view === "salary" ? "#4caf50" : "#b8860b",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "14px"
+                fontSize: "11px",
+                whiteSpace: "nowrap",
+                minWidth: "fit-content"
               }}
             >
-              💰 Salary Research
+              💰 Salary
             </button>
 
             <button
@@ -316,31 +317,33 @@ export default function JobListHeader({
                 setShowSkillsGap(false);
               }}
               style={{
-                padding: "12px 24px",
+                padding: "7px 12px",
                 background: view === "interviewInsights" ? "#4caf50" : "#6a1b9a",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "14px"
+                fontSize: "11px",
+                whiteSpace: "nowrap",
+                minWidth: "fit-content"
               }}
             >
-              🧠 Interview Insights
+              🧠 Insights
             </button>
 
             
             <button
               onClick={() => setShowSettings(true)}
               style={{
-                padding: "10px 18px",
+                padding: "7px 12px",
                 background: "#795548",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: "bold",
-                fontSize: "13px",
+                fontSize: "11px",
                 whiteSpace: "nowrap",
                 minWidth: "fit-content"
               }}
@@ -361,19 +364,19 @@ export default function JobListHeader({
             }
           }}
           style={{
-            padding: "10px 18px",
+            padding: "7px 12px",
             background: (view === "pipeline" || view === "dashboard") ? "#4f8ef7" : "#f44336",
             color: "white",
             border: "none",
             borderRadius: "6px",
             cursor: "pointer",
             fontWeight: "bold",
-            fontSize: "13px",
+            fontSize: "11px",
             whiteSpace: "nowrap",
             minWidth: "fit-content"
           }}
         >
-          {(view === "pipeline" || view === "dashboard") ? "+ Add New Job" : "← Back"}
+          {(view === "pipeline" || view === "dashboard") ? "+ Add Job" : "← Back"}
         </button>
       </div>
     </div>
