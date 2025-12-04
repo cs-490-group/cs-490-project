@@ -22,7 +22,6 @@ import { useJobOperations } from "./hooks/useJobOperations";
 import JobMatchingPage from "./JobMatchingPage";
 import SkillsGapPage from "./SkillsGapPage";
 import InterviewInsights from "./InterviewInsights";
-import SalaryResearch from "./SalaryResearch";
 
 export default function JobList() {
   const [jobs, setJobs] = useState([]);
@@ -302,10 +301,6 @@ export default function JobList() {
 
       {view === "dashboard" && (
         <PerformanceDashboard jobs={jobs} />
-      )}
-
-      {view === "salary" && (
-        <SalaryResearch />
       )}
 
       {view === "interviewInsights" && (
