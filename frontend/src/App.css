@@ -41,27 +41,99 @@
   z-index: 1 !important;
 }
 
-.navbar .dropdown:hover .dropdown-menu {
-  display: block;
-  margin-top: 0;
-}
-
+/* Remove the hover-based dropdown display since React controls it */
 .navbar .dropdown-menu {
   margin-top: 0;
-}
-
-#dashboard-dropdown::after {
   display: none;
 }
 
-#profile-dropdown::after {
-  display: none;
+.navbar .dropdown-menu.show {
+  display: block;
 }
 
-#interview-dropdown::after {
-  display: none;
+/* Hide all dropdown toggle arrows */
+.navbar .dropdown-toggle::after {
+  display: none !important;
 }
 
-#network-dropdown::after {
-  display: none;
+/* Target all dropdown IDs to ensure arrows are hidden */
+#dashboard-dropdown::after,
+#profile-dropdown::after,
+#interview-dropdown::after,
+#network-dropdown::after,
+#social-dropdown::after {
+  display: none !important;
+}
+
+/* Compact navbar items */
+.navbar-nav .nav-link,
+.navbar-nav .dropdown {
+  margin-left: 0.15rem !important;
+  margin-right: 0.15rem !important;
+  padding-left: 0.4rem !important;
+  padding-right: 0.4rem !important;
+}
+
+/* Reduce font size to fit more items */
+.navbar-nav {
+  font-size: 0.8rem;
+}
+
+/* Make the brand smaller to save space */
+.navbar-brand {
+  font-size: 1.1rem !important;
+  margin-right: 0.5rem !important;
+}
+
+.navbar-brand img {
+  height: 35px !important;
+  margin-right: 5px !important;
+}
+
+/* Remove extra spacing between brand and nav items */
+.navbar-collapse {
+  margin-left: 0 !important;
+  flex-grow: 1 !important;
+}
+
+.navbar-nav.ms-auto {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  flex-grow: 1 !important;
+  justify-content: space-evenly !important;
+  width: 100% !important;
+}
+
+/* Further reduce spacing on medium screens */
+@media (max-width: 1600px) {
+  .navbar-nav {
+    font-size: 0.75rem;
+  }
+  
+  .navbar-nav .nav-link,
+  .navbar-nav .dropdown {
+    margin-left: 0.1rem !important;
+    margin-right: 0.1rem !important;
+    padding-left: 0.3rem !important;
+    padding-right: 0.3rem !important;
+  }
+}
+
+/* Even more compact for smaller screens */
+@media (max-width: 1400px) {
+  .navbar-nav {
+    font-size: 0.7rem;
+  }
+  
+  .navbar-nav .nav-link,
+  .navbar-nav .dropdown {
+    margin-left: 0.05rem !important;
+    margin-right: 0.05rem !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+  
+  .navbar-brand {
+    font-size: 1rem !important;
+  }
 }
