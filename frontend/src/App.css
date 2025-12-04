@@ -104,6 +104,14 @@
   width: 100% !important;
 }
 
+.navbar-nav.ms-right {
+  margin-left: 80% !important;
+  margin-right: 0 !important;
+  flex-grow: 1 !important;
+  justify-content: space-evenly !important;
+  width:100%;
+}
+
 /* Further reduce spacing on medium screens */
 @media (max-width: 1600px) {
   .navbar-nav {
