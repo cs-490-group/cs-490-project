@@ -244,7 +244,7 @@ const Nav = () => {
 
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
-          <BootstrapNav className="ms-auto gap-3 align-items-center">
+          <BootstrapNav className={`${isAuthenticated ? "ms-auto" : "ms-right"} gap-3 align-items-center`}>
             {isAuthenticated ? (
               <>
                 <NavDropdown
