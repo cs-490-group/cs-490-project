@@ -75,6 +75,7 @@ import InformationalInterviewManagement from "./pages/network/InformationalInter
 import InterviewDetail from "./pages/network/InterviewDetail";
 import MentorshipManagement from "./pages/network/MentorshipManagement";
 import DiscoveryPage from "./pages/network/DiscoveryPage";
+import NetworkingAnalytics from "./pages/network/NetworkingAnalytics";
 
 // inside your router
 
@@ -176,7 +177,7 @@ export function App() {
               <Route path="/network/interview/:interviewId" element={<InterviewDetail />} />
               <Route path="/network/mentorship" element={<MentorshipManagement />} />
               <Route path="/network/discovery" element={<DiscoveryPage />} />
-              <Route path="/network/analytics" element={null} />
+              <Route path="/network/analytics" element={<NetworkingAnalytics />} />
               </Routes>
             </JobProvider>
             </FlashProvider>

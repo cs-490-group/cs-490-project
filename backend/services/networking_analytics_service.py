@@ -25,6 +25,62 @@ class NetworkingAnalyticsService:
     
     def __init__(self):
         self.industry_benchmarks = self._load_industry_benchmarks()
+
+    def _parse_datetime(self, value: Any) -> Optional[datetime]:
+        """Safely parse a datetime value that may be stored as a datetime or ISO string.
+
+        Supports:
+        - timezone-aware or naive datetime objects
+        - ISO strings, with optional trailing 'Z'
+        - date-only strings (YYYY-MM-DD)
+        """
+        if value is None:
+            return None
+
+        if isinstance(value, datetime):
+            # Ensure timezone-aware, default to UTC if naive
+            if value.tzinfo is None:
+                return value.replace(tzinfo=timezone.utc)
+            return value
+
+        if isinstance(value, str):
+            text = value.strip()
+            try:
+                # Replace trailing Z with UTC offset for fromisoformat
+                if text.endswith("Z"):
+                    text = text.replace("Z", "+00:00")
+                # If date only, append midnight
+                if len(text) == 10 and "T" not in text:
+                    text = text + "T00:00:00+00:00"
+                dt = datetime.fromisoformat(text)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt
+            except Exception:
+                return None
+
+        return None
+
+    def _normalize_relationship_strength(self, value: Any) -> RelationshipStrength:
+        """Map raw relationship_strength values from contacts to RelationshipStrength enum."""
+        if isinstance(value, RelationshipStrength):
+            return value
+
+        if isinstance(value, str):
+            lowered = value.lower()
+            if lowered == "strong":
+                return RelationshipStrength.STRONG
+            if lowered == "moderate":
+                return RelationshipStrength.MODERATE
+            if lowered == "weak":
+                return RelationshipStrength.WEAK
+            if lowered in {"new", ""}:
+                return RelationshipStrength.NEW
+            # Anything else treat as dormant/low-engagement
+            return RelationshipStrength.DORMANT
+
+        # Default when missing
+        return RelationshipStrength.NEW
     
     def _load_industry_benchmarks(self) -> Dict:
         """Load industry benchmarks for networking performance"""
@@ -110,15 +166,19 @@ class NetworkingAnalyticsService:
             relationship_data, engagement_data, opportunity_data, event_roi_data, benchmark
         )
         
+        # Compute average satisfaction only over events that actually have a score
+        satisfaction_scores = [
+            event.get("satisfaction_score", 5)
+            for event in events
+            if event.get("satisfaction_score") is not None
+        ]
+
         return NetworkingAnalytics(
             analytics_period=f"{period_start.strftime('%Y-%m-%d')} to {period_end.strftime('%Y-%m-%d')}",
             total_networking_activities=total_activities,
             total_contacts_made=total_contacts_made,
             quality_conversations_ratio=quality_conversations / max(total_contacts_made, 1),
-            average_event_satisfaction=statistics.mean([
-                event.get("satisfaction_score", 5) for event in events 
-                if event.get("satisfaction_score")
-            ]) if events else 0,
+            average_event_satisfaction=statistics.mean(satisfaction_scores) if satisfaction_scores else 0,
             total_investment=roi_data["total_investment"],
             total_roi_value=roi_data["total_value"],
             roi_percentage=roi_data["roi_percentage"],
@@ -243,12 +303,11 @@ class NetworkingAnalyticsService:
     
     def _dates_within_range(self, date1: str, date2: str, days: int) -> bool:
         """Check if two dates are within specified days of each other"""
-        try:
-            d1 = datetime.fromisoformat(date1.replace('Z', '+00:00'))
-            d2 = datetime.fromisoformat(date2.replace('Z', '+00:00'))
-            return abs((d1 - d2).days) <= days
-        except:
+        d1 = self._parse_datetime(date1)
+        d2 = self._parse_datetime(date2)
+        if not d1 or not d2:
             return False
+        return abs((d1 - d2).days) <= days
     
     def _calculate_time_to_opportunity(
         self, 
@@ -262,12 +321,16 @@ class NetworkingAnalyticsService:
         
         for job in jobs:
             if job.get("date_created"):
-                job_date = datetime.fromisoformat(job["date_created"].replace('Z', '+00:00'))
+                job_date = self._parse_datetime(job["date_created"])
+                if not job_date:
+                    continue
                 
                 # Find closest preceding event
                 for event in events:
                     if event.get("event_date"):
-                        event_date = datetime.fromisoformat(event["event_date"].replace('Z', '+00:00'))
+                        event_date = self._parse_datetime(event["event_date"])
+                        if not event_date:
+                            continue
                         if event_date < job_date:
                             times.append((job_date - event_date).days)
                             break
@@ -290,7 +353,8 @@ class NetworkingAnalyticsService:
         
         for contact in contacts:
             # Count relationship strengths
-            strength = contact.get("relationship_strength", RelationshipStrength.NEW)
+            raw_strength = contact.get("relationship_strength", RelationshipStrength.NEW)
+            strength = self._normalize_relationship_strength(raw_strength)
             strength_distribution[strength] += 1
             
             # Count high-value relationships
@@ -302,22 +366,16 @@ class NetworkingAnalyticsService:
             # Check if relationship is new (created in period)
             created_date = contact.get("date_created")
             if created_date:
-                try:
-                    contact_date = datetime.fromisoformat(created_date.replace('Z', '+00:00'))
-                    if period_start <= contact_date <= period_end:
-                        new_relationships += 1
-                except:
-                    pass
+                contact_date = self._parse_datetime(created_date)
+                if contact_date and period_start <= contact_date <= period_end:
+                    new_relationships += 1
             
             # Check if relationship was strengthened
             updated_date = contact.get("date_updated")
             if updated_date and updated_date != created_date:
-                try:
-                    update_date = datetime.fromisoformat(updated_date.replace('Z', '+00:00'))
-                    if period_start <= update_date <= period_end:
-                        strengthened_relationships += 1
-                except:
-                    pass
+                update_date = self._parse_datetime(updated_date)
+                if update_date and period_start <= update_date <= period_end:
+                    strengthened_relationships += 1
         
         return {
             "new_relationships": new_relationships,
@@ -388,11 +446,23 @@ class NetworkingAnalyticsService:
         opportunities_by_event_type = {event_type: 0 for event_type in NetworkingEventType}
         
         for event in events:
-            event_type = event.get("event_type")
-            if event_type:
-                # Count opportunities from this event type
-                event_opportunities = self._count_event_opportunities(event, jobs, offers, referrals)
-                opportunities_by_event_type[event_type] += event_opportunities
+            raw_type = event.get("event_type")
+            if not raw_type:
+                continue
+
+            # Normalize string to NetworkingEventType enum; default to OTHER if unknown
+            try:
+                event_type = (
+                    raw_type
+                    if isinstance(raw_type, NetworkingEventType)
+                    else NetworkingEventType(raw_type)
+                )
+            except ValueError:
+                event_type = NetworkingEventType.OTHER
+
+            # Count opportunities from this event type
+            event_opportunities = self._count_event_opportunities(event, jobs, offers, referrals)
+            opportunities_by_event_type[event_type] += event_opportunities
         
         return {
             "referrals_generated": referrals_generated,
@@ -416,12 +486,16 @@ class NetworkingAnalyticsService:
             return 0
         
         opportunities = 0
-        event_datetime = datetime.fromisoformat(event_date.replace('Z', '+00:00'))
+        event_datetime = self._parse_datetime(event_date)
+        if not event_datetime:
+            return 0
         
         # Check for opportunities within 30 days of event
         for job in jobs:
             if job.get("date_created"):
-                job_date = datetime.fromisoformat(job["date_created"].replace('Z', '+00:00'))
+                job_date = self._parse_datetime(job["date_created"])
+                if not job_date:
+                    continue
                 if 0 <= (job_date - event_datetime).days <= 30:
                     if self._is_networking_sourced(job, [event], referrals):
                         opportunities += 1
@@ -436,11 +510,22 @@ class NetworkingAnalyticsService:
         event_count_by_type = {event_type: 0 for event_type in NetworkingEventType}
         
         for event in events:
-            event_type = event.get("event_type")
-            if event_type:
-                cost = event.get("cost", 0) + (event.get("preparation_time_hours", 0) * 50)
-                event_costs_by_type[event_type] += cost
-                event_count_by_type[event_type] += 1
+            raw_type = event.get("event_type")
+            if not raw_type:
+                continue
+
+            try:
+                event_type = (
+                    raw_type
+                    if isinstance(raw_type, NetworkingEventType)
+                    else NetworkingEventType(raw_type)
+                )
+            except ValueError:
+                event_type = NetworkingEventType.OTHER
+
+            cost = event.get("cost", 0) + (event.get("preparation_time_hours", 0) * 50)
+            event_costs_by_type[event_type] += cost
+            event_count_by_type[event_type] += 1
         
         # Calculate ROI for each event type
         total_value = roi_data["total_value"]

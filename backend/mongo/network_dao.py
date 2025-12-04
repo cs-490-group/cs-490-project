@@ -115,3 +115,4 @@ class NetworkDAO:
         return results
         
 networks_dao = NetworkDAO()
+network_dao = networks_dao

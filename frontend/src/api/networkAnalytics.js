@@ -48,6 +48,25 @@ class NetworkAnalyticsAPI {
     getDashboard() {
         return api.get(`${BASE_URL}/dashboard`);
     }
+
+    getNetworkingDashboard(periodDays = 30, industry) {
+        const params = { period_days: periodDays };
+        if (industry) {
+            params.industry = industry;
+        }
+        return api.get(`${BASE_URL}/networking/dashboard`, { params });
+    }
+
+    getDashboardData(periodDays = 30) {
+        return this.getNetworkingDashboard(periodDays);
+    }
+
+    trackROIOutcome(roiData) {
+        return api.post(`${BASE_URL}/networking/roi-outcome`, roiData);
+    }
 }
 
-export default new NetworkAnalyticsAPI();
+const networkAnalyticsAPI = new NetworkAnalyticsAPI();
+
+export { networkAnalyticsAPI };
+export default networkAnalyticsAPI;

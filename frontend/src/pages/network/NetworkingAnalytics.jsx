@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Row, Col, Button, ProgressBar, Alert, Nav, Tab } from 'react-bootstrap';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { networkAnalyticsAPI } from '../api/networkAnalytics';
+import { networkAnalyticsAPI } from '../../api/networkAnalytics';
 
 const NetworkingAnalytics = () => {
   const [analytics, setAnalytics] = useState(null);
@@ -10,15 +10,11 @@ const NetworkingAnalytics = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [period, setPeriod] = useState(30);
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [period]);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await networkAnalyticsAPI.getDashboardData(period);
-      setAnalytics(data);
+      const response = await networkAnalyticsAPI.getDashboardData(period);
+      setAnalytics(response.data);
       setError(null);
     } catch (err) {
       setError('Failed to load networking analytics. Please try again.');
@@ -26,7 +22,11 @@ const NetworkingAnalytics = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
 
   const trackROI = async (roiData) => {
     try {
@@ -86,8 +86,6 @@ const NetworkingAnalytics = () => {
     roi: value,
     opportunities: opportunityAnalytics.opportunities_by_event_type?.[key] || 0
   }));
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   return (
     <div className="networking-analytics p-4">
@@ -166,6 +164,23 @@ const NetworkingAnalytics = () => {
       </Row>
 
       {/* Tabs */}
+      <style jsx>{`
+        .nav-tabs .nav-link {
+          color: white !important;
+          background-color: transparent !important;
+          border-color: transparent !important;
+        }
+        .nav-tabs .nav-link:hover {
+          color: white !important;
+          background-color: rgba(255, 255, 255, 0.1) !important;
+          border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        .nav-tabs .nav-link.active {
+          color: black !important;
+          background-color: white !important;
+          border-color: white !important;
+        }
+      `}</style>
       <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
         <Nav variant="tabs" className="mb-4">
           <Nav.Item>

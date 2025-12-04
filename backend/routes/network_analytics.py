@@ -2,8 +2,21 @@ from fastapi import APIRouter, Depends, HTTPException
 from sessions.session_authorizer import authorize
 from schema.NetworkAnalytics import NetworkAnalytics, PerformanceGoal, NetworkInsight, TrendAnalysis
 from mongo.network_analytics_dao import network_analytics_dao
+from datetime import datetime, timezone, timedelta
+from pydantic import BaseModel
+from schema.EnhancedNetwork import ROIMetricType
+from services.networking_analytics_service import networking_analytics_service
 
 network_analytics_router = APIRouter(prefix="/analytics")
+
+
+class TrackROIOutcomePayload(BaseModel):
+    roi_metric: str
+    value_description: str
+    source_event_id: str | None = None
+    source_contact_id: str | None = None
+    monetary_value: float | None = None
+    confidence: float = 100.0
 
 @network_analytics_router.post("", tags=["analytics"])
 async def create_analytics_record(analytics: NetworkAnalytics, uuid: str = Depends(authorize)):
@@ -187,3 +200,121 @@ async def get_dashboard_data(uuid: str = Depends(authorize)):
         }
     except Exception as e:
         raise HTTPException(500, str(e))
+
+
+@network_analytics_router.get("/networking/dashboard", tags=["analytics"])
+async def get_networking_dashboard(
+    period_days: int = 30,
+    industry: str = "tech",
+    uuid: str = Depends(authorize),
+):
+    try:
+        now = datetime.now(timezone.utc)
+        period_start = now - timedelta(days=period_days)
+        analytics = await networking_analytics_service.generate_comprehensive_analytics(
+            user_uuid=uuid,
+            period_start=period_start,
+            period_end=now,
+            industry=industry,
+        )
+
+        relationship_strength_distribution = {
+            (k.value if hasattr(k, "value") else str(k)): v
+            for k, v in analytics.relationship_strength_distribution.items()
+        }
+
+        opportunities_by_event_type = {
+            (k.value if hasattr(k, "value") else str(k)): v
+            for k, v in analytics.opportunities_by_event_type.items()
+        }
+
+        event_roi_by_type = {
+            (k.value if hasattr(k, "value") else str(k)): v
+            for k, v in analytics.event_roi_by_type.items()
+        }
+
+        most_profitable_event_types = [
+            (t.value if hasattr(t, "value") else str(t))
+            for t in analytics.most_profitable_event_types
+        ]
+
+        performance_metrics = {
+            "networking_activities": analytics.total_networking_activities,
+            "total_contacts_made": analytics.total_contacts_made,
+            "quality_conversations_ratio": analytics.quality_conversations_ratio,
+            "average_event_satisfaction": analytics.average_event_satisfaction,
+        }
+
+        relationship_analytics = {
+            "new_relationships": analytics.new_relationships,
+            "strengthened_relationships": analytics.strengthened_relationships,
+            "relationship_strength_distribution": relationship_strength_distribution,
+            "average_trust_score": analytics.average_trust_score,
+            "high_value_relationships": analytics.high_value_relationships,
+        }
+
+        engagement_analytics = {
+            "average_response_rate": analytics.average_response_rate,
+            "follow_up_completion_rate": analytics.follow_up_completion_rate,
+            "interaction_frequency_trend": analytics.interaction_frequency_trend,
+        }
+
+        opportunity_analytics = {
+            "referrals_generated": analytics.referrals_generated,
+            "interviews_from_networking": analytics.interviews_from_networking,
+            "offers_from_networking": analytics.offers_from_networking,
+            "accepted_offers_from_networking": analytics.accepted_offers_from_networking,
+            "opportunities_by_event_type": opportunities_by_event_type,
+        }
+
+        roi_analytics = {
+            "total_investment": analytics.total_investment,
+            "total_roi_value": analytics.total_roi_value,
+            "roi_percentage": analytics.roi_percentage,
+            "event_roi_by_type": event_roi_by_type,
+            "most_profitable_event_types": most_profitable_event_types,
+            "cost_per_opportunity": analytics.cost_per_opportunity,
+            "time_to_opportunity": analytics.time_to_opportunity,
+            "best_conversion_channels": analytics.best_conversion_channels,
+        }
+
+        return {
+            "performance_metrics": performance_metrics,
+            "relationship_analytics": relationship_analytics,
+            "engagement_analytics": engagement_analytics,
+            "opportunity_analytics": opportunity_analytics,
+            "roi_analytics": roi_analytics,
+            "industry_benchmarks": analytics.industry_benchmarks,
+            "improvement_recommendations": analytics.improvement_recommendations,
+        }
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@network_analytics_router.post("/networking/roi-outcome", tags=["analytics"])
+async def track_networking_roi_outcome(
+    payload: TrackROIOutcomePayload,
+    uuid: str = Depends(authorize),
+):
+    try:
+        try:
+            metric_enum = ROIMetricType(payload.roi_metric)
+        except ValueError:
+            raise HTTPException(400, "Invalid ROI metric type")
+
+        analytics_id = await networking_analytics_service.track_roi_outcome(
+            user_uuid=uuid,
+            roi_metric=metric_enum,
+            value_description=payload.value_description,
+            source_event_id=payload.source_event_id,
+            source_contact_id=payload.source_contact_id,
+            monetary_value=payload.monetary_value,
+            confidence=payload.confidence,
+        )
+
+        return {"analytics_id": analytics_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
