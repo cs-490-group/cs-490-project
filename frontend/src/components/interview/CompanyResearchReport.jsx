@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './CompanyResearchReport.css';
 import { FiChevronDown, FiDownload, FiRefreshCw } from 'react-icons/fi';
+import { jsPDF } from 'jspdf';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
 
 const CompanyResearchReport = ({ interview, onRegenerateComplete }) => {
@@ -58,13 +59,288 @@ const CompanyResearchReport = ({ interview, onRegenerateComplete }) => {
   };
 
   const handleExportPDF = () => {
-    // Placeholder for PDF export - requires external library like jsPDF
-    alert('PDF export coming soon. You can download as JSON or copy the content.');
-  };
+    try {
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
 
-  const handleExportWord = () => {
-    // Placeholder for Word export - requires external library like docx
-    alert('Word export coming soon. You can download as JSON or copy the content.');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentWidth = pageWidth - 2 * margin;
+      let yPosition = margin;
+
+      // Set font for title
+      pdf.setFontSize(24);
+      pdf.setTextColor(102, 126, 234);
+      pdf.text('Company Research Report', margin, yPosition);
+      yPosition += 10;
+
+      // Subtitle
+      pdf.setFontSize(12);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`${interview.company_name} - ${interview.scenario_name}`, margin, yPosition);
+      yPosition += 12;
+
+      // Company Overview Section
+      if (companyProfile && companyProfile.description) {
+        pdf.setFontSize(14);
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Company Overview', margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(11);
+        pdf.setTextColor(80, 80, 80);
+        const descriptionLines = pdf.splitTextToSize(companyProfile.description, contentWidth);
+        pdf.text(descriptionLines, margin, yPosition);
+        yPosition += descriptionLines.length * 5 + 5;
+
+        // Company details grid
+        const details = [
+          { label: 'Industry', value: companyProfile.industry },
+          { label: 'Size', value: companyProfile.size },
+          { label: 'Location', value: companyProfile.location }
+        ];
+
+        details.forEach(detail => {
+          if (detail.value) {
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(`${detail.label}:`, margin, yPosition);
+            pdf.setTextColor(51, 51, 51);
+            pdf.text(detail.value, margin + 50, yPosition);
+            yPosition += 6;
+          }
+        });
+
+        yPosition += 5;
+      }
+
+      // History Section
+      if (research.history) {
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.setFontSize(14);
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Company History', margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(11);
+        pdf.setTextColor(80, 80, 80);
+        const historyLines = pdf.splitTextToSize(research.history, contentWidth);
+        pdf.text(historyLines, margin, yPosition);
+        yPosition += historyLines.length * 5 + 8;
+      }
+
+      // Mission & Values Section
+      if (research.mission_and_values) {
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.setFontSize(14);
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Mission & Values', margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(11);
+        pdf.setTextColor(80, 80, 80);
+        const missionLines = pdf.splitTextToSize(research.mission_and_values, contentWidth);
+        pdf.text(missionLines, margin, yPosition);
+        yPosition += missionLines.length * 5 + 8;
+      }
+
+      // Leadership Team Section
+      if (leadershipTeam && leadershipTeam.length > 0) {
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.setFontSize(14);
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Leadership Team', margin, yPosition);
+        yPosition += 8;
+
+        leadershipTeam.forEach(leader => {
+          if (yPosition > pageHeight - 20) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          pdf.setFontSize(11);
+          pdf.setTextColor(51, 51, 51);
+          pdf.text(leader.name, margin, yPosition);
+          yPosition += 5;
+
+          pdf.setFontSize(10);
+          pdf.setTextColor(102, 126, 234);
+          pdf.text(leader.title, margin + 5, yPosition);
+          yPosition += 5;
+
+          if (leader.background) {
+            pdf.setFontSize(10);
+            pdf.setTextColor(80, 80, 80);
+            const bgLines = pdf.splitTextToSize(leader.background, contentWidth - 10);
+            pdf.text(bgLines, margin + 5, yPosition);
+            yPosition += bgLines.length * 4 + 4;
+          }
+        });
+        yPosition += 3;
+      }
+
+      // Competition Section
+      if (competition && competition.length > 0) {
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.setFontSize(14);
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Competitive Landscape', margin, yPosition);
+        yPosition += 8;
+
+        competition.forEach(competitor => {
+          if (yPosition > pageHeight - 20) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          pdf.setFontSize(11);
+          pdf.setTextColor(51, 51, 51);
+          pdf.text(competitor.name, margin, yPosition);
+          yPosition += 5;
+
+          if (competitor.description) {
+            pdf.setFontSize(10);
+            pdf.setTextColor(80, 80, 80);
+            const descLines = pdf.splitTextToSize(competitor.description, contentWidth - 10);
+            pdf.text(descLines, margin + 5, yPosition);
+            yPosition += descLines.length * 4 + 3;
+          }
+        });
+        yPosition += 3;
+      }
+
+      // Recent News Section
+      if (recentNews && recentNews.length > 0) {
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.setFontSize(14);
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Recent News & Updates', margin, yPosition);
+        yPosition += 8;
+
+        recentNews.forEach(news => {
+          if (yPosition > pageHeight - 20) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          pdf.setFontSize(11);
+          pdf.setTextColor(51, 51, 51);
+          pdf.text(news.title, margin, yPosition);
+          yPosition += 5;
+
+          if (news.description) {
+            pdf.setFontSize(10);
+            pdf.setTextColor(80, 80, 80);
+            const newsLines = pdf.splitTextToSize(news.description, contentWidth - 10);
+            pdf.text(newsLines, margin + 5, yPosition);
+            yPosition += newsLines.length * 4 + 2;
+          }
+
+          if (news.date) {
+            pdf.setFontSize(9);
+            pdf.setTextColor(150, 150, 150);
+            pdf.text(`Date: ${news.date}`, margin + 5, yPosition);
+            yPosition += 4;
+          }
+          yPosition += 2;
+        });
+        yPosition += 3;
+      }
+
+      // Talking Points Section
+      if (talkingPoints && talkingPoints.length > 0) {
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.setFontSize(14);
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Talking Points', margin, yPosition);
+        yPosition += 8;
+
+        talkingPoints.forEach((point, index) => {
+          if (yPosition > pageHeight - 15) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          pdf.setFontSize(10);
+          pdf.setTextColor(80, 80, 80);
+          const pointLines = pdf.splitTextToSize(`${index + 1}. ${point}`, contentWidth - 5);
+          pdf.text(pointLines, margin + 5, yPosition);
+          yPosition += pointLines.length * 4 + 3;
+        });
+        yPosition += 3;
+      }
+
+      // Intelligent Questions Section
+      if (intelligentQuestions && Object.keys(intelligentQuestions).length > 0) {
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.setFontSize(14);
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Questions to Ask', margin, yPosition);
+        yPosition += 8;
+
+        Object.entries(intelligentQuestions).forEach(([category, questions]) => {
+          if (questions && questions.length > 0) {
+            if (yPosition > pageHeight - 30) {
+              pdf.addPage();
+              yPosition = margin;
+            }
+            pdf.setFontSize(11);
+            pdf.setTextColor(102, 126, 234);
+            const categoryLabel = category.replace(/_/g, ' ').toUpperCase();
+            pdf.text(categoryLabel, margin, yPosition);
+            yPosition += 6;
+
+            questions.forEach(question => {
+              if (yPosition > pageHeight - 15) {
+                pdf.addPage();
+                yPosition = margin;
+              }
+              pdf.setFontSize(10);
+              pdf.setTextColor(80, 80, 80);
+              const questionLines = pdf.splitTextToSize(`• ${question}`, contentWidth - 10);
+              pdf.text(questionLines, margin + 5, yPosition);
+              yPosition += questionLines.length * 4 + 2;
+            });
+            yPosition += 2;
+          }
+        });
+      }
+
+      // Footer with generation timestamp
+      pdf.setFontSize(9);
+      pdf.setTextColor(150, 150, 150);
+      const generatedDate = research.generated_at
+        ? new Date(research.generated_at).toLocaleString()
+        : 'Unknown';
+      pdf.text(`Generated: ${generatedDate}`, margin, pageHeight - 10);
+
+      // Save the PDF
+      pdf.save(`${interview.company_name}_research.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Failed to generate PDF. Please try again.');
+    }
   };
 
   const companyProfile = research.company_profile || {};
@@ -100,7 +376,6 @@ const CompanyResearchReport = ({ interview, onRegenerateComplete }) => {
             <div className="dropdown-content">
               <button onClick={handleExportJSON}>Export as JSON</button>
               <button onClick={handleExportPDF}>Export as PDF</button>
-              <button onClick={handleExportWord}>Export as Word</button>
             </div>
           </div>
         </div>
