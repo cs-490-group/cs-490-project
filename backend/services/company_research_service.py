@@ -2,18 +2,57 @@
 Company Research Automation Service (UC-074)
 
 This service generates comprehensive company research reports for interview preparation.
-It uses AI to gather insights about companies and creates talking points and interview questions.
+It uses OpenAI to gather insights about companies and creates talking points and interview questions.
 """
 
 import json
+import os
+import asyncio
 import traceback
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
-from mongo.AI_dao import ai_dao
+from concurrent.futures import ThreadPoolExecutor
+from openai import OpenAI
 
 
 class CompanyResearchService:
     """Service for generating company research reports for interviews"""
+
+    # Thread pool for running sync OpenAI calls
+    _executor = ThreadPoolExecutor(max_workers=3)
+
+    @staticmethod
+    def _call_openai(prompt: str, system_message: str = "") -> str:
+        """Call OpenAI API with the given prompt and system message (synchronous)"""
+        try:
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_message or "You are a helpful research assistant providing company insights for interview preparation."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2000
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            raise Exception(f"OpenAI API error: {str(e)}")
+
+    @staticmethod
+    async def _call_openai_async(prompt: str, system_message: str = "") -> str:
+        """Call OpenAI API asynchronously by running sync call in thread pool"""
+        try:
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                CompanyResearchService._executor,
+                CompanyResearchService._call_openai,
+                prompt,
+                system_message
+            )
+            return response
+        except Exception as e:
+            raise Exception(f"OpenAI API error: {str(e)}")
 
     @staticmethod
     async def generate_company_research(
@@ -143,7 +182,7 @@ class CompanyResearchService:
         )
 
         try:
-            response = await ai_dao.generate_text(prompt)
+            response = await CompanyResearchService._call_openai_async(prompt)
             # Extract JSON from response
             profile_data = CompanyResearchService._extract_json(response)
             return profile_data if profile_data else {"description": response}
@@ -167,7 +206,7 @@ class CompanyResearchService:
         )
 
         try:
-            return await ai_dao.generate_text(prompt)
+            return await CompanyResearchService._call_openai_async(prompt)
         except Exception as e:
             print(f"[UC-074 WARN] Failed to generate company history: {str(e)}")
             return f"{company_name} was founded as a company in the {context.get('industry', 'Technology')} industry."
@@ -184,7 +223,7 @@ class CompanyResearchService:
         )
 
         try:
-            return await ai_dao.generate_text(prompt)
+            return await CompanyResearchService._call_openai_async(prompt)
         except Exception:
             return f"{company_name} is committed to innovation and excellence in the {context.get('industry', 'Technology')} sector."
 
@@ -201,7 +240,7 @@ class CompanyResearchService:
         )
 
         try:
-            response = await ai_dao.generate_text(prompt)
+            response = await CompanyResearchService._call_openai_async(prompt)
             leaders = CompanyResearchService._extract_json(response)
             return leaders if isinstance(leaders, list) else []
         except Exception:
@@ -226,7 +265,7 @@ class CompanyResearchService:
         )
 
         try:
-            response = await ai_dao.generate_text(prompt)
+            response = await CompanyResearchService._call_openai_async(prompt)
             news = CompanyResearchService._extract_json(response)
             return news if isinstance(news, list) else []
         except Exception as e:
@@ -255,7 +294,7 @@ class CompanyResearchService:
         )
 
         try:
-            response = await ai_dao.generate_text(prompt)
+            response = await CompanyResearchService._call_openai_async(prompt)
             funding = CompanyResearchService._extract_json(response)
             return funding if isinstance(funding, list) else []
         except Exception as e:
@@ -276,7 +315,7 @@ class CompanyResearchService:
         )
 
         try:
-            response = await ai_dao.generate_text(prompt)
+            response = await CompanyResearchService._call_openai_async(prompt)
             competition = CompanyResearchService._extract_json(response)
             if isinstance(competition, dict) and "competitors" in competition:
                 return competition.get("competitors", [])
@@ -297,7 +336,7 @@ class CompanyResearchService:
         )
 
         try:
-            return await ai_dao.generate_text(prompt)
+            return await CompanyResearchService._call_openai_async(prompt)
         except Exception:
             return f"{company_name} is a leading player in the {industry or 'Technology'} industry with strong market presence."
 
@@ -323,7 +362,7 @@ class CompanyResearchService:
         )
 
         try:
-            response = await ai_dao.generate_text(prompt)
+            response = await CompanyResearchService._call_openai_async(prompt)
             talking_points = CompanyResearchService._extract_json(response)
             return talking_points if isinstance(talking_points, list) else []
         except Exception:
@@ -356,7 +395,7 @@ class CompanyResearchService:
         )
 
         try:
-            response = await ai_dao.generate_text(prompt)
+            response = await CompanyResearchService._call_openai_async(prompt)
             questions = CompanyResearchService._extract_json(response)
             if isinstance(questions, dict):
                 # Ensure all expected keys exist
