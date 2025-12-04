@@ -145,6 +145,10 @@ export default function OffersPage() {
                         setShowNegotiationPrep(false);
                         setShowDetails(true);
                     }}
+                    onRegenerate={async () => {
+                        const updatedOffer = await OffersAPI.get(selectedOffer._id);
+                        setSelectedOffer(updatedOffer.data);
+                    }}
                 />
             </Container>
         );

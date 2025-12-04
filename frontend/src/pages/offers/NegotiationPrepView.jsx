@@ -14,9 +14,10 @@ import {
 import OffersAPI from "../../api/offers";
 import "../../styles/offers.css";
 
-export default function NegotiationPrepView({ offer, onBack }) {
+export default function NegotiationPrepView({ offer, onBack, onRegenerate }) {
     const [activeTab, setActiveTab] = useState("summary");
     const [downloading, setDownloading] = useState(null);
+    const [regenerating, setRegenerating] = useState(false);
     const [error, setError] = useState(null);
 
     const prep = offer?.negotiation_prep;
@@ -58,6 +59,22 @@ export default function NegotiationPrepView({ offer, onBack }) {
             setError(`Failed to export ${format.toUpperCase()}`);
         } finally {
             setDownloading(null);
+        }
+    };
+
+    const handleRegenerate = async () => {
+        try {
+            setRegenerating(true);
+            setError(null);
+            await OffersAPI.generateNegotiationPrep(offer._id);
+            if (onRegenerate) {
+                onRegenerate();
+            }
+        } catch (err) {
+            console.error("Error regenerating negotiation prep:", err);
+            setError("Failed to regenerate negotiation prep");
+        } finally {
+            setRegenerating(false);
         }
     };
 
@@ -142,6 +159,26 @@ export default function NegotiationPrepView({ offer, onBack }) {
                                 </>
                             ) : (
                                 "📊 Export as JSON"
+                            )}
+                        </Button>
+                        <Button
+                            variant="outline-info"
+                            size="sm"
+                            onClick={handleRegenerate}
+                            disabled={regenerating || downloading}
+                        >
+                            {regenerating ? (
+                                <>
+                                    <Spinner
+                                        as="span"
+                                        animation="border"
+                                        size="sm"
+                                        className="me-2"
+                                    />
+                                    Regenerating...
+                                </>
+                            ) : (
+                                "🔄 Regenerate"
                             )}
                         </Button>
                     </div>
@@ -536,7 +573,6 @@ export default function NegotiationPrepView({ offer, onBack }) {
                                     const pointText = typeof point === 'string' ? point : (point?.point || '');
                                     const category = typeof point === 'string' ? 'experience' : (point?.category || 'experience');
                                     const supportingData = typeof point === 'string' ? null : point?.supporting_data;
-                                    const confidenceLevel = typeof point === 'string' ? null : point?.confidence_level;
 
                                     return (
                                         <Accordion.Item eventKey={String(idx)} key={idx}>
@@ -559,18 +595,12 @@ export default function NegotiationPrepView({ offer, onBack }) {
                                             </Accordion.Header>
                                             <Accordion.Body>
                                                 <p>
-                                                    <strong>Point:</strong> {pointText}
+                                                    <strong>Talking Point:</strong> {pointText}
                                                 </p>
                                                 {supportingData && (
                                                     <p>
                                                         <strong>Supporting Data:</strong>{" "}
                                                         {supportingData}
-                                                    </p>
-                                                )}
-                                                {confidenceLevel && (
-                                                    <p>
-                                                        <strong>Confidence Level:</strong>{" "}
-                                                        {confidenceLevel}/10
                                                     </p>
                                                 )}
                                             </Accordion.Body>

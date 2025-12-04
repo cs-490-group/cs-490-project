@@ -1,25 +1,33 @@
 import json
 import os
-import cohere
+from openai import AsyncOpenAI
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
-co = cohere.Client(os.getenv("COHERE_API_KEY"))
+openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 async def call_cohere_api(prompt: str) -> str:
-    """Call Cohere API using the client"""
+    """Call OpenAI API (formerly Cohere) - same interface, better results"""
     try:
-        response = co.chat(message=prompt)
-        text = getattr(response, "text", None)
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert salary negotiation coach with deep knowledge of compensation packages, market rates, and negotiation strategies."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=2000
+        )
+        text = response.choices[0].message.content
 
         if not text:
-            raise Exception("Cohere returned no text")
+            raise Exception("OpenAI returned no text")
 
         return text
     except Exception as e:
-        raise Exception(f"Cohere API error: {str(e)}")
+        raise Exception(f"OpenAI API error: {str(e)}")
 
 
 async def research_market_salary(
@@ -91,7 +99,8 @@ async def generate_negotiation_talking_points(
     location: str = "",
     years_of_experience: int = 0,
     achievements: Optional[list] = None,
-    market_salary: Optional[Dict[str, Any]] = None
+    market_salary: Optional[Dict[str, Any]] = None,
+    offered_salary: Optional[int] = None
 ) -> list:
     """Generate negotiation talking points based on candidate's achievements and market data"""
     try:
@@ -100,38 +109,97 @@ async def generate_negotiation_talking_points(
         if achievements and len(achievements) > 0:
             achievements_text = "\n\nCandidate's Key Achievements:\n" + "\n".join([f"- {a}" for a in achievements[:5]])
 
-        # Prepare market data context
+        # Prepare market data context with defaults
+        median = 100000
+        percentile_25 = 85000
+        percentile_75 = 125000
+        percentile_90 = 150000
         market_context = ""
+
         if market_salary:
-            median = market_salary.get("median_salary", "market median")
-            percentile_90 = market_salary.get("percentile_90", "top 10%")
-            market_context = f"\n\nMarket Context:\n- Median salary for this role: ${median:,}\n- 90th percentile: ${percentile_90:,}"
+            median = market_salary.get("median_salary", 100000)
+            percentile_25 = market_salary.get("percentile_25", 85000)
+            percentile_75 = market_salary.get("percentile_75", 125000)
+            percentile_90 = market_salary.get("percentile_90", 150000)
+            market_context = f"\n\nMarket Data for {role} in {location}:\n- 25th percentile: ${percentile_25:,}\n- Median (50th): ${median:,}\n- 75th percentile: ${percentile_75:,}\n- 90th percentile: ${percentile_90:,}"
 
-        prompt = f"""You are an expert salary negotiation coach. Generate 5 highly personalized and specific talking points for salary negotiation at {company}.
+        # Determine salary strategy based on offer position
+        if offered_salary and percentile_90 and offered_salary >= percentile_90:
+            salary_focus = "SALARY IS COMPETITIVE/ABOVE 90TH PERCENTILE - DO NOT FOCUS TALKING POINTS ON SALARY. Instead, focus on: total compensation value, equity/benefits, long-term growth, why you're worth keeping happy, retention aspects."
+        elif offered_salary and percentile_75 and offered_salary >= percentile_75:
+            salary_focus = f"SALARY IS GOOD (75TH PERCENTILE) - Minimize salary focus. Instead emphasize: why this role at {company} is perfect for growth, other valuable components (equity, flexibility, learning), long-term value."
+        elif offered_salary and median and offered_salary >= median:
+            salary_focus = f"SALARY IS AT MARKET - You could negotiate salary OR other components. Focus talking points on: market data supporting higher salary, equity/benefits if salary is fixed, your unique value to {company}."
+        else:
+            salary_focus = f"SALARY IS BELOW MARKET - Make salary primary focus. Use market data heavily: median is ${median:,}, you're below that. Negotiate salary first, then other components."
 
-Role: {role}
-Company: {company}
-Location: {location}
-Years of Experience: {years_of_experience}{achievements_text}{market_context}
+        # Build examples based on salary position
+        if offered_salary and percentile_90 and offered_salary >= percentile_90:
+            # Salary is excellent - focus on OTHER value drivers
+            example_points = f"""[
+"Your compensation for the {role} role is already at the 90th percentile (${percentile_90:,}). What makes this role even more attractive is the opportunity to lead {company}'s [specific business initiative]. I want to ensure the equity package reflects the impact I'll have on [specific company goal].",
+"I'm impressed {company} positions this {role} role competitively at ${offered_salary:,}. Given the work I'll do on [specific achievement area], I'm looking to discuss equity grants that align with top performers in {company}'s [relevant department]. Industry standard for this seniority at {company}'s scale is [equity range].",
+"{company}'s base offer is competitive. What I want to focus on is career progression - I've successfully [specific achievement], and I want to ensure my growth path at {company} includes leadership opportunities in [specific area]. What does the 2-3 year progression look like for {role}?",
+"The salary offer reflects market rates well. My interest is in long-term value with {company}. I'd like to discuss: signing bonus to offset current equity, PTO flexibility for the travel this {role} requires, and professional development budget - these matter more for retention than salary adjustments.",
+"I'm satisfied with the base compensation at {offered_salary:,}. However, I've seen {company} offers for similar roles include remote flexibility and performance bonus structures. For a {role} delivering [your achievement type], are these components flexible in the negotiation?"
+]"""
+        elif offered_salary and percentile_75 and offered_salary >= percentile_75:
+            # Salary is good - don't focus heavily on it, emphasize other components
+            example_points = f"""[
+"Your offer of ${offered_salary:,} puts the {role} role at the 75th percentile, which is solid. What I want to focus on is the total compensation picture. {company}'s equity package - I've heard it varies by level. For someone with my background in [achievement], what does the stock option package typically look like?",
+"The base salary at ${offered_salary:,} is competitive in {location} for a {role}. I'm more interested in discussing the components that create real long-term value with {company}. Signing bonus, equity vesting schedules, and performance bonus structures - how flexible is {company} on these?",
+"I'm excited about the {company} offer. The ${offered_salary:,} salary is at market rate. What I want to understand better is the equity and bonus components - these will be critical as I plan my [specific achievement area] work for {company}. Can we dive into those details?",
+"For this {role} position in {location}, ${offered_salary:,} is appropriate. My focus now is maximizing total compensation through: signing bonus to support [personal need], PTO alignment with [industry standard], and clear bonus structure based on [specific role metrics].",
+"Your offer reflects market research well. Rather than negotiate salary further, I'd like to explore what flexibility {company} has on: equity grants for top performers, professional development budget for [specific skill], and remote work policy for this {role}. These matter to my long-term success."
+]"""
+        else:
+            # Salary is at or below market - keep focus on salary and market data
+            example_points = f"""[
+"Market research from Levels.fyi shows {company} compensation for {role} typically ranges ${percentile_75:,}-${percentile_90:,} in {location}. My background in [specific skill] and [achievement] positions me at the higher end of this range.",
+"I've led [specific achievement] at previous role, which is exactly what {company} needs for [specific business goal]. The 75th percentile for {role} professionals at my experience level is ${percentile_75:,}, and I believe that's appropriate for what I bring.",
+"{company} competes for talent by paying competitively. Industry data shows median {role} salary is ${median:,}, with top performers earning ${percentile_90:,}. My [achievement] warrants compensation closer to the 75th percentile.",
+"Based on Glassdoor and payscale data, {role} professionals in {location} with my experience earn ${percentile_75:,}-${percentile_90:,}. For {company} to attract top talent, this range is standard for the value I provide.",
+"I've demonstrated [concrete achievement] which directly impacts {company}'s [business goal]. Market compensation for this expertise is ${percentile_75:,}+ in {location}. I'd like to explore how {company} can meet this range."
+]"""
 
-Create talking points that:
-1. SPECIFICALLY mention {company} and the role
-2. Reference the candidate's actual achievements and experience
-3. Address what {company} values in this role
-4. Use concrete market data to support higher compensation requests
-5. Show clear ROI for {company} hiring this candidate
+        prompt = f"""You are an expert salary negotiation coach. Create 5 HIGHLY SPECIFIC talking points for negotiating a {role} offer at {company} in {location}.
 
-Return ONLY a valid JSON array of 5 strings. Each point should be 1-2 sentences:
-["Point 1 specific to {company} and candidate", "Point 2 specific to {company} and candidate", ...]
+OFFER POSITION: {salary_focus}
 
-Rules:
-- MUST personalize to {company} - not generic
-- Reference candidate achievements where provided
-- Include specific numbers/percentages from market data
-- Make each point compelling and negotiation-focused
-- Return EXACTLY 5 points in clean JSON array
-- NO markdown, NO extra text
-- ONLY return the JSON array"""
+CANDIDATE PROFILE:
+- Experience Level: {years_of_experience} years
+{achievements_text}
+
+{market_context}
+
+YOUR TASK: Create 5 talking points that a candidate would ACTUALLY SAY in a real negotiation call. Each point MUST:
+
+1. Explicitly mention {company} and show you understand their needs
+2. Include a specific achievement or skill from the candidate's background
+3. Reference relevant context (market data if salary is the focus, OR career/benefits if salary is already competitive)
+4. Show CONCRETE VALUE - why {company} specifically needs to offer what you're asking for
+5. Be a complete, natural sentence/statement - something a real person would say in negotiation
+6. CRITICAL: ADJUST YOUR FOCUS based on salary position above
+
+CRITICAL - DO NOT INCLUDE:
+- Generic phrases like "Research market rates" or "My experience brings value"
+- Vague statements or clichés
+- Salary negotiation points if salary is already at/above market - focus on equity/benefits/career growth instead
+- Asking for salary increase if salary is already 90th+ percentile (that's foolish and wastes credibility)
+
+CONTEXT-SPECIFIC EXAMPLES (follow this approach):
+{example_points}
+
+Return a JSON array of exactly 5 talking points - NOT generic phrases, but complete statements:
+
+RULES:
+- Each point must be 2-3 complete sentences
+- Must mention {company} OR specific data relevant to your focus
+- Must reference an actual achievement or skill
+- Use $ amounts only if salary is your focus area
+- No generic phrases allowed
+- **CRITICAL**: {salary_focus}
+- Return ONLY the JSON array, no markdown, no explanation"""
 
         response_text = await call_cohere_api(prompt)
 
@@ -147,7 +215,14 @@ Rules:
 
     except Exception as e:
         print(f"Error generating talking points: {str(e)}")
-        return ["Research market rates for this role", "Highlight relevant experience", "Discuss market demand for skills", "Propose performance-based increases", "Consider total compensation package"]
+        # Fallback with actual data about market and company
+        return [
+            f"The market data for {role} positions in {location} shows a median of ${median:,}, with the 75th percentile at ${percentile_75:,}. This supports a competitive offer for {company}.",
+            f"Based on industry research, experienced {role} professionals in {location} earn between ${percentile_75:,} and ${percentile_90:,}. I'm confident in requesting compensation within this range.",
+            f"{company} requires strong expertise in this role, and my background directly aligns with their needs. The market supports ${percentile_75:,}+ for this level of experience.",
+            f"Considering total market compensation for {role} roles - the 90th percentile reaches ${percentile_90:,}. With my qualifications, I'm positioned for above-median compensation.",
+            f"For {company} to secure top talent in the {role} role, compensation of ${percentile_75:,}-${percentile_90:,} is standard in {location}'s market."
+        ]
 
 
 async def generate_total_compensation_framework(
@@ -204,35 +279,72 @@ async def generate_negotiation_scripts(
 ) -> Dict[str, str]:
     """Generate detailed, company-personalized negotiation scripts for different scenarios"""
     try:
-        # Add market context if available
+        # Add market context if available with all percentiles
+        median = 100000
+        p25 = 85000
+        p75 = 125000
+        p90 = 150000
+        offer_position = "at"
+
         market_context = ""
         if market_salary and offered_salary:
-            median = market_salary.get("median_salary", 0)
-            p90 = market_salary.get("percentile_90", 0)
+            median = market_salary.get("median_salary", 100000)
+            p25 = market_salary.get("percentile_25", 85000)
+            p75 = market_salary.get("percentile_75", 125000)
+            p90 = market_salary.get("percentile_90", 150000)
+
+            if offered_salary >= p90:
+                offer_position = "ABOVE (90th percentile)"
+            elif offered_salary >= p75:
+                offer_position = "ABOVE (75th percentile)"
+            elif offered_salary >= median:
+                offer_position = "AT (median)"
+            else:
+                offer_position = "BELOW (median)"
+
             market_context = f"""
-Market Context for Negotiation:
-- Role {job_title} median salary in {location}: ${median:,}
+MARKET DATA FOR NEGOTIATION:
+- 25th percentile: ${p25:,}
+- Median (50th): ${median:,}
+- 75th percentile: ${p75:,}
 - 90th percentile: ${p90:,}
-- Your offer: ${offered_salary:,}
-- Your offer is {'ABOVE' if offered_salary >= p90 else 'at' if offered_salary >= median else 'BELOW'} market median"""
+- YOUR OFFER: ${offered_salary:,} ({offer_position})
+- LOCATION: {location}"""
 
-        prompt = f"""You are a senior salary negotiation coach. Create DETAILED, company-specific negotiation scripts for a {job_title} role at {company} in {location}.{market_context}
+        prompt = f"""You are an expert salary negotiation coach. Create 3 HIGHLY SPECIFIC, company-personalized negotiation scripts for a {job_title} role at {company}.{market_context}
 
-Generate 3 critical scenarios with realistic dialogue. Each script should be detailed (3-4 sentences) and specifically reference {company} and the {job_title} role.
+CRITICAL: These are real scripts a person would USE in an actual conversation. They must:
+1. Mention {company} by name and reference their business/needs
+2. Include actual market data figures (${median:,}, ${p75:,}, ${p90:,})
+3. Sound natural - like a real person speaking, not robotic
+4. Address the SPECIFIC offer position (you're {'above/at/below'} market)
+5. Be 3-4 complete sentences each
 
-Return as JSON with this structure:
+BAD EXAMPLES (too generic - DO NOT DO THIS):
+- "Thank you for the offer. I appreciate the opportunity." - Too vague
+- "I'd like to discuss the compensation." - Doesn't mention company or data
+- "Can we talk about salary?" - Meaningless and not specific
+
+GOOD EXAMPLES (specific to company, role, and data):
+- "Thank you so much for the offer. I'm genuinely excited about the {company} role and the impact I can have. Before I decide, I wanted to share that my research shows {job_title} positions in {location} typically range ${p75:,}-${p90:,}, and I'd love to discuss how this offer aligns with that market data."
+- "I appreciate {company}'s offer, and I'm committed to joining the team. I've researched comparable positions at similar companies, and the market median for this role is around ${median:,}. Given my background, I was hoping we could explore ${p75:,} as a starting point."
+
+Return JSON with this structure:
 {{
-  "initial_offer_response": "<Detailed response when receiving initial offer - acknowledge, express enthusiasm, ask for time to review, mention research>",
-  "counteroffer_request": "<Request for higher salary with specific references to market data and value. 3-4 sentences with concrete reasoning>",
-  "benefits_negotiation": "<Script for negotiating benefits/equity if salary is fixed. Reference specific benefits valuable for this role>"
+  "initial_offer_response": "<Response when first receiving the offer. Thank them, show excitement about {company}, mention you need time to review and research>",
+  "counteroffer_request": "<Request for higher salary. Mention {company}, specific market data (${p75:,}, ${p90:,}), and why you deserve it. 3-4 sentences>",
+  "benefits_negotiation": "<If salary is fixed, negotiate other benefits. Mention {company} and specific benefits valuable for {job_title} roles>"
 }}
 
-Rules:
-- Reference {company} specifically - not generic
-- Each script should be 3-4 sentences with concrete details
-- Scripts should feel natural and professional
-- For counteroffer_request: mention market research, your experience, value to {company}
-- NO markdown or extra text
+RULES:
+- EVERY script MUST mention {company} explicitly
+- EVERY script MUST include at least one market figure (${median:,}, ${p75:,}, etc)
+- Scripts must sound like natural conversation, not corporate templates
+- Initial response: Show genuine interest in {company}, acknowledge you need time, mention market research
+- Counteroffer: Reference market data, your value, why {company} should pay more
+- Benefits: If salary is fixed, propose alternatives (equity, PTO, flexibility for {company}'s role)
+- 3-4 complete sentences each, not bullet points
+- NO markdown, NO extra text
 - ONLY return clean JSON"""
 
         response_text = await call_cohere_api(prompt)
@@ -246,10 +358,11 @@ Rules:
         return json.loads(clean)
     except Exception as e:
         print(f"Error generating negotiation scripts: {str(e)}")
+        # Fallback with actual market data
         return {
-            "initial_offer_response": "Thank you for the offer. I'm genuinely excited about this opportunity to join your team. I'd like to thoroughly review the complete compensation package and do some market research - can I get back to you within 48 hours?",
-            "counteroffer_request": "Based on my research and experience, I'd like to discuss the compensation package for this role. Would you have flexibility to adjust the base salary closer to the market median for this position?",
-            "benefits_negotiation": "If the base salary is at its maximum, I'd love to discuss other valuable components like additional PTO, flexible work arrangements, or a professional development budget."
+            "initial_offer_response": f"Thank you so much for the offer. I'm genuinely excited about the {company} role and the impact I can make. I'd like to thoroughly review the complete compensation package and research market comparables - can I get back to you within 48 hours with my thoughts?",
+            "counteroffer_request": f"I appreciate {company}'s offer and I'm committed to joining the team. I've researched {job_title} positions in {location}, and the market median is around ${median:,}, with competitive offers ranging up to ${p75:,}-${p90:,}. Based on my experience, I'd like to explore a salary closer to that range.",
+            "benefits_negotiation": f"If {company}'s base salary is at its maximum, I'd love to discuss other valuable components that matter for a {job_title} role - such as signing bonus, additional PTO, flexible work arrangements, or professional development budget. What flexibility might be possible?"
         }
 
 
@@ -257,10 +370,32 @@ async def generate_counteroffer_template(
     job_title: str,
     company: str,
     market_salary: Optional[Dict[str, Any]] = None,
-    offered_salary: Optional[int] = None
+    offered_salary: Optional[int] = None,
+    offered_salary_details: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
-    """Generate counteroffer evaluation template with market context and specific guidance"""
+    """Generate counteroffer evaluation template with market context, actual offer details, and specific guidance"""
     try:
+        # Build offer details summary
+        offer_summary = ""
+        if offered_salary_details:
+            offer_parts = []
+            if offered_salary_details.get("base_salary"):
+                offer_parts.append(f"Base Salary: ${offered_salary_details['base_salary']:,}")
+            if offered_salary_details.get("signing_bonus"):
+                offer_parts.append(f"Signing Bonus: ${offered_salary_details['signing_bonus']:,}")
+            if offered_salary_details.get("annual_bonus"):
+                offer_parts.append(f"Annual Bonus: {offered_salary_details['annual_bonus']}")
+            if offered_salary_details.get("stock_options"):
+                offer_parts.append(f"Stock Options: {offered_salary_details['stock_options']}")
+            if offered_salary_details.get("rsus"):
+                offer_parts.append(f"RSUs: {offered_salary_details['rsus']}")
+            if offered_salary_details.get("pto_days"):
+                offer_parts.append(f"PTO: {offered_salary_details['pto_days']} days")
+            if offered_salary_details.get("remote_flexibility"):
+                offer_parts.append(f"Remote: {offered_salary_details['remote_flexibility']}")
+            if offer_parts:
+                offer_summary = f"\n\nCURRENT OFFER:\n" + "\n".join(offer_parts)
+
         # Build market context for the prompt
         market_context = ""
         if market_salary and offered_salary:
@@ -283,24 +418,46 @@ Current Offer Context:
 
 Use these benchmarks when evaluating counteroffer importance."""
 
-        prompt = f"""Create a detailed counteroffer evaluation template for a {job_title} position at {company}.{market_context}
+        # Determine priority strategy based on salary position
+        if offered_salary and p90 and offered_salary >= p90:
+            priority_strategy = "SALARY IS PERFECT (90th+ percentile) - Mark salary as Low/Medium priority. Focus on: Equity, Signing Bonus, Benefits, Remote Work, PTO as High priorities. User should negotiate on non-salary components."
+        elif offered_salary and p75 and offered_salary >= p75:
+            priority_strategy = "SALARY IS GOOD (75th percentile+) - Mark salary as Medium priority. Focus on: Signing Bonus, Equity, Benefits as High priorities. User can hold on salary and push for other components."
+        elif offered_salary and median and offered_salary >= median:
+            priority_strategy = "SALARY IS AT MARKET MEDIAN - Mark salary as High priority but not Critical. User could negotiate 5-10% more OR focus on other components (Bonus, Equity, Benefits)."
+        else:
+            priority_strategy = "SALARY IS BELOW MARKET - Mark salary as Critical priority. User MUST negotiate salary first and hard. Other components are secondary."
 
-Generate the compensation components that should be prioritized for this specific role, ordered by importance.
-For a {job_title} at {company}, determine which components are most valuable and negotiable.
+        prompt = f"""Create a detailed counteroffer evaluation template for a {job_title} position at {company}.{offer_summary}{market_context}
 
-Return as JSON with this structure:
+PRIORITY STRATEGY: {priority_strategy}
+
+Your task: Generate the compensation components that are most important to negotiate for this SPECIFIC role at this SPECIFIC company, ordered by importance. REFERENCE THE ACTUAL OFFER ABOVE - make suggestions based on what's been offered and what's missing.
+
+For {company}'s {job_title} role, determine:
+1. Which components are non-negotiable vs flexible
+2. What {company} typically negotiates on
+3. What's realistic to push back on vs accept
+4. Strategic order (start with what matters most)
+5. ADJUST PRIORITIES based on the salary position above - don't mark salary as Critical if it's already competitive
+
+Return JSON with this structure:
 {{
   "offer_comparison_fields": [
     {{"field": "ComponentName", "importance": "Critical|High|Medium"}},
+    {{"field": "ComponentName2", "importance": "..."}},
     ...
   ],
-  "evaluation_note": "<Specific guidance for this role and company>"
+  "evaluation_note": "<Strategic guidance specific to {company} and {job_title} - what to negotiate first based on salary position>"
 }}
 
-Rules:
-- Order by importance and negotiability for this specific role
-- Include 8-10 realistic components for a {job_title}
-- Consider what matters for {job_title} roles in this industry
+CRITICAL REQUIREMENTS:
+- Order STRATEGICALLY - most important/negotiable first
+- Include 8-10 components realistic for {job_title}
+- FOLLOW THE PRIORITY STRATEGY ABOVE - adjust component importance accordingly
+- evaluation_note MUST be specific to {company}'s industry/size and this role
+- Consider: Is this a tech company (equity matters), big corp (benefits), startup (equity), etc?
+- If salary is already competitive, reduce its importance and elevate other components
 - NO markdown or extra text
 - ONLY return clean JSON"""
 
@@ -315,9 +472,40 @@ Rules:
         return json.loads(clean)
     except Exception as e:
         print(f"Error generating counteroffer template: {str(e)}")
+        # Fallback with strategic guidance based on market position and actual offer details
+        is_above_90 = offered_salary and p90 and offered_salary >= p90
+        is_above_75 = offered_salary and p75 and offered_salary >= p75
+        is_below_market = offered_salary and median and offered_salary < median
+
+        # Build personalized strategy note based on what's actually offered
+        offer_gaps = []
+        if offered_salary_details:
+            if not offered_salary_details.get("signing_bonus"):
+                offer_gaps.append("Signing Bonus (missing)")
+            if not offered_salary_details.get("stock_options") and not offered_salary_details.get("rsus"):
+                offer_gaps.append("Equity (missing)")
+            if offered_salary_details.get("pto_days", 0) < 20:
+                offer_gaps.append(f"PTO ({offered_salary_details.get('pto_days', 0)} days - below standard)")
+
+        if is_above_90:
+            base_importance = "Medium"
+            gap_note = f" Target: {', '.join(offer_gaps)}" if offer_gaps else " Offer is competitive overall"
+            strategy_note = f"Your offer (${offered_salary:,}) is ABOVE 90th percentile (${p90:,}). Salary is excellent.{gap_note} Focus on negotiating missing components."
+        elif is_above_75:
+            base_importance = "Medium"
+            gap_note = f" Target: {', '.join(offer_gaps)}" if offer_gaps else " Overall competitive"
+            strategy_note = f"Your offer (${offered_salary:,}) is at 75th percentile (${p75:,}). Salary is good.{gap_note} Focus on Signing Bonus, Equity, Benefits instead of salary."
+        elif not is_below_market:
+            base_importance = "High"
+            gap_note = f" Target: {', '.join(offer_gaps)}" if offer_gaps else ""
+            strategy_note = f"Your offer (${offered_salary:,}) is AT market median (${median:,}).{gap_note} Could push for 5-10% more OR focus on other valuable components."
+        else:
+            base_importance = "Critical"
+            strategy_note = f"Your offer (${offered_salary:,}) is BELOW market median (${median:,}). Make Base Salary your primary focus. Use the ${median - offered_salary:,} gap as negotiation leverage."
+
         return {
             "offer_comparison_fields": [
-                {"field": "Base Salary", "importance": "Critical"},
+                {"field": "Base Salary", "importance": base_importance},
                 {"field": "Signing Bonus", "importance": "High"},
                 {"field": "Annual Bonus/Target Bonus", "importance": "High"},
                 {"field": "Equity/Stock Options", "importance": "High"},
@@ -328,7 +516,7 @@ Rules:
                 {"field": "Professional Development Budget", "importance": "Medium"},
                 {"field": "Career Growth Path", "importance": "Medium"}
             ],
-            "evaluation_note": "Prioritize Base Salary if below market median, then Signing Bonus, then other components"
+            "evaluation_note": f"STRATEGY FOR {company}: {strategy_note}"
         }
 
 
