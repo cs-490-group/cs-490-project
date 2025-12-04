@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import TimelineAnalytics from "./TimelineAnalytics";
 import JobAnalytics from "./JobAnalytics";
-import NetworkAnalytics from "./NetworkAnalytics";
+import NetworkAnalytics from "../network/NetworkingAnalytics";
 import SkillsAnalytics from "./SkillsAnalytics";
 import PerformanceAnalytics from "./PerformanceAnalytics";
 import SalaryAnalytics from "./SalaryAnalytics";
