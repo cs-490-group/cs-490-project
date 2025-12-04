@@ -109,8 +109,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
       setRevoking(email);
       //Revoke Access
       await progressSharingAPI.revokeShare(teamId, memberId, email);
-      
-      alert("Access revoked");
+
       await fetchData();
     } catch (err) {
       const msg = err.response?.data?.detail || err.message;
