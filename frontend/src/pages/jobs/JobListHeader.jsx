@@ -280,6 +280,55 @@ export default function JobListHeader({
             >
               🗄️ Archive
             </button>
+
+            <button
+              onClick={() => {
+                setView("salary");
+                setShowStatistics(false);
+                setShowCalendar(false);
+                setShowArchived(false);
+                setShowMaterials(false);
+                //setShowJobMatching(false);
+                //setShowSkillsGap(false);
+              }}
+              style={{
+                padding: "12px 24px",
+                background: view === "salary" ? "#4caf50" : "#b8860b",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              💰 Salary Research
+            </button>
+
+            <button
+              onClick={() => {
+                setView("interviewInsights");
+                setShowStatistics(false);
+                setShowCalendar(false);
+                setShowArchived(false);
+                setShowMaterials(false);
+                setShowJobMatching(false);
+                setShowSkillsGap(false);
+              }}
+              style={{
+                padding: "12px 24px",
+                background: view === "interviewInsights" ? "#4caf50" : "#6a1b9a",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              🧠 Interview Insights
+            </button>
+
             
             <button
               onClick={() => setShowSettings(true)}

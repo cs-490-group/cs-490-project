@@ -44,6 +44,8 @@ from routes.mentorship import mentorship_router
 from routes.network_campaigns import network_campaigns_router
 from routes.professional_references import professional_references_router
 from routes.network_analytics import network_analytics_router
+from routes.salary import salary_router
+from routes.insights import insights_router
 
 app = FastAPI()
 
@@ -88,6 +90,9 @@ app.include_router(interview_router, prefix=api_prefix)
 app.include_router(analytics_router, prefix=api_prefix)
 app.include_router(prediction_router, prefix=api_prefix)
 app.include_router(ai_router, prefix=api_prefix)
+app.include_router(salary_router)
+app.include_router(insights_router)
+
 
 app.include_router(coaching_router, prefix = api_prefix)
 app.include_router(advisors_router,prefix=api_prefix)
