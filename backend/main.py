@@ -44,6 +44,7 @@ from routes.mentorship import mentorship_router
 from routes.network_campaigns import network_campaigns_router
 from routes.professional_references import professional_references_router
 from routes.network_analytics import network_analytics_router
+from routes.organizations import org_router
 
 app = FastAPI()
 
@@ -69,6 +70,7 @@ app.include_router(auth_router, prefix = api_prefix)
 app.include_router(profiles_router, prefix = api_prefix)
 app.include_router(groups_router, prefix = api_prefix)
 app.include_router(teams_router,prefix=api_prefix)
+app.include_router(org_router,prefix=api_prefix)
 app.include_router(progress_router,prefix = api_prefix)
 app.include_router(posts_router,prefix = api_prefix)
 app.include_router(skills_router, prefix = api_prefix)
@@ -106,6 +108,7 @@ app.include_router(mentorship_router, prefix = api_prefix)
 app.include_router(network_campaigns_router, prefix = api_prefix)
 app.include_router(professional_references_router, prefix = api_prefix)
 app.include_router(network_analytics_router, prefix = api_prefix)
+
 
 @app.on_event("startup")
 async def startup_event():

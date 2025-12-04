@@ -23,7 +23,7 @@ const Nav = () => {
   const [username, setUsername] = React.useState(localStorage.getItem("username") || "");
   const hasValidated = React.useRef(false);
   React.useEffect(() => {
-    const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword","/shared-progress","/advisor-portal","/resumes/public"];
+    const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword","/shared-progress","/advisor-portal","/resumes/public","/cover-letter/public"];
 
     const shouldSkip = excludedPaths.some(prefix =>
       location.pathname.startsWith(prefix)
@@ -401,6 +401,10 @@ const Nav = () => {
                   </NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/newGroup">
                     Groups
+                  </NavDropdown.Item>
+
+                  <NavDropdown.Item as={NavLink} to="/enterprise">
+                    Enterprise Portal
                   </NavDropdown.Item>
                 </NavDropdown>
 
