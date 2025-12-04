@@ -1,0 +1,519 @@
+.writing-practice-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Timer Display */
+.timer-display {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.timer-display.expired {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.timer-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.timer-value {
+  font-size: 3rem;
+  font-weight: bold;
+  margin: 0.5rem 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-status {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+/* Question Display */
+.question-display {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #667eea;
+}
+
+.question-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.question-text {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.5;
+}
+
+.question-category {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: #667eea;
+  color: white;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+}
+
+/* Writing Editor */
+.writing-editor {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.editor-label {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.word-count-display {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.word-count-number {
+  font-weight: 500;
+  margin-right: 0.25rem;
+}
+
+.word-count-number.low {
+  color: #dc3545;
+}
+
+.word-count-number.optimal {
+  color: #28a745;
+}
+
+.word-count-number.high {
+  color: #ffc107;
+}
+
+.writing-textarea {
+  width: 100%;
+  min-height: 300px;
+  padding: 1rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1.6;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.writing-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.writing-textarea:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.writing-textarea::placeholder {
+  color: #999;
+}
+
+/* Analysis Results */
+.analysis-results {
+  margin-top: 2rem;
+}
+
+.results-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.results-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.8rem;
+}
+
+.results-header p {
+  margin: 0;
+  color: #666;
+}
+
+/* Overall Score Display */
+.overall-score-section {
+  text-align: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.overall-score-section h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+}
+
+.score-circle {
+  display: inline-block;
+  margin: 1rem 0;
+}
+
+.score-label-text {
+  font-size: 1.2rem;
+  margin-top: 0.5rem;
+  opacity: 0.9;
+}
+
+/* Score Cards */
+.score-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.score-card {
+  padding: 1.5rem;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.score-card-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.score-card-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.score-card-value {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.score-card-subtitle {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Score Bar */
+.score-bar-item {
+  margin-bottom: 1rem;
+}
+
+.score-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.score-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.score-icon {
+  font-size: 1.2rem;
+}
+
+.score-value {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.score-bar-track {
+  height: 12px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.score-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+
+/* Feedback Sections */
+.feedback-sections {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.feedback-section {
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+.feedback-section h3 {
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.section-icon {
+  font-size: 1.3rem;
+}
+
+.feedback-list {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.feedback-list li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.strengths-section {
+  background: #d4edda;
+  border-color: #c3e6cb;
+}
+
+.strengths-section h3 {
+  color: #155724;
+}
+
+.strengths-section .feedback-list {
+  color: #155724;
+}
+
+.improvement-section {
+  background: #fff3cd;
+  border-color: #ffeaa7;
+}
+
+.improvement-section h3 {
+  color: #856404;
+}
+
+.improvement-section .feedback-list {
+  color: #856404;
+}
+
+.suggestions-section {
+  background: #f0f4ff;
+  border-color: #667eea;
+}
+
+.suggestions-section h3 {
+  color: #667eea;
+}
+
+.suggestions-section .feedback-list {
+  color: #333;
+}
+
+/* Statistics Grid */
+.analysis-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-item {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+/* Progress Indicator */
+.progress-indicator {
+  padding: 1.5rem;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.attempt-number {
+  font-size: 0.9rem;
+  padding: 0.25rem 0.75rem;
+  background: #f0f4ff;
+  color: #667eea;
+  border-radius: 12px;
+}
+
+.improvement-positive,
+.improvement-negative,
+.improvement-stable {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.improvement-positive {
+  background: #d4edda;
+  color: #155724;
+}
+
+.improvement-negative {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.improvement-stable {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.improvement-icon {
+  font-size: 1.5rem;
+}
+
+.improved-areas {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+/* Action Buttons */
+.feedback-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.feedback-actions button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+  background: white;
+  color: #667eea;
+  border: 1px solid #667eea;
+}
+
+.btn-secondary:hover {
+  background: #f0f4ff;
+}
+
+/* Question Bank */
+.question-bank {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.question-item {
+  padding: 1.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.question-item:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .writing-practice-container {
+    padding: 1rem;
+  }
+  
+  .timer-value {
+    font-size: 2rem;
+  }
+  
+  .score-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .analysis-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .feedback-actions {
+    flex-direction: column;
+  }
+  
+  .feedback-actions button {
+    width: 100%;
+  }
+}

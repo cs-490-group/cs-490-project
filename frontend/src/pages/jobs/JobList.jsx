@@ -19,6 +19,9 @@ import BulkActionsBar from "./BulkActionsBar";
 import JobDetailsModal from "./JobDetailsModal";
 import { useJobFilters } from "./hooks/useJobFilters";
 import { useJobOperations } from "./hooks/useJobOperations";
+import JobMatchingPage from "./JobMatchingPage";
+import SkillsGapPage from "./SkillsGapPage";
+
 
 export default function JobList() {
   const [jobs, setJobs] = useState([]);
@@ -30,15 +33,19 @@ export default function JobList() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showStatistics, setShowStatistics] = useState(false);
   const [showMaterials, setShowMaterials] = useState(false);
+  const [showJobMatching, setShowJobMatching] = useState(false);
+  const [showSkillsGap, setShowSkillsGap] = useState(false);
   const [showPerformance, setShowPerformance] = useState(false);
   const [reminderJob, setReminderJob] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [selectedJobIds, setSelectedJobIds] = useState([]);
+  const selectedJobId = selectedJobIds.length > 0 ? selectedJobIds[0] : null;
   const [showSettings, setShowSettings] = useState(false);
   const [autoArchiveDays, setAutoArchiveDays] = useState(parseInt(localStorage.getItem('autoArchiveDays')) || 90);
   const [autoArchiveEnabled, setAutoArchiveEnabled] = useState(localStorage.getItem('autoArchiveEnabled') === 'true');
   const [undoStack, setUndoStack] = useState([]);
+
   const [showFloatingWidget, setShowFloatingWidget] = useState(
     localStorage.getItem('showDeadlineWidget') !== 'false'
   );
@@ -67,8 +74,9 @@ export default function JobList() {
     restoreJob,
     restoreDeletedJob,
     loadJobs,
-    checkAutoArchive
-  } = useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, setUndoStack, jobs, autoArchiveDays, autoArchiveEnabled);
+    checkAutoArchive,
+    retryJobResearch
+  } = useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, setUndoStack, jobs, autoArchiveDays, autoArchiveEnabled, setView);
 
   useEffect(() => {
     loadJobs(setLoading);
@@ -274,6 +282,11 @@ export default function JobList() {
         setShowMaterials={setShowMaterials}
         showFloatingWidget={showFloatingWidget}
         toggleFloatingWidget={toggleFloatingWidget}
+        showJobMatching={showJobMatching}
+        setShowJobMatching={setShowJobMatching}
+        showSkillsGap={showSkillsGap}
+        setShowSkillsGap={setShowSkillsGap}   
+        selectedJobId={selectedJobId}      
       />
 
       <SettingsModal
@@ -295,6 +308,8 @@ export default function JobList() {
           {showCalendar && <DeadlineCalendar jobs={jobs.filter(j => !j.archived)} />}
           {showStatistics && <JobStatistics jobs={jobs} />}
           {showMaterials && <MaterialsAnalytics />}
+          {showJobMatching && <JobMatchingPage jobs={jobs} />}
+          {showSkillsGap && <SkillsGapPage jobs={jobs} />}
         </>
       )}
 
@@ -336,7 +351,7 @@ export default function JobList() {
           addJob={addJob}
           editJob={editingJob ? { ...editingJob, submit: updateJob } : null}
           cancelEdit={() => {
-            setView("dashboard");
+            setView("pipeline");
             setEditingJob(null);
             window.location.reload();
           }}
