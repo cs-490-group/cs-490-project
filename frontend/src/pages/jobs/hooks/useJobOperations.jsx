@@ -99,7 +99,7 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
         salary_notes: jobData.salary_notes,
         interview_notes: jobData.interview_notes,
         status_history: jobData.status_history,
-        company_data: jobData.companyData || null
+        company_data: jobData.company_data || null
       };
 
       console.log("BACKEND DATA:", backendData);
