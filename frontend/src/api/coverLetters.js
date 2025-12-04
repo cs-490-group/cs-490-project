@@ -108,6 +108,10 @@ class CoverLetterAPI {
   deleteVersion(id, versionId) {
     return api.delete(`${BASE_URL}/${id}/versions/${versionId}`);
   }
+
+  getPerformanceStats() {
+    return api.get(`${BASE_URL}/analytics/performance`);
+  }
 }
 
 export default new CoverLetterAPI();

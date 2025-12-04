@@ -1,6 +1,7 @@
 from mongo.dao_setup import db_client, COVER_LETTERS
 from pymongo import DESCENDING
 from datetime import datetime, timezone, timedelta
+from typing import List, Dict, Optional
 from bson import ObjectId
 import secrets
 
@@ -222,5 +223,86 @@ class CoverLettersDAO:
     async def delete_version(self, version_id: str) -> int:
         result = await self.versions_collection.delete_one({"_id": ObjectId(version_id)})
         return result.deleted_count
+    
+    async def get_performance_stats(self, user_uuid: str, jobs_dao) -> dict:
+        """
+        Calculate performance metrics for cover letters based on linked job outcomes.
+        Groups data by Template Style (e.g., 'Formal', 'Creative').
+        """
+        # Fetch all jobs for the user
+        jobs = await jobs_dao.get_all_jobs(user_uuid)
+        
+        # Fetch all cover letters for the user
+        letters = await self.get_all_cover_letters(user_uuid)
+        letter_map = {str(l["_id"]): l for l in letters}
+        
+        # Aggregate Data
+        stats = {} # { "Formal": { sent: 10, interviews: 2, offers: 1 } }
+        
+        for job in jobs:
+            # Check if job has a linked cover letter
+            materials = job.get("materials", {})
+            if not materials or not materials.get("cover_letter_id"):
+                continue
+                
+            letter_id = materials.get("cover_letter_id")
+            letter = letter_map.get(letter_id)
+            
+            if not letter: 
+                continue
+                
+            # Extract Style/Template
+            style = "Unknown"
+            template_type = letter.get("template_type", "")
+            
+            if template_type:
+                # FIX: Handle "sample_" prefix logic here
+                if template_type.startswith("sample_"):
+                    # Format: sample_technical_Industry_Name -> extracts "Technical"
+                    parts = template_type.split("_")
+                    if len(parts) > 1:
+                        style = parts[1].capitalize() 
+                elif "_" in template_type:
+                    # Format: technical_industry.html -> extracts "Technical"
+                    style = template_type.split('_')[0].capitalize()
+                else:
+                    style = template_type.capitalize()
+            
+            elif " - " in letter.get("title", ""):
+                 style = letter.get("title").split(" - ")[0]
+            
+            if style not in stats:
+                stats[style] = {"sent": 0, "responses": 0, "interviews": 0, "offers": 0}
+            
+            # Update Counts
+            stats[style]["sent"] += 1
+            status = job.get("status", "").lower()
+            
+            if status in ["screening", "interview", "offer"]:
+                stats[style]["responses"] += 1
+            if status in ["interview", "offer"]:
+                stats[style]["interviews"] += 1
+            if status == "offer":
+                stats[style]["offers"] += 1
+        
+        # Calculate Rates & Insights
+        results = []
+        for style, data in stats.items():
+            total = data["sent"]
+            if total == 0: continue
+            
+            results.append({
+                "style": style,
+                "total_sent": total,
+                "response_rate": round((data["responses"] / total) * 100, 1),
+                "interview_rate": round((data["interviews"] / total) * 100, 1),
+                "offer_rate": round((data["offers"] / total) * 100, 1),
+                "raw": data
+            })
+            
+        return {
+            "styles": results,
+            "total_linked_applications": sum(s["total_sent"] for s in results)
+        }
 
 cover_letters_dao = CoverLettersDAO()
