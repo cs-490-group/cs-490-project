@@ -13,6 +13,7 @@ import CreateGroup from "./pages/createGroup";
 import GroupPage from "./pages/groupPage";
 import SetupTeam from "./pages/teams/setupTeam";
 import EnterpriseDashboard from "./pages/EnterpriseDashboard";
+import SetupOrganization from "./pages/enterprise/SetupOrganization";
 import SharedProgressView from "./pages/teams/SharedProgressView";
 import EmploymentList from "./pages/employment/EmploymentList";
 import SetPassword from "./pages/setPassword";
@@ -109,6 +110,7 @@ export function App() {
                 <Route path="/setup-team" element={<SetupTeam />} />
                 <Route path="/teams" element={<TeamsDashboard />} />
                 <Route path="/enterprise" element={<EnterpriseDashboard />} />
+                <Route path="/setup-org" element = {<SetupOrganization />} />
                 <Route path="/shared-progress/:teamId/:memberId/:email?" element={<SharedProgressView />} />
                 <Route path="/employment-history" element={<EmploymentList />} />
                 <Route path = "/forgotPassword" element = {<ForgotPassword />} />
