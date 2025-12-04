@@ -5,6 +5,7 @@ import SalaryModal from "./SalaryModal";
 
 const SalaryAnalytics = () => {
   const [salaryData, setSalaryData] = useState(null);
+  const [salaryRecords, setSalaryRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -20,8 +21,15 @@ const SalaryAnalytics = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await salaryAPI.getAnalytics();
-      setSalaryData(response.data);
+      
+      // Fetch both analytics and full records
+      const [analyticsResponse, recordsResponse] = await Promise.all([
+        salaryAPI.getAnalytics(),
+        salaryAPI.getAll()
+      ]);
+      
+      setSalaryData(analyticsResponse.data);
+      setSalaryRecords(recordsResponse.data);
     } catch (err) {
       console.error('Error loading salary data:', err);
       setError(err.response?.data?.detail || 'Failed to load salary data');
@@ -43,16 +51,18 @@ const SalaryAnalytics = () => {
   const handleSaveRecord = async (recordData) => {
     try {
       if (editingRecord) {
+        // Update existing record
         await salaryAPI.update(editingRecord._id, recordData);
       } else {
+        // Create new record
         await salaryAPI.add(recordData);
       }
-      loadSalaryData(); // Refresh data
+      loadSalaryData(); // Refresh
       setShowModal(false);
       setEditingRecord(null);
     } catch (error) {
       console.error('Failed to save salary record:', error);
-      throw error;
+      throw error; // Let modal handle the error display
     }
   };
 
@@ -63,7 +73,7 @@ const SalaryAnalytics = () => {
     
     try {
       await salaryAPI.delete(recordId);
-      loadSalaryData(); // Refresh data
+      loadSalaryData(); // Refresh
     } catch (error) {
       console.error('Failed to delete salary record:', error);
       alert('Failed to delete salary record. Please try again.');
@@ -100,31 +110,29 @@ const SalaryAnalytics = () => {
         <h2>Salary Analytics</h2>
         <div style={{ textAlign: 'center', padding: '3rem', color: '#dc3545' }}>
           <p>Error: {error}</p>
-          <button onClick={loadSalaryData} className="retry-btn">Retry</button>
+          <button 
+            onClick={loadSalaryData}
+            style={{ 
+              marginTop: '1rem', 
+              padding: '0.5rem 1rem', 
+              cursor: 'pointer',
+              background: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px'
+            }}
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
   }
 
-  // Check if we have data to display main dashboard
-  const hasData = salaryData && salaryData.salaryHistory && salaryData.salaryHistory.length > 0;
-
-  // Sort history by year descending for the list view
-  const sortedHistory = hasData 
-    ? [...salaryData.salaryHistory].sort((a, b) => b.year - a.year) 
-    : [];
-
-  return (
-    <div className="analyticsDashboard-content">
-      <div className="salary-header-with-action">
+  if (!salaryData || !salaryData.salaryHistory) {
+    return (
+      <div className="analyticsDashboard-content">
         <h2>Salary Analytics</h2>
-        <button className="salary-add-btn" onClick={handleAddRecord}>
-          + Add Salary Record
-        </button>
-      </div>
-
-      {!hasData ? (
-        // EMPTY STATE
         <div style={{ textAlign: 'center', padding: '3rem' }}>
           <p>No salary data found. Start by adding your first salary record!</p>
           <button 
@@ -143,131 +151,203 @@ const SalaryAnalytics = () => {
             + Add Salary Record
           </button>
         </div>
-      ) : (
-        // MAIN DASHBOARD STATE
-        <>
-          {/* Stats Overview */}
-          <div className="salary-stats-grid">
-            <div className="salary-stat-card">
-              <div className="salary-stat-label">Current Salary</div>
-              <div className="salary-stat-value">{formatCurrency(salaryData.stats.currentSalary)}</div>
-            </div>
-            <div className="salary-stat-card">
-              <div className="salary-stat-label">Market Average</div>
-              <div className="salary-stat-value">{formatCurrency(salaryData.stats.marketAverage)}</div>
-            </div>
-            <div className="salary-stat-card">
-              <div className="salary-stat-label">Market Percentile</div>
-              <div className="salary-stat-value">{salaryData.stats.percentileRank}th</div>
-            </div>
-            <div className="salary-stat-card">
-              <div className="salary-stat-label">Total Growth</div>
-              <div className="salary-stat-value positive">+{salaryData.stats.totalGrowth}%</div>
-            </div>
-          </div>
+      </div>
+    );
+  }
 
-          {/* Market Position Banner */}
-          <div className="salary-position-banner">
-            <strong>Market Position:</strong> {salaryData.marketPosition}
-            <span className={`salary-position-indicator ${
-              salaryData.marketPosition.includes("Above") 
-                ? "positive" 
-                : salaryData.marketPosition.includes("Below") 
-                ? "negative" 
-                : ""
-            }`}>
-              {salaryData.marketPosition.includes("Above") 
-                ? "↑ Above Average" 
-                : salaryData.marketPosition.includes("Below") 
-                ? "↓ Below Average"
-                : "= At Average"}
-            </span>
-          </div>
+  return (
+    <div className="analyticsDashboard-content">
+      <div className="salary-header-with-action">
+        <h2>Salary Analytics</h2>
+        <button className="salary-add-btn" onClick={handleAddRecord}>
+          + Add Salary Record
+        </button>
+      </div>
+      
+      {/* Stats Overview */}
+      <div className="salary-stats-grid">
+        <div className="salary-stat-card">
+          <div className="salary-stat-label">Current Salary</div>
+          <div className="salary-stat-value">{formatCurrency(salaryData.stats.currentSalary)}</div>
+        </div>
+        <div className="salary-stat-card">
+          <div className="salary-stat-label">Market Average</div>
+          <div className="salary-stat-value">{formatCurrency(salaryData.stats.marketAverage)}</div>
+        </div>
+        <div className="salary-stat-card">
+          <div className="salary-stat-label">Market Percentile</div>
+          <div className="salary-stat-value">{salaryData.stats.percentileRank}th</div>
+        </div>
+        <div className="salary-stat-card">
+          <div className="salary-stat-label">Total Growth</div>
+          <div className="salary-stat-value positive">+{salaryData.stats.totalGrowth}%</div>
+        </div>
+      </div>
 
-          {/* Salary Progression Chart */}
-          <div className="salary-chart-container">
-            <h3>Salary Progression vs Market</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={salaryData.salaryHistory}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="year" />
-                <YAxis tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(value) => formatCurrency(value)} labelStyle={{ color: "#333" }} />
-                <Legend />
-                <Line type="monotone" dataKey="salary" stroke="#007bff" strokeWidth={3} name="Your Salary" dot={{ r: 5 }} />
-                <Line type="monotone" dataKey="market" stroke="#6c757d" strokeWidth={2} strokeDasharray="5 5" name="Market Average" dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      {/* Market Position Banner */}
+      <div className="salary-position-banner">
+        <strong>Market Position:</strong> {salaryData.marketPosition}
+        <span className={`salary-position-indicator ${
+          salaryData.marketPosition.includes("Above") 
+            ? "positive" 
+            : salaryData.marketPosition.includes("Below") 
+            ? "negative" 
+            : ""
+        }`}>
+          {salaryData.marketPosition.includes("Above") 
+            ? "↑ Above Average" 
+            : salaryData.marketPosition.includes("Below") 
+            ? "↓ Below Average"
+            : "= At Average"}
+        </span>
+      </div>
 
-          <div className="salary-content-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem' }}>
-            
-            {/* Insights Section */}
-            <div className="salary-insights">
-              <h3>Key Insights</h3>
-              <ul className="salary-insights-list">
-                <li>
-                  <span className="insight-icon">📊</span>
-                  Your salary has grown {salaryData.stats.totalGrowth}% over the past {salaryData.salaryHistory.length} years
-                </li>
-                {salaryData.stats.marketAverage > 0 && (
-                  <li>
-                    <span className="insight-icon">🎯</span>
-                    You're currently earning {((salaryData.stats.currentSalary / salaryData.stats.marketAverage - 1) * 100).toFixed(1)}% 
-                    {salaryData.stats.currentSalary > salaryData.stats.marketAverage ? ' above' : ' below'} market average
-                  </li>
-                )}
-              </ul>
-            </div>
+      {/* Salary Progression Chart */}
+      <div className="salary-chart-container">
+        <h3>Salary Progression vs Market</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={salaryData.salaryHistory}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="year" />
+            <YAxis 
+              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip 
+              formatter={(value) => formatCurrency(value)}
+              labelStyle={{ color: "#333" }}
+            />
+            <Legend />
+            <Line 
+              type="monotone" 
+              dataKey="salary" 
+              stroke="#007bff" 
+              strokeWidth={3}
+              name="Your Salary"
+              dot={{ r: 5 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="market" 
+              stroke="#6c757d" 
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              name="Market Average"
+              dot={{ r: 3 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
-            {/* NEW: Salary History List with Edit/Delete */}
-            <div className="salary-history-list">
-              <h3>History & Actions</h3>
-              <div className="history-list-container" style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
-                {sortedHistory.map((record) => (
-                  <div 
-                    key={record._id} 
-                    className="history-item"
-                    style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      padding: '1rem',
-                      borderBottom: '1px solid #f0f0f0',
-                      backgroundColor: 'white'
-                    }}
-                  >
-                    <div className="history-info">
-                      <div style={{ fontWeight: 'bold' }}>{record.year}</div>
-                      <div style={{ color: '#007bff' }}>{formatCurrency(record.salary)}</div>
-                    </div>
-                    <div className="history-actions" style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button 
-                        onClick={() => handleEditRecord(record)}
-                        className="goal-action-btn goal-edit-btn"
-                        title="Edit Record"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteRecord(record._id)}
-                        className="goal-action-btn goal-delete-btn"
-                        title="Delete Record"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
+      {/* Insights Section */}
+      {salaryData.insights && salaryData.insights.length > 0 && (
+        <div className="salary-insights">
+          <h3>Key Insights</h3>
+          <ul className="salary-insights-list">
+            {salaryData.insights.map((insight, idx) => (
+              <li key={idx}>
+                <span className="insight-icon">📊</span>
+                {insight}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
-      {/* Modal - Placed outside conditional logic so it always works */}
+      {/* Salary Records List */}
+      {salaryRecords && salaryRecords.length > 0 && (
+        <div className="salary-records-section">
+          <h3>Your Salary History</h3>
+          <div className="salary-records-list">
+            {[...salaryRecords]
+              .sort((a, b) => b.year - a.year)
+              .map((record) => {
+                const totalComp = (record.salary_amount || 0) + (record.bonus || 0) + (record.equity_value || 0);
+                
+                return (
+                  <div key={record._id} className="salary-record-card">
+                    <div className="salary-record-header">
+                      <div className="salary-record-year">{record.year}</div>
+                      <div className="salary-record-actions">
+                        <button
+                          onClick={() => handleEditRecord(record)}
+                          className="salary-action-btn salary-edit-btn"
+                          title="Edit record"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDeleteRecord(record._id)}
+                          className="salary-action-btn salary-delete-btn"
+                          title="Delete record"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="salary-record-body">
+                      <div className="salary-record-main">
+                        <div className="salary-record-amount">
+                          {formatCurrency(record.salary_amount)}
+                        </div>
+                        {record.job_role && (
+                          <div className="salary-record-role">{record.job_role}</div>
+                        )}
+                        {record.company && (
+                          <div className="salary-record-company">🏢 {record.company}</div>
+                        )}
+                        {record.location && (
+                          <div className="salary-record-location">📍 {record.location}</div>
+                        )}
+                        {record.employment_type && (
+                          <div className="salary-record-employment">
+                            💼 {record.employment_type.charAt(0).toUpperCase() + record.employment_type.slice(1)}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {((record.bonus || 0) > 0 || (record.equity_value || 0) > 0) && (
+                        <div className="salary-record-breakdown">
+                          <div className="salary-breakdown-title">Compensation Breakdown:</div>
+                          <div className="salary-breakdown-items">
+                            <div className="salary-breakdown-item">
+                              <span className="salary-breakdown-label">Base Salary:</span>
+                              <span className="salary-breakdown-value">{formatCurrency(record.salary_amount)}</span>
+                            </div>
+                            {record.bonus > 0 && (
+                              <div className="salary-breakdown-item">
+                                <span className="salary-breakdown-label">Annual Bonus:</span>
+                                <span className="salary-breakdown-value">{formatCurrency(record.bonus)}</span>
+                              </div>
+                            )}
+                            {record.equity_value > 0 && (
+                              <div className="salary-breakdown-item">
+                                <span className="salary-breakdown-label">Equity Value:</span>
+                                <span className="salary-breakdown-value">{formatCurrency(record.equity_value)}</span>
+                              </div>
+                            )}
+                            <div className="salary-breakdown-item salary-breakdown-total">
+                              <span className="salary-breakdown-label">Total Compensation:</span>
+                              <span className="salary-breakdown-value">{formatCurrency(totalComp)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {record.notes && (
+                        <div className="salary-record-notes">
+                          <strong>Notes:</strong> {record.notes}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* Salary Modal */}
       {showModal && (
         <SalaryModal
           record={editingRecord}
