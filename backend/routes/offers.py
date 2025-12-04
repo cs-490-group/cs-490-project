@@ -248,6 +248,7 @@ async def generate_negotiation_prep(
             company=offer["company"],
             location=offer["location"],
             offered_salary=offer["offered_salary_details"].get("base_salary", 0),
+            offered_salary_details=offer.get("offered_salary_details", {}),
             years_of_experience=5,
             achievements=achievements if achievements else [],
             company_size=None

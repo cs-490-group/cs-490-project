@@ -211,7 +211,6 @@ export default function JobDetailsModal({
 
           { id: "details", label: "Details" },
           { id: "research", label: "Research" },
-          { id: "salary", label: "Salary Negotiation" },
           { id: "news", label: "News" },
           { id: "materials", label: "Materials" },
           { id: "history", label: "History" },
@@ -551,95 +550,6 @@ export default function JobDetailsModal({
 
           </div>
         )} 
-
-
-        {/* ----------- SALARY NEGOTIATION TAB ----------- */}
-        {activeTab === "salary" && (
-          <div style={{ padding: "15px" }}>
-            {selectedJob.salary_negotiation && !selectedJob.salary_negotiation.error ? (
-              <>
-                <h2 style={{ color: "#1565c0", marginBottom: "20px" }}>
-                  Salary Negotiation Guide for {selectedJob.salary_negotiation.job_title}
-                </h2>
-
-                {/* MARKET DATA */}
-                {selectedJob.salary_negotiation.market_data && (
-                  <div style={{
-                    background: "#e3f2fd",
-                    padding: "16px",
-                    borderRadius: "10px",
-                    marginBottom: "20px",
-                    border: "1px solid #bbdefb"
-                  }}>
-                    <h3 style={{ color: "#1565c0", marginBottom: "12px" }}>Market Salary Data</h3>
-                    <p><strong>Median Salary:</strong> {selectedJob.salary_negotiation.market_data.median_salary || "N/A"}</p>
-                    <p><strong>25th Percentile:</strong> {selectedJob.salary_negotiation.market_data.percentile_25 || "N/A"}</p>
-                    <p><strong>75th Percentile:</strong> {selectedJob.salary_negotiation.market_data.percentile_75 || "N/A"}</p>
-                    <p><strong>90th Percentile:</strong> {selectedJob.salary_negotiation.market_data.percentile_90 || "N/A"}</p>
-                    <p><strong>Industry Average:</strong> {selectedJob.salary_negotiation.market_data.industry_average || "N/A"}</p>
-                    <p><strong>Salary Trend:</strong> {selectedJob.salary_negotiation.market_data.salary_trend || "N/A"}</p>
-                  </div>
-                )}
-
-                {/* TALKING POINTS */}
-                {selectedJob.salary_negotiation.talking_points && selectedJob.salary_negotiation.talking_points.length > 0 && (
-                  <div style={{
-                    background: "#f0fff4",
-                    padding: "16px",
-                    borderRadius: "10px",
-                    marginBottom: "20px",
-                    border: "1px solid #c6f6d5"
-                  }}>
-                    <h3 style={{ color: "#2f855a", marginBottom: "12px" }}>Key Talking Points</h3>
-                    <ul>
-                      {selectedJob.salary_negotiation.talking_points.map((point, i) => (
-                        <li key={i} style={{ marginBottom: "8px" }}>
-                          {typeof point === 'string' ? point : point.point || JSON.stringify(point)}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* TIMING STRATEGY */}
-                {selectedJob.salary_negotiation.timing_strategy && (
-                  <div style={{
-                    background: "#fff8e1",
-                    padding: "16px",
-                    borderRadius: "10px",
-                    marginBottom: "20px",
-                    border: "1px solid #ffecb3"
-                  }}>
-                    <h3 style={{ color: "#ff8f00", marginBottom: "12px" }}>Timing Strategy</h3>
-                    <p style={{ whiteSpace: "pre-wrap" }}>{selectedJob.salary_negotiation.timing_strategy}</p>
-                  </div>
-                )}
-
-                {/* BEST PRACTICES */}
-                {selectedJob.salary_negotiation.best_practices && selectedJob.salary_negotiation.best_practices.length > 0 && (
-                  <div style={{
-                    background: "#e9f7ef",
-                    padding: "16px",
-                    borderRadius: "10px",
-                    marginBottom: "20px",
-                    border: "1px solid #c8e6c9"
-                  }}>
-                    <h3 style={{ color: "#2e7d32", marginBottom: "12px" }}>Best Practices</h3>
-                    <ol>
-                      {selectedJob.salary_negotiation.best_practices.map((practice, i) => (
-                        <li key={i} style={{ marginBottom: "8px" }}>
-                          {practice}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p style={{ color: "#d32f2f" }}>Salary negotiation research not available for this job.</p>
-            )}
-          </div>
-        )}
 
         {/* ---------------- NEWS TAB ---------------- */}
         {activeTab === "news" && (

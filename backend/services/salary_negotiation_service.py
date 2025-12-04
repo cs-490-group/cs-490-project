@@ -25,71 +25,160 @@ from .offer_analysis import analyze_offer, calculate_negotiation_readiness, gene
 
 # Helper functions to transform simple API returns into proper structures for frontend
 def transform_talking_points(points: List[str]) -> List[Dict[str, Any]]:
-    """Convert simple talking point strings into structured objects"""
+    """Convert talking point strings into structured objects.
+
+    Note: Points are fully AI-generated with company personalization embedded in the text.
+    """
+    if not points:
+        return []
+
     return [
         {
             "point": point,
-            "category": "achievement" if any(keyword in point.lower() for keyword in ["led", "managed", "built", "achieved", "increased"])
-                       else "market_data" if any(keyword in point.lower() for keyword in ["market", "research", "rate", "salary", "data"])
+            "category": "achievement" if any(keyword in point.lower() for keyword in ["led", "managed", "built", "achieved", "increased", "delivered", "implemented"])
+                       else "market_data" if any(keyword in point.lower() for keyword in ["market", "research", "rate", "salary", "data", "percentile", "median"])
                        else "experience",
-            "supporting_data": None,
-            "confidence_level": 7
+            "supporting_data": None
         }
         for point in points if isinstance(point, str) and point.strip()
     ]
 
 
 def transform_negotiation_scripts(scripts_dict: Dict[str, str]) -> List[Dict[str, Any]]:
-    """Convert simple script dict into structured script objects"""
+    """Transform AI-generated script responses into structured scenario objects for frontend display"""
+    if not scripts_dict:
+        scripts_dict = {}
+
+    # Extract the script statements from AI response
+    initial = scripts_dict.get("initial_offer_response", "")
+    counteroffer = scripts_dict.get("counteroffer_request", "")
+    benefits = scripts_dict.get("benefits_negotiation", "")
+
     return [
         {
             "scenario": "Initial Offer Response",
-            "opening_statement": scripts_dict.get("initial_offer_response", "Thank you for the offer."),
-            "talking_points": ["Review the complete offer", "Research market rates"],
-            "potential_objections": ["Budget constraints", "This is our best offer"],
-            "your_responses": ["I appreciate that. Let me research comparable positions.", "I understand, and I'd like to discuss other components."],
-            "closing_statement": "I'd like to take some time to review and get back to you.",
-            "tone_tips": "Be professional and positive. Show genuine interest."
+            "opening_statement": initial if initial else "Thank you for the offer. I'm very interested in this opportunity.",
+            "talking_points": ["Review the complete offer package", "Research market rates", "Discuss timeline for response"],
+            "potential_objections": ["We don't negotiate", "This is final"],
+            "your_responses": ["I'd like to review and provide a thoughtful response", "Can we discuss the package components?"],
+            "closing_statement": "I'll review and get back to you within 48 hours.",
+            "tone_tips": "Be professional and enthusiastic about the role."
         },
         {
             "scenario": "Counter-Offer Request",
-            "opening_statement": "Based on my research and experience, I'd like to discuss the compensation package.",
-            "talking_points": [
-                scripts_dict.get("counteroffer_request", "Market rates for this role are higher."),
-                "My experience adds significant value",
-                "Industry standards suggest a higher range"
-            ],
-            "potential_objections": ["We can't match that", "No room in the budget"],
-            "your_responses": ["I understand. Could we explore other components like equity or signing bonus?", "Would flexibility on other benefits be possible?"],
-            "closing_statement": "I'm excited about this opportunity and want to find a win-win solution.",
-            "tone_tips": "Be data-driven. Reference market research. Remain collaborative."
+            "opening_statement": counteroffer if counteroffer else "Based on my research, I'd like to discuss the compensation package.",
+            "talking_points": ["Market data for this role", "Your unique value and experience", "Industry standards for compensation"],
+            "potential_objections": ["Budget is fixed", "We can't match that"],
+            "your_responses": ["What other components could we adjust?", "Can we discuss alternative compensation?"],
+            "closing_statement": "I'm excited about this opportunity and want to find the right package.",
+            "tone_tips": "Be data-driven and collaborative. Reference market research."
         },
         {
             "scenario": "Benefits Negotiation",
-            "opening_statement": "If the base salary is at its maximum, I'd like to discuss the overall package.",
-            "talking_points": [
-                scripts_dict.get("benefits_negotiation", "Alternative benefits can be very valuable."),
-                "Remote flexibility improves work-life balance",
-                "Professional development shows investment in growth"
-            ],
-            "potential_objections": ["All salaries are fixed", "Benefits are standard"],
-            "your_responses": ["Understood. What other components might be negotiable?", "Are there any flexible benefits we could discuss?"],
-            "closing_statement": "Let's find the best total compensation package for both of us.",
-            "tone_tips": "Show flexibility. Emphasize non-salary benefits that matter to you."
+            "opening_statement": benefits if benefits else "If salary is at maximum, can we discuss other benefits?",
+            "talking_points": ["Remote work flexibility", "Professional development", "Signing bonus or equity"],
+            "potential_objections": ["All benefits are standard", "No exceptions"],
+            "your_responses": ["Are there negotiable benefits for top candidates?", "What flexibility exists?"],
+            "closing_statement": "Let's build a package that reflects my value and your constraints.",
+            "tone_tips": "Show flexibility and focus on total compensation value."
         }
     ]
 
 
 def transform_counter_offers(template_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Convert simple counter-offer template into structured objects"""
+    """Convert counter-offer template into structured objects with specific guidance per component"""
+    if not template_dict:
+        template_dict = {}
+
     fields = template_dict.get("offer_comparison_fields", [])
+
+    # Component-specific negotiation guidance
+    component_guidance = {
+        "Base Salary": {
+            "reasoning": "Compare to market data percentiles - this is your foundation for total comp",
+            "suggested_counter": "Request market median minimum; 75th percentile if below-market offer"
+        },
+        "Signing Bonus": {
+            "reasoning": "Often flexible when base salary is fixed - typical range 10-25% of salary",
+            "suggested_counter": "Ask for 15-20% of base salary as signing bonus if salary won't increase"
+        },
+        "Annual Bonus/Target Bonus": {
+            "reasoning": "Clarify target % and metrics - get it in writing before accepting",
+            "suggested_counter": "Request industry-standard % (10-20%+ depending on role) with clear metrics"
+        },
+        "Bonus": {
+            "reasoning": "Clarify target % and metrics - get it in writing before accepting",
+            "suggested_counter": "Request industry-standard % (10-20%+ depending on role) with clear metrics"
+        },
+        "Target Bonus": {
+            "reasoning": "Clarify target % and metrics - get it in writing before accepting",
+            "suggested_counter": "Request industry-standard % (10-20%+ depending on role) with clear metrics"
+        },
+        "Equity/Stock Options": {
+            "reasoning": "Critical for startup/growth companies - understand vesting, cliff, total value",
+            "suggested_counter": "Ask about: 4-yr vesting, 1-yr cliff, total grant value, refresh grants"
+        },
+        "Stock Options": {
+            "reasoning": "Critical for startup/growth companies - understand vesting, cliff, total value",
+            "suggested_counter": "Ask about: 4-yr vesting, 1-yr cliff, total grant value, refresh grants"
+        },
+        "Equity": {
+            "reasoning": "Critical for startup/growth companies - understand vesting, cliff, total value",
+            "suggested_counter": "Ask about: 4-yr vesting, 1-yr cliff, total grant value, refresh grants"
+        },
+        "Health Insurance": {
+            "reasoning": "Review coverage tier and employer contribution % - impacts total comp value",
+            "suggested_counter": "Request HSA-eligible plan or employer increase contribution % (often 85%+)"
+        },
+        "Health Insurance Coverage": {
+            "reasoning": "Review coverage tier and employer contribution % - impacts total comp value",
+            "suggested_counter": "Request HSA-eligible plan or employer increase contribution % (often 85%+)"
+        },
+        "Retirement (401k/Match)": {
+            "reasoning": "Employer match is free money - standard is 4-6% in many industries",
+            "suggested_counter": "Request 5-6% match if currently below standard for your industry"
+        },
+        "Retirement": {
+            "reasoning": "Employer match is free money - standard is 4-6% in many industries",
+            "suggested_counter": "Request 5-6% match if currently below standard for your industry"
+        },
+        "PTO Days": {
+            "reasoning": "Below 20 days is below industry standard - worth negotiating for senior roles",
+            "suggested_counter": "Request 20+ days minimum; unlimited PTO increasingly common at senior levels"
+        },
+        "Remote Work Policy": {
+            "reasoning": "Remote flexibility can be worth 10-20% salary adjustment - huge quality of life",
+            "suggested_counter": "Request full-remote or hybrid (2-3 days/week in-office if required)"
+        },
+        "Remote Work Flexibility": {
+            "reasoning": "Remote flexibility can be worth 10-20% salary adjustment - huge quality of life",
+            "suggested_counter": "Request full-remote or hybrid (2-3 days/week in-office if required)"
+        },
+        "Professional Development": {
+            "reasoning": "Training budget shows company investment in your growth - typical $2-5k/year",
+            "suggested_counter": "Request $3-5k annual budget + conference attendance (1-2 per year)"
+        },
+        "Professional Development Budget": {
+            "reasoning": "Training budget shows company investment in your growth - typical $2-5k/year",
+            "suggested_counter": "Request $3-5k annual budget + conference attendance (1-2 per year)"
+        },
+        "Career Growth Path": {
+            "reasoning": "Understand promotion timeline and growth opportunities - impacts long-term earning",
+            "suggested_counter": "Ask about: promotion timeline, skill development, internal mobility, mentorship"
+        },
+        "Job Security/Growth": {
+            "reasoning": "For equity: understand acceleration clauses and change-of-control provisions",
+            "suggested_counter": "Request equity acceleration (25-100%) if company acquired or role eliminated"
+        }
+    }
+
     return [
         {
             "metric": field.get("field", "Metric"),
-            "offered_value": "TBD",
-            "market_value": "TBD",
-            "suggested_counter": "TBD",
-            "reasoning": f"Adjust based on {field.get('field', 'this component')}",
+            "offered_value": "Enter actual offer amount",
+            "market_value": "Research comparable for this component",
+            "suggested_counter": component_guidance.get(field.get("field", ""), {}).get("suggested_counter", "Ask for market-competitive amount"),
+            "reasoning": component_guidance.get(field.get("field", ""), {}).get("reasoning", f"Negotiate this strategically based on market data"),
             "priority_level": field.get("importance", "medium").lower()
         }
         for field in fields if isinstance(field, dict) and field.get("field")
@@ -117,7 +206,8 @@ async def generate_full_negotiation_prep(
     offered_salary: int,
     years_of_experience: int = 5,
     achievements: Optional[List[str]] = None,
-    company_size: Optional[str] = None
+    company_size: Optional[str] = None,
+    offered_salary_details: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Generate complete salary negotiation preparation materials
@@ -127,10 +217,11 @@ async def generate_full_negotiation_prep(
         role: Job title
         company: Company name
         location: Job location
-        offered_salary: Offered salary amount
+        offered_salary: Offered salary amount (base)
         years_of_experience: Candidate's experience level
         achievements: List of key achievements
         company_size: Company size (startup, mid-size, enterprise)
+        offered_salary_details: Full offer details (signing bonus, PTO, benefits, etc)
 
     Returns:
         Complete NegotiationPrep dict with all materials
@@ -157,26 +248,32 @@ async def generate_full_negotiation_prep(
             location=location,
             years_of_experience=years_of_experience,
             achievements=achievements,
-            market_salary=market_salary_data
+            market_salary=market_salary_data,
+            offered_salary=offered_salary
         )
         # Transform into proper structure for frontend
         talking_points = transform_talking_points(talking_points_raw)
 
-        # 3. Generate negotiation scripts
+        # 3. Generate negotiation scripts (with market context)
         print("📝 Creating negotiation scripts...")
         scripts_raw = await generate_negotiation_scripts(
             job_title=role,
             company=company,
-            location=location
+            location=location,
+            market_salary=market_salary_data,
+            offered_salary=offered_salary
         )
         # Transform into proper structure for frontend
         negotiation_scripts = transform_negotiation_scripts(scripts_raw)
 
-        # 4. Generate counter-offer templates
+        # 4. Generate counter-offer templates (with market context and actual offer details)
         print("📋 Building counter-offer templates...")
         counter_templates_raw = await generate_counteroffer_template(
             job_title=role,
-            company=company
+            company=company,
+            market_salary=market_salary_data,
+            offered_salary=offered_salary,
+            offered_salary_details=offered_salary_details or {}
         )
         # Transform into proper structure for frontend
         counter_offer_templates = transform_counter_offers(counter_templates_raw)
@@ -295,7 +392,7 @@ async def generate_full_negotiation_prep(
             "readiness_assessment": readiness_assessment,
             "negotiation_focus": negotiation_focus,
             "generated_at": datetime.utcnow().isoformat(),
-            "generated_by_model": "cohere-command-r-plus"
+            "generated_by_model": "gpt-4o-mini"
         }
 
         print("✅ Salary negotiation prep generated successfully!")
