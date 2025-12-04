@@ -29,6 +29,8 @@ from routes.AI import ai_router
 from routes.question_bank import question_bank_router
 from routes.mock_interview import mock_interview_router
 from routes.coaching import coaching_router
+from routes.goals import goals_router
+from routes.Salary import salary_router
 
 app = FastAPI()
 
@@ -78,6 +80,8 @@ app.include_router(templates_router, prefix = api_prefix)
 app.include_router(question_bank_router, prefix = api_prefix)
 app.include_router(mock_interview_router, prefix = api_prefix)
 app.include_router(coaching_router, prefix = api_prefix)
+app.include_router(goals_router, prefix = api_prefix)
+app.include_router(salary_router, prefix = api_prefix)
 
 app.include_router(ai_router, prefix=api_prefix)
 

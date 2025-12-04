@@ -16,6 +16,8 @@ from mongo.jobs_dao import jobs_dao
 from mongo.projects_dao import projects_dao
 from mongo.skills_dao import skills_dao
 from mongo.teams_dao import teams_dao
+from mongo.goals_dao import goals_dao
+from mongo.salary_dao import salary_dao
 from sessions.session_manager import session_manager
 from sessions.session_authorizer import authorize
 from schema.Profile import Profile, DeletePassword
@@ -100,6 +102,16 @@ async def delete_profile(passSchema: DeletePassword, uuid: str = Depends(authori
         media_ids = await media_dao.get_all_associated_media_ids(uuid)
         for id in media_ids:
             await media_dao.delete_media(id)
+        await profiles_dao.delete_profile(uuid)
+        
+        goals_list = await goals_dao.get_all_goals(uuid)
+        for id in goals_list:
+            await goals_dao.delete_goal(id)
+        await profiles_dao.delete_profile(uuid)
+        
+        salary_list = await salary_dao.get_all_salary_records(uuid)
+        for id in salary_list:
+            await salary_dao.delete_salary_record(id)
         await profiles_dao.delete_profile(uuid)
 
         user_team = await teams_dao.get_user_team(uuid)
