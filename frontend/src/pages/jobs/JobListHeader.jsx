@@ -227,7 +227,7 @@ export default function JobListHeader({
                 minWidth: "fit-content"
               }}
             >
-              🧠 Gap
+               🎯 Skills Gap
             </button>
 
             <button
