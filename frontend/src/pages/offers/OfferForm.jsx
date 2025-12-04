@@ -67,7 +67,8 @@ export default function OfferForm({ offer, onSave, onCancel }) {
             const selectedJob = jobs.find(j => j._id === selectedJobId);
             if (selectedJob) {
                 setJobTitle(selectedJob.job_title || "");
-                setCompany(selectedJob.company || "");
+                const companyName = typeof selectedJob.company === "string" ? selectedJob.company : selectedJob.company?.name || "";
+                setCompany(companyName);
                 setLocation(selectedJob.location || "");
             }
         }
@@ -144,11 +145,14 @@ export default function OfferForm({ offer, onSave, onCancel }) {
                             disabled={loadingJobs}
                         >
                             <option value="">-- Select a job to auto-fill details --</option>
-                            {jobs.map((job) => (
-                                <option key={job._id} value={job._id}>
-                                    {job.job_title} at {job.company} ({job.location})
-                                </option>
-                            ))}
+                            {jobs.map((job) => {
+                                const companyName = typeof job.company === "string" ? job.company : job.company?.name || "";
+                                return (
+                                    <option key={job._id} value={job._id}>
+                                        {job.job_title} at {companyName} ({job.location})
+                                    </option>
+                                );
+                            })}
                         </Form.Select>
                         <Form.Text className="text-muted">
                             Select a job from your saved postings to auto-fill job title, company, and location
