@@ -75,6 +75,10 @@ class JobsAPI {
             throw error;
         }
     }
+    
+    retryResearch(jobId) {
+        return api.post(`${BASE_URL}/${jobId}/retry-research`);
+    }
 }
 
 export default new JobsAPI();

@@ -1,13 +1,13 @@
 import uuid
 from datetime import datetime, timezone
 from bson import ObjectId
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo.asynchronous.database import AsyncDatabase
 
 
 class MockInterviewSessionDAO:
     """Data Access Object for mock interview sessions"""
 
-    def __init__(self, db_client: AsyncIOMotorDatabase):
+    def __init__(self, db_client: AsyncDatabase):
         self.db = db_client
         self.collection = db_client["mock_interview_sessions"]
 

@@ -5,6 +5,8 @@ import {
   Zap, Target, AlertCircle, ChevronDown, Calendar
 } from "lucide-react";
 import progressSharingAPI from "../../api/progressSharing";
+import SupportControlCenter from "../../components/teams/SupportControlCenter";
+import MilestoneCelebration from "./MilestoneCelebration";
 
 
 export default function ProgressSharingHub({ teamId, memberId, memberName }) {
@@ -107,8 +109,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
       setRevoking(email);
       //Revoke Access
       await progressSharingAPI.revokeShare(teamId, memberId, email);
-      
-      alert("Access revoked");
+
       await fetchData();
     } catch (err) {
       const msg = err.response?.data?.detail || err.message;
@@ -138,6 +139,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
 
   const renderOverview = () => (
     <div style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
+      <SupportControlCenter teamId={teamId} memberId={memberId} />
       <div style={{ marginBottom: "32px" }}>
         <h2 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "16px", color: "#1a1a1a" }}>
           📊 Accountability Impact
@@ -195,54 +197,13 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
       </div>
 
       <div style={{ marginBottom: "32px" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "16px", color: "#1a1a1a" }}>
-          🏆 Recent Milestones
-        </h2>
-        {milestones.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
-            {milestones.map((m, idx) => (
-              <div key={idx} style={{
-                background: "#fff8e1",
-                padding: "16px",
-                borderRadius: "8px",
-                border: "1px solid #ffecb3",
-                borderLeft: "4px solid #fbc02d"
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
-                  <div style={{ fontSize: "24px" }}>
-                    {m.category === "offer_received" && "💼"}
-                    {m.category === "interview_scheduled" && "📞"}
-                    {m.category === "goal_completed" && "✅"}
-                    {m.category === "applications_milestone" && "📧"}
-                    {!["offer_received", "interview_scheduled", "goal_completed", "applications_milestone"].includes(m.category) && "⭐"}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#999" }}>
-                    {new Date(m.achieved_date).toLocaleDateString()}
-                  </div>
-                </div>
-                <div style={{ fontWeight: "bold", marginBottom: "4px", color: "#1a1a1a" }}>
-                  {m.title}
-                </div>
-                <div style={{ fontSize: "13px", color: "#666" }}>
-                  {m.description}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{
-            background: "#f5f5f5",
-            padding: "40px 20px",
-            borderRadius: "8px",
-            textAlign: "center",
-            color: "#999"
-          }}>
-            <Trophy size={48} style={{ marginBottom: "16px", opacity: 0.5 }} />
-            <p>No milestones yet. Keep pushing forward! 🚀</p>
-          </div>
-        )}
+        <MilestoneCelebration 
+            teamId={teamId} 
+            memberId={memberId} 
+            memberName={memberName} 
+        />
       </div>
-    </div>
+      </div>
   );
 
   const renderSharing = () => (
@@ -413,7 +374,8 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
             { key: "can_see_engagement", label: "📊 Engagement", desc: "Allow viewing activity and engagement score" },
             { key: "can_see_milestones", label: "🏆 Milestones", desc: "Allow viewing achievements and milestones" },
             { key: "can_see_feedback", label: "💬 Feedback", desc: "Allow viewing mentor feedback (very private)" },
-            { key: "can_see_full_progress", label: "📈 Full Progress", desc: "Allow viewing detailed progress analytics" }
+            { key: "can_see_full_progress", label: "📈 Full Progress", desc: "Allow viewing detailed progress analytics" },
+            { key: "hide_sensitive", label: "🔒 Hide Sensitive Info", desc: "Hide personal details like name and email" }
           ].map((item) => (
             <div key={item.key} style={{
               display: "flex",
@@ -464,7 +426,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
         </div>
 
         <button
-          onClick={handleSaveSettings} 
+          onClick={handleSaveSettings}
           disabled={loading}
           style={{
             marginTop: "24px",

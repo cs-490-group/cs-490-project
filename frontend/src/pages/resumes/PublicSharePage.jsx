@@ -41,6 +41,16 @@ export default function PublicSharePage() {
     fetchSharedResume();
   }, [token]);
 
+  const handleStatusChange = async (newStatus) => {
+    try {
+      await ResumesAPI.updatePublicStatus(token, newStatus);
+      setResume({ ...resume, approval_status: newStatus });
+      alert(`Marked as ${newStatus.replace("_", " ").toUpperCase()}`);
+    } catch (err) {
+      alert("Failed to update status");
+    }
+  };
+
   const handleAddComment = async () => {
     if (!newComment.trim()) {
       alert('Please enter a comment');
@@ -59,7 +69,7 @@ export default function PublicSharePage() {
       // Add feedback using the public endpoint (no auth required)
       const response = await api.post(`/resumes/public/${token}/feedback`, {
         comment: newComment,
-        reviewer: reviewerName,
+        reviewer: reviewerName || "Guest",
         email: reviewerEmail,
       });
 
@@ -71,7 +81,11 @@ export default function PublicSharePage() {
         comment: newComment,
         resolved: false,
       };
-      setFeedback([...feedback, comment]);
+      setFeedback([...feedback, {
+         comment: newComment, 
+         reviewer: reviewerName || "Guest", 
+         date: new Date().toISOString() 
+      }]);
       setNewComment('');
       alert('Thank you! Your feedback has been submitted.');
     } catch (err) {
@@ -112,6 +126,38 @@ export default function PublicSharePage() {
       <div className="public-share-header">
         <h1>{resume.name}</h1>
         <p className="text-muted">This resume has been shared with you for review.</p>
+      </div>
+
+      <div className="card mb-4 shadow-sm">
+        <div className="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <h5 className="mb-1">Review Status</h5>
+            <span className={`badge ${
+              resume.approval_status === 'approved' ? 'bg-success' : 
+              resume.approval_status === 'changes_requested' ? 'bg-warning text-dark' : 
+              'bg-secondary'
+            }`}>
+              {(resume.approval_status || 'Pending').replace('_', ' ').toUpperCase()}
+            </span>
+          </div>
+          
+          {shareSettings.can_comment && (
+            <div className="btn-group">
+              <button 
+                className="btn btn-outline-warning"
+                onClick={() => handleStatusChange('changes_requested')}
+              >
+               Request Changes
+              </button>
+              <button 
+                className="btn btn-success"
+                onClick={() => handleStatusChange('approved')}
+              >
+                Approve
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="public-share-layout">

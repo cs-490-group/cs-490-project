@@ -211,5 +211,12 @@ class ResumeDAO:
         except Exception as e:
             print(f"Error in get_resume_by_share_token: {e}")
             return None
+    
+    async def update_approval_status(self, resume_id: str, status: str) -> int:
+        """Update approval status (approved, changes_requested, pending)"""
+        return (await self.collection.update_one(
+            {"_id": ObjectId(resume_id)},
+            {"$set": {"approval_status": status, "date_updated": datetime.now(timezone.utc)}}
+        )).modified_count
 
 resumes_dao = ResumeDAO()

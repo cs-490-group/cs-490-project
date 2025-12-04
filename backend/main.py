@@ -28,7 +28,14 @@ from routes.templates import templates_router
 from routes.AI import ai_router
 from routes.question_bank import question_bank_router
 from routes.mock_interview import mock_interview_router
+from routes.interview_router import (interview_router)
+from routes.interview_analytics_routes import analytics_router, prediction_router
 from routes.coaching import coaching_router
+from routes.advisors import advisors_router
+from routes import matching
+from routes.offers import offers_router
+from routes.technical_prep import technical_prep_router
+from routes.application_workflow_router import workflow_router
 from routes.goals import goals_router
 from routes.Salary import salary_router
 
@@ -79,16 +86,29 @@ app.include_router(pdf_router, prefix = api_prefix)
 app.include_router(templates_router, prefix = api_prefix)
 app.include_router(question_bank_router, prefix = api_prefix)
 app.include_router(mock_interview_router, prefix = api_prefix)
+app.include_router(interview_router, prefix=api_prefix)
+app.include_router(analytics_router, prefix=api_prefix)
+app.include_router(prediction_router, prefix=api_prefix)
+app.include_router(ai_router, prefix=api_prefix)
+
 app.include_router(coaching_router, prefix = api_prefix)
+app.include_router(advisors_router,prefix=api_prefix)
+app.include_router(matching.router)
+app.include_router(offers_router, prefix = api_prefix)
+app.include_router(technical_prep_router, prefix = api_prefix)
 app.include_router(goals_router, prefix = api_prefix)
 app.include_router(salary_router, prefix = api_prefix)
 
 app.include_router(ai_router, prefix=api_prefix)
 
+app.include_router(workflow_router, prefix=api_prefix)
+
 @app.on_event("startup")
 async def startup_event():
     """Backend startup initialization"""
     print("[Startup] Backend ready!")
+
+
 
 # TODO: add user deletion services (deletes all data, requires password authentication)
 # Where to put it though?

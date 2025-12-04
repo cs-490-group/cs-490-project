@@ -208,9 +208,10 @@ export default function JobDetailsModal({
               paddingBottom: "10px"
             }}>
           {[
-          
+
           { id: "details", label: "Details" },
           { id: "research", label: "Research" },
+          { id: "salary", label: "Salary Negotiation" },
           { id: "news", label: "News" },
           { id: "materials", label: "Materials" },
           { id: "history", label: "History" },
@@ -234,101 +235,170 @@ export default function JobDetailsModal({
           </div>
 
         {/* ---------------- DETAILS TAB ---------------- */}
-        {activeTab === "details" && (
+{activeTab === "details" && (
   <>
 
-    {/* COMPANY INFORMATION BOX */}
-    {selectedJob.company_research?.basic_info && (
-      <div
-        style={{
-          background: "#f0f7ff",
-          padding: "16px",
-          borderRadius: "6px",
-          border: "1px solid #d0e4ff",
-          marginBottom: "16px",
-        }}
-      >
-        <h3>🏢 Company Information</h3>
+    {/* --- BASIC FIELDS --- */}
+    <div style={{ marginBottom: "16px", color: "#000" }}>
+      <strong>Company:</strong> {selectedJob.company}
+    </div>
 
-        {/* Company Name */}
-        <p>
-          <strong>Company:</strong> {selectedJob.company}
-        </p>
+    {selectedJob.companyData && (
+      <div style={{ marginBottom: "16px", background: "#f0f7ff", padding: "16px", borderRadius: "6px", border: "1px solid #d0e4ff" }}>
+        <h3 style={{ margin: "0 0 12px 0", color: "#1976d2", fontSize: "16px" }}>🏢 Company Information</h3>
 
-        <p>
-          <strong>Industry:</strong>{" "}
-          {selectedJob.company_research.basic_info.industry}
-        </p>
+        {selectedJob.companyData.image && (
+          <div style={{ marginBottom: "12px", textAlign: "center" }}>
+            <img
+              src={
+                selectedJob.companyData.image.startsWith("http") 
+                  ? selectedJob.companyData.image 
+                  : `data:image/png;base64,${selectedJob.companyData.image}`
+              }
+              alt={`${selectedJob.company} logo`}
+              style={{ maxWidth: "150px", maxHeight: "80px", objectFit: "contain", borderRadius: "4px" }}
+            />
+          </div>
+        )}
 
-        <p>
-          <strong>Size:</strong>{" "}
-          {selectedJob.company_research.basic_info.size}
-        </p>
+        {selectedJob.companyData.size && (
+          <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
+            <strong>👥 Company Size:</strong> {selectedJob.companyData.size}
+          </div>
+        )}
 
-        <p>
-          <strong>Headquarters:</strong>{" "}
-          {selectedJob.company_research.basic_info.headquarters}
-        </p>
+        {selectedJob.companyData.industry && (
+          <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
+            <strong>🏭 Industry:</strong> {selectedJob.companyData.industry}
+          </div>
+        )}
 
-        <p>
-          <strong>Founded:</strong>{" "}
-          {selectedJob.company_research.basic_info.founded}
-        </p>
+        {selectedJob.companyData.location && (
+          <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
+            <strong>📍 Headquarters:</strong> {selectedJob.companyData.location}
+          </div>
+        )}
 
-        <p>
-        <strong>Location:</strong> {selectedJob.location}
-        </p>
+        {selectedJob.companyData.website && (
+          <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
+            <strong>🌐 Website:</strong>{" "}
+            <a
+              href={selectedJob.companyData.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#4f8ef7", textDecoration: "underline" }}
+            >
+              {selectedJob.companyData.website}
+            </a>
+          </div>
+        )}
 
-        <p>
-          <strong>Website:</strong>{" "}
-          <a
-            href={selectedJob.company_research.basic_info.website}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {selectedJob.company_research.basic_info.website}
-          </a>
-        </p>
+        {selectedJob.companyData.description && (
+          <div style={{ marginTop: "12px", color: "#000", fontSize: "14px" }}>
+            <strong>About:</strong>
+            <div style={{ marginTop: "6px", color: "#555", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
+              {selectedJob.companyData.description}
+            </div>
+          </div>
+        )}
       </div>
     )}
 
+    {/* --- BASIC JOB DETAILS --- */}
+    {selectedJob.location && (
+      <div style={{ marginBottom: "16px", color: "#000" }}>
+        <strong>Location:</strong> {selectedJob.location}
+      </div>
+    )}
 
-    {/* SALARY */}
     {selectedJob.salary && (
-      <p>
+      <div style={{ marginBottom: "16px", color: "#000" }}>
         <strong>Salary:</strong> {selectedJob.salary}
-      </p>
+      </div>
     )}
 
-    {/* JOB LINK */}
-    {selectedJob.url && (
-      <p>
-        <strong>Job Link:</strong>{" "}
-        <a href={selectedJob.url} target="_blank" rel="noreferrer">
-          View Posting →
-        </a>
-      </p>
-    )}
+    {selectedJob.deadline && (
+      <div style={{ marginBottom: "16px", color: "#000" }}>
+        <strong>Deadline:</strong> {new Date(selectedJob.deadline).toLocaleDateString()}
 
-    {/* DESCRIPTION */}
-    {selectedJob.description && (
-      <div style={{ marginTop: "10px" }}>
-        <strong>Description:</strong>
-        <div
+        <button
+          onClick={() => setReminderJob(selectedJob)}
           style={{
-            background: "#f9f9f9",
-            padding: "12px",
+            marginLeft: "12px",
+            padding: "6px 12px",
+            background: "#ff9800",
+            color: "white",
+            border: "none",
             borderRadius: "4px",
-            whiteSpace: "pre-wrap",
-            marginTop: "8px",
+            cursor: "pointer",
+            fontSize: "12px",
+            fontWeight: "600"
           }}
         >
+          ⏰ Set Reminder
+        </button>
+
+        <button
+          onClick={() => {
+            const newDeadline = prompt("Enter new deadline (YYYY-MM-DD):", selectedJob.deadline);
+            if (newDeadline) {
+              const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+              if (dateRegex.test(newDeadline)) {
+                updateJob({ ...selectedJob, deadline: newDeadline });
+              } else {
+                alert("Invalid date format. Please use YYYY-MM-DD");
+              }
+            }
+          }}
+          style={{
+            marginLeft: "8px",
+            padding: "6px 12px",
+            background: "#2196f3",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontSize: "12px",
+            fontWeight: "600"
+          }}
+        >
+          📅 Extend Deadline
+        </button>
+      </div>
+    )}
+
+    {selectedJob.url && (
+      <div style={{ marginBottom: "16px", color: "#000" }}>
+        <strong>Link:</strong>{" "}
+        <a
+          href={selectedJob.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "#4f8ef7", textDecoration: "underline" }}
+        >
+          View Job Posting →
+        </a>
+      </div>
+    )}
+
+    {selectedJob.description && (
+      <div style={{ marginBottom: "16px", color: "#000" }}>
+        <strong>Description:</strong>
+        <div style={{ background: "#f9f9f9", padding: "12px", borderRadius: "4px", marginTop: "8px", whiteSpace: "pre-wrap" }}>
           {selectedJob.description}
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        </div>
+      </div>
+    )}
+
+    {selectedJob.notes && (
+      <div style={{ marginBottom: "16px", background: "#fffbea", padding: "12px", borderRadius: "4px", color: "#000" }}>
+        <strong>Notes:</strong>
+        <div style={{ marginTop: "8px", whiteSpace: "pre-wrap" }}>{selectedJob.notes}</div>
+      </div>
+    )}
+  </>
+)}
+
 
         {/* ---------------- RESEARCH TAB ---------------- */}
         {activeTab === "research" && (
@@ -483,6 +553,93 @@ export default function JobDetailsModal({
         )} 
 
 
+        {/* ----------- SALARY NEGOTIATION TAB ----------- */}
+        {activeTab === "salary" && (
+          <div style={{ padding: "15px" }}>
+            {selectedJob.salary_negotiation && !selectedJob.salary_negotiation.error ? (
+              <>
+                <h2 style={{ color: "#1565c0", marginBottom: "20px" }}>
+                  Salary Negotiation Guide for {selectedJob.salary_negotiation.job_title}
+                </h2>
+
+                {/* MARKET DATA */}
+                {selectedJob.salary_negotiation.market_data && (
+                  <div style={{
+                    background: "#e3f2fd",
+                    padding: "16px",
+                    borderRadius: "10px",
+                    marginBottom: "20px",
+                    border: "1px solid #bbdefb"
+                  }}>
+                    <h3 style={{ color: "#1565c0", marginBottom: "12px" }}>Market Salary Data</h3>
+                    <p><strong>Median Salary:</strong> {selectedJob.salary_negotiation.market_data.median_salary || "N/A"}</p>
+                    <p><strong>25th Percentile:</strong> {selectedJob.salary_negotiation.market_data.percentile_25 || "N/A"}</p>
+                    <p><strong>75th Percentile:</strong> {selectedJob.salary_negotiation.market_data.percentile_75 || "N/A"}</p>
+                    <p><strong>90th Percentile:</strong> {selectedJob.salary_negotiation.market_data.percentile_90 || "N/A"}</p>
+                    <p><strong>Industry Average:</strong> {selectedJob.salary_negotiation.market_data.industry_average || "N/A"}</p>
+                    <p><strong>Salary Trend:</strong> {selectedJob.salary_negotiation.market_data.salary_trend || "N/A"}</p>
+                  </div>
+                )}
+
+                {/* TALKING POINTS */}
+                {selectedJob.salary_negotiation.talking_points && selectedJob.salary_negotiation.talking_points.length > 0 && (
+                  <div style={{
+                    background: "#f0fff4",
+                    padding: "16px",
+                    borderRadius: "10px",
+                    marginBottom: "20px",
+                    border: "1px solid #c6f6d5"
+                  }}>
+                    <h3 style={{ color: "#2f855a", marginBottom: "12px" }}>Key Talking Points</h3>
+                    <ul>
+                      {selectedJob.salary_negotiation.talking_points.map((point, i) => (
+                        <li key={i} style={{ marginBottom: "8px" }}>
+                          {typeof point === 'string' ? point : point.point || JSON.stringify(point)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* TIMING STRATEGY */}
+                {selectedJob.salary_negotiation.timing_strategy && (
+                  <div style={{
+                    background: "#fff8e1",
+                    padding: "16px",
+                    borderRadius: "10px",
+                    marginBottom: "20px",
+                    border: "1px solid #ffecb3"
+                  }}>
+                    <h3 style={{ color: "#ff8f00", marginBottom: "12px" }}>Timing Strategy</h3>
+                    <p style={{ whiteSpace: "pre-wrap" }}>{selectedJob.salary_negotiation.timing_strategy}</p>
+                  </div>
+                )}
+
+                {/* BEST PRACTICES */}
+                {selectedJob.salary_negotiation.best_practices && selectedJob.salary_negotiation.best_practices.length > 0 && (
+                  <div style={{
+                    background: "#e9f7ef",
+                    padding: "16px",
+                    borderRadius: "10px",
+                    marginBottom: "20px",
+                    border: "1px solid #c8e6c9"
+                  }}>
+                    <h3 style={{ color: "#2e7d32", marginBottom: "12px" }}>Best Practices</h3>
+                    <ol>
+                      {selectedJob.salary_negotiation.best_practices.map((practice, i) => (
+                        <li key={i} style={{ marginBottom: "8px" }}>
+                          {practice}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p style={{ color: "#d32f2f" }}>Salary negotiation research not available for this job.</p>
+            )}
+          </div>
+        )}
 
         {/* ---------------- NEWS TAB ---------------- */}
         {activeTab === "news" && (

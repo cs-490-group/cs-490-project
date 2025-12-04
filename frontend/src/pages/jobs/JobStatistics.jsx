@@ -35,11 +35,18 @@ export default function JobStatistics({ jobs }) {
     const stageCounts = {};
 
     jobs.forEach(job => {
-      if (job.statusHistory && job.statusHistory.length > 1) {
-        for (let i = 0; i < job.statusHistory.length - 1; i++) {
-          const currentStage = job.statusHistory[i].status;
-          const nextStageTime = new Date(job.statusHistory[i + 1].timestamp);
-          const currentStageTime = new Date(job.statusHistory[i].timestamp);
+      let statusHistory = job.statusHistory || job.status_history;
+      
+      // Convert array of arrays to objects if needed
+      if (statusHistory && statusHistory.length > 0 && Array.isArray(statusHistory[0])) {
+        statusHistory = statusHistory.map(([status, timestamp]) => ({ status, timestamp }));
+      }
+      
+      if (statusHistory && statusHistory.length > 1) {
+        for (let i = 0; i < statusHistory.length - 1; i++) {
+          const currentStage = statusHistory[i].status;
+          const nextStageTime = new Date(statusHistory[i + 1].timestamp);
+          const currentStageTime = new Date(statusHistory[i].timestamp);
           const daysInStage = Math.floor((nextStageTime - currentStageTime) / (1000 * 60 * 60 * 24));
 
           if (!stageTimes[currentStage]) {
@@ -60,10 +67,28 @@ export default function JobStatistics({ jobs }) {
     // Monthly application volume
     const monthlyVolume = {};
     jobs.forEach(job => {
-      if (!job.archived && job.createdAt) {
-        const date = new Date(job.createdAt);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        monthlyVolume[monthKey] = (monthlyVolume[monthKey] || 0) + 1;
+      if (!job.archived) {
+        let date = null;
+        
+        // Try to get date from createdAt, date_created, or status history
+        if (job.date_created) {
+          date = new Date(job.date_created);
+        } else {
+          // Fallback to first status in history
+          let statusHistory = job.statusHistory || job.status_history;
+          if (statusHistory && statusHistory.length > 0) {
+            if (Array.isArray(statusHistory[0])) {
+              date = new Date(statusHistory[0][1]);
+            } else {
+              date = new Date(statusHistory[0].timestamp);
+            }
+          }
+        }
+        
+        if (date && !isNaN(date.getTime())) {
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          monthlyVolume[monthKey] = (monthlyVolume[monthKey] || 0) + 1;
+        }
       }
     });
 
@@ -81,7 +106,15 @@ export default function JobStatistics({ jobs }) {
       if (job.deadline && !job.archived) {
         totalDeadlines++;
         const deadlineDate = new Date(job.deadline);
-        const appliedDate = job.statusHistory?.find(h => h.status === 'Applied');
+        
+        let statusHistory = job.statusHistory || job.status_history;
+        
+        // Convert array of arrays to objects if needed
+        if (statusHistory && statusHistory.length > 0 && Array.isArray(statusHistory[0])) {
+          statusHistory = statusHistory.map(([status, timestamp]) => ({ status, timestamp }));
+        }
+        
+        const appliedDate = statusHistory?.find(h => h.status === 'Applied');
         if (appliedDate) {
           const applied = new Date(appliedDate.timestamp);
           if (applied <= deadlineDate) {
@@ -96,13 +129,22 @@ export default function JobStatistics({ jobs }) {
     // Time to offer
     const timeToOfferDays = [];
     jobs.forEach(job => {
-      if (job.status === 'Offer' && job.statusHistory && job.statusHistory.length > 0) {
-        const firstStatus = new Date(job.statusHistory[0].timestamp);
-        const offerStatus = job.statusHistory.find(h => h.status === 'Offer');
-        if (offerStatus) {
-          const offerDate = new Date(offerStatus.timestamp);
-          const days = Math.floor((offerDate - firstStatus) / (1000 * 60 * 60 * 24));
-          timeToOfferDays.push(days);
+      if (job.status === 'Offer') {
+        let statusHistory = job.statusHistory || job.status_history;
+        
+        // Convert array of arrays to objects if needed
+        if (statusHistory && statusHistory.length > 0 && Array.isArray(statusHistory[0])) {
+          statusHistory = statusHistory.map(([status, timestamp]) => ({ status, timestamp }));
+        }
+        
+        if (statusHistory && statusHistory.length > 0) {
+          const firstStatus = new Date(statusHistory[0].timestamp);
+          const offerStatus = statusHistory.find(h => h.status === 'Offer');
+          if (offerStatus) {
+            const offerDate = new Date(offerStatus.timestamp);
+            const days = Math.floor((offerDate - firstStatus) / (1000 * 60 * 60 * 24));
+            timeToOfferDays.push(days);
+          }
         }
       }
     });
