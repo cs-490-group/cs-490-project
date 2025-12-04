@@ -6,6 +6,7 @@ It uses AI to gather insights about companies and creates talking points and int
 """
 
 import json
+import traceback
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from mongo.AI_dao import ai_dao
@@ -90,7 +91,11 @@ class CompanyResearchService:
 
         except Exception as e:
             # Fallback to deterministic generation
-            print(f"Error during AI research generation: {str(e)}")
+            error_msg = str(e)
+            error_trace = traceback.format_exc()
+            print(f"[UC-074 ERROR] Error during AI research generation for {company_name}:")
+            print(f"[UC-074 ERROR] {error_msg}")
+            print(f"[UC-074 ERROR] Stack trace:\n{error_trace}")
             return CompanyResearchService._generate_fallback_research(
                 company_name=company_name,
                 job_role=job_role,
@@ -142,7 +147,8 @@ class CompanyResearchService:
             # Extract JSON from response
             profile_data = CompanyResearchService._extract_json(response)
             return profile_data if profile_data else {"description": response}
-        except Exception:
+        except Exception as e:
+            print(f"[UC-074 WARN] Failed to generate company profile: {str(e)}")
             return {
                 "description": f"{company_name} is a company in the {context.get('industry', 'Technology')} industry.",
                 "industry": context.get("industry", "Technology"),
@@ -162,7 +168,8 @@ class CompanyResearchService:
 
         try:
             return await ai_dao.generate_text(prompt)
-        except Exception:
+        except Exception as e:
+            print(f"[UC-074 WARN] Failed to generate company history: {str(e)}")
             return f"{company_name} was founded as a company in the {context.get('industry', 'Technology')} industry."
 
     @staticmethod
@@ -222,7 +229,8 @@ class CompanyResearchService:
             response = await ai_dao.generate_text(prompt)
             news = CompanyResearchService._extract_json(response)
             return news if isinstance(news, list) else []
-        except Exception:
+        except Exception as e:
+            print(f"[UC-074 WARN] Failed to generate recent news: {str(e)}")
             return [
                 {
                     "title": "Company News",
@@ -250,7 +258,8 @@ class CompanyResearchService:
             response = await ai_dao.generate_text(prompt)
             funding = CompanyResearchService._extract_json(response)
             return funding if isinstance(funding, list) else []
-        except Exception:
+        except Exception as e:
+            print(f"[UC-074 WARN] Failed to generate funding info: {str(e)}")
             return []
 
     @staticmethod
@@ -272,7 +281,8 @@ class CompanyResearchService:
             if isinstance(competition, dict) and "competitors" in competition:
                 return competition.get("competitors", [])
             return []
-        except Exception:
+        except Exception as e:
+            print(f"[UC-074 WARN] Failed to generate competition analysis: {str(e)}")
             return []
 
     @staticmethod
