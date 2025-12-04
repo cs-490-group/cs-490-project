@@ -49,6 +49,13 @@
     "test:all": "node scripts/test-compact.js",
     "test:unified": "node scripts/unified-test-runner.js",
     "test:detailed": "node scripts/unified-test-runner.js",
+    "test:frontend": "react-scripts test --watchAll=false --passWithNoTests",
+    "test:frontend-coverage": "react-scripts test --coverage --watchAll=false",
+    "test:frontend-watch": "react-scripts test",
+    "test:backend": "cd .. && source .venv/bin/activate && cd backend && python -m pytest test_backend.py test_backend_comprehensive.py test_backend_extended.py -v --tb=short",
+    "test:backend-coverage": "cd .. && source .venv/bin/activate && cd backend && python -m pytest test_backend.py test_backend_comprehensive.py test_backend_extended.py --cov=. --cov-report=term-missing",
+    "test:all-tests": "node scripts/unified-test-runner.js",
+    "test:all-coverage": "npm run test:frontend-coverage && npm run test:backend-coverage",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

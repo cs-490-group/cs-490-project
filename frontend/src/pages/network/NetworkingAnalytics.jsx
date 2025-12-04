@@ -166,12 +166,12 @@ const NetworkingAnalytics = () => {
       {/* Tabs */}
       <style jsx>{`
         .nav-tabs .nav-link {
-          color: white !important;
+          color: black !important;
           background-color: transparent !important;
           border-color: transparent !important;
         }
         .nav-tabs .nav-link:hover {
-          color: white !important;
+          color: black !important;
           background-color: rgba(255, 255, 255, 0.1) !important;
           border-color: rgba(255, 255, 255, 0.1) !important;
         }

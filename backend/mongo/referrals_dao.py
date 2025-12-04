@@ -22,19 +22,31 @@ class ReferralDAO:
         return results
     
     async def get_referral(self, referral_id: str) -> dict | None:
-        result = await self.collection.find_one({"_id": ObjectId(referral_id)})
-        if result:
-            result["_id"] = str(result["_id"])
-        return result
+        try:
+            result = await self.collection.find_one({"_id": ObjectId(referral_id)})
+            if result:
+                result["_id"] = str(result["_id"])
+            return result
+        except Exception as e:
+            print(f"[ReferralDAO] Error getting referral {referral_id}: {e}")
+            raise Exception(f"Invalid referral ID format: {str(e)}")
 
     async def update_referral(self, referral_id: str, data: dict) -> int:
-        data["date_updated"] = datetime.now(timezone.utc)
-        updated = await self.collection.update_one({"_id": ObjectId(referral_id)}, {"$set": data})
-        return updated.matched_count
+        try:
+            data["date_updated"] = datetime.now(timezone.utc)
+            updated = await self.collection.update_one({"_id": ObjectId(referral_id)}, {"$set": data})
+            return updated.matched_count
+        except Exception as e:
+            print(f"[ReferralDAO] Error updating referral {referral_id}: {e}")
+            raise Exception(f"Invalid referral ID format: {str(e)}")
 
     async def delete_referral(self, referral_id: str) -> int:
-        result = await self.collection.delete_one({"_id": ObjectId(referral_id)})
-        return result.deleted_count
+        try:
+            result = await self.collection.delete_one({"_id": ObjectId(referral_id)})
+            return result.deleted_count
+        except Exception as e:
+            print(f"[ReferralDAO] Error deleting referral {referral_id}: {e}")
+            raise Exception(f"Invalid referral ID format or referral not found: {str(e)}")
 
     async def get_referrals_by_status(self, uuid: str, status: str) -> list[dict]:
         cursor = self.collection.find({"uuid": uuid, "status": status})

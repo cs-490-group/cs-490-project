@@ -2,6 +2,15 @@ from pydantic import BaseModel
 from typing import Optional, Literal, List
 from datetime import datetime
 
+
+class ReferralFollowUp(BaseModel):
+    """Track individual follow-up messages for a referral"""
+    date: Optional[str] = None
+    status: Optional[Literal["pending", "sent"]] = "pending"
+    message: Optional[str] = None
+    kind: Optional[Literal["standard", "thank_you"]] = None
+
+
 class ReferralRequest(BaseModel):
     """UC-087: Referral Request Management"""
     contact_id: str  # Link to professional contact
@@ -11,8 +20,7 @@ class ReferralRequest(BaseModel):
     position: str
     request_date: Optional[str] = None
     status: Optional[Literal["pending", "requested", "accepted", "declined", "completed"]] = "pending"
-    request_template: Optional[str] = None
-    personalized_message: Optional[str] = None
+    message: Optional[str] = None  # Simplified to single message field
     follow_up_date: Optional[str] = None
     response_date: Optional[str] = None
     referral_success: Optional[Literal["pending", "successful", "unsuccessful"]] = None
@@ -20,6 +28,8 @@ class ReferralRequest(BaseModel):
     relationship_impact: Optional[Literal["positive", "neutral", "negative"]] = None
     gratitude_sent: Optional[bool] = False
     gratitude_date: Optional[str] = None
+    follow_ups: Optional[List[ReferralFollowUp]] = None
+
 
 class ReferralOutcome(BaseModel):
     """Track referral results and relationship impact"""
