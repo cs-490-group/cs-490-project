@@ -5,6 +5,7 @@ from datetime import datetime
 class ReferralRequest(BaseModel):
     """UC-087: Referral Request Management"""
     contact_id: str  # Link to professional contact
+    job_id: Optional[str] = None  # Link to specific job
     job_application_id: Optional[str] = None  # Link to specific job application
     company: str
     position: str

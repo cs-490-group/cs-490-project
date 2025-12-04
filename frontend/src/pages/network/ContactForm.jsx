@@ -1,15 +1,29 @@
-import { Modal, Form, Button, Row, Col, Image } from "react-bootstrap";
-import { useState } from "react";
+import { Modal, Form, Button, Row, Col, Image as BootstrapImage } from "react-bootstrap";
+import { useState, useEffect, useRef } from "react";
 
 export default function ContactForm({
     showModal,
     setShowModal,
     editing,
+    editingContactId,
     formData,
     setFormData,
     handleAddOrUpdate
 }) {
     const [previewUrl, setPreviewUrl] = useState(null);
+    const fileInputRef = useRef(null);
+
+    // Clear file input and preview when modal opens for new contact (not editing)
+    useEffect(() => {
+        console.log("useEffect triggered:", { showModal, editing });
+        if (showModal && !editing) {
+            console.log("Clearing file input and preview for new contact");
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+            setPreviewUrl(null);
+        }
+    }, [showModal, editing]);
 
     const resizeImage = (file, maxWidth = 1280, maxHeight = 720) => {
         return new Promise((resolve) => {
@@ -32,7 +46,14 @@ export default function ContactForm({
                 
                 // Draw resized image
                 ctx.drawImage(img, 0, 0, width, height);
-                canvas.toBlob(resolve, 'image/jpeg', 0.9);
+                canvas.toBlob((blob) => {
+                    // Convert blob back to File object
+                    const resizedFile = new File([blob], file.name, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    resolve(resizedFile);
+                }, 'image/jpeg', 0.9);
             };
             
             img.src = URL.createObjectURL(file);
@@ -42,6 +63,8 @@ export default function ContactForm({
     const handleClose = () => {
         setShowModal(false);
         setPreviewUrl(null);
+        // Clear the file input
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleSubmit = (e) => {
@@ -50,7 +73,7 @@ export default function ContactForm({
     };
 
     return (
-        <Modal show={showModal} onHide={handleClose} size="lg" centered contentClassName="modal-centered-content">
+        <Modal key={editing ? `edit-${editingContactId}` : 'add'} show={showModal} onHide={handleClose} size="lg" centered contentClassName="modal-centered-content">
             <Modal.Header closeButton>
                 <Modal.Title>
                     {editing ? "Edit Contact" : "Add New Contact"}
@@ -66,6 +89,7 @@ export default function ContactForm({
                                 <Form.Group className="mb-3">
                                     <Form.Label>Profile Picture</Form.Label>
                                     <Form.Control
+                                        ref={fileInputRef}
                                         type="file"
                                         accept="image/*"
                                         onChange={async (e) => {
@@ -107,7 +131,7 @@ export default function ContactForm({
                                     {previewUrl && (
                                         <div className="mt-3">
                                             <div className="d-flex align-items-center">
-                                                <Image 
+                                                <BootstrapImage 
                                                     src={previewUrl} 
                                                     rounded 
                                                     style={{ 
@@ -128,8 +152,7 @@ export default function ContactForm({
                                                             setPreviewUrl(null);
                                                             setFormData({ ...formData, avatar: null });
                                                             // Clear the file input
-                                                            const fileInput = document.querySelector('input[type="file"]');
-                                                            if (fileInput) fileInput.value = '';
+                                                            if (fileInputRef.current) fileInputRef.current.value = '';
                                                         }}
                                                     >
                                                         Remove

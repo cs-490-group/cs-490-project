@@ -216,26 +216,46 @@ export default function NetworkOverview() {
 				contactId = editingContactId;
 			} else {
 				const response = await NetworksAPI.add(dataToSend);
-				contactId = response.data._id;
+				contactId = response.data.contact_id;
 			}
 
 			// Handle avatar upload
 			if (formData.avatar && formData.avatar instanceof File) {
 				try {
+					console.log("Uploading avatar for contact:", contactId);
+					console.log("Avatar file:", formData.avatar);
+					console.log("Avatar file type:", formData.avatar.type);
+					console.log("Avatar file size:", formData.avatar.size);
+					
 					if (editing && editingContactId) {
 						// Try to update first, if that fails, upload
+						console.log("Editing existing contact, updating avatar");
 						await NetworksAPI.updateAvatar(editingContactId, formData.avatar);
 					} else {
-						await NetworksAPI.uploadAvatar(contactId, formData.avatar);
+						console.log("Creating new contact, uploading avatar");
+						const result = await NetworksAPI.uploadAvatar(contactId, formData.avatar);
+						console.log("Upload result:", result);
 					}
+					console.log("Avatar upload successful");
 				} catch (avatarError) {
+					console.error("Avatar upload error:", avatarError);
+					console.error("Error response:", avatarError.response?.data);
 					// If update fails (no existing avatar), try uploading
 					if (editing && editingContactId) {
-						await NetworksAPI.uploadAvatar(editingContactId, formData.avatar);
+						try {
+							await NetworksAPI.uploadAvatar(editingContactId, formData.avatar);
+							console.log("Fallback upload successful");
+						} catch (fallbackError) {
+							console.error("Fallback upload also failed:", fallbackError);
+						}
 					} else {
 						throw avatarError;
 					}
 				}
+			} else {
+				console.log("No avatar to upload or avatar is not a File object");
+				console.log("formData.avatar:", formData.avatar);
+				console.log("Is File?", formData.avatar instanceof File);
 			}
 
 			await fetchContacts();
@@ -679,6 +699,7 @@ export default function NetworkOverview() {
 				showModal={showModal}
 				setShowModal={setShowModal}
 				editing={editing}
+				editingContactId={editingContactId}
 				formData={formData}
 				setFormData={setFormData}
 				handleAddOrUpdate={handleAddOrUpdate}

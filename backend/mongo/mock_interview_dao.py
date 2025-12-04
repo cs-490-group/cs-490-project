@@ -130,3 +130,5 @@ class MockInterviewSessionDAO:
         """Delete a mock interview session"""
         result = await self.collection.delete_one({"uuid": session_uuid})
         return result.deleted_count
+
+mock_interviews_dao = MockInterviewSessionDAO()

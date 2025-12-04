@@ -1,4 +1,7 @@
-import { Modal, Form, Button, Row, Col } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Modal, Form, Button, Row, Col, Card } from "react-bootstrap";
+import JobSelectionModal from "./JobSelectionModal";
+import jobsAPI from "../../api/jobs";
 
 export default function ReferralManagementForm({
     showModal,
@@ -10,9 +13,55 @@ export default function ReferralManagementForm({
     handleAddOrUpdate,
     resetForm
 }) {
+    const [showJobModal, setShowJobModal] = useState(false);
+    const [selectedJob, setSelectedJob] = useState(null);
+
+    useEffect(() => {
+        // When modal opens, if there's a job_id (either editing or creating with prefill), fetch the job details
+        if (showModal && formData.job_id) {
+            fetchJobDetails(formData.job_id);
+        } else if (!showModal) {
+            // Clear selected job when modal is closed
+            setSelectedJob(null);
+        }
+    }, [showModal, formData.job_id]);
+
+    const fetchJobDetails = async (jobId) => {
+        try {
+            const response = await jobsAPI.get(jobId);
+            const jobData = response.data;
+            if (jobData && (jobData.id === jobId || jobData._id === jobId)) {
+                setSelectedJob(jobData);
+            }
+        } catch (error) {
+            console.error("Failed to fetch job details:", error);
+        }
+    };
+
     const handleClose = () => {
         setShowModal(false);
         resetForm();
+        setSelectedJob(null);
+    };
+
+    const handleJobSelect = (job) => {
+        setSelectedJob(job);
+        setFormData({
+            ...formData,
+            job_id: job.id || job._id,
+            company: job.company,
+            position: job.title
+        });
+    };
+
+    const handleClearJob = () => {
+        setSelectedJob(null);
+        setFormData({
+            ...formData,
+            job_id: null,
+            company: '',
+            position: ''
+        });
     };
 
     const handleSubmit = (e) => {
@@ -29,6 +78,49 @@ export default function ReferralManagementForm({
             </Modal.Header>
             <Modal.Body>
                 <Form onSubmit={handleSubmit}>
+                    {/* Job Selection Section */}
+                    <div className="mb-4">
+                        <div className="d-flex align-items-center mb-3">
+                            <Button 
+                                variant="outline-primary" 
+                                onClick={() => setShowJobModal(true)}
+                                className="me-3"
+                            >
+                                {selectedJob ? "Choose Different Job" : "Choose Job"}
+                            </Button>
+                            {selectedJob && (
+                                <Button 
+                                    variant="outline-secondary" 
+                                    onClick={handleClearJob}
+                                    size="sm"
+                                >
+                                    Clear Job
+                                </Button>
+                            )}
+                        </div>
+                        
+                        {selectedJob && (
+                            <Card className="bg-light border-info">
+                                <Card.Body className="py-3">
+                                    <div className="row">
+                                        <div className="col-md-6">
+                                            <h6 className="fw-bold mb-1">{selectedJob.title}</h6>
+                                            <p className="mb-1 text-muted">{selectedJob.company}</p>
+                                        </div>
+                                        <div className="col-md-6">
+                                            {selectedJob.industry && (
+                                                <p className="mb-1 small"><strong>Industry:</strong> {selectedJob.industry}</p>
+                                            )}
+                                            {selectedJob.location && (
+                                                <p className="mb-1 small"><strong>Location:</strong> {selectedJob.location}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </Card.Body>
+                            </Card>
+                        )}
+                    </div>
+                    
                     <Row>
                         <Col md={6}>
                             <Form.Group className="mb-3">
@@ -72,7 +164,14 @@ export default function ReferralManagementForm({
                                     value={formData.company}
                                     onChange={(e) => setFormData({...formData, company: e.target.value})}
                                     required
+                                    disabled={!!selectedJob}
+                                    placeholder={selectedJob ? "Auto-filled from selected job" : "Enter company name"}
                                 />
+                                {selectedJob && (
+                                    <Form.Text className="text-muted">
+                                        Auto-filled from selected job
+                                    </Form.Text>
+                                )}
                             </Form.Group>
                         </Col>
                         <Col md={6}>
@@ -83,7 +182,14 @@ export default function ReferralManagementForm({
                                     value={formData.position}
                                     onChange={(e) => setFormData({...formData, position: e.target.value})}
                                     required
+                                    disabled={!!selectedJob}
+                                    placeholder={selectedJob ? "Auto-filled from selected job" : "Enter position"}
                                 />
+                                {selectedJob && (
+                                    <Form.Text className="text-muted">
+                                        Auto-filled from selected job
+                                    </Form.Text>
+                                )}
                             </Form.Group>
                         </Col>
                     </Row>
@@ -149,6 +255,13 @@ export default function ReferralManagementForm({
                     {editing ? "Update" : "Create"} Referral Request
                 </Button>
             </Modal.Footer>
+            
+            <JobSelectionModal 
+                showModal={showJobModal}
+                setShowModal={setShowJobModal}
+                onJobSelect={handleJobSelect}
+                selectedJobId={selectedJob?.id || selectedJob?._id}
+            />
         </Modal>
     );
 }

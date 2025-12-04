@@ -8,21 +8,52 @@ export const toUTCDate = (dateInput) => {
 
 export const toLocalDate = (utcDateString) => {
     // Convert UTC string to local date (EST)
-    const utcDate = new Date(utcDateString + 'Z');
+    if (!utcDateString) {
+        return new Date(); // Return current date if no input
+    }
+    
+    let utcDate;
+    if (utcDateString.includes('T') || utcDateString.includes('Z')) {
+        // Already looks like a UTC/ISO string
+        utcDate = new Date(utcDateString + (utcDateString.includes('Z') ? '' : 'Z'));
+    } else {
+        // Try to parse as a regular date string
+        utcDate = new Date(utcDateString);
+    }
+    
+    // Check if the date is valid
+    if (isNaN(utcDate.getTime())) {
+        console.log('Invalid date in toLocalDate:', utcDateString);
+        return new Date(); // Return current date as fallback
+    }
+    
     const localDate = new Date(utcDate.getTime() + (utcDate.getTimezoneOffset() * 60000));
     return localDate;
 };
 
 export const formatLocalDate = (utcDateString, options = {}) => {
     // Format UTC date for local display
-    const localDate = toLocalDate(utcDateString);
-    const defaultOptions = {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        ...options
-    };
-    return localDate.toLocaleDateString('en-US', defaultOptions);
+    if (!utcDateString) {
+        return 'No date';
+    }
+    
+    try {
+        const localDate = toLocalDate(utcDateString);
+        if (isNaN(localDate.getTime())) {
+            return 'Invalid date';
+        }
+        
+        const defaultOptions = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            ...options
+        };
+        return localDate.toLocaleDateString('en-US', defaultOptions);
+    } catch (error) {
+        console.log('Error formatting date:', utcDateString, error);
+        return 'Invalid date';
+    }
 };
 
 export const formatLocalDateTime = (utcDateString, options = {}) => {
@@ -70,8 +101,28 @@ export const getLocalYear = (utcDateString) => {
 };
 
 // For form inputs that need date strings in YYYY-MM-DD format
-export const toLocalDateString = (utcDateString) => {
-    const localDate = toLocalDate(utcDateString);
+export const toLocalDateString = (dateInput) => {
+    if (!dateInput) {
+        return '';
+    }
+    
+    let localDate;
+    if (dateInput instanceof Date) {
+        // Handle Date objects directly
+        localDate = new Date(dateInput.getTime() + (dateInput.getTimezoneOffset() * 60000));
+    } else if (typeof dateInput === 'string') {
+        // Handle date strings (UTC or local)
+        localDate = toLocalDate(dateInput);
+    } else {
+        // Handle other types
+        localDate = new Date(dateInput);
+    }
+    
+    // Check if date is valid
+    if (isNaN(localDate.getTime())) {
+        return '';
+    }
+    
     const year = localDate.getFullYear();
     const month = String(localDate.getMonth() + 1).padStart(2, '0');
     const day = String(localDate.getDate()).padStart(2, '0');

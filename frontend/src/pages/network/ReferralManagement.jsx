@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Container, Row, Col, Card, Button, Badge, Spinner, Alert, Form } from "react-bootstrap";
 import ReferralsAPI from "../../api/referrals";
 import NetworksAPI from "../../api/network";
 import ReferralManagementForm from "./ReferralManagementForm";
-import { formatLocalDate, formatLocalDateTime, toUTCDate } from "../../utils/dateUtils";
+import { formatLocalDate, formatLocalDateTime, toUTCDate, toLocalDateString } from "../../utils/dateUtils";
 import "./network.css";
 
 export default function ReferralManagement() {
+    const location = useLocation();
     const [referrals, setReferrals] = useState([]);
     const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -21,25 +23,48 @@ export default function ReferralManagement() {
     });
     const [formData, setFormData] = useState({
         contact_id: "",
+        job_id: null,
         job_application_id: null,
         company: "",
         position: "",
-        request_date: toUTCDate(new Date()).split('T')[0],
+        request_date: toLocalDateString(new Date()),
         status: "pending",
         request_template: "",
         personalized_message: "",
         follow_up_date: "",
-        response_date: null,
+        response_date: "",
         referral_success: null,
         notes: "",
         relationship_impact: null,
         gratitude_sent: false,
-        gratitude_date: null
+        gratitude_date: ""
     });
 
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        // Check if there's prefill data from navigation (from JobCard Request Referral button)
+        if (location.state?.prefillJob) {
+            const prefillJob = location.state.prefillJob;
+            
+            // Update formData with job information
+            setFormData({
+                ...formData,
+                job_id: prefillJob.job_id,
+                company: prefillJob.company || "",
+                position: prefillJob.position || "",
+            });
+            
+            // Show the modal for creating a new referral
+            setShowModal(true);
+            setEditing(false);
+            
+            // Clear the navigation state to prevent re-prefilling on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     const fetchData = async () => {
         try {
@@ -116,20 +141,21 @@ export default function ReferralManagement() {
         setEditingReferralId(referral._id);
         setFormData({
             contact_id: referral.contact_id || "",
+            job_id: referral.job_id || null,
             job_application_id: referral.job_application_id || null,
             company: referral.company || "",
             position: referral.position || "",
-            request_date: referral.request_date || new Date().toISOString().split('T')[0],
+            request_date: referral.request_date ? toLocalDateString(referral.request_date) : toLocalDateString(new Date()),
             status: referral.status || "pending",
             request_template: referral.request_template || "",
             personalized_message: referral.personalized_message || "",
-            follow_up_date: referral.follow_up_date || "",
-            response_date: referral.response_date || null,
+            follow_up_date: referral.follow_up_date ? toLocalDateString(referral.follow_up_date) : "",
+            response_date: referral.response_date ? toLocalDateString(referral.response_date) : "",
             referral_success: referral.referral_success || null,
             notes: referral.notes || "",
             relationship_impact: referral.relationship_impact || null,
             gratitude_sent: referral.gratitude_sent || false,
-            gratitude_date: referral.gratitude_date || null
+            gratitude_date: referral.gratitude_date ? toLocalDateString(referral.gratitude_date) : ""
         });
         setShowModal(true);
     };
@@ -148,20 +174,21 @@ export default function ReferralManagement() {
     const resetForm = () => {
         setFormData({
             contact_id: "",
+            job_id: null,
             job_application_id: null,
             company: "",
             position: "",
-            request_date: toUTCDate(new Date()).split('T')[0],
+            request_date: toLocalDateString(new Date()),
             status: "pending",
             request_template: "",
             personalized_message: "",
             follow_up_date: "",
-            response_date: null,
+            response_date: "",
             referral_success: null,
             notes: "",
             relationship_impact: null,
             gratitude_sent: false,
-            gratitude_date: null
+            gratitude_date: ""
         });
         setEditing(false);
         setEditingReferralId(null);
