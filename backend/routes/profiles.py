@@ -16,6 +16,7 @@ from mongo.jobs_dao import jobs_dao
 from mongo.projects_dao import projects_dao
 from mongo.skills_dao import skills_dao
 from mongo.teams_dao import teams_dao
+from mongo.advisors_dao import advisors_dao
 from sessions.session_manager import session_manager
 from sessions.session_authorizer import authorize
 from schema.Profile import Profile, DeletePassword
@@ -107,6 +108,10 @@ async def delete_profile(passSchema: DeletePassword, uuid: str = Depends(authori
             team_id = user_team.get("_id")
             # Just remove user from team (don't delete the entire team)
             await teams_dao.remove_member_from_team(team_id, uuid)
+        
+        engagements = await advisors_dao.get_user_engagements(uuid)
+        for eng in engagements:
+            await advisors_dao.delete_engagement(eng.get("_id"))
 
         session_manager.kill_session(uuid)
 
