@@ -12,11 +12,13 @@ function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
     }
   };
   
-function convertLocalDateTimeToUTC(localDateTimeString) {
-  if (!localDateTimeString) return null;
-  const localDate = new Date(localDateTimeString);
-  return localDate.toISOString(); // Returns UTC ISO string
-}
+  function convertLocalDateTimeToUTC(localDateTimeString) {
+    if (!localDateTimeString) return null;
+    // The datetime-local input gives us a string like "2025-12-03T18:31"
+    // This represents LOCAL time, but Date() interprets it as local time correctly
+    const localDate = new Date(localDateTimeString);
+    return localDate.toISOString(); // Returns UTC ISO string
+  }
 
   const [formData, setFormData] = useState({
     job_application_uuid: jobId || '',
@@ -42,6 +44,8 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
   const [loading, setLoading] = useState(false);
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [error, setError] = useState('');
+  const [conflictWarning, setConflictWarning] = useState(null);
+  const [showConflictConfirm, setShowConflictConfirm] = useState(false);
 
   useEffect(() => {
     loadJobApplications();
@@ -89,9 +93,116 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
     }
   };
 
+  // Check for time conflicts with existing interviews
+const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
+  try {
+    const response = await InterviewScheduleAPI.getUpcomingInterviews();
+    
+    console.log('📋 Raw API Response:', response);
+    console.log('📋 Response.data:', response.data);
+    
+    // Handle different response structures
+    let allInterviews = [];
+    
+    if (Array.isArray(response.data)) {
+      allInterviews = response.data;
+    } else if (response.data && Array.isArray(response.data.upcoming_interviews)) {
+      allInterviews = response.data.upcoming_interviews;
+    } else if (response.data && Array.isArray(response.data.interviews)) {
+      allInterviews = response.data.interviews;
+    } else if (response.data && Array.isArray(response.data.schedules)) {
+      allInterviews = response.data.schedules;
+    } else if (response.data && typeof response.data === 'object') {
+      const possibleArrayKeys = Object.keys(response.data).filter(key => 
+        Array.isArray(response.data[key])
+      );
+      if (possibleArrayKeys.length > 0) {
+        allInterviews = response.data[possibleArrayKeys[0]];
+      }
+    }
+    
+    console.log('📋 Parsed interviews array:', allInterviews);
+    console.log('📋 Total interviews to check:', allInterviews.length);
+    
+    if (!Array.isArray(allInterviews) || allInterviews.length === 0) {
+      console.log('⚠️ No interviews found to check conflicts against');
+      return [];
+    }
+    
+    // BRUTE FORCE: Add 5 hours to convert EST to UTC
+    // Input is "2025-12-03T18:31" (local time)
+    const localDate = new Date(interviewDatetime);
+    const newStart = new Date(localDate.getTime() + (5 * 60 * 60 * 1000)); // Add 5 hours
+    const newEnd = new Date(newStart.getTime() + durationMinutes * 60000);
+    
+    console.log('🔍 New Interview Time (BRUTE FORCE +5 hours):', {
+      inputFromForm: interviewDatetime,
+      localDate: localDate.toString(),
+      localUTC: localDate.toISOString(),
+      plus5Hours: newStart.toString(),
+      plus5HoursUTC: newStart.toISOString(),
+      startUTC: newStart.toISOString(),
+      endUTC: newEnd.toISOString(),
+      duration: durationMinutes + ' minutes'
+    });
+    
+    const conflicts = allInterviews.filter(interview => {
+      if (!interview.interview_datetime || !interview.duration_minutes) {
+        console.log('⚠️ Skipping - missing data:', interview);
+        return false;
+      }
+      
+      // Existing interviews from API are in UTC
+      const existingStart = new Date(interview.interview_datetime);
+      const existingEnd = new Date(existingStart.getTime() + interview.duration_minutes * 60000);
+      
+      console.log(`  📅 Checking: "${interview.scenario_name}" at ${interview.company_name}`);
+      console.log(`    Existing UTC: ${existingStart.toISOString()} to ${existingEnd.toISOString()}`);
+      
+      // Compare UTC to UTC
+      const hasConflict = (newStart < existingEnd && newEnd > existingStart);
+      
+      if (hasConflict) {
+        console.log('  ⚠️ CONFLICT DETECTED!');
+        console.log('    New UTC:', newStart.toISOString(), 'to', newEnd.toISOString());
+        console.log('    Existing UTC:', existingStart.toISOString(), 'to', existingEnd.toISOString());
+      } else {
+        console.log('  ✅ No conflict');
+      }
+      
+      return hasConflict;
+    });
+    
+    console.log('🎯 Total conflicts found:', conflicts.length);
+    return conflicts;
+  } catch (err) {
+    console.error('❌ Error checking conflicts:', err);
+    console.error('Error response:', err.response);
+    return [];
+  }
+};
+
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     
+    // Clear conflict warning when datetime or duration changes
+    if (name === 'interview_datetime' || name === 'duration_minutes') {
+      setConflictWarning(null);
+      setShowConflictConfirm(false);
+    }
+
     if (name === 'job_application_uuid') {
       const selectedJob = jobApplications.find(j => j.id === value);
       if (selectedJob) {
@@ -125,22 +236,42 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
       return;
     }
 
+    // Check for conflicts first (unless user already confirmed)
+    if (!showConflictConfirm) {
+      const conflicts = await checkTimeConflict(
+        formData.interview_datetime, 
+        formData.duration_minutes
+      );
+      
+      if (conflicts.length > 0) {
+        setConflictWarning(conflicts);
+        setShowConflictConfirm(true);
+        setError('');
+        const modalContent = document.querySelector('.modal-content');
+        if (modalContent) {
+          modalContent.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return;
+      }
+    }
+
+    // Proceed with scheduling
     setLoading(true);
     setError('');
 
     try {
       const dataToSend = {
-          ...formData,
-          interview_datetime: convertLocalDateTimeToUTC(formData.interview_datetime)
-        };
+        ...formData,
+        interview_datetime: convertLocalDateTimeToUTC(formData.interview_datetime)
+      };
 
-        console.log('📅 Datetime Debug:');
-        console.log('  Local:', formData.interview_datetime);
-        console.log('  UTC:', dataToSend.interview_datetime);
+      console.log('📅 Datetime Debug:');
+      console.log('  Local input:', formData.interview_datetime);
+      console.log('  Converted to UTC:', dataToSend.interview_datetime);
 
-        const response = await InterviewScheduleAPI.createSchedule(dataToSend);
+      const response = await InterviewScheduleAPI.createSchedule(dataToSend);
 
-        onSuccess?.({ 
+      onSuccess?.({ 
         message: 'Interview scheduled successfully!',
         schedule_uuid: response.data.schedule_uuid 
       });
@@ -242,6 +373,47 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
               {error}
             </div>
           )}
+
+{/* Conflict Warning */}
+{conflictWarning && conflictWarning.length > 0 && (
+  <div style={{
+    padding: '16px',
+    background: '#fff3cd',
+    border: '1px solid #ffc107',
+    borderRadius: '8px',
+    marginBottom: '16px'
+  }}>
+    <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
+      <span style={{ fontSize: '24px' }}>⚠️</span>
+      <div style={{ flex: 1 }}>
+        <h4 style={{ margin: '0 0 8px 0', color: '#856404' }}>
+          Time Conflict Detected
+        </h4>
+        <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#856404' }}>
+          This interview overlaps with {conflictWarning.length} existing interview{conflictWarning.length > 1 ? 's' : ''}:
+        </p>
+        <ul style={{ margin: '0 0 12px 0', paddingLeft: '20px', fontSize: '14px' }}>
+          {conflictWarning.map((conflict, idx) => {
+            // Convert UTC to local by subtracting timezone offset
+            const utcDate = new Date(conflict.interview_datetime);
+            const timezoneOffsetMinutes = utcDate.getTimezoneOffset();
+            const localDate = new Date(utcDate.getTime() - (timezoneOffsetMinutes * 60 * 1000));
+            
+            return (
+              <li key={idx} style={{ marginBottom: '4px', color: '#856404' }}>
+                <strong>{conflict.scenario_name}</strong> at {conflict.company_name}<br />
+                {formatDateTime(localDate.toISOString())} ({conflict.duration_minutes} min)
+              </li>
+            );
+          })}
+        </ul>
+        <p style={{ margin: '0', fontSize: '14px', fontWeight: '500', color: '#856404' }}>
+          Do you want to schedule anyway?
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* Job Selection */}
           <div style={{ marginBottom: '24px' }}>
@@ -619,14 +791,14 @@ function convertLocalDateTimeToUTC(localDateTimeString) {
                 padding: '12px 32px',
                 border: 'none',
                 borderRadius: '8px',
-                background: loading ? '#ccc' : '#007bff',
-                color: 'white',
+                background: loading ? '#ccc' : showConflictConfirm ? '#ffc107' : '#007bff',
+                color: showConflictConfirm ? '#000' : 'white',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 fontSize: '16px',
                 fontWeight: '500'
               }}
             >
-              {loading ? 'Scheduling...' : 'Schedule Interview'}
+              {loading ? 'Scheduling...' : showConflictConfirm ? 'Confirm & Schedule Anyway' : 'Schedule Interview'}
             </button>
           </div>
         </form>

@@ -188,6 +188,17 @@ function FollowUpManager() {
     alert('Email template copied to clipboard!');
   };
   
+  const handleBack = () => {
+    // Reset to generation form but keep interview selection and inputs
+    setGeneratedTemplate(null);
+    setEditedSubject('');
+    setEditedBody('');
+    setIsEditing(false);
+    setSuggestedSendTime(null);
+    setError('');
+    // Keep: selectedInterview, recipientEmail, customNotes, specificTopics, templateType
+  };
+  
   const daysSince = (datetime) => {
     const days = Math.floor((new Date() - new Date(datetime)) / (1000 * 60 * 60 * 24));
     return days;
@@ -262,6 +273,8 @@ function FollowUpManager() {
               {interviews.map(interview => {
                 const days = daysSince(interview.interview_datetime);
                 const interviewId = interview.uuid || interview._id;
+                const isSelected = selectedInterview?.uuid === interview.uuid || selectedInterview?._id === interview._id;
+                
                 return (
                   <div
                     key={interviewId}
@@ -269,13 +282,20 @@ function FollowUpManager() {
                       setSelectedInterview(interview);
                       // Always set recipient email when selecting a new interview
                       setRecipientEmail(interview.interviewer_email || '');
+                      // Reset generated template when switching interviews
+                      setGeneratedTemplate(null);
+                      setEditedSubject('');
+                      setEditedBody('');
+                      setIsEditing(false);
+                      setSuggestedSendTime(null);
+                      setError('');
                     }}
                     style={{
                       padding: '1rem',
-                      border: selectedInterview?.uuid === interview.uuid || selectedInterview?._id === interview._id ? '2px solid #667eea' : '1px solid #e0e0e0',
+                      border: isSelected ? '2px solid #667eea' : '1px solid #e0e0e0',
                       borderRadius: '8px',
                       cursor: 'pointer',
-                      background: selectedInterview?.uuid === interview.uuid || selectedInterview?._id === interview._id ? '#f0f4ff' : 'white',
+                      background: isSelected ? '#f0f4ff' : 'white',
                       transition: 'all 0.2s ease'
                     }}
                   >
@@ -575,11 +595,7 @@ function FollowUpManager() {
               
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button
-                  onClick={() => {
-                    setGeneratedTemplate(null);
-                    setRecipientEmail('');
-                    setError('');
-                  }}
+                  onClick={handleBack}
                   style={{
                     padding: '0.75rem 1.5rem',
                     background: 'white',

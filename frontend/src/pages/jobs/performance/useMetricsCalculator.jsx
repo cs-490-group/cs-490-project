@@ -2,6 +2,10 @@ import { useMemo } from "react";
 
 export function useMetricsCalculator(filteredJobs) {
   return useMemo(() => {
+    console.group("🔍 Metrics Calculator Debug");
+    console.log("Total filtered jobs:", filteredJobs.length);
+    console.log("Sample job:", filteredJobs[0]);
+    
     // Status counts
     const interested = filteredJobs.filter(j => j.status === "Interested").length;
     const applied = filteredJobs.filter(j => j.status === "Applied").length;
@@ -9,6 +13,8 @@ export function useMetricsCalculator(filteredJobs) {
     const interview = filteredJobs.filter(j => j.status === "Interview").length;
     const offer = filteredJobs.filter(j => j.status === "Offer").length;
     const rejected = filteredJobs.filter(j => j.status === "Rejected").length;
+    
+    console.log("Status counts:", { interested, applied, screening, interview, offer, rejected });
     
     const totalApplications = applied + screening + interview + offer + rejected;
     const totalActive = filteredJobs.length;
@@ -39,14 +45,23 @@ export function useMetricsCalculator(filteredJobs) {
     const interviewScheduleTimes = [];
     
     filteredJobs.forEach(job => {
-      if (job.statusHistory && job.statusHistory.length > 1) {
-        const appliedEntry = job.statusHistory.find(h => h.status === "Applied");
+      // Handle both snake_case and camelCase
+      let statusHistory = job.statusHistory || job.status_history;
+      
+      // Convert array of arrays to objects if needed
+      if (statusHistory && statusHistory.length > 0 && Array.isArray(statusHistory[0])) {
+        statusHistory = statusHistory.map(([status, timestamp]) => ({ status, timestamp }));
+      }
+      
+      if (statusHistory && statusHistory.length > 1) {
+        // Find when job was applied
+        const appliedEntry = statusHistory.find(h => h.status === "Applied");
         
         if (appliedEntry) {
           const appliedDate = new Date(appliedEntry.timestamp);
           
-          // Time to first response
-          const firstResponseEntry = job.statusHistory.find(h => 
+          // Time to first response (any status change after Applied)
+          const firstResponseEntry = statusHistory.find(h => 
             h.status !== "Interested" && h.status !== "Applied" && 
             new Date(h.timestamp) > appliedDate
           );
@@ -54,15 +69,15 @@ export function useMetricsCalculator(filteredJobs) {
           if (firstResponseEntry) {
             const responseDate = new Date(firstResponseEntry.timestamp);
             const days = Math.floor((responseDate - appliedDate) / (1000 * 60 * 60 * 24));
-            responseTimes.push(days);
+            if (days >= 0) responseTimes.push(days);
           }
           
           // Time to interview
-          const interviewEntry = job.statusHistory.find(h => h.status === "Interview");
+          const interviewEntry = statusHistory.find(h => h.status === "Interview");
           if (interviewEntry) {
             const interviewDate = new Date(interviewEntry.timestamp);
             const days = Math.floor((interviewDate - appliedDate) / (1000 * 60 * 60 * 24));
-            interviewScheduleTimes.push(days);
+            if (days >= 0) interviewScheduleTimes.push(days);
           }
         }
       }
@@ -76,12 +91,20 @@ export function useMetricsCalculator(filteredJobs) {
       ? Math.round(interviewScheduleTimes.reduce((a, b) => a + b, 0) / interviewScheduleTimes.length)
       : 0;
     
+    console.log("Time metrics:", {
+      responseTimes: responseTimes.length,
+      avgResponseTime,
+      interviewScheduleTimes: interviewScheduleTimes.length,
+      avgInterviewScheduleTime
+    });
+    
     // Application volume trends
     const weeklyVolume = {};
     
     filteredJobs.forEach(job => {
-      if (job.createdAt) {
-        const jobDate = new Date(job.createdAt);
+      const createdAt = job.createdAt || job.date_created;
+      if (createdAt) {
+        const jobDate = new Date(createdAt);
         const weekStart = new Date(jobDate);
         weekStart.setDate(jobDate.getDate() - jobDate.getDay());
         const weekKey = weekStart.toISOString().split('T')[0];
@@ -123,11 +146,63 @@ export function useMetricsCalculator(filteredJobs) {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3);
     
+    // FIXED: Goal progress calculations
+    const currentDate = new Date();
+    
+    // Applications this week - count jobs that moved to "Applied" status this week
+    const applicationsThisWeek = filteredJobs.filter(job => {
+      let statusHistory = job.statusHistory || job.status_history;
+      if (!statusHistory) return false;
+      
+      // Convert array of arrays to objects if needed
+      if (Array.isArray(statusHistory[0])) {
+        statusHistory = statusHistory.map(([status, timestamp]) => ({ status, timestamp }));
+      }
+      
+      // Find when the job was applied to
+      const appliedEntry = statusHistory.find(h => h.status === "Applied");
+      if (!appliedEntry) return false;
+      
+      const appliedDate = new Date(appliedEntry.timestamp);
+      const daysSinceApplied = Math.floor((currentDate - appliedDate) / (1000 * 60 * 60 * 24));
+      
+      return daysSinceApplied <= 7;
+    }).length;
+    
+    console.log("Applications this week:", applicationsThisWeek);
+    
+    // Interviews this month - count jobs that moved to "Interview" status this month
+    const interviewsThisMonth = filteredJobs.filter(job => {
+      if (job.status !== "Interview" && job.status !== "Offer") return false;
+      
+      let statusHistory = job.statusHistory || job.status_history;
+      if (!statusHistory) return false;
+      
+      // Convert array of arrays to objects if needed
+      if (Array.isArray(statusHistory[0])) {
+        statusHistory = statusHistory.map(([status, timestamp]) => ({ status, timestamp }));
+      }
+      
+      // Find when the job moved to Interview status
+      const interviewEntry = statusHistory.find(h => h.status === "Interview");
+      if (!interviewEntry) return false;
+      
+      const interviewDate = new Date(interviewEntry.timestamp);
+      
+      return interviewDate.getMonth() === currentDate.getMonth() &&
+             interviewDate.getFullYear() === currentDate.getFullYear();
+    }).length;
+    
+    console.log("Interviews this month:", interviewsThisMonth);
+    
     // UC-097: Application Success Rate Analysis
-    // Analyze by company size
+    // Analyze by company size - only count jobs that have been applied to
     const companySizeSuccess = {};
     filteredJobs.forEach(job => {
-      const companySize = job.company_data?.size || job.companySize;
+      // Only analyze jobs that have moved past "Interested" status
+      if (job.status === 'Interested') return;
+      
+      const companySize = job.company_data?.size || job.companyData?.size || job.companySize;
       if (companySize) {
         if (!companySizeSuccess[companySize]) {
           companySizeSuccess[companySize] = { total: 0, successful: 0 };
@@ -149,9 +224,12 @@ export function useMetricsCalculator(filteredJobs) {
       .filter(c => c.total >= 2)
       .sort((a, b) => parseFloat(b.successRate) - parseFloat(a.successRate));
     
-    // Analyze by application source/method
+    // Analyze by application source/method - only count jobs that have been applied to
     const sourceSuccess = {};
     filteredJobs.forEach(job => {
+      // Only analyze jobs that have moved past "Interested" status
+      if (job.status === 'Interested') return;
+      
       const source = job.source || 'Direct';
       if (!sourceSuccess[source]) {
         sourceSuccess[source] = { total: 0, successful: 0 };
@@ -162,7 +240,6 @@ export function useMetricsCalculator(filteredJobs) {
       }
     });
     
-    // Calculate success rates by source
     const sourceSuccessRates = Object.entries(sourceSuccess).map(([source, data]) => ({
       source,
       successRate: data.total > 0 ? ((data.successful / data.total) * 100).toFixed(1) : 0,
@@ -170,14 +247,19 @@ export function useMetricsCalculator(filteredJobs) {
       successful: data.successful
     })).sort((a, b) => parseFloat(b.successRate) - parseFloat(a.successRate));
     
-    // Analyze customization impact
+    // Analyze customization impact - only count jobs that have been applied to
     const customizationImpact = {
       customized: { total: 0, successful: 0 },
       notCustomized: { total: 0, successful: 0 }
     };
     
     filteredJobs.forEach(job => {
-      const isCustomized = job.coverLetter || job.customNotes;
+      // Only analyze jobs that have moved past "Interested" status
+      if (job.status === 'Interested') return;
+      
+      // Check if job has linked materials (resume_id or cover_letter_id indicates customization)
+      const hasMaterials = job.materials?.resume_id || job.materials?.cover_letter_id;
+      const isCustomized = hasMaterials || job.coverLetter || job.customNotes;
       const category = isCustomized ? 'customized' : 'notCustomized';
       customizationImpact[category].total++;
       if (job.status === 'Interview' || job.status === 'Offer') {
@@ -192,17 +274,30 @@ export function useMetricsCalculator(filteredJobs) {
       ? ((customizationImpact.notCustomized.successful / customizationImpact.notCustomized.total) * 100).toFixed(1)
       : 0;
     
-    // Timing pattern analysis - day of week
+    // Timing pattern analysis - day of week (only for applied jobs)
     const dayOfWeekSuccess = {};
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     days.forEach(day => dayOfWeekSuccess[day] = { total: 0, successful: 0 });
     
     filteredJobs.forEach(job => {
-      if (job.createdAt) {
-        const dayName = days[new Date(job.createdAt).getDay()];
-        dayOfWeekSuccess[dayName].total++;
-        if (job.status === 'Interview' || job.status === 'Offer') {
-          dayOfWeekSuccess[dayName].successful++;
+      // Only analyze jobs that have moved past "Interested" status
+      if (job.status === 'Interested') return;
+      
+      let statusHistory = job.statusHistory || job.status_history;
+      if (statusHistory) {
+        // Convert array of arrays to objects if needed
+        if (Array.isArray(statusHistory[0])) {
+          statusHistory = statusHistory.map(([status, timestamp]) => ({ status, timestamp }));
+        }
+        
+        // Find when applied
+        const appliedEntry = statusHistory.find(h => h.status === "Applied");
+        if (appliedEntry) {
+          const dayName = days[new Date(appliedEntry.timestamp).getDay()];
+          dayOfWeekSuccess[dayName].total++;
+          if (job.status === 'Interview' || job.status === 'Offer') {
+            dayOfWeekSuccess[dayName].successful++;
+          }
         }
       }
     });
@@ -213,12 +308,15 @@ export function useMetricsCalculator(filteredJobs) {
         successRate: data.total > 0 ? ((data.successful / data.total) * 100).toFixed(1) : 0,
         total: data.total
       }))
-      .filter(d => d.total >= 3) // Only include days with statistically significant data
+      .filter(d => d.total >= 3)
       .sort((a, b) => parseFloat(b.successRate) - parseFloat(a.successRate));
     
-    // Success patterns by role type
+    // Success patterns by role type - only count jobs that have been applied to
     const roleTypeSuccess = {};
     filteredJobs.forEach(job => {
+      // Only analyze jobs that have moved past "Interested" status
+      if (job.status === 'Interested') return;
+      
       const role = job.role || job.title || 'Unknown';
       const roleCategory = categorizeRole(role);
       if (!roleTypeSuccess[roleCategory]) {
@@ -237,7 +335,7 @@ export function useMetricsCalculator(filteredJobs) {
         total: data.total,
         successful: data.successful
       }))
-      .filter(r => r.total >= 2) // Statistical significance
+      .filter(r => r.total >= 2)
       .sort((a, b) => parseFloat(b.successRate) - parseFloat(a.successRate));
     
     // Helper function to categorize roles
@@ -250,11 +348,10 @@ export function useMetricsCalculator(filteredJobs) {
       return 'Mid-Level';
     }
     
-    // Calculate statistical significance for recommendations
+    // Calculate recommendations
     const getRecommendations = () => {
       const recs = [];
       
-      // Source recommendations
       if (sourceSuccessRates.length > 1 && sourceSuccessRates[0].total >= 5) {
         const best = sourceSuccessRates[0];
         if (parseFloat(best.successRate) > parseFloat(responseRate) * 1.5) {
@@ -266,7 +363,6 @@ export function useMetricsCalculator(filteredJobs) {
         }
       }
       
-      // Customization recommendations
       const customizationDiff = parseFloat(customizationSuccessRate) - parseFloat(nonCustomizationSuccessRate);
       if (customizationImpact.customized.total >= 5 && customizationDiff > 10) {
         recs.push({
@@ -276,7 +372,6 @@ export function useMetricsCalculator(filteredJobs) {
         });
       }
       
-      // Timing recommendations
       if (bestApplicationDays.length > 0 && bestApplicationDays[0].total >= 5) {
         const bestDay = bestApplicationDays[0];
         if (parseFloat(bestDay.successRate) > parseFloat(responseRate) * 1.3) {
@@ -288,7 +383,6 @@ export function useMetricsCalculator(filteredJobs) {
         }
       }
       
-      // Role type recommendations
       if (roleTypeSuccessRates.length > 0 && roleTypeSuccessRates[0].total >= 3) {
         const bestRole = roleTypeSuccessRates[0];
         if (parseFloat(bestRole.successRate) > parseFloat(responseRate) * 1.5) {
@@ -300,7 +394,6 @@ export function useMetricsCalculator(filteredJobs) {
         }
       }
       
-      // Company size recommendations
       if (companySizeSuccessRates.length > 0 && companySizeSuccessRates[0].total >= 3) {
         const bestSize = companySizeSuccessRates[0];
         if (parseFloat(bestSize.successRate) > parseFloat(responseRate) * 1.3) {
@@ -312,7 +405,6 @@ export function useMetricsCalculator(filteredJobs) {
         }
       }
       
-      // Industry recommendations
       if (topIndustries.length > 0 && topIndustries[0][1] >= 3) {
         recs.push({
           type: 'industry',
@@ -324,22 +416,7 @@ export function useMetricsCalculator(filteredJobs) {
       return recs;
     };
     
-    // Goal progress
-    const currentDate = new Date();
-    const applicationsThisWeek = filteredJobs.filter(j => {
-      const jobDate = new Date(j.createdAt);
-      const daysDiff = Math.floor((currentDate - jobDate) / (1000 * 60 * 60 * 24));
-      return daysDiff <= 7;
-    }).length;
-    
-    const interviewsThisMonth = filteredJobs.filter(j => {
-      const jobDate = new Date(j.createdAt);
-      return j.status === "Interview" && 
-             jobDate.getMonth() === currentDate.getMonth() &&
-             jobDate.getFullYear() === currentDate.getFullYear();
-    }).length;
-    
-    // Industry benchmarks (example values)
+    // Industry benchmarks
     const benchmarks = {
       responseRate: 25,
       interviewRate: 15,
@@ -347,6 +424,8 @@ export function useMetricsCalculator(filteredJobs) {
       avgResponseTime: 14,
       avgInterviewTime: 21
     };
+    
+    console.groupEnd();
     
     return {
       interested,

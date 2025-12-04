@@ -296,7 +296,9 @@ Metamorphosis Interview Manager
         job_title: str,
         interview_date: datetime,
         days_since_interview: int,
-        user_full_name: Optional[str] = None
+        user_full_name: Optional[str] = None,
+        specific_topics: Optional[List[str]] = None,
+        custom_notes: Optional[str] = None
     ) -> Dict[str, str]:
         """Generate a status inquiry email for delayed response"""
         subject = f"Following Up - {job_title} Position"
@@ -318,6 +320,26 @@ Metamorphosis Interview Manager
             f"aligns well with my skills and career goals."
         )
         body_parts.append("")
+        
+        # Add specific topics if provided
+        if specific_topics and len(specific_topics) > 0:
+            if len(specific_topics) == 1:
+                body_parts.append(
+                    f"I've continued to think about our discussion regarding {specific_topics[0]}, "
+                    f"and it has only increased my enthusiasm for this opportunity."
+                )
+            else:
+                topics_str = ", ".join(specific_topics[:-1]) + f", and {specific_topics[-1]}"
+                body_parts.append(
+                    f"I've continued to reflect on our discussions about {topics_str}, "
+                    f"and these areas have only increased my enthusiasm for this role."
+                )
+            body_parts.append("")
+        
+        # Add custom notes if provided
+        if custom_notes:
+            body_parts.append(custom_notes)
+            body_parts.append("")
         
         if days_since_interview < 10:
             body_parts.append(
@@ -348,7 +370,9 @@ Metamorphosis Interview Manager
         company_name: str,
         job_title: str,
         was_selected: bool,
-        user_full_name: Optional[str] = None
+        user_full_name: Optional[str] = None,
+        specific_topics: Optional[List[str]] = None,
+        custom_notes: Optional[str] = None
     ) -> Dict[str, str]:
         """Generate a feedback request email"""
         subject = f"Thank You - {job_title} Offer" if was_selected else f"Feedback Request - {job_title} Interview"
@@ -364,6 +388,22 @@ Metamorphosis Interview Manager
                 f"you can share about areas where I can focus my preparation to ensure a "
                 f"smooth start."
             )
+            body_parts.append("")
+            
+            # Add specific topics for accepted offer
+            if specific_topics and len(specific_topics) > 0:
+                if len(specific_topics) == 1:
+                    body_parts.append(
+                        f"I'm particularly looking forward to working on {specific_topics[0]} "
+                        f"and would appreciate any guidance on how to best prepare."
+                    )
+                else:
+                    topics_str = ", ".join(specific_topics[:-1]) + f", and {specific_topics[-1]}"
+                    body_parts.append(
+                        f"I'm particularly looking forward to working on areas like {topics_str} "
+                        f"and would appreciate any guidance on how to best prepare for these aspects of the role."
+                    )
+                body_parts.append("")
         else:
             body_parts.append(
                 f"Thank you for taking the time to interview me for the {job_title} position. "
@@ -371,6 +411,22 @@ Metamorphosis Interview Manager
                 f"to learn about {company_name}."
             )
             body_parts.append("")
+            
+            # Add specific topics for rejection
+            if specific_topics and len(specific_topics) > 0:
+                if len(specific_topics) == 1:
+                    body_parts.append(
+                        f"I particularly valued our discussion about {specific_topics[0]} "
+                        f"and would appreciate any feedback on how I presented myself in this area."
+                    )
+                else:
+                    topics_str = ", ".join(specific_topics[:-1]) + f", and {specific_topics[-1]}"
+                    body_parts.append(
+                        f"I particularly valued our discussions about {topics_str} "
+                        f"and would appreciate feedback on these aspects of my candidacy."
+                    )
+                body_parts.append("")
+            
             body_parts.append(
                 "I'm committed to continuous improvement and would greatly appreciate any "
                 "feedback you could provide about my interview performance. Understanding "
@@ -379,6 +435,12 @@ Metamorphosis Interview Manager
             )
         
         body_parts.append("")
+        
+        # Add custom notes if provided
+        if custom_notes:
+            body_parts.append(custom_notes)
+            body_parts.append("")
+        
         body_parts.append(
             "Any insights you can share would be greatly appreciated. Thank you again for "
             "your time and consideration."
@@ -398,7 +460,9 @@ Metamorphosis Interview Manager
         company_name: str,
         job_title: str,
         user_full_name: Optional[str] = None,
-        connection_request: bool = True
+        connection_request: bool = True,
+        specific_topics: Optional[List[str]] = None,
+        custom_notes: Optional[str] = None
     ) -> Dict[str, str]:
         """Generate a networking follow-up for rejected applications"""
         subject = "Thank You and Staying Connected"
@@ -414,6 +478,26 @@ Metamorphosis Interview Manager
             f"and the culture at {company_name}."
         )
         body_parts.append("")
+        
+        # Add specific topics if provided
+        if specific_topics and len(specific_topics) > 0:
+            if len(specific_topics) == 1:
+                body_parts.append(
+                    f"Our conversation about {specific_topics[0]} was particularly enlightening "
+                    f"and has given me valuable perspective on the field."
+                )
+            else:
+                topics_str = ", ".join(specific_topics[:-1]) + f", and {specific_topics[-1]}"
+                body_parts.append(
+                    f"Our discussions about {topics_str} were particularly enlightening "
+                    f"and have given me valuable perspective on these areas."
+                )
+            body_parts.append("")
+        
+        # Add custom notes if provided
+        if custom_notes:
+            body_parts.append(custom_notes)
+            body_parts.append("")
         
         if connection_request and interviewer_name:
             body_parts.append(
