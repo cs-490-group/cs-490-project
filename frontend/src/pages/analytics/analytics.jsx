@@ -10,30 +10,30 @@ import TimeTracking from "./TimeTracking";
 import "../../styles/analytics.css";
 
 const AnalyticsPage = () => {
-  const [activeTab, setActiveTab] = useState("timeline");
+  const [activeTab, setActiveTab] = useState("goals");
 
   const tabs = [
+    { id: "goals", name: "Goal Tracking", icon: "🎯" },
+    { id: "salary", name: "Salary Analytics", icon: "💰" },
+    { id: "time", name: "Time Tracking", icon: "⏱️" },
     { id: "timeline", name: "Timeline Analytics", icon: "📈" },
     { id: "jobs", name: "Job Analytics", icon: "💼" },
     { id: "network", name: "Network Analytics", icon: "🌐" },
     { id: "skills", name: "Skills Analytics", icon: "🧠" },
     { id: "performance", name: "Performance Analytics", icon: "⚡" },
-    { id: "salary", name: "Salary Analytics", icon: "💰" },
-    { id: "goals", name: "Goal Tracking", icon: "🎯" },
-    { id: "time", name: "Time Tracking", icon: "⏱️" },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
+      case "goals": return <GoalTracking />;
+      case "salary": return <SalaryAnalytics />;
+      case "time": return <TimeTracking />;
       case "timeline": return <TimelineAnalytics />;
       case "jobs": return <JobAnalytics />;
       case "network": return <NetworkAnalytics />;
       case "skills": return <SkillsAnalytics />;
       case "performance": return <PerformanceAnalytics />;
-      case "salary": return <SalaryAnalytics />;
-      case "goals": return <GoalTracking />;
-      case "time": return <TimeTracking />;
-      default: return <TimelineAnalytics />;
+      default: return <GoalTracking />;
     }
   };
 
