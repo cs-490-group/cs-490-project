@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Smile, Meh, Frown, Shield, Heart, Coffee, MessageCircle } from 'lucide-react';
-// 👇 ENSURE THIS IMPORT IS CORRECT (Default Import)
 import progressAPI from '../../api/progressSharing'; 
 
 export default function SupportControlCenter({ teamId, memberId }) {
@@ -21,18 +20,14 @@ export default function SupportControlCenter({ teamId, memberId }) {
   };
 
   const handleSave = async () => {
-    console.log("🖱️ Button Clicked!"); // Debug log
     
     if (!progressAPI || !progressAPI.logWellbeing) {
-      console.error("❌ API Error: progressAPI.logWellbeing is not defined");
       alert("System Error: API Client not configured correctly.");
       return;
     }
 
     setSaving(true);
     try {
-      console.log("📤 Sending data to backend...");
-      
       await progressAPI.logWellbeing(teamId, memberId, {
         mood_score: mood,
         boundary_level: boundary,
@@ -40,11 +35,10 @@ export default function SupportControlCenter({ teamId, memberId }) {
         status_message: boundary === 'red' ? 'In deep focus mode' : boundary === 'yellow' ? 'Taking it slow' : 'Feeling good'
       });
       
-      console.log("✅ Success!");
-      alert("✅ Status updated successfully!");
+
       
     } catch (err) {
-      console.error("❌ Failed to update status:", err);
+      console.error("Failed to update status:", err);
       alert("Failed to update status. Check console for details.");
     } finally {
       setSaving(false);
