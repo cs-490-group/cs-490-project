@@ -43,6 +43,7 @@ const Nav = () => {
         setIsLoading(false);
         localStorage.removeItem("uuid");
         localStorage.removeItem("session");
+        localStorage.removeItem("teamId");
         localStorage.removeItem("username");
         setIsAuthenticated(false);
         hasValidated.current = true;
@@ -94,6 +95,7 @@ const Nav = () => {
           }
         } else {
           localStorage.removeItem("uuid");
+          localStorage.removeItem("teamId");
           localStorage.removeItem("session");
           localStorage.removeItem("username");
           setIsAuthenticated(false);
@@ -106,6 +108,7 @@ const Nav = () => {
       } catch (error) {
         console.error("Session validation failed:", error);
         localStorage.removeItem("uuid");
+        localStorage.removeItem("teamId");
         localStorage.removeItem("session");
         localStorage.removeItem("username");
         setIsAuthenticated(false);
@@ -298,11 +301,19 @@ const Nav = () => {
                   </NavDropdown.Item>
                 </NavDropdown>
 
-                {teamId && (
-                  <BootstrapNav.Link as={NavLink} to="/teams" className="mx-3">
+                <NavDropdown
+                  title="Social"
+                  id="social-dropdown"
+                  className="mx-3"
+                >
+                  {/* Links to Dashboard if they have a team, otherwise Setup page */}
+                  <NavDropdown.Item as={NavLink} to={teamId ? "/teams" : "/setup-team"}>
                     Teams
-                  </BootstrapNav.Link>
-                )}
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/newGroup">
+                    Groups
+                  </NavDropdown.Item>
+                </NavDropdown>
 
                 <NavDropdown
                   title={

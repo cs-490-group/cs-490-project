@@ -33,6 +33,7 @@ const DeleteAccount = () => {
         if (response.status === 200) {
           // Delete successful, now logout          
           localStorage.removeItem("uuid");
+          localStorage.removeItem("teamId");
           localStorage.removeItem("session");
           navigate("/");
         }
