@@ -23,10 +23,10 @@ from sessions.session_authorizer import authorize
 question_bank_router = APIRouter(prefix="/question-bank", tags=["question-bank"])
 
 # Initialize DAOs
-industry_dao = QuestionIndustryDAO(db_client)
-role_dao = QuestionRoleDAO(db_client)
-question_dao = QuestionDAO(db_client)
-practiced_dao = UserPracticedQuestionDAO(db_client)
+industry_dao = QuestionIndustryDAO()
+role_dao = QuestionRoleDAO()
+question_dao = QuestionDAO()
+practiced_dao = UserPracticedQuestionDAO()
 
 
 # ============================================================================

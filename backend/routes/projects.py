@@ -25,7 +25,7 @@ async def add_project(project: Project, uuid: str = Depends(authorize)):
     except HTTPException as http:
         raise http
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     return {"detail": "Successfully added project", "project_id": result}
 
@@ -34,7 +34,7 @@ async def get_project(project_id: str, uuid: str = Depends(authorize)):
     try:
         result = await projects_dao.get_project(project_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if result:
         result["_id"] = str(result["_id"])
@@ -48,7 +48,7 @@ async def get_all_projects(uuid: str = Depends(authorize)):
         results = await projects_dao.get_all_projects(uuid)
         # NOTE: do not raise http exception for empty projects, as it can lead to inconsistent behavior on the frontend
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     return results
 
@@ -59,7 +59,7 @@ async def update_project(project_id: str, project: Project, uuid: str = Depends(
         model = project.model_dump(exclude_unset = True)
         updated = await projects_dao.update_project(project_id, model)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if updated == 0:
         raise HTTPException(400, "Project not found")
@@ -71,7 +71,7 @@ async def delete_project(project_id: str, uuid: str = Depends(authorize)):
     try:
         deleted = await projects_dao.delete_project(project_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if deleted == 0:
         raise HTTPException(400, "Project not found")
@@ -83,7 +83,7 @@ async def upload_media(project_id: str, media: UploadFile = File(...), uuid: str
     try:
         media_id = await media_dao.add_media(project_id, media.filename, await media.read(), media.content_type)
     except Exception as e:
-        raise HTTPException(500, "Encountered interal service error")
+        raise HTTPException(500, str(e))
     
     if not media_id:
         raise HTTPException(500, "Unable to upload media")
@@ -95,7 +95,7 @@ async def download_media(media_id, uuid: str = Depends(authorize)):
     try:
         media = await media_dao.get_media(media_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered interal service error")
+        raise HTTPException(500, str(e))
     
     if not media:
         raise HTTPException(400, "Could not find requested media")
@@ -113,7 +113,7 @@ async def get_all_media_ids(project_id: str, uuid: str = Depends(authorize)):
     try:
         media_ids = await media_dao.get_all_associated_media_ids(project_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     return {"detail": "Sucessfully gotten media ids", "media_id_list": media_ids}
 
@@ -122,7 +122,7 @@ async def update_media(project_id: str, media_id: str, media: UploadFile = File(
     try:
         updated = await media_dao.update_media(media_id, media.filename, await media.read(), project_id, media.content_type)
     except Exception as e:
-        raise HTTPException(500, "Encountered interal service error")
+        raise HTTPException(500, str(e))
     
     if not updated:
         raise HTTPException(500, "Unable to update media")
@@ -134,7 +134,7 @@ async def delete_media(media_id: str, uuid: str = Depends(authorize)):
     try:
         deleted = await media_dao.delete_media(media_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered interal service error")
+        raise HTTPException(500, str(e))
     
     if not deleted:
         raise HTTPException(500, "Unable to delete media")

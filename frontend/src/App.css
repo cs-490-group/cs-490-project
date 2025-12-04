@@ -61,3 +61,7 @@
 #interview-dropdown::after {
   display: none;
 }
+
+#network-dropdown::after {
+  display: none;
+}

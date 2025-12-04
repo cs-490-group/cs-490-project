@@ -22,7 +22,7 @@ async def add_skill(skill: Skill, uuid: str = Depends(authorize)):
     except HTTPException as http:
         raise http
     except Exception as e:
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
     
     return {"detail": "Sucessfully added skill", "skill_id": result}
 
@@ -31,7 +31,7 @@ async def get_skill(skill_id: str, uuid: str = Depends(authorize)):
     try:
         result = await skills_dao.get_skill(skill_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if result:
         result["_id"] = str(result["_id"])
@@ -45,7 +45,7 @@ async def get_all_skills(uuid: str = Depends(authorize)):
         results = await skills_dao.get_all_skills(uuid)
         # NOTE: do not raise http exception for empty skills, as it can lead to inconsistent behavior on the frontend
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     return results
 
@@ -55,7 +55,7 @@ async def update_skill(skill_id: str, skill: Skill, uuid: str = Depends(authoriz
         model = skill.model_dump(exclude_unset = True)
         updated = await skills_dao.update_skill(skill_id, model)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if updated == 0:
         raise HTTPException(400, "Skill not found")
@@ -67,7 +67,7 @@ async def delete_skill(skill_id: str, uuid: str = Depends(authorize)):
     try:
         deleted = await skills_dao.delete_skill(skill_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if deleted == 0:
         raise HTTPException(400, "Skill not found")

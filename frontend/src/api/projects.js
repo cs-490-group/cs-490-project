@@ -41,7 +41,7 @@ class ProjectsAPI {
     updateMedia(mediaId, file) {
         const formData = new FormData();
         formData.append("media", file);
-        return api.put(`${BASE_URL}/media?media_id=${mediaId}`, file);
+        return api.put(`${BASE_URL}/media?media_id=${mediaId}`, formData);
     }
 
     deleteMedia(mediaId) {

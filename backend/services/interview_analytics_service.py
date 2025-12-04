@@ -4,13 +4,12 @@ Implements UC-080: Interview Performance Analytics
 """
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
-from pymongo.asynchronous.database import AsyncDatabase
-
+from mongo.dao_setup import db_client
 
 class InterviewAnalyticsService:
     """Service for interview performance analytics (UC-080)"""
-
-    def __init__(self, db_client: AsyncDatabase):
+    
+    def __init__(self):
         self.db = db_client
         self.schedules_collection = db_client["interview_schedules"]
         self.mock_sessions_collection = db_client["mock_interview_sessions"]

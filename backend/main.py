@@ -36,6 +36,14 @@ from routes import matching
 from routes.offers import offers_router
 from routes.technical_prep import technical_prep_router
 from routes.application_workflow_router import workflow_router
+from routes.networks import networks_router
+from routes.referrals import referrals_router
+from routes.network_events import network_events_router
+from routes.informational_interviews import informational_interviews_router
+from routes.mentorship import mentorship_router
+from routes.network_campaigns import network_campaigns_router
+from routes.professional_references import professional_references_router
+from routes.network_analytics import network_analytics_router
 
 app = FastAPI()
 
@@ -56,14 +64,6 @@ app.add_middleware(
     allow_methods=["*"],         
     allow_headers=["*"],         
 )
-
-# @app.middleware("http")
-# async def add_global_headers(request: Request, call_next):
-#     response: Response = await call_next(request)
-#     # Add headers to every response
-#     response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
-#     response.headers["Cross-Origin-Embedder-Policy"] = "unsafe-none"
-#     return response
 
 app.include_router(auth_router, prefix = api_prefix)
 app.include_router(profiles_router, prefix = api_prefix)
@@ -98,6 +98,14 @@ app.include_router(technical_prep_router, prefix = api_prefix)
 app.include_router(ai_router, prefix=api_prefix)
 
 app.include_router(workflow_router, prefix=api_prefix)
+app.include_router(networks_router, prefix = api_prefix)
+app.include_router(referrals_router, prefix = api_prefix)
+app.include_router(network_events_router, prefix = api_prefix)
+app.include_router(informational_interviews_router, prefix = api_prefix)
+app.include_router(mentorship_router, prefix = api_prefix)
+app.include_router(network_campaigns_router, prefix = api_prefix)
+app.include_router(professional_references_router, prefix = api_prefix)
+app.include_router(network_analytics_router, prefix = api_prefix)
 
 @app.on_event("startup")
 async def startup_event():

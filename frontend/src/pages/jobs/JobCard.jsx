@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useNavigate } from "react-router-dom";
 
 function MatchPreview({ jobId }) {
   const [data, setData] = React.useState(null);
@@ -63,6 +64,7 @@ const formatDate = (dateStr) => {
 
 export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRestore, isOverlay, onSelect, isSelected }) {
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
   
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
     id: job.id,
@@ -328,6 +330,35 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
                 🗑 Delete
               </button>
             </div>
+            <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  // Navigate to referral page with job information
+                  navigate('/network/referrals', { 
+                    state: { 
+                      prefillJob: {
+                        job_id: job.id || job._id,
+                        company: job.company,
+                        position: job.title,
+                        industry: job.industry,
+                        location: job.location
+                      }
+                    } 
+                  });
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                style={{ 
+                  ...buttonStyle,
+                  padding: "6px 12px",
+                  fontSize: "12px",
+                  background: "#9c27b0", 
+                  color: "white",
+                  marginTop:"0.5rem"
+                }}
+              >
+                🤝 Request Referral
+              </button>
           </div>
         )}
       </div>
