@@ -176,7 +176,7 @@ export default function OffersPage() {
                     <h1 style={{ fontSize: "2.5rem", fontWeight: "700", marginBottom: "8px", color: "#1a1a1a" }}>
                         Job Offers & Salary Negotiation
                     </h1>
-                    <p style={{ fontSize: "1.1rem", color: "#666", marginBottom: "0", lineHeight: "1.6" }}>
+                    <p style={{ fontSize: "1.1rem", color: "#000", marginBottom: "0", lineHeight: "1.6" }}>
                         Track your offers and prepare for negotiations with AI-powered insights
                     </p>
                 </Col>
