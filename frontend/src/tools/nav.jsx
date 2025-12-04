@@ -357,33 +357,31 @@ const Nav = () => {
                   onMouseEnter={() => setShowInterviewDropdown(true)}
                   onMouseLeave={() => setShowInterviewDropdown(false)}
                 >
-                  <NavDropdown.Item as={NavLink} to="/interview/question-library">
-                    Question Library
-                  </NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/interview/my-practice">
                     My Practice
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/question-library">
+                    Question Library
                   </NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/interview/progress">
                     Progress
                   </NavDropdown.Item>
+                  <NavDropdown.Divider />
                   <NavDropdown.Item as={NavLink} to="/interview/calendar">
-                    Interview Calendar
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/interview/performance">
-                    Performance Analytics
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/interview/writing-practice">
-                    Writing Practice
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/interview/success-probability">
-                    Success Predictor
+                    My Interviews
                   </NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/interview/follow-up">
                     Follow Up
                   </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/success-probability">
+                    Success Predictor
+                  </NavDropdown.Item>
                   <NavDropdown.Divider />
                   <NavDropdown.Item as={NavLink} to="/technical-prep">
                     Technical Interview Prep
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/performance">
+                    Performance Analytics
                   </NavDropdown.Item>
                   <NavDropdown.Divider />
                   <NavDropdown.Item as={NavLink} to="/offers">
