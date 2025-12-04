@@ -79,7 +79,8 @@ def analyze_offer(
     percentile_90 = market_data.get("percentile_90", median_salary * 1.50)
 
     # Calculate salary score (primary component)
-    salary_score = _calculate_salary_score(offered_salary, percentile_25, percentile_75, percentile_90)
+    # Pass median as p50 (currently missing, so use 50th percentile)
+    salary_score = _calculate_salary_score(offered_salary, percentile_25, median_salary, percentile_75)
 
     # Calculate other component scores
     bonus_score = _calculate_bonus_score(offered_bonus, median_salary)

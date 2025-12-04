@@ -145,6 +145,10 @@ export default function OffersPage() {
                         setShowNegotiationPrep(false);
                         setShowDetails(true);
                     }}
+                    onRegenerate={async () => {
+                        const updatedOffer = await OffersAPI.get(selectedOffer._id);
+                        setSelectedOffer(updatedOffer.data);
+                    }}
                 />
             </Container>
         );
@@ -218,11 +222,10 @@ export default function OffersPage() {
                     </Button>
                 </Alert>
             ) : (
-                <Row>
-                    <Col>
-                        {offers.map((offer) => (
+                <Row className="g-3">
+                    {offers.map((offer) => (
+                        <Col md={6} lg={4} key={offer._id}>
                             <OfferCard
-                                key={offer._id}
                                 offer={offer}
                                 onSelect={handleSelectOffer}
                                 onEdit={() => {
@@ -232,8 +235,8 @@ export default function OffersPage() {
                                 onDelete={handleDeleteOffer}
                                 onGenNegotiationPrep={handleGenerateNegotiationPrep}
                             />
-                        ))}
-                    </Col>
+                        </Col>
+                    ))}
                 </Row>
             )}
 

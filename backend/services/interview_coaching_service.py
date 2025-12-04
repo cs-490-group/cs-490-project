@@ -9,7 +9,7 @@ import json
 import random
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
-from mongo.AI_dao import ai_dao
+from mongo.interview_ai_dao import interview_ai_dao
 import os
 
 # ============================================================================
@@ -573,7 +573,7 @@ Focus on:
 
 Keep feedback to 2-3 sentences, positive but direct."""
 
-            ai_response = await ai_dao.generate_text(
+            ai_response = await interview_ai_dao.generate_text(
                 prompt,
                 system_message="You are an expert interview coach providing constructive feedback on candidate responses."
             )
@@ -601,7 +601,7 @@ Improvement areas: {issues_str}, more specific examples
 
 Rewritten response (same length, more compelling):"""
 
-            improved = await ai_dao.generate_text(
+            improved = await interview_ai_dao.generate_text(
                 prompt,
                 system_message="You are an expert at strengthening interview responses. Rewrite to be more specific, powerful, and impactful while keeping similar length."
             )

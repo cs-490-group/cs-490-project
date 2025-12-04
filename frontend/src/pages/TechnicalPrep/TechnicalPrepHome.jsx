@@ -10,7 +10,6 @@ const TechnicalPrepHome = () => {
   const [stats, setStats] = useState(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
-  const [loading, setLoading] = useState(true);
   const [userJobs, setUserJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobRecommendations, setJobRecommendations] = useState(null);
@@ -22,7 +21,6 @@ const TechnicalPrepHome = () => {
 
   const loadInitialData = async () => {
     try {
-      setLoading(true);
       const [challengesRes, statsRes, jobsRes] = await Promise.all([
         technicalPrepAPI.getChallenges(0, 20),
         uuid ? technicalPrepAPI.getUserStatistics(uuid) : Promise.resolve({ data: { statistics: {} } }),
@@ -34,8 +32,6 @@ const TechnicalPrepHome = () => {
       setUserJobs(jobsRes.data.jobs || []);
     } catch (error) {
       console.error("Error loading data:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -97,17 +93,6 @@ const TechnicalPrepHome = () => {
     };
     return badges[difficulty] || difficulty;
   };
-
-  if (loading) {
-    return (
-      <div className="technical-prep-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading challenges...</p>
-        </div>
-      </div>
-    );
-  }
 
   const filteredChallenges = filterChallenges();
 
