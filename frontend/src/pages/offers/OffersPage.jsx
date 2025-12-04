@@ -171,11 +171,13 @@ export default function OffersPage() {
 
     return (
         <Container className="py-4">
-            <Row className="mb-4">
+            <Row className="mb-5">
                 <Col>
-                    <h2>💼 Job Offers & Salary Negotiation</h2>
-                    <p className="text-muted">
-                        Manage your job offers and prepare for salary negotiations with AI-powered insights
+                    <h1 style={{ fontSize: "2.5rem", fontWeight: "700", marginBottom: "8px", color: "#1a1a1a" }}>
+                        Job Offers & Salary Negotiation
+                    </h1>
+                    <p style={{ fontSize: "1.1rem", color: "#666", marginBottom: "0", lineHeight: "1.6" }}>
+                        Track your offers and prepare for negotiations with AI-powered insights
                     </p>
                 </Col>
                 <Col md={3} className="text-end">
