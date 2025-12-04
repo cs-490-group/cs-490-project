@@ -12,6 +12,7 @@ import {
     Spinner,
 } from "react-bootstrap";
 import OffersAPI from "../../api/offers";
+import "../../styles/offers.css";
 
 export default function NegotiationPrepView({ offer, onBack }) {
     const [activeTab, setActiveTab] = useState("summary");
@@ -585,7 +586,7 @@ export default function NegotiationPrepView({ offer, onBack }) {
                     <Card className="mb-4">
                         <Card.Body>
                             <h6 className="mb-3">📝 Negotiation Scripts</h6>
-                            {!prep.negotiation_scripts || prep.negotiation_scripts.length === 0 ? (
+                            {!prep.negotiation_scripts || !Array.isArray(prep.negotiation_scripts) || prep.negotiation_scripts.length === 0 ? (
                                 <p className="text-muted">No negotiation scripts available.</p>
                             ) : (
                                 <Accordion defaultActiveKey="0">
@@ -672,7 +673,7 @@ export default function NegotiationPrepView({ offer, onBack }) {
                     <Card className="mb-4">
                         <Card.Body>
                             <h6 className="mb-3">⚔️ Counter-Offer Templates</h6>
-                            {!prep.counter_offer_templates || prep.counter_offer_templates.length === 0 ? (
+                            {!prep.counter_offer_templates || !Array.isArray(prep.counter_offer_templates) || prep.counter_offer_templates.length === 0 ? (
                                 <p className="text-muted">No counter-offer templates available.</p>
                             ) : (
                                 <Table responsive>
