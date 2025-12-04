@@ -35,6 +35,12 @@ export default function CoachingDashboard() {
     alert("Advisor invited successfully!");
   };
 
+  const toggleTask = async (engId, taskId, currentStatus) => {
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    await AdvisorsAPI.updateTaskStatus(engId, taskId, newStatus);
+    loadAdvisors();
+  };
+  
   const handleRemove = async (id) => {
     if (!window.confirm("Are you sure you want to remove this advisor? History will be lost.")) return;
     try {
@@ -43,12 +49,6 @@ export default function CoachingDashboard() {
     } catch (err) {
       alert("Failed to remove advisor");
     }
-  };
-
-  const toggleTask = async (engId, taskId, currentStatus) => {
-    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
-    await AdvisorsAPI.updateTaskStatus(engId, taskId, newStatus);
-    loadAdvisors();
   };
 
   return (
@@ -67,10 +67,10 @@ export default function CoachingDashboard() {
         <div className="card p-4 mb-4 shadow-sm border-0">
           <h4 className="mb-3">Invite a Career Coach</h4>
           <div className="row g-3">
-            <div className="col-md-6"><input className="form-control" placeholder="Coach Name" onChange={e => setInviteForm({...inviteForm, name: e.target.value})} /></div>
-            <div className="col-md-6"><input className="form-control" placeholder="Coach Email" onChange={e => setInviteForm({...inviteForm, email: e.target.value})} /></div>
-            <div className="col-md-6"><input className="form-control" placeholder="Hourly Rate (Optional)" onChange={e => setInviteForm({...inviteForm, rate: e.target.value})} /></div>
-            <div className="col-md-6"><input className="form-control" placeholder="Payment Link (Stripe/PayPal)" onChange={e => setInviteForm({...inviteForm, payment_link: e.target.value})} /></div>
+            <div className="col-md-6"><input className="form-control" placeholder="Coach Name" value={inviteForm.name} onChange={e => setInviteForm({...inviteForm, name: e.target.value})} /></div>
+            <div className="col-md-6"><input className="form-control" placeholder="Coach Email" value={inviteForm.email} onChange={e => setInviteForm({...inviteForm, email: e.target.value})} /></div>
+            <div className="col-md-6"><input className="form-control" placeholder="Hourly Rate (Optional)" value={inviteForm.rate} onChange={e => setInviteForm({...inviteForm, rate: e.target.value})} /></div>
+            <div className="col-md-6"><input className="form-control" placeholder="Payment Link (Stripe/PayPal)" value={inviteForm.payment_link} onChange={e => setInviteForm({...inviteForm, payment_link: e.target.value})} /></div>
             <div className="col-12"><button onClick={handleInvite} className="btn btn-success">Send Invitation</button></div>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function CoachingDashboard() {
               </div>
               <div className="text-end">
                 {adv.payment_link && (
-                    <a href={ensureAbsoluteUrl(adv.payment_link)} target="_blank" rel="noreferrer" className="btn btn-outline-success btn-sm d-flex align-items-center gap-2 mb-2">
+                  <a href={ensureAbsoluteUrl(adv.payment_link)} target="_blank" rel="noreferrer" className="btn btn-outline-success btn-sm d-flex align-items-center gap-2 mb-2">
                     <CreditCard size={16} /> Pay Invoice
                   </a>
                 )}
@@ -109,7 +109,6 @@ export default function CoachingDashboard() {
                    >
                       <ExternalLink size={14} /> Open Portal
                    </button>
-
                    <button 
                       className="btn btn-sm btn-outline-danger d-flex align-items-center gap-2"
                       onClick={() => handleRemove(adv._id)}
@@ -117,7 +116,6 @@ export default function CoachingDashboard() {
                    >
                       <Trash2 size={14} />
                    </button>
-
                 </div>
               </div>
             </div>
@@ -125,7 +123,6 @@ export default function CoachingDashboard() {
 
           <div className="card-body p-0">
             <div className="row g-0">
-              {/* Tasks */}
               <div className="col-md-6 p-4 border-end">
                 <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-primary">
                   <CheckSquare size={20} /> Action Plan
@@ -152,24 +149,23 @@ export default function CoachingDashboard() {
                 )}
               </div>
 
-              {/* Sessions */}
               <div className="col-md-6 p-4 bg-light">
                 <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-primary">
                   <Calendar size={20} /> Sessions
                 </h5>
                 {adv.sessions.length === 0 ? <p className="text-muted small">No sessions scheduled.</p> : (
                   <div className="d-flex flex-column gap-3">
-                    {adv.sessions.map(sess => (
-                      <div key={sess.id} className="bg-white p-3 rounded-3 shadow-sm border">
+                    {adv.sessions.map(session => (
+                      <div key={session.id} className="bg-white p-3 rounded-3 shadow-sm border">
                         <div className="d-flex justify-content-between mb-2">
-                          <strong>{new Date(sess.date).toLocaleDateString()}</strong>
-                          <span className={`badge ${sess.status === 'completed' ? 'bg-secondary' : 'bg-success'}`}>
-                            {sess.status}
+                          <strong>{new Date(session.date).toLocaleDateString()}</strong>
+                          <span className={`badge ${session.status === 'completed' ? 'bg-secondary' : 'bg-success'}`}>
+                            {session.status}
                           </span>
                         </div>
-                        {sess.meeting_link && (
-                            <a href={ensureAbsoluteUrl(sess.meeting_link)} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2">
-                                <Video size={14} /> Join Meeting
+                        {session.meeting_link && (
+                          <a href={ensureAbsoluteUrl(session.meeting_link)} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                            <Video size={14} /> Join Meeting
                           </a>
                         )}
                       </div>

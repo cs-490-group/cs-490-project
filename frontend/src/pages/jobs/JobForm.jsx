@@ -21,6 +21,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
   const [isScrapingUrl, setIsScrapingUrl] = useState(false);
   const [scrapeError, setScrapeError] = useState("");
   const [scrapeSuccess, setScrapeSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Company data fields
   const [companySize, setCompanySize] = useState("");
@@ -374,6 +375,10 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     console.log("🔥 handleSubmit CALLED");
     e.preventDefault();
 
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
     console.log("🚀 DEBUG — FORM STATE:", {
       title,
       company,
@@ -389,43 +394,51 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     if (!title.trim()) {
       alert("Job title is required");
       document.querySelector('input[placeholder*="Senior Frontend Developer"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setIsSubmitting(false);
       return;
     }
     if (!company.trim()) {
       alert("Company name is required");
       document.querySelector('input[placeholder*="TechCorp Inc."]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setIsSubmitting(false);
       return;
     }
     if (!location.trim()) {
       alert("Location is required");
       document.querySelector('input[placeholder*="Remote or New York"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setIsSubmitting(false);
       return;
     }
     if (!industry || industry === "") {
       alert("Industry is required");
       document.querySelector('select[value="' + industry + '"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setIsSubmitting(false);
       return;
     }
     if (!jobType || jobType === "") {
       alert("Job type is required");
       document.querySelector('select').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setIsSubmitting(false);
       return;
     }
     if (!deadline) {
       alert("Application deadline is required");
       document.querySelector('input[type="date"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setIsSubmitting(false);
       return;
     }
 
     if (url.trim() && !validateUrl(url.trim())) {
       alert("Please enter a valid Job Posting URL starting with http:// or https://");
       document.querySelector('input[placeholder*="example.com/job-posting"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setIsSubmitting(false);
       return;
     }
 
     if (companyWebsite.trim() && !validateUrl(companyWebsite.trim())) {
       alert("Please enter a valid company website URL starting with http:// or https://");
       document.querySelector('input[placeholder*="www.company.com"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setIsSubmitting(false);
       return;
     }
 
@@ -531,6 +544,8 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     } catch (error) {
       console.error("Failed to submit job:", error);
       alert(error.response?.data?.detail || "Failed to save job. Please try again.");
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -1029,7 +1044,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
           }}
           style={{
           padding: "12px 24px",
-          background: "#999",
+          background: "#666666ff",
           color: "white",
           border: "none",
           borderRadius: "4px",
@@ -1042,19 +1057,20 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       </button>
 
       <button
-        type="submit"           // ✅ FIXED
+        type="submit" 
+        disabled={isSubmitting}          
         style={{
           padding: "12px 24px",
-          background: "#4f8ef7",
+          background: isSubmitting ? "#999" : "#4f8ef7",
           color: "white",
           border: "none",
           borderRadius: "4px",
-          cursor: "pointer",
+          cursor: isSubmitting ? "not-allowed" : "pointer",
           fontSize: "14px",
           fontWeight: "600",
         }}
       >
-        {editJob ? "💾 Save Changes" : "➕ Add Job"}
+        {isSubmitting ? "⏳ Saving..." : (editJob ? "💾 Save Changes" : "➕ Add Job")}
       </button>
 
     </div>

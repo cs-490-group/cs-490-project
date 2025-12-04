@@ -16,6 +16,7 @@ from mongo.jobs_dao import jobs_dao
 from mongo.projects_dao import projects_dao
 from mongo.skills_dao import skills_dao
 from mongo.teams_dao import teams_dao
+from mongo.advisors_dao import advisors_dao
 from sessions.session_manager import session_manager
 from sessions.session_authorizer import authorize
 from schema.Profile import Profile, DeletePassword
@@ -29,7 +30,7 @@ async def get_profile(uuid: str = Depends(authorize)):
     try:
         profile = await profiles_dao.get_profile(uuid)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if profile:
         return profile
@@ -43,7 +44,7 @@ async def update_profile(profile: Profile, uuid: str = Depends(authorize)):
         model["date_updated"] = datetime.now(timezone.utc)
         updated = await profiles_dao.update_profile(uuid, model)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if updated == 0:
         raise HTTPException(400, "User profile not found")  
@@ -55,7 +56,7 @@ async def delete_profile(passSchema: DeletePassword, uuid: str = Depends(authori
     try:
         pass_hash = await auth_dao.get_password_by_uuid(uuid)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if not bcrypt.checkpw(passSchema.password.encode("utf-8"), pass_hash.encode("utf-8")):
         raise HTTPException(401, "Invalid credentials")
@@ -107,12 +108,16 @@ async def delete_profile(passSchema: DeletePassword, uuid: str = Depends(authori
             team_id = user_team.get("_id")
             # Just remove user from team (don't delete the entire team)
             await teams_dao.remove_member_from_team(team_id, uuid)
+        
+        engagements = await advisors_dao.get_user_engagements(uuid)
+        for eng in engagements:
+            await advisors_dao.delete_engagement(eng.get("_id"))
 
         session_manager.kill_session(uuid)
 
         await auth_dao.delete_user(uuid)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     return {"detail": "Sucessfully deleted all user data"}
     
@@ -121,7 +126,7 @@ async def upload_pfp(image: UploadFile = File(...), uuid: str = Depends(authoriz
     try:
         media_id = await media_dao.add_media(uuid, image.filename, await image.read(), image.content_type)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if not media_id:
         raise HTTPException(500, "Unable to upload image")
@@ -133,7 +138,7 @@ async def retrieve_pfp(uuid: str = Depends(authorize)):
     try:
         media_ids = await media_dao.get_all_associated_media_ids(uuid)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if not media_ids:
         # Return default profile picture if user hasn't set one
@@ -159,7 +164,7 @@ async def retrieve_pfp(uuid: str = Depends(authorize)):
     try:
         media = await media_dao.get_media(media_ids[-1])
     except:
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     return StreamingResponse(
         BytesIO(media["contents"]),
@@ -174,7 +179,7 @@ async def update_pfp(media_id: str, media: UploadFile = File(...), uuid: str = D
     try:
         updated = media_dao.update_media(media_id, media.filename, await media.read(), uuid, media.content_type)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
     
     if not updated:
         raise HTTPException(400, "Could not update profile picture")
@@ -186,7 +191,7 @@ async def delete_pfp(media_id: str, uuid: str = Depends(authorize)):
     try:
         deleted = await media_dao.delete_media(media_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered interal service error")
+        raise HTTPException(500, str(e))
     
     if not deleted:
         raise HTTPException(500, "Unable to delete profile picture")

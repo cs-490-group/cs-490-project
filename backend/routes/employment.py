@@ -22,7 +22,7 @@ async def add_employment(employment: Employment, uuid: str = Depends(authorize))
     except HTTPException as http:
         raise http
     except Exception as e:
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
     
     return {"detail": "Sucessfully added employment", "employment_id": result}
 
@@ -31,7 +31,7 @@ async def get_employment(employment_id: str, uuid: str = Depends(authorize)):
     try:
         result = await employment_dao.get_employment(employment_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if result:
         result["_id"] = str(result["_id"])
@@ -45,7 +45,7 @@ async def get_all_employment(uuid: str = Depends(authorize)):
         results = await employment_dao.get_all_employment(uuid)
         # NOTE: do not raise http exception for empty employment, as it can lead to inconsistent behavior on the frontend
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     return results
 
@@ -55,7 +55,7 @@ async def update_employment(employment_id: str, employment: Employment, uuid: st
         model = employment.model_dump(exclude_unset = True)
         updated = await employment_dao.update_employment(employment_id, model)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if updated == 0:
         raise HTTPException(400, "Employment not found")
@@ -67,7 +67,7 @@ async def delete_employment(employment_id: str, uuid: str = Depends(authorize)):
     try:
         deleted = await employment_dao.delete_employment(employment_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if deleted == 0:
         raise HTTPException(400, "Employment not found")

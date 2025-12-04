@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 from pymongo import AsyncMongoClient
 
 # Load .env from the same directory as this file (mongo/)
-env_path = Path(__file__).parent / ".env"
+env_path = Path(__file__).parent.parent / ".env"
+print(env_path)
 load_dotenv(env_path)
 
 MONGO_CONNECTION_STRING = os.getenv("MONGO_CONNECTION_STRING")
@@ -23,6 +24,15 @@ JOBS = os.getenv("JOBS_COLLECTION")
 COVER_LETTERS = os.getenv("COVER_LETTERS_COLLECTION")
 RESUMES = os.getenv("RESUMES_COLLECTION")
 RESUME_TEMPLATES = os.getenv("RESUME_TEMPLATES_COLLECTION")
+NETWORKS = os.getenv("NETWORKS_COLLECTION")
+REFERRALS = os.getenv("REFERRALS_COLLECTION")
+NETWORK_EVENTS = os.getenv("NETWORK_EVENTS_COLLECTION")
+INFORMATIONAL_INTERVIEWS = os.getenv("INFORMATIONAL_INTERVIEWS_COLLECTION")
+MENTORSHIP_RELATIONSHIPS = os.getenv("MENTORSHIP_RELATIONSHIPS_COLLECTION")
+NETWORK_CAMPAIGNS = os.getenv("NETWORK_CAMPAIGNS_COLLECTION")
+PROFESSIONAL_REFERENCES = os.getenv("PROFESSIONAL_REFERENCES_COLLECTION")
+NETWORK_ANALYTICS = os.getenv("NETWORK_ANALYTICS_COLLECTION")
+
 RESET_LINKS = os.getenv("RESET_LINKS_COLLECTION")
 GOOGLE_OAUTH = os.getenv("GOOGLE_OAUTH_CREDENTIALS")
 COHERE_API = os.getenv("COHERE_API_KEY")

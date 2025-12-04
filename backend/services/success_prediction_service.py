@@ -4,13 +4,12 @@ Implements UC-085: Interview Success Probability Scoring
 """
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
-from pymongo.asynchronous.database import AsyncDatabase
-
+from mongo.dao_setup import db_client
 
 class SuccessPredictionService:
     """Service for interview success probability (UC-085)"""
-
-    def __init__(self, db_client: AsyncDatabase):
+    
+    def __init__(self):
         self.db = db_client
         self.schedules = db_client["interview_schedules"]
         self.mock_sessions = db_client["mock_interview_sessions"]

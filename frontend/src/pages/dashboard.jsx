@@ -7,6 +7,7 @@ import BarChart from '../components/BarChart';
 // import { apiRequest } from "../api";
 import CareerTimeline from '../components/Timeline';
 import './Dashboard.css';
+// import '../styles/resumes.css'
 import { Link } from "react-router-dom";
 import RecentChanges from '../components/RecentChanges';
 import ProfileApi from '../api/profiles';

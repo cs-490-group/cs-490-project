@@ -1,14 +1,13 @@
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
-from pymongo.asynchronous.database import AsyncDatabase
 from bson import ObjectId
-
+from mongo.dao_setup import db_client
 
 class InterviewScheduleDAO:
     """Data Access Object for interview schedules"""
 
-    def __init__(self, db_client: AsyncDatabase):
+    def __init__(self):
         self.db = db_client
         self.collection = db_client["interview_schedules"]
 
@@ -274,13 +273,13 @@ Handles business logic for UC-080 Interview Analytics
 """
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any, List
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from mongo.dao_setup import db_client
 
 
 class InterviewAnalyticsService:
     """Service for interview performance analytics"""
 
-    def __init__(self, db_client: AsyncDatabase):
+    def __init__(self):
         self.db = db_client
         self.schedules_collection = db_client["interview_schedules"]
         self.mock_sessions_collection = db_client["mock_interview_sessions"]
@@ -871,7 +870,7 @@ class InterviewAnalyticsService:
 class FollowUpTemplateDAO:
     """Data Access Object for follow-up templates"""
 
-    def __init__(self, db_client: AsyncDatabase):
+    def __init__(self):
         self.db = db_client
         self.collection = db_client["follow_up_templates"]
 
