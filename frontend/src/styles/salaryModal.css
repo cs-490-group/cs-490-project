@@ -1,0 +1,352 @@
+/* Salary Modal Styles */
+
+.salary-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: salaryModalFadeIn 0.2s ease-out;
+}
+
+@keyframes salaryModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.salary-modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: salaryModalSlideUp 0.3s ease-out;
+}
+
+@keyframes salaryModalSlideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Header */
+.salary-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid #f0f0f0;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+}
+
+.salary-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.salary-modal-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.salary-modal-close:hover:not(:disabled) {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.salary-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Form */
+.salary-modal-form {
+  padding: 2rem;
+}
+
+.salary-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.salary-form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.salary-required {
+  color: #dc3545;
+  margin-left: 2px;
+}
+
+.salary-form-input,
+.salary-form-select,
+.salary-form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.2s;
+  background: white;
+}
+
+.salary-form-input:focus,
+.salary-form-select:focus,
+.salary-form-textarea:focus {
+  outline: none;
+  border-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.salary-form-input:disabled,
+.salary-form-select:disabled,
+.salary-form-textarea:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.salary-form-input.error,
+.salary-form-textarea.error {
+  border-color: #dc3545;
+}
+
+.salary-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.salary-form-hint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}
+
+.salary-error-message {
+  display: block;
+  margin-top: 0.5rem;
+  color: #dc3545;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Form Row */
+.salary-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Currency Input */
+.salary-input-wrapper {
+  position: relative;
+}
+
+.salary-currency-symbol {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 600;
+  color: #666;
+  font-size: 1rem;
+}
+
+.salary-currency-input {
+  padding-left: 2rem;
+}
+
+/* Total Compensation Summary */
+.salary-total-summary {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+}
+
+.salary-total-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.salary-total-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Error Banner */
+.salary-error-banner {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Actions */
+.salary-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.salary-btn-cancel,
+.salary-btn-submit {
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.salary-btn-cancel {
+  background: #f8f9fa;
+  color: #333;
+  border: 2px solid #e0e0e0;
+}
+
+.salary-btn-cancel:hover:not(:disabled) {
+  background: #e9ecef;
+  border-color: #ccc;
+}
+
+.salary-btn-submit {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.salary-btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.salary-btn-cancel:disabled,
+.salary-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Spinner */
+.salary-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: salarySpinner 0.6s linear infinite;
+}
+
+@keyframes salarySpinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .salary-modal-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+  
+  .salary-modal-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .salary-modal-form {
+    padding: 1.5rem;
+  }
+  
+  .salary-form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .salary-modal-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .salary-btn-cancel,
+  .salary-btn-submit {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .salary-total-summary {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .salary-modal-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .salary-modal-form {
+    padding: 1rem;
+  }
+  
+  .salary-form-input,
+  .salary-form-select,
+  .salary-form-textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .salary-total-value {
+    font-size: 1.25rem;
+  }
+}

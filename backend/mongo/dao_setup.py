@@ -21,6 +21,10 @@ EDUCATION = os.getenv("EDUCATION_COLLECTION")
 CERTIFICATION = os.getenv("CERTIFICATION_COLLECTION")
 PROJECTS = os.getenv("PROJECTS_COLLECTION")
 JOBS = os.getenv("JOBS_COLLECTION")
+GOALS = os.getenv("GOALS_COLLECTION")
+SALARY = os.getenv("SALARY_COLLECTION")
+TIME = os.getenv("TIME_COLLECTION")
+MARKET_DATA = os.getenv("MARKET_DATA_COLLECTION")
 COVER_LETTERS = os.getenv("COVER_LETTERS_COLLECTION")
 RESUMES = os.getenv("RESUMES_COLLECTION")
 RESUME_TEMPLATES = os.getenv("RESUME_TEMPLATES_COLLECTION")
@@ -42,6 +46,7 @@ MATCH_HISTORY = os.getenv("MATCH_HISTORY_COLLECTION", "match_history")
 OFFERS = "offers"  # UC-083: Salary negotiation collection
 TECHNICAL_CHALLENGES = os.getenv("TECHNICAL_CHALLENGES_COLLECTION", "technical_challenges")  # UC-078: Technical Interview Prep
 CHALLENGE_ATTEMPTS = os.getenv("CHALLENGE_ATTEMPTS_COLLECTION", "challenge_attempts")  # UC-078: Challenge performance tracking
+
 
 mongo_client = AsyncMongoClient(MONGO_CONNECTION_STRING, tls = True, tlsCAFile=certifi.where())
 db_client = mongo_client.get_database(DATABASE_NAME)
