@@ -467,7 +467,7 @@ async def get_job(job_id: str, uuid: str = Depends(authorize)):
     try:
         result = await jobs_dao.get_job(job_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if result:
         result["_id"] = str(result["_id"])
@@ -535,7 +535,7 @@ async def get_all_jobs(uuid: str = Depends(authorize)):
                         print(f"Error fetching cover letter details: {e}")
         
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     return results
 
@@ -587,8 +587,7 @@ async def update_job(job_id: str, job: Job, uuid: str = Depends(authorize)):
             await check_and_log_milestones(uuid, merged_data, old_job_data=old_job)
 
     except Exception as e:
-        print(f"Error updating job: {e}")
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if updated == 0:
         raise HTTPException(400, "Job not found")
@@ -604,7 +603,7 @@ async def delete_job(job_id: str, uuid: str = Depends(authorize)):
     try:
         deleted = await jobs_dao.delete_job(job_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if deleted == 0:
         raise HTTPException(400, "Job not found")
@@ -695,7 +694,7 @@ async def upload_image(job_id: str, media: UploadFile = File(...), uuid: str = D
     try:
         media_id = await media_dao.add_media(job_id, media.filename, await media.read(), media.content_type)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if not media_id:
         raise HTTPException(500, "Unable to upload media")
@@ -708,7 +707,7 @@ async def download_image(media_id: str, uuid: str = Depends(authorize)):
     try:
         media = await media_dao.get_media(media_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if not media:
         raise HTTPException(400, "Could not find requested media")

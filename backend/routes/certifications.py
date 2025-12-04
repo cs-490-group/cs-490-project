@@ -25,7 +25,7 @@ async def add_cert(cert: Certification, uuid: str = Depends(authorize)):
     except HTTPException as http:
         raise http
     except Exception as e:
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
     
     return {"detail": "Sucessfully added certfication", "certification_id": result}
 
@@ -34,7 +34,7 @@ async def get_certification(certification_id: str, uuid: str = Depends(authorize
     try:
         result = await certifications_dao.get_certification(certification_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if result:
         id = result.pop("_id")
@@ -49,7 +49,7 @@ async def get_all_certifications(uuid: str = Depends(authorize)):
         results = await certifications_dao.get_all_certifications(uuid)
         # NOTE: do not raise http exception for empty skills, as it can lead to inconsistent behavior on the frontend
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     return results
 
@@ -59,7 +59,7 @@ async def update_certification(certification_id: str, certification: Certificati
         model = certification.model_dump(exclude_unset = True)
         updated = await certifications_dao.update_certification(certification_id, model)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     if updated == 0:
         raise HTTPException(400, "Certification not found")
@@ -71,7 +71,7 @@ async def delete_certification(certification_id: str, uuid: str = Depends(author
     try:
         deleted = await certifications_dao.delete_certification(certification_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     if deleted == 0:
         raise HTTPException(400, "Certification not found")
@@ -83,7 +83,7 @@ async def upload_media(certification_id: str, media: UploadFile = File(...), uui
     try:
         media_id = await media_dao.add_media(certification_id, media.filename, await media.read(), media.content_type)
     except Exception as e:
-        raise HTTPException(500, "Encountered interal service error")
+        raise HTTPException(500, str(e))
     
     if not media_id:
         raise HTTPException(500, "Unable to upload media")
@@ -95,7 +95,7 @@ async def download_media(media_id, uuid: str = Depends(authorize)):
     try:
         media = await media_dao.get_media(media_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered interal service error")
+        raise HTTPException(500, str(e))
     
     if not media:
         raise HTTPException(400, "Could not find requested media")
@@ -113,7 +113,7 @@ async def get_all_media_ids(certification_id: str, uuid: str = Depends(authorize
     try:
         media_ids = await media_dao.get_all_associated_media_ids(certification_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     return {"detail": "Sucessfully gotten media ids", "media_id_list": media_ids}
 
@@ -122,7 +122,7 @@ async def update_media(certification_id: str, media_id: str, media: UploadFile =
     try:
         updated = await media_dao.update_media(media_id, media.filename, await media.read(), certification_id, media.content_type)
     except Exception as e:
-        raise HTTPException(500, "Encountered interal service error")
+        raise HTTPException(500, str(e))
     
     if not updated:
         raise HTTPException(500, "Unable to update media")
@@ -134,7 +134,7 @@ async def delete_media(media_id: str, uuid: str = Depends(authorize)):
     try:
         deleted = await media_dao.delete_media(media_id)
     except Exception as e:
-        raise HTTPException(500, "Encountered interal service error")
+        raise HTTPException(500, str(e))
     
     if not deleted:
         raise HTTPException(500, "Unable to delete media")

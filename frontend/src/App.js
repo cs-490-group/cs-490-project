@@ -13,7 +13,6 @@ import CreateGroup from "./pages/createGroup";
 import GroupPage from "./pages/groupPage";
 import SetupTeam from "./pages/teams/setupTeam";
 import SharedProgressView from "./pages/teams/SharedProgressView";
-import AdvisorPortal from "./pages/coaching/AdvisorPortal";
 import EmploymentList from "./pages/employment/EmploymentList";
 import SetPassword from "./pages/setPassword";
 import ForgotPassword from "./pages/forgotPassword";
@@ -68,6 +67,15 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import JobMatchingPage from "./pages/jobs/JobMatchingPage";
 import SkillsGapPage from "./pages/jobs/SkillsGapPage";
+import NetworkOverview from "./pages/network/NetworkOverview";
+import ReferralManagement from "./pages/network/ReferralManagement";
+import NetworkEventManagement from "./pages/network/NetworkEventManagement";
+import ContactDetail from "./pages/network/ContactDetail";
+import InformationalInterviewManagement from "./pages/network/InformationalInterviewManagement";
+import InterviewDetail from "./pages/network/InterviewDetail";
+import MentorshipManagement from "./pages/network/MentorshipManagement";
+import DiscoveryPage from "./pages/network/DiscoveryPage";
+import NetworkingAnalytics from "./pages/network/NetworkingAnalytics";
 
 // inside your router
 
@@ -100,7 +108,6 @@ export function App() {
                 <Route path="/setup-team" element={<SetupTeam />} />
                 <Route path="/teams" element={<TeamsDashboard />} />
                 <Route path="/shared-progress/:teamId/:memberId/:email?" element={<SharedProgressView />} />
-                <Route path="/advisor-portal/:engagementId" element={<AdvisorPortal />} />
                 <Route path="/employment-history" element={<EmploymentList />} />
                 <Route path = "/forgotPassword" element = {<ForgotPassword />} />
                 <Route path = "/set-password" element = {<SetPassword />} />
@@ -161,6 +168,16 @@ export function App() {
               <Route path="/technical-prep/challenge/:challengeId" element={<ChallengeWorkspace />} />
               <Route path="/technical-prep/results/:attemptId" element={<ChallengeResults />} />
               <Route path="/pipeline-management" element={<PipelineManagement />} />
+              
+              <Route path="/network" element={<NetworkOverview />} />
+              <Route path="/network/referrals" element={<ReferralManagement />} />
+              <Route path="/network/events" element={<NetworkEventManagement />} />
+              <Route path="/network/contact/:contactId" element={<ContactDetail />} />
+              <Route path="/network/interviews" element={<InformationalInterviewManagement />} />
+              <Route path="/network/interview/:interviewId" element={<InterviewDetail />} />
+              <Route path="/network/mentorship" element={<MentorshipManagement />} />
+              <Route path="/network/discovery" element={<DiscoveryPage />} />
+              <Route path="/network/analytics" element={<NetworkingAnalytics />} />
               </Routes>
             </JobProvider>
             </FlashProvider>

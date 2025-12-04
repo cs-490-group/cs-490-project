@@ -38,7 +38,7 @@ async def register(info: RegistInfo):
     except DuplicateKeyError:
         raise HTTPException(400, "User already exists")
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
     
     # User Profile
     try:
@@ -52,7 +52,7 @@ async def register(info: RegistInfo):
     except DuplicateKeyError:
         raise HTTPException(400, "User profile already exists")
     except Exception as e:
-        raise HTTPException(500, "Encountered internal service error")
+        raise HTTPException(500, str(e))
 
     # Begin Session
     session_token = session_manager.begin_session(uuid)
@@ -68,7 +68,7 @@ async def login(credentials: LoginCred):
         # Get uuid via associated email
         uuid = await auth_dao.get_uuid(credentials.email.lower())
     except Exception as e:
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
     
     if not pass_hash:
         raise HTTPException(401, "Invalid email or password.")

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import AdvisorsAPI from '../../api/advisors';
-import { Calendar, CheckSquare, Plus, User, Clock, Video, ExternalLink } from 'lucide-react';
+import { Calendar, CheckSquare, Plus, User, Clock, Video, ExternalLink, Trophy, Target, Briefcase  } from 'lucide-react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-// Fixes localhost relative linking issue.
+// Fixes localhost relative linking
 const ensureAbsoluteUrl = (url) => {
   if (!url) return '#';
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -101,6 +101,63 @@ export default function AdvisorPortal() {
           <p className="text-white-50 fs-5">
             Managing career growth for candidate (ID: {engagementId.slice(-4)})
           </p>
+        </div>
+
+        <div className="card border-0 shadow-sm rounded-4 mb-5 bg-white">
+            <div className="card-header bg-transparent border-0 pt-4 px-4">
+                <h4 className="fw-bold mb-0 text-secondary">Candidate Snapshot</h4>
+            </div>
+            <div className="card-body p-4">
+                <div className="row g-4">
+                    {/* Stats */}
+                    <div className="col-md-4 text-center border-end">
+                        <div className="d-flex justify-content-center align-items-center gap-2 mb-2">
+                            <Briefcase size={18} className="text-primary"/>
+                            <span className="fw-bold text-muted">Applications</span>
+                        </div>
+                        <h2 className="mb-0">{data.client_context?.application_stats?.total || 0}</h2>
+                        <small className="text-success fw-bold">
+                            {data.client_context?.application_stats?.interviews || 0} Interviews
+                        </small>
+                    </div>
+
+                    {/* Goals */}
+                    <div className="col-md-4 border-end">
+                         <div className="d-flex align-items-center gap-2 mb-3 justify-content-center">
+                            <Target size={18} className="text-danger"/>
+                            <span className="fw-bold text-muted">Current Goals</span>
+                        </div>
+                        <div className="text-center">
+                            <div className="badge bg-light text-dark border mb-1">
+                                {data.client_context?.goals?.weeklyApplications || 0} Apps/Week
+                            </div>
+                            <br/>
+                            <div className="badge bg-light text-dark border">
+                                {data.client_context?.goals?.monthlyInterviews || 0} Interviews/Mo
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Milestones */}
+                    <div className="col-md-4">
+                        <div className="d-flex align-items-center gap-2 mb-3 justify-content-center">
+                            <Trophy size={18} className="text-warning"/>
+                            <span className="fw-bold text-muted">Recent Wins</span>
+                        </div>
+                        <ul className="list-unstyled small m-0 px-3">
+                            {(data.client_context?.recent_milestones || []).slice(0, 2).map((m, i) => (
+                                <li key={i} className="mb-2 d-flex align-items-start gap-2">
+                                    <span>⭐</span> 
+                                    <span className="text-truncate">{m.title}</span>
+                                </li>
+                            ))}
+                            {(!data.client_context?.recent_milestones?.length) && (
+                                <li className="text-center text-muted">No recent milestones</li>
+                            )}
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
 
         {/* ACTION CARDS */}

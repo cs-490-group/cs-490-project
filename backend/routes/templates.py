@@ -79,7 +79,7 @@ async def create_template(template: Template, uuid: str = Depends(authorize)):
         raise http
     except Exception as e:
         print(f"Error creating template: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     return {"detail": "Successfully created template", "template_id": result}
 
@@ -158,7 +158,7 @@ async def upload_resume_template(
         raise http
     except Exception as e:
         print(f"Error uploading template: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
 
 @templates_router.get("/library", tags=["templates"])
@@ -212,7 +212,7 @@ async def get_default_template(uuid: str = Depends(authorize)):
         result = await templates_dao.get_user_default_template(uuid)
     except Exception as e:
         print(f"Error fetching default template: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     if result:
         return result
@@ -234,7 +234,7 @@ async def get_public_templates(limit: int = 20):
         results = await templates_dao.get_public_templates(limit)
     except Exception as e:
         print(f"Error fetching public templates: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     return results
 
@@ -249,7 +249,7 @@ async def get_template(template_id: str, uuid: str = Depends(authorize)):
         result = await templates_dao.get_template(template_id)
     except Exception as e:
         print(f"Error fetching template: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     if result:
         return result
@@ -279,7 +279,7 @@ async def update_template(
         raise http
     except Exception as e:
         print(f"Error updating template: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     if updated == 0:
         raise HTTPException(404, "Template not found")
@@ -304,7 +304,7 @@ async def delete_template(template_id: str, uuid: str = Depends(authorize)):
         raise http
     except Exception as e:
         print(f"Error deleting template: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     if deleted == 0:
         raise HTTPException(404, "Template not found")
@@ -332,7 +332,7 @@ async def set_default_template(
         raise http
     except Exception as e:
         print(f"Error setting default template: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     if updated == 0:
         raise HTTPException(404, "Template not found")
@@ -371,7 +371,7 @@ async def create_template_from_resume(
         raise http
     except Exception as e:
         print(f"Error creating template from resume: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     return {
         "detail": "Successfully created template from resume",
@@ -400,7 +400,7 @@ async def share_template(
         raise http
     except Exception as e:
         print(f"Error sharing template: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     if updated == 0:
         raise HTTPException(404, "Template not found")
@@ -418,6 +418,6 @@ async def search_templates(query: str, uuid: str = Depends(authorize)):
         results = await templates_dao.search_templates(uuid, query)
     except Exception as e:
         print(f"Error searching templates: {e}")
-        raise HTTPException(500, "Encountered internal server error")
+        raise HTTPException(500, str(e))
 
     return results

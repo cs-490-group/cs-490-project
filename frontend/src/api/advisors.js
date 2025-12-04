@@ -32,6 +32,10 @@ class AdvisorsAPI {
   deleteAdvisor(engId) {
     return api.delete(`${BASE_URL}/${engId}`);
   }
+
+  rateSession(engId, sessionId, rating, feedback) {
+    return api.post(`${BASE_URL}/${engId}/sessions/${sessionId}/rate`, { rating, feedback });
+  }
 }
 
 export default new AdvisorsAPI();

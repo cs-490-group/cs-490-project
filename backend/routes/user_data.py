@@ -38,4 +38,4 @@ async def get_all_user_data(uuid: str = Depends(authorize)):
         }
 
     except Exception as e:
-        raise HTTPException(500, f"Internal server error: {str(e)}")
+        raise HTTPException(500, str(e))
