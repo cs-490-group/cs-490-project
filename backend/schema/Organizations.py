@@ -25,3 +25,8 @@ class BulkImportRequest(BaseModel):
     """Schema for CSV/Bulk upload"""
     cohort_name: str
     users: List[Dict[str, str]] # List of {email, name, role}
+
+
+class JoinOrgRequest(BaseModel):
+    """Request to join an existing organization via code/ID"""
+    org_id: str

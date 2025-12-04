@@ -133,5 +133,58 @@ class OrganizationDAO:
                 "total_applications": funnel["Applied"] + funnel["Interview"] + funnel["Offer"]
             }
         }
+    
+    async def get_org_cohorts(self, org_id: str) -> List[Dict]:
+        """Get detailed stats for all cohorts in the organization"""
+        # Find all teams belonging to this org
+        cursor = self.teams_collection.find({"organization_id": org_id})
+        cohorts = []
+        
+        async for team in cursor:
+            members = team.get("members", [])
+            candidates = [m for m in members if m.get("role") == "candidate"]
+            
+            total_students = len(candidates)
+            
+            
+            if total_students == 0:
+                cohorts.append({
+                    "id": str(team["_id"]),
+                    "name": team.get("name"),
+                    "students": 0,
+                    "activity_score": "N/A",
+                    "placement_rate": 0,
+                    "status": "Active"
+                })
+                continue
+                
+            
+            total_engagement = sum(c.get("kpis", {}).get("engagement", 0) for c in candidates)
+            avg_engagement = total_engagement / total_students
+            
+            if avg_engagement > 70: activity_label = "High"
+            elif avg_engagement > 40: activity_label = "Moderate"
+            else: activity_label = "Low"
+            
+            
+            placed_count = 0
+            for c in candidates:
+                # Check applications for 'Offer' status
+                apps = c.get("applications", [])
+                if any(app.get("status") == "Offer" for app in apps):
+                    placed_count += 1
+            
+            placement_rate = round((placed_count / total_students) * 100)
+            
+            cohorts.append({
+                "id": str(team["_id"]),
+                "name": team.get("name"),
+                "students": total_students,
+                "activity_score": activity_label,
+                "placement_rate": placement_rate,
+                "status": "Active" # You could add logic for "Archived" later
+            })
+            
+        return cohorts
 
 organization_dao = OrganizationDAO()
