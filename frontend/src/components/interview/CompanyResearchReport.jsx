@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './CompanyResearchReport.css';
-import { FiChevronDown, FiDownload, FiRefreshCw, FiExternalLink } from 'react-icons/fi';
+import { FiChevronDown, FiDownload, FiRefreshCw } from 'react-icons/fi';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
 
 const CompanyResearchReport = ({ interview, onRegenerateComplete }) => {
