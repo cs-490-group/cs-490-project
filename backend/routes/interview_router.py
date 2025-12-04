@@ -123,7 +123,9 @@ async def generate_followup_template(
                 job_title=job_title,
                 interview_date=interview_date,
                 days_since_interview=days_since,
-                user_full_name=user_full_name
+                user_full_name=user_full_name,
+                specific_topics=request_data.specific_topics or [],
+                custom_notes=request_data.custom_notes
             )
         elif request_data.template_type == "feedback_request":
             was_selected = outcome == "passed"
@@ -132,7 +134,9 @@ async def generate_followup_template(
                 company_name=company_name,
                 job_title=job_title,
                 was_selected=was_selected,
-                user_full_name=user_full_name
+                user_full_name=user_full_name,
+                specific_topics=request_data.specific_topics or [],
+                custom_notes=request_data.custom_notes
             )
         elif request_data.template_type == "networking":
             template_data = followup_service.generate_networking_followup(
@@ -140,7 +144,9 @@ async def generate_followup_template(
                 company_name=company_name,
                 job_title=job_title,
                 user_full_name=user_full_name,
-                connection_request=True
+                connection_request=True,
+                specific_topics=request_data.specific_topics or [],
+                custom_notes=request_data.custom_notes
             )
         else:
             raise HTTPException(400, f"Invalid template type: {request_data.template_type}")
