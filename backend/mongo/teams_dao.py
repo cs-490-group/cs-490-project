@@ -107,6 +107,8 @@ class TeamsDAO:
         result = await self.collection.delete_one({"_id": team_id})
         return result.deleted_count
     
+
+    
     # ============ TEAM MEMBERS ============
     
     async def add_member_to_team(self, team_id: ObjectId, member_data: Dict) -> int:
@@ -167,11 +169,22 @@ class TeamsDAO:
         return result.modified_count
     
     async def remove_member_from_team(self, team_id: ObjectId, member_uuid: str) -> int:
-        """Remove a member from a team"""
+        """Remove a member from a team, with ghost cleanup fallback"""
+        
+        # 1. Standard Removal (by UUID)
         result = await self.collection.update_one(
             {"_id": team_id},
             {"$pull": {"members": {"uuid": member_uuid}}}
         )
+        
+        # 2. Fallback: If member_uuid was passed as "null" or None, clean up ghosts
+        if result.modified_count == 0 and (not member_uuid or member_uuid == "null"):
+            # Remove any member where uuid is None OR uuid does not exist
+            result = await self.collection.update_one(
+                {"_id": team_id},
+                {"$pull": {"members": {"uuid": None}}} 
+            )
+            
         return result.modified_count
     
     async def update_member_goals(self, team_id: ObjectId, member_uuid: str, goals: List[Dict]) -> int:
