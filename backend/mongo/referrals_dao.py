@@ -1,6 +1,6 @@
 from mongo.dao_setup import db_client, REFERRALS
 from bson import ObjectId
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 class ReferralDAO:
     def __init__(self):
@@ -63,5 +63,60 @@ class ReferralDAO:
             doc["_id"] = str(doc["_id"])
             results.append(doc)
         return results
+
+    async def mark_reminder_sent(self, referral_id: str, reminder_type: str) -> int:
+        """
+        Mark a reminder as sent (reminder_type: '24h_before' or 'same_day')
+        
+        Args:
+            referral_id: ID of the referral
+            reminder_type: Type of reminder ('24h_before' or 'same_day')
+        
+        Returns:
+            Number of matched documents
+        """
+        try:
+            reminders_sent = {
+                reminder_type: True,
+                f"{reminder_type}_sent_at": datetime.now(timezone.utc)
+            }
+            updated = await self.collection.update_one(
+                {"_id": ObjectId(referral_id)},
+                {"$set": {"reminders_sent": reminders_sent, "date_updated": datetime.now(timezone.utc)}}
+            )
+            return updated.matched_count
+        except Exception as e:
+            print(f"[ReferralDAO] Error marking reminder sent for {referral_id}: {e}")
+            raise Exception(f"Failed to mark reminder as sent: {str(e)}")
+    
+    async def get_referrals_with_upcoming_dates(self, days_ahead: int = 2) -> list[dict]:
+        """
+        Get all referrals with request_date within the next N days
+        
+        Args:
+            days_ahead: Number of days to look ahead (default 2 to catch 24h and same-day reminders)
+        
+        Returns:
+            List of referrals with upcoming request dates
+        """
+        try:
+            now = datetime.now(timezone.utc)
+            future_date = now + timedelta(days=days_ahead)
+            
+            cursor = self.collection.find({
+                "request_date": {
+                    "$gte": now,
+                    "$lte": future_date
+                }
+            })
+            
+            results = []
+            async for doc in cursor:
+                doc["_id"] = str(doc["_id"])
+                results.append(doc)
+            return results
+        except Exception as e:
+            print(f"[ReferralDAO] Error getting upcoming referrals: {e}")
+            raise Exception(f"Failed to get upcoming referrals: {str(e)}")
 
 referrals_dao = ReferralDAO()

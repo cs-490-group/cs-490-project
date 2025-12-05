@@ -124,95 +124,131 @@ class NetworkingAnalyticsService:
     ) -> NetworkingAnalytics:
         """Generate comprehensive networking analytics for a user"""
         
-        # Get all networking data for the period
-        contacts = await network_dao.get_all_contacts(user_uuid)
-        events = await network_events_dao.get_events_by_date_range(
-            user_uuid, 
-            period_start.isoformat(), 
-            period_end.isoformat()
-        )
-        referrals = await referrals_dao.get_all_referrals(user_uuid)
-        jobs = await jobs_dao.get_all_jobs(user_uuid)
-        offers = await offers_dao.get_user_offers(user_uuid)
-        interviews = await informational_interviews_dao.get_all_interviews(user_uuid)
-        
-        # Calculate basic metrics
-        total_activities = len(events)
-        total_contacts_made = sum(event.get("actual_contacts_made", 0) for event in events)
-        quality_conversations = sum(event.get("quality_conversations", 0) for event in events)
-        
-        # Calculate ROI
-        roi_data = await self._calculate_roi(user_uuid, events, jobs, offers, referrals)
-        
-        # Relationship analytics
-        relationship_data = self._analyze_relationships(contacts, period_start, period_end)
-        
-        # Engagement analytics
-        engagement_data = self._calculate_engagement_metrics(contacts, events)
-        
-        # Opportunity analytics
-        opportunity_data = await self._analyze_opportunities(
-            referrals, jobs, offers, interviews, events
-        )
-        
-        # Event ROI analysis
-        event_roi_data = self._analyze_event_roi(events, roi_data)
-        
-        # Get industry benchmarks
-        benchmark = self.industry_benchmarks.get(industry, self.industry_benchmarks["tech"])
-        
-        # Generate recommendations
-        recommendations = self._generate_recommendations(
-            relationship_data, engagement_data, opportunity_data, event_roi_data, benchmark
-        )
-        
-        # Compute average satisfaction only over events that actually have a score
-        satisfaction_scores = [
-            event.get("satisfaction_score", 5)
-            for event in events
-            if event.get("satisfaction_score") is not None
-        ]
-
-        return NetworkingAnalytics(
-            analytics_period=f"{period_start.strftime('%Y-%m-%d')} to {period_end.strftime('%Y-%m-%d')}",
-            total_networking_activities=total_activities,
-            total_contacts_made=total_contacts_made,
-            quality_conversations_ratio=quality_conversations / max(total_contacts_made, 1),
-            average_event_satisfaction=statistics.mean(satisfaction_scores) if satisfaction_scores else 0,
-            total_investment=roi_data["total_investment"],
-            total_roi_value=roi_data["total_value"],
-            roi_percentage=roi_data["roi_percentage"],
+        try:
+            # Get all networking data for the period
+            contacts = await network_dao.get_all_contacts(user_uuid) or []
+            events = await network_events_dao.get_events_by_date_range(
+                user_uuid, 
+                period_start.isoformat(), 
+                period_end.isoformat()
+            ) or []
+            referrals = await referrals_dao.get_all_referrals(user_uuid) or []
+            jobs = await jobs_dao.get_all_jobs(user_uuid) or []
+            offers = await offers_dao.get_user_offers(user_uuid) or []
+            interviews = await informational_interviews_dao.get_all_interviews(user_uuid) or []
+            
+            # Calculate basic metrics
+            total_activities = len(events)
+            total_contacts_made = sum(event.get("actual_contacts_made", 0) for event in events) if events else 0
+            quality_conversations = sum(event.get("quality_conversations", 0) for event in events) if events else 0
+            
+            # Calculate ROI
+            roi_data = await self._calculate_roi(user_uuid, events, jobs, offers, referrals)
             
             # Relationship analytics
-            new_relationships=relationship_data["new_relationships"],
-            strengthened_relationships=relationship_data["strengthened_relationships"],
-            relationship_strength_distribution=relationship_data["strength_distribution"],
-            average_trust_score=relationship_data["average_trust_score"],
-            high_value_relationships=relationship_data["high_value_relationships"],
+            relationship_data = self._analyze_relationships(contacts, period_start, period_end)
             
             # Engagement analytics
-            average_response_rate=engagement_data["average_response_rate"],
-            follow_up_completion_rate=engagement_data["follow_up_completion_rate"],
-            interaction_frequency_trend=engagement_data["interaction_frequency_trend"],
+            engagement_data = self._calculate_engagement_metrics(contacts, events)
             
             # Opportunity analytics
-            referrals_generated=opportunity_data["referrals_generated"],
-            interviews_from_networking=opportunity_data["interviews_from_networking"],
-            offers_from_networking=opportunity_data["offers_from_networking"],
-            accepted_offers_from_networking=opportunity_data["accepted_offers_from_networking"],
-            opportunities_by_event_type=opportunity_data["opportunities_by_event_type"],
+            opportunity_data = await self._analyze_opportunities(
+                referrals, jobs, offers, interviews, events
+            )
             
-            # ROI analytics
-            event_roi_by_type=event_roi_data["event_roi_by_type"],
-            most_profitable_event_types=event_roi_data["most_profitable_event_types"],
-            cost_per_opportunity=roi_data["cost_per_opportunity"],
-            time_to_opportunity=roi_data["time_to_opportunity"],
-            best_conversion_channels=event_roi_data["best_conversion_channels"],
+            # Event ROI analysis
+            event_roi_data = self._analyze_event_roi(events, roi_data)
             
-            # Industry benchmarks
-            industry_benchmarks=benchmark,
-            improvement_recommendations=recommendations
-        )
+            # Get industry benchmarks
+            benchmark = self.industry_benchmarks.get(industry, self.industry_benchmarks["tech"])
+            
+            # Generate recommendations
+            recommendations = self._generate_recommendations(
+                relationship_data, engagement_data, opportunity_data, event_roi_data, benchmark
+            )
+            
+            # Compute average satisfaction only over events that actually have a score
+            satisfaction_scores = [
+                event.get("satisfaction_score", 5)
+                for event in events
+                if event.get("satisfaction_score") is not None
+            ]
+
+            return NetworkingAnalytics(
+                analytics_period=f"{period_start.strftime('%Y-%m-%d')} to {period_end.strftime('%Y-%m-%d')}",
+                total_networking_activities=total_activities,
+                total_contacts_made=total_contacts_made,
+                quality_conversations_ratio=quality_conversations / max(total_contacts_made, 1),
+                average_event_satisfaction=statistics.mean(satisfaction_scores) if satisfaction_scores else 0,
+                total_investment=roi_data["total_investment"],
+                total_roi_value=roi_data["total_value"],
+                roi_percentage=roi_data["roi_percentage"],
+                
+                # Relationship analytics
+                new_relationships=relationship_data["new_relationships"],
+                strengthened_relationships=relationship_data["strengthened_relationships"],
+                relationship_strength_distribution=relationship_data["strength_distribution"],
+                average_trust_score=relationship_data["average_trust_score"],
+                high_value_relationships=relationship_data["high_value_relationships"],
+                
+                # Engagement analytics
+                average_response_rate=engagement_data["average_response_rate"],
+                follow_up_completion_rate=engagement_data["follow_up_completion_rate"],
+                interaction_frequency_trend=engagement_data["interaction_frequency_trend"],
+                
+                # Opportunity analytics
+                referrals_generated=opportunity_data["referrals_generated"],
+                interviews_from_networking=opportunity_data["interviews_from_networking"],
+                offers_from_networking=opportunity_data["offers_from_networking"],
+                accepted_offers_from_networking=opportunity_data["accepted_offers_from_networking"],
+                opportunities_by_event_type=opportunity_data["opportunities_by_event_type"],
+                
+                # ROI analytics
+                event_roi_by_type=event_roi_data["event_roi_by_type"],
+                most_profitable_event_types=event_roi_data["most_profitable_event_types"],
+                cost_per_opportunity=roi_data["cost_per_opportunity"],
+                time_to_opportunity=roi_data["time_to_opportunity"],
+                best_conversion_channels=event_roi_data["best_conversion_channels"],
+                
+                # Industry benchmarks
+                industry_benchmarks=benchmark,
+                improvement_recommendations=recommendations
+            )
+        except Exception as e:
+            # Log error and return minimal analytics for new users
+            print(f"Error generating comprehensive analytics for {user_uuid}: {str(e)}")
+            # Return a default analytics object with zeros for new users
+            benchmark = self.industry_benchmarks.get(industry, self.industry_benchmarks["tech"])
+            return NetworkingAnalytics(
+                analytics_period=f"{period_start.strftime('%Y-%m-%d')} to {period_end.strftime('%Y-%m-%d')}",
+                total_networking_activities=0,
+                total_contacts_made=0,
+                quality_conversations_ratio=0,
+                average_event_satisfaction=0,
+                total_investment=0,
+                total_roi_value=0,
+                roi_percentage=0,
+                new_relationships=0,
+                strengthened_relationships=0,
+                relationship_strength_distribution={strength: 0 for strength in RelationshipStrength},
+                average_trust_score=0,
+                high_value_relationships=0,
+                average_response_rate=0,
+                follow_up_completion_rate=0,
+                interaction_frequency_trend="stable",
+                referrals_generated=0,
+                interviews_from_networking=0,
+                offers_from_networking=0,
+                accepted_offers_from_networking=0,
+                opportunities_by_event_type={event_type: 0 for event_type in NetworkingEventType},
+                event_roi_by_type={event_type: 0 for event_type in NetworkingEventType},
+                most_profitable_event_types=[],
+                cost_per_opportunity=0,
+                time_to_opportunity=0,
+                best_conversion_channels=[],
+                industry_benchmarks=benchmark,
+                improvement_recommendations=["Start by adding networking events to track your activities"]
+            )
     
     async def _calculate_roi(
         self, 
@@ -351,6 +387,15 @@ class NetworkingAnalyticsService:
         trust_scores = []
         high_value_count = 0
         
+        if not contacts:
+            return {
+                "new_relationships": 0,
+                "strengthened_relationships": 0,
+                "strength_distribution": strength_distribution,
+                "average_trust_score": 0,
+                "high_value_relationships": 0
+            }
+        
         for contact in contacts:
             # Count relationship strengths
             raw_strength = contact.get("relationship_strength", RelationshipStrength.NEW)
@@ -359,7 +404,8 @@ class NetworkingAnalyticsService:
             
             # Count high-value relationships
             trust_score = contact.get("trust_score", 0)
-            trust_scores.append(trust_score)
+            if trust_score:
+                trust_scores.append(trust_score)
             if trust_score >= 8:
                 high_value_count += 1
             
@@ -509,6 +555,13 @@ class NetworkingAnalyticsService:
         event_costs_by_type = {event_type: 0 for event_type in NetworkingEventType}
         event_count_by_type = {event_type: 0 for event_type in NetworkingEventType}
         
+        if not events:
+            return {
+                "event_roi_by_type": event_roi_by_type,
+                "most_profitable_event_types": [],
+                "best_conversion_channels": ["coffee_chat", "informational_interview", "networking_event"]
+            }
+        
         for event in events:
             raw_type = event.get("event_type")
             if not raw_type:
@@ -528,16 +581,16 @@ class NetworkingAnalyticsService:
             event_count_by_type[event_type] += 1
         
         # Calculate ROI for each event type
-        total_value = roi_data["total_value"]
-        total_cost = roi_data["total_investment"]
+        total_value = roi_data.get("total_value", 0)
+        total_cost = roi_data.get("total_investment", 1)  # Default to 1 to avoid division by zero
         
         if total_cost > 0:
             for event_type in NetworkingEventType:
                 type_cost = event_costs_by_type[event_type]
                 if type_cost > 0:
                     # Assume value is proportional to cost for this calculation
-                    type_value = (type_cost / total_cost) * total_value
-                    event_roi_by_type[event_type] = ((type_value - type_cost) / type_cost) * 100
+                    type_value = (type_cost / total_cost) * total_value if total_cost > 0 else 0
+                    event_roi_by_type[event_type] = ((type_value - type_cost) / type_cost) * 100 if type_cost > 0 else 0
         
         # Find most profitable event types
         most_profitable = sorted(
@@ -545,9 +598,16 @@ class NetworkingAnalyticsService:
             key=lambda x: x[1], 
             reverse=True
         )[:3]
+        most_profitable_types = [event_type for event_type, _ in most_profitable if _ > 0]
         
         # Best conversion channels (simplified)
         best_conversion_channels = ["coffee_chat", "informational_interview", "networking_event"]
+        
+        return {
+            "event_roi_by_type": event_roi_by_type,
+            "most_profitable_event_types": most_profitable_types,
+            "best_conversion_channels": best_conversion_channels
+        }
         
         return {
             "event_roi_by_type": event_roi_by_type,
