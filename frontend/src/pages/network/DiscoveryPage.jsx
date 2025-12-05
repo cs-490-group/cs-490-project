@@ -153,9 +153,27 @@ export default function DiscoveryPage() {
 			// Copy ALL available contact data (don't hardcode fields)
 			const contactData = { ...contact };
 			
-			// Remove discovery-specific fields that shouldn't be copied
+			// Remove discovery-specific and system fields that shouldn't be copied
+			delete contactData._id;  // Don't copy the discovery contact ID
 			delete contactData.is_alumni;
 			delete contactData.connection_degree;
+			delete contactData.mutual_connection;
+			delete contactData.num_users_with_contact;
+			delete contactData.owned_by;  // Let the backend set this
+			delete contactData.associated_users;  // Let the backend set this
+			
+			// Clean education data if it exists and has invalid structure
+			if (contactData.education && typeof contactData.education === 'object') {
+				// Keep only valid fields for ContactEducation schema
+				const cleanedEdu = {};
+				const validEduFields = ['institution_name', 'degree', 'field_of_study', 'graduation_date', 'education_level', 'achievements'];
+				validEduFields.forEach(field => {
+					if (contactData.education[field] !== undefined) {
+						cleanedEdu[field] = contactData.education[field];
+					}
+				});
+				contactData.education = Object.keys(cleanedEdu).length > 0 ? cleanedEdu : null;
+			}
 			
 			// Ensure we have the contact ID from the original
 			const originalContactId = contact._id;
