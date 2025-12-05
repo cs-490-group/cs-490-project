@@ -65,29 +65,36 @@
   display: none !important;
 }
 
-/* Compact navbar items */
+/* Override the mx-3 class that's in the JSX */
+.navbar-nav .nav-link.mx-3,
+.navbar-nav .dropdown.mx-3 {
+  margin-left: 0.3rem !important;
+  margin-right: 0.3rem !important;
+}
+
+/* Minimal padding for maximum text size */
 .navbar-nav .nav-link,
 .navbar-nav .dropdown {
-  margin-left: 0.15rem !important;
-  margin-right: 0.15rem !important;
-  padding-left: 0.4rem !important;
-  padding-right: 0.4rem !important;
+  padding-left: 0.3rem !important;
+  padding-right: 0.3rem !important;
+  white-space: nowrap !important;
 }
 
-/* Reduce font size to fit more items */
+/* Maximum font size */
 .navbar-nav {
-  font-size: 0.8rem;
+  font-size: 1.25rem;
 }
 
-/* Make the brand smaller to save space */
+/* Brand styling */
 .navbar-brand {
-  font-size: 1.1rem !important;
-  margin-right: 0.5rem !important;
+  font-size: 1.4rem !important;
+  margin-right: 1rem !important;
+  white-space: nowrap !important;
 }
 
 .navbar-brand img {
-  height: 35px !important;
-  margin-right: 5px !important;
+  height: 45px !important;
+  margin-right: 8px !important;
 }
 
 /* Remove extra spacing between brand and nav items */
@@ -96,52 +103,55 @@
   flex-grow: 1 !important;
 }
 
-.navbar-nav.ms-auto {
+/* Override gap-3 class and spread items across navbar */
+.navbar-nav.ms-auto,
+.navbar-nav.ms-right {
   margin-left: auto !important;
   margin-right: 0 !important;
   flex-grow: 1 !important;
-  justify-content: space-evenly !important;
-  width: 100% !important;
+  justify-content: space-between !important;
+  gap: 0 !important;
+  padding-left: 2rem !important;
 }
 
-.navbar-nav.ms-right {
-  margin-left: 80% !important;
-  margin-right: 0 !important;
-  flex-grow: 1 !important;
-  justify-content: space-evenly !important;
-  width:100%;
-}
-
-/* Further reduce spacing on medium screens */
+/* Slightly smaller on large screens if needed */
 @media (max-width: 1600px) {
   .navbar-nav {
-    font-size: 0.75rem;
+    font-size: 1.1rem;
+  }
+  
+  .navbar-nav .nav-link.mx-3,
+  .navbar-nav .dropdown.mx-3 {
+    margin-left: 0.25rem !important;
+    margin-right: 0.25rem !important;
   }
   
   .navbar-nav .nav-link,
   .navbar-nav .dropdown {
-    margin-left: 0.1rem !important;
-    margin-right: 0.1rem !important;
-    padding-left: 0.3rem !important;
-    padding-right: 0.3rem !important;
-  }
-}
-
-/* Even more compact for smaller screens */
-@media (max-width: 1400px) {
-  .navbar-nav {
-    font-size: 0.7rem;
-  }
-  
-  .navbar-nav .nav-link,
-  .navbar-nav .dropdown {
-    margin-left: 0.05rem !important;
-    margin-right: 0.05rem !important;
     padding-left: 0.25rem !important;
     padding-right: 0.25rem !important;
   }
+}
+
+/* Adjust for medium screens */
+@media (max-width: 1400px) {
+  .navbar-nav {
+    font-size: 0.95rem;
+  }
+  
+  .navbar-nav .nav-link.mx-3,
+  .navbar-nav .dropdown.mx-3 {
+    margin-left: 0.2rem !important;
+    margin-right: 0.2rem !important;
+  }
+  
+  .navbar-nav .nav-link,
+  .navbar-nav .dropdown {
+    padding-left: 0.2rem !important;
+    padding-right: 0.2rem !important;
+  }
   
   .navbar-brand {
-    font-size: 1rem !important;
+    font-size: 1.2rem !important;
   }
 }
