@@ -85,10 +85,16 @@ def transform_negotiation_scripts(scripts_dict: Dict[str, str]) -> List[Dict[str
     ]
 
 
-def transform_counter_offers(template_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
+def transform_counter_offers(template_dict: Dict[str, Any], offered_salary_details: Optional[Dict[str, Any]] = None, market_salary_data: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """Convert counter-offer template into structured objects with specific guidance per component"""
     if not template_dict:
         template_dict = {}
+
+    if not offered_salary_details:
+        offered_salary_details = {}
+
+    if not market_salary_data:
+        market_salary_data = {}
 
     fields = template_dict.get("offer_comparison_fields", [])
 
@@ -172,11 +178,68 @@ def transform_counter_offers(template_dict: Dict[str, Any]) -> List[Dict[str, An
         }
     }
 
+    def get_offered_value(field_name: str) -> str:
+        """Extract offered value from offered_salary_details"""
+        # Map field names to keys in offered_salary_details
+        field_mapping = {
+            "Base Salary": "base_salary",
+            "Signing Bonus": "signing_bonus",
+            "Annual Bonus": "annual_bonus",
+            "Target Bonus": "annual_bonus",
+            "Bonus": "annual_bonus",
+            "Stock Options": "stock_options",
+            "Equity": "stock_options",
+            "Equity/Stock Options": "stock_options",
+            "PTO Days": "pto_days",
+            "Health Insurance": "health_insurance",
+            "Health Insurance Coverage": "health_insurance",
+            "Retirement (401k/Match)": "retirement_match",
+            "Retirement": "retirement_match",
+            "Remote Work Policy": "remote_flexibility",
+            "Remote Work Flexibility": "remote_flexibility",
+            "Professional Development": "professional_development",
+            "Professional Development Budget": "professional_development"
+        }
+
+        key = field_mapping.get(field_name, field_name.lower().replace(" ", "_"))
+        value = offered_salary_details.get(key)
+
+        if value is None:
+            return "Not specified"
+        elif isinstance(value, (int, float)):
+            if key == "base_salary" or "bonus" in key.lower():
+                return f"${value:,}"
+            elif key == "pto_days":
+                return f"{value} days"
+            else:
+                return str(value)
+        else:
+            return str(value)
+
+    def get_market_value(field_name: str) -> str:
+        """Extract market value from market_salary_data"""
+        # Get median or 50th percentile from market data
+        if not market_salary_data:
+            return "Market data pending"
+
+        if field_name == "Base Salary":
+            median = market_salary_data.get("median_salary")
+            if median:
+                return f"${median:,} (median)"
+            return "Market data pending"
+
+        # For other fields, return general guidance or market data
+        percentile_50 = market_salary_data.get("percentile_50")
+        if percentile_50:
+            return f"${percentile_50:,} (market)"
+
+        return "Market data pending"
+
     return [
         {
             "metric": field.get("field", "Metric"),
-            "offered_value": "Enter actual offer amount",
-            "market_value": "Research comparable for this component",
+            "offered_value": get_offered_value(field.get("field", "")),
+            "market_value": get_market_value(field.get("field", "")),
             "suggested_counter": component_guidance.get(field.get("field", ""), {}).get("suggested_counter", "Ask for market-competitive amount"),
             "reasoning": component_guidance.get(field.get("field", ""), {}).get("reasoning", f"Negotiate this strategically based on market data"),
             "priority_level": field.get("importance", "medium").lower()
@@ -275,8 +338,8 @@ async def generate_full_negotiation_prep(
             offered_salary=offered_salary,
             offered_salary_details=offered_salary_details or {}
         )
-        # Transform into proper structure for frontend
-        counter_offer_templates = transform_counter_offers(counter_templates_raw)
+        # Transform into proper structure for frontend, passing actual data for field population
+        counter_offer_templates = transform_counter_offers(counter_templates_raw, offered_salary_details or {}, market_salary_data)
 
         # 5. Generate confidence exercises
         print("💪 Preparing confidence exercises...")
