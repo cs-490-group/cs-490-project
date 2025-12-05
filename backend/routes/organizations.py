@@ -1,26 +1,68 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from sessions.session_authorizer import authorize
 from mongo.organizations_dao import organization_dao
 from mongo.audit_dao import audit_dao
 from mongo.teams_dao import teams_dao
-from mongo.AI_dao import ai_dao
 from schema.Organizations import Organization, JoinOrgRequest
 from typing import List
 import csv
 import io
+import os
+import smtplib
+from email.mime.text import MIMEText
 from datetime import datetime
+from bson import ObjectId
+from dotenv import load_dotenv
+
+# Load Env
+load_dotenv()
+GMAIL_SENDER = os.environ.get("GMAIL_SENDER")
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 org_router = APIRouter(prefix="/organizations")
+
+# --- EMAIL HELPER ---
+def send_cohort_invite_email(to_email: str, cohort_name: str, team_id: str):
+    """Send an invitation email to a student added via bulk import"""
+    if not GMAIL_SENDER or not GMAIL_APP_PASSWORD:
+        print("⚠️ Email credentials not set. Skipping email.")
+        return
+
+    try:
+        join_link = f"{FRONTEND_URL}/setup-team?inviteCode={team_id}"
+        
+        subject = f"You have been added to the {cohort_name} Cohort"
+        body = (
+            f"Hello,\n\n"
+            f"You have been added to the '{cohort_name}' career cohort on Metamorphosis.\n\n"
+            f"To access your dashboard and career tools, please click the link below:\n"
+            f"{join_link}\n\n"
+            f"If you don't have an account yet, you will be prompted to create one.\n\n"
+            f"Welcome aboard!"
+        )
+        
+        msg = MIMEText(body)
+        msg["From"] = GMAIL_SENDER
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(GMAIL_SENDER, GMAIL_APP_PASSWORD)
+            server.send_message(msg)
+        print(f"✅ Sent invite to {to_email}")
+    except Exception as e:
+        print(f"❌ Failed to send invite to {to_email}: {e}")
+
+# --- ROUTES ---
 
 @org_router.post("/register", tags=["enterprise"])
 async def register_organization(org: Organization):
     """Register a new University or Institution"""
-    # In production, this would be super-admin only or paid signup
     org_data = org.model_dump()
     org_id = await organization_dao.create_organization(org_data)
     
-    # Log the creation event
     await audit_dao.log_event({
         "actor_id": "system",
         "actor_name": "System Registration",
@@ -32,107 +74,6 @@ async def register_organization(org: Organization):
     
     return {"message": "Organization registered", "org_id": org_id}
 
-@org_router.get("/export/roi", tags=["enterprise"])
-async def export_roi_report(uuid: str = Depends(authorize)):
-    """Download a CSV report for integration with other platforms"""
-    org = await organization_dao.get_admin_org(uuid)
-    if not org:
-        raise HTTPException(status_code=403, detail="Access denied")
-        
-    stats = await organization_dao.get_program_effectiveness(str(org["_id"]))
-    
-    # Create CSV in memory
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    # Header
-    writer.writerow(["Metric", "Value", "Category", "Generated At"])
-    
-    # Data Rows
-    timestamp = datetime.utcnow().isoformat()
-    writer.writerow(["Total Enrollment", stats['enrollment']['total'], "Enrollment", timestamp])
-    writer.writerow(["Active Students", stats['enrollment']['active'], "Enrollment", timestamp])
-    writer.writerow(["Placement Rate", f"{stats['outcomes']['placement_rate']}%", "Outcomes", timestamp])
-    writer.writerow(["Total Interviews", stats['outcomes']['interviews'], "Outcomes", timestamp])
-    writer.writerow(["Total Placements", stats['outcomes']['placements'], "Outcomes", timestamp])
-    writer.writerow(["Total Applications", stats['activity_volume']['total_applications'], "Activity", timestamp])
-    
-    # Log the export action (Compliance)
-    await audit_dao.log_event({
-        "actor_id": uuid,
-        "actor_name": "Admin",
-        "action": "EXPORT_DATA",
-        "target_id": "roi_report",
-        "organization_id": str(org["_id"]),
-        "details": {"format": "csv"}
-    })
-    
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=roi_report_{datetime.now().date()}.csv"}
-    )
-
-@org_router.get("/insights", tags=["enterprise"])
-async def generate_program_insights(uuid: str = Depends(authorize)):
-    """
-    Generate AI-driven optimization tips based on REAL cohort data.
-    """
-    # 1. Get Org ID
-    org = await organization_dao.get_admin_org(uuid)
-    if not org:
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    # 2. Fetch the raw stats (The data we calculated in get_program_effectiveness)
-    stats = await organization_dao.get_program_effectiveness(str(org["_id"]))
-    
-    prompt = f"""
-    Analyze these University Career Services metrics and provide a strategic optimization tip.
-    
-    DATA:
-    - Total Students: {stats['enrollment']['total']}
-    - Active Students: {stats['enrollment']['active']}
-    - Placement Rate: {stats['outcomes']['placement_rate']}%
-    - Total Interviews: {stats['outcomes']['interviews']}
-    - Total Applications: {stats['activity_volume']['total_applications']}
-    
-    INSTRUCTIONS:
-    - Identify the biggest bottleneck (e.g. low activity, high activity but low interviews, or low offers).
-    - Provide a specific "Insight" (what is happening).
-    - Provide a specific "Action" (what to do about it).
-    - Format the response as a simple string like: "Insight: [Your Insight] | Action: [Your Action]"
-    """
-    
-    try:
-        ai_response = await ai_dao.generate_text(
-            prompt=prompt, 
-            system_message="You are an expert Career Services Director analyzing program performance."
-        )
-        
-
-        # Fallback defaults if AI format varies slightly
-        insight = "Program analysis complete."
-        action = "Review cohort engagement metrics."
-        
-        if "|" in ai_response:
-            parts = ai_response.split("|")
-            insight = parts[0].replace("Insight:", "").strip()
-            action = parts[1].replace("Action:", "").strip()
-        else:
-            insight = ai_response
-            
-        return {"insight": insight, "action": action}
-
-    except Exception as e:
-        print(f"AI Insight Error: {e}")
-        # Fallback logic so the dashboard doesn't crash if AI is down
-        return {
-            "insight": "AI analysis is currently unavailable.",
-            "action": "Monitor student activity manually."
-        }
-    
-
 @org_router.post("/join", tags=["enterprise"])
 async def join_organization(
     request: JoinOrgRequest, 
@@ -140,15 +81,12 @@ async def join_organization(
 ):
     """Allow an existing user to join an Organization as an Admin"""
     try:
-        # 1. Verify Org Exists
         org = await organization_dao.get_organization(request.org_id)
         if not org:
             raise HTTPException(status_code=404, detail="Organization not found")
         
         org_id = ObjectId(request.org_id)
 
-        # 2. Add user to admin_ids
-        # Check if already member first to avoid unnecessary DB writes
         if uuid in org.get("admin_ids", []):
              raise HTTPException(status_code=400, detail="You are already an admin of this organization")
 
@@ -160,7 +98,6 @@ async def join_organization(
         if result.modified_count == 0:
              raise HTTPException(status_code=400, detail="Failed to join organization")
              
-        # 3. Log Event
         await audit_dao.log_event({
             "actor_id": uuid,
             "actor_name": "User",
@@ -177,23 +114,19 @@ async def join_organization(
     except Exception as e:
         print(f"Join Org Error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
-    
+
 @org_router.get("/dashboard", tags=["enterprise"])
 async def get_enterprise_dashboard(uuid: str = Depends(authorize)):
     """
     Get the high-level ROI dashboard for the Institution Admin.
     """
-    # Find which Org this user manages
     org = await organization_dao.get_admin_org(uuid)
     if not org:
-        raise HTTPException(403, "You are not an Enterprise Administrator")
+        raise HTTPException(status_code=403, detail="You are not an Enterprise Administrator")
     
     org_id = str(org["_id"])
-    
-    # Calculate ROI & Effectiveness
     stats = await organization_dao.get_program_effectiveness(org_id)
     
-    # Log the view event (Compliance requirement)
     await audit_dao.log_event({
         "actor_id": uuid,
         "actor_name": "Admin",
@@ -205,31 +138,48 @@ async def get_enterprise_dashboard(uuid: str = Depends(authorize)):
     
     return {
         "organization": {
+            "id": str(org["_id"]),
             "name": org["name"],
             "branding": org.get("branding")
         },
         "analytics": stats
     }
 
+@org_router.get("/cohorts", tags=["enterprise"])
+async def get_org_cohorts(uuid: str = Depends(authorize)):
+    org = await organization_dao.get_admin_org(uuid)
+    if not org:
+        raise HTTPException(status_code=403, detail="You are not an Enterprise Administrator")
+    
+    cohorts = await organization_dao.get_org_cohorts(str(org["_id"]))
+    return cohorts
+
+@org_router.get("/members", tags=["enterprise"])
+async def get_org_members(uuid: str = Depends(authorize)):
+    """Get all students/members in the organization"""
+    org = await organization_dao.get_admin_org(uuid)
+    if not org:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    members = await organization_dao.get_org_members(str(org["_id"]))
+    return members
+
 @org_router.post("/import", tags=["enterprise"])
 async def bulk_import_users(
+    background_tasks: BackgroundTasks, 
     file: UploadFile = File(...),
     cohort_name: str = Form(...),
     uuid: str = Depends(authorize)
 ):
-    """
-    Bulk onboard users via CSV file.
-    Format: email, first_name, last_name
-    """
-    # Verify Admin Status
+    """Bulk onboard users via CSV file and send invites."""
     org = await organization_dao.get_admin_org(uuid)
     if not org:
-        raise HTTPException(403, "You are not an Enterprise Administrator")
+        raise HTTPException(status_code=403, detail="You are not an Enterprise Administrator")
     
     org_id = str(org["_id"])
-    # Process File
+
     if not file.filename.endswith('.csv'):
-        raise HTTPException(400, "File must be a CSV")
+        raise HTTPException(status_code=400, detail="File must be a CSV")
     
     try:
         content = await file.read()
@@ -238,50 +188,50 @@ async def bulk_import_users(
         
         users_to_add = []
         for row in csv_reader:
-            if 'email' in row:
+            email = row.get('email') or row.get('Email')
+            fname = row.get('first_name') or row.get('First Name') or ""
+            lname = row.get('last_name') or row.get('Last Name') or ""
+            
+            if email:
                 users_to_add.append({
-                    "email": row['email'].strip(),
-                    "name": f"{row.get('first_name', '')} {row.get('last_name', '')}".strip() or "Student",
+                    "email": email.strip(),
+                    "name": f"{fname} {lname}".strip() or "Student",
                     "role": "candidate"
                 })
                 
         if not users_to_add:
-            raise HTTPException(400, "CSV is empty or missing 'email' header")
+            raise HTTPException(status_code=400, detail="CSV is empty or missing 'email' header")
 
-        #Find or Create Cohort (Team)
-        # Check if a team with this name already exists in this org
+        # Find or Create Cohort
         existing_team = await teams_dao.collection.find_one({"name": cohort_name, "organization_id": org_id})
         
         if existing_team:
             team_id = existing_team["_id"]
         else:
-            # Create new Team tagged as a "Cohort"
             team_data = {
                 "name": cohort_name,
-                "description": f"Cohort created via bulk import by {uuid}",
+                "description": f"Cohort created via bulk import",
                 "creator_id": uuid,
                 "organization_id": org_id,
                 "type": "cohort",
                 "members": [{
                     "uuid": uuid, 
                     "role": "admin", 
-                    "status": "active",
-                    "name": "Admin",
+                    "status": "active", 
+                    "name": "Admin", 
                     "joined_at": datetime.utcnow()
                 }],
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             }
             team_id = await teams_dao.add_team(team_data)
-            # Link team to org
             await organization_dao.link_team_to_org(org_id, str(team_id))
 
-        # 4. Add Members to Team
+        # Add Members & Queue Emails
         added_count = 0
         for user in users_to_add:
-            # Use existing invite logic
             new_member = {
-                "uuid": None, # Pending registration
+                "uuid": None,
                 "email": user["email"],
                 "name": user["name"],
                 "role": "candidate",
@@ -291,16 +241,22 @@ async def bulk_import_users(
                 "applications": [],
                 "feedback": []
             }
-            # Check if already in team to avoid duplicates
-            # (teams_dao.add_member_to_team handles the push)
-            # Realistically we should check existance first, but for MVP let's push
+            # Add to DB
             await teams_dao.add_member_to_team(team_id, new_member)
+            
+            # 📨 QUEUE EMAIL (Non-blocking)
+            background_tasks.add_task(
+                send_cohort_invite_email, 
+                to_email=user["email"], 
+                cohort_name=cohort_name, 
+                team_id=str(team_id)
+            )
+            
             added_count += 1
 
-        # 5. Log the Compliance Event
         await audit_dao.log_event({
             "actor_id": uuid,
-            "actor_name": "Admin", # In production, fetch real name
+            "actor_name": "Admin",
             "action": "BULK_IMPORT",
             "target_id": str(team_id),
             "organization_id": org_id,
@@ -313,20 +269,145 @@ async def bulk_import_users(
         })
 
         return {
-            "message": f"Successfully processed {added_count} users into cohort '{cohort_name}'",
+            "message": f"Successfully processed {added_count} users. Emails are being sent in the background.",
             "cohort_id": str(team_id)
         }
 
     except Exception as e:
         print(f"Import error: {e}")
-        raise HTTPException(500, f"Failed to process CSV: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process CSV: {str(e)}")
+
+@org_router.delete("/{org_id}", tags=["enterprise"])
+async def delete_organization(org_id: str, uuid: str = Depends(authorize)):
+    """Permanently delete an organization (Admin only)"""
+    try:
+        org = await organization_dao.get_organization(org_id)
+        if not org:
+            raise HTTPException(status_code=404, detail="Organization not found")
+            
+        if uuid not in org.get("admin_ids", []):
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        success = await organization_dao.delete_organization(org_id)
+        if not success:
+            raise HTTPException(status_code=400, detail="Failed to delete organization")
+
+        await audit_dao.log_event({
+            "actor_id": uuid,
+            "actor_name": "Admin",
+            "action": "DELETE_ORG",
+            "target_id": org_id,
+            "organization_id": org_id
+        })
+
+        return {"message": "Organization deleted"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@org_router.post("/leave", tags=["enterprise"])
+async def leave_organization(uuid: str = Depends(authorize)):
+    """Leave the current organization (Self-remove from admin list)"""
+    try:
+        org = await organization_dao.get_admin_org(uuid)
+        if not org:
+            raise HTTPException(status_code=404, detail="You are not part of an organization")
+        
+        org_id = str(org["_id"])
+        
+        if len(org.get("admin_ids", [])) <= 1:
+            raise HTTPException(status_code=400, detail="You are the only admin. Delete the organization instead.")
+
+        success = await organization_dao.remove_admin(org_id, uuid)
+        if not success:
+            raise HTTPException(status_code=400, detail="Failed to leave organization")
+
+        await audit_dao.log_event({
+            "actor_id": uuid,
+            "actor_name": "Admin",
+            "action": "LEAVE_ORG",
+            "target_id": org_id,
+            "organization_id": org_id
+        })
+
+        return {"message": "Successfully left organization"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@org_router.get("/insights", tags=["enterprise"])
+async def generate_program_insights(uuid: str = Depends(authorize)):
+    """Generate AI-driven optimization tips based on real cohort data"""
+    from mongo.AI_dao import ai_dao 
     
-@org_router.get("/cohorts", tags=["enterprise"])
-async def get_org_cohorts(uuid: str = Depends(authorize)):
-    """Get list of cohorts and their high-level stats"""
     org = await organization_dao.get_admin_org(uuid)
     if not org:
-        raise HTTPException(status_code=403, detail="You are not an Enterprise Administrator")
+        raise HTTPException(status_code=403, detail="Access denied")
     
-    cohorts = await organization_dao.get_org_cohorts(str(org["_id"]))
-    return cohorts
+    stats = await organization_dao.get_program_effectiveness(str(org["_id"]))
+    
+    prompt = f"""
+    Analyze these Career Services metrics and provide 1 strategic optimization tip:
+    
+    - Total Students: {stats['enrollment']['total']}
+    - Active Students: {stats['enrollment']['active']}
+    - Placement Rate: {stats['outcomes']['placement_rate']}%
+    - Total Interviews: {stats['outcomes']['interviews']}
+    - Total Applications: {stats['activity_volume']['total_applications']}
+    
+    Return a string like: "Insight: [Observation] | Action: [Specific Step]"
+    """
+    
+    try:
+        if not ai_dao:
+             raise Exception("AI DAO not available")
+             
+        ai_response = await ai_dao.generate_text(prompt, "You are a Career Services Director.")
+        
+        insight = "Analysis complete."
+        action = "Review engagement metrics."
+        
+        if "|" in ai_response:
+            parts = ai_response.split("|")
+            insight = parts[0].replace("Insight:", "").strip()
+            action = parts[1].replace("Action:", "").strip()
+        else:
+            insight = ai_response
+
+        return {"insight": insight, "action": action}
+    except Exception as e:
+        print(f"AI Error: {e}")
+        # Fallback
+        placement = stats['outcomes']['placement_rate']
+        if placement < 30:
+            return {"insight": "Placement is low.", "action": "Focus on interview prep."}
+        return {"insight": "Program is healthy.", "action": "Expand employer network."}
+
+@org_router.get("/export/roi", tags=["enterprise"])
+async def export_roi_report(uuid: str = Depends(authorize)):
+    """Download a CSV report"""
+    org = await organization_dao.get_admin_org(uuid)
+    if not org:
+        raise HTTPException(status_code=403, detail="Access denied")
+        
+    stats = await organization_dao.get_program_effectiveness(str(org["_id"]))
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Metric", "Value", "Category", "Date"])
+    ts = datetime.utcnow().isoformat()
+    
+    writer.writerow(["Total Enrollment", stats['enrollment']['total'], "Enrollment", ts])
+    writer.writerow(["Active Students", stats['enrollment']['active'], "Enrollment", ts])
+    writer.writerow(["Placement Rate", f"{stats['outcomes']['placement_rate']}%", "Outcomes", ts])
+    
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=roi_report.csv"}
+    )

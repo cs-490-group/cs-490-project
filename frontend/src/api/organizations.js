@@ -16,12 +16,23 @@ class OrganizationsAPI {
   join(orgId) {
     return api.post(`${BASE_URL}/join`, { org_id: orgId });
   }
+  delete(orgId) {
+    return api.delete(`${BASE_URL}/${orgId}`);
+  }
+
+  getMembers() {
+      return api.get(`${BASE_URL}/members`);
+  }
 
   // UC-114: Bulk Onboarding
   bulkImportUsers(formData) {
     return api.post(`${BASE_URL}/import`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+  }
+
+  leave() {
+    return api.post(`${BASE_URL}/leave`);
   }
 
   // UC-114: White-Label Branding
