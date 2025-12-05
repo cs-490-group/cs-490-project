@@ -50,6 +50,10 @@ from routes.insights import insights_router
 from routes.referral_message_routes import referral_message_router
 from routes.goals import goals_router
 from routes.time_tracking import time_tracking_router
+from services.referral_reminder_scheduler import start_referral_reminder_scheduler, stop_referral_reminder_scheduler
+from services.referral_followup_scheduler import start_referral_followup_scheduler, stop_referral_followup_scheduler
+from services.event_reminder_scheduler import start_event_reminder_scheduler, stop_event_reminder_scheduler
+from services.interview_reminder_scheduler import start_interview_reminder_scheduler, stop_interview_reminder_scheduler
 from routes.salary_research_routes import salary_research_router
 
 app = FastAPI()
@@ -129,6 +133,52 @@ app.include_router(network_analytics_router, prefix = api_prefix)
 async def startup_event():
     """Backend startup initialization"""
     print("[Startup] Backend ready!")
+    # Start referral reminder scheduler
+    try:
+        start_referral_reminder_scheduler()
+    except Exception as e:
+        print(f"[Startup] Warning: Could not start referral reminder scheduler: {e}")
+    # Start referral follow-up scheduler
+    try:
+        start_referral_followup_scheduler()
+    except Exception as e:
+        print(f"[Startup] Warning: Could not start referral follow-up scheduler: {e}")
+    # Start event reminder scheduler
+    try:
+        start_event_reminder_scheduler()
+    except Exception as e:
+        print(f"[Startup] Warning: Could not start event reminder scheduler: {e}")
+    # Start interview reminder scheduler
+    try:
+        start_interview_reminder_scheduler()
+    except Exception as e:
+        print(f"[Startup] Warning: Could not start interview reminder scheduler: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Backend shutdown cleanup"""
+    print("[Shutdown] Cleaning up...")
+    # Stop referral reminder scheduler
+    try:
+        stop_referral_reminder_scheduler()
+    except Exception as e:
+        print(f"[Shutdown] Warning: Could not stop referral reminder scheduler: {e}")
+    # Stop referral follow-up scheduler
+    try:
+        stop_referral_followup_scheduler()
+    except Exception as e:
+        print(f"[Shutdown] Warning: Could not stop referral follow-up scheduler: {e}")
+    # Stop event reminder scheduler
+    try:
+        stop_event_reminder_scheduler()
+    except Exception as e:
+        print(f"[Shutdown] Warning: Could not stop event reminder scheduler: {e}")
+    # Stop interview reminder scheduler
+    try:
+        stop_interview_reminder_scheduler()
+    except Exception as e:
+        print(f"[Shutdown] Warning: Could not stop interview reminder scheduler: {e}")
 
 
 

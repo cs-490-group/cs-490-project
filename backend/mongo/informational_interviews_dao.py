@@ -65,4 +65,33 @@ class InformationalInterviewDAO:
             results.append(doc)
         return results
 
+    async def mark_reminder_sent(self, interview_id: str, reminder_type: str) -> bool:
+        """
+        Mark a reminder as sent for an interview
+
+        Args:
+            interview_id: Interview ID
+            reminder_type: Type of reminder ("24h_before" or "1h_before")
+
+        Returns:
+            bool: True if successfully updated
+        """
+        try:
+            field_name = f"reminders_sent.{reminder_type}"
+            timestamp_field = f"reminders_sent.{reminder_type}_sent_at"
+
+            result = await self.collection.update_one(
+                {"_id": ObjectId(interview_id)},
+                {
+                    "$set": {
+                        field_name: True,
+                        timestamp_field: datetime.now(timezone.utc),
+                    }
+                },
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"❌ Error marking reminder as sent: {str(e)}")
+            return False
+
 informational_interviews_dao = InformationalInterviewDAO()

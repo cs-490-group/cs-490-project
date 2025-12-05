@@ -13,13 +13,15 @@ from mongo.media_dao import media_dao
 networks_router = APIRouter(prefix = "/networks")
 
 @networks_router.post("", tags = ["networks"])
-async def add_contact(contact: Contact, uuid: str = Depends(authorize)):
+async def add_contact(contact: Contact, uuid: str = Depends(authorize), relationship_to_owner: str = "direct"):
     try:
         model = contact.model_dump()
         model["uuid"] = uuid
+        model["relationship_to_owner"] = relationship_to_owner
         result = await networks_dao.add_contact(model)
     except DuplicateKeyError:
-        raise HTTPException(400, "Contact already exists")
+        # Contact with this email already exists - user is now associated
+        raise HTTPException(200, "Contact added successfully (already in system)")
     except Exception as e:
         raise HTTPException(500, str(e))
     
@@ -49,7 +51,7 @@ async def get_all_contacts(uuid: str = Depends(authorize)):
 @networks_router.put("", tags = ["networks"])
 async def update_contact(contact_id: str, contact: Contact, uuid: str = Depends(authorize)):
     try:
-        result = await networks_dao.update_contact(contact_id, contact.model_dump(exclude_unset = True))
+        result = await networks_dao.update_contact(contact_id, contact.model_dump(exclude_unset = True), uuid)
     except Exception as e:
         raise HTTPException(500, str(e))
     
@@ -61,7 +63,7 @@ async def update_contact(contact_id: str, contact: Contact, uuid: str = Depends(
 @networks_router.delete("", tags = ["networks"])
 async def delete_contact(contact_id: str, uuid: str = Depends(authorize)):
     try:
-        result = await networks_dao.delete_contact(contact_id)
+        result = await networks_dao.delete_contact(contact_id, uuid)
     except Exception as e:
         raise HTTPException(500, str(e))
     

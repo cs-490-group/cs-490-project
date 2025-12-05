@@ -177,7 +177,16 @@ async def get_dashboard_data(uuid: str = Depends(authorize)):
         if not latest_analytics:
             # Return empty dashboard structure
             return {
-                "performance_metrics": {},
+                "performance_metrics": {
+                    "applications_sent": 0,
+                    "interviews_scheduled": 0,
+                    "interviews_completed": 0,
+                    "offers_received": 0,
+                    "application_to_interview_rate": 0.0,
+                    "interview_to_offer_rate": 0.0,
+                    "networking_activities": 0,
+                    "referrals_generated": 0
+                },
                 "goals": [],
                 "insights": [],
                 "trends": []
@@ -194,12 +203,29 @@ async def get_dashboard_data(uuid: str = Depends(authorize)):
                 "networking_activities": latest_analytics.get("networking_activities", 0),
                 "referrals_generated": latest_analytics.get("referrals_generated", 0)
             },
-            "goals": latest_analytics.get("performance_goals", []),
-            "insights": latest_analytics.get("network_insights", []),
-            "trends": latest_analytics.get("trend_analyses", [])
+            "goals": latest_analytics.get("performance_goals", []) or [],
+            "insights": latest_analytics.get("network_insights", []) or [],
+            "trends": latest_analytics.get("trend_analyses", []) or []
         }
     except Exception as e:
-        raise HTTPException(500, str(e))
+        # Log error but don't crash
+        print(f"Error getting dashboard data for {uuid}: {str(e)}")
+        # Return safe defaults
+        return {
+            "performance_metrics": {
+                "applications_sent": 0,
+                "interviews_scheduled": 0,
+                "interviews_completed": 0,
+                "offers_received": 0,
+                "application_to_interview_rate": 0.0,
+                "interview_to_offer_rate": 0.0,
+                "networking_activities": 0,
+                "referrals_generated": 0
+            },
+            "goals": [],
+            "insights": [],
+            "trends": []
+        }
 
 
 @network_analytics_router.get("/networking/dashboard", tags=["analytics"])
@@ -218,64 +244,73 @@ async def get_networking_dashboard(
             industry=industry,
         )
 
-        relationship_strength_distribution = {
-            (k.value if hasattr(k, "value") else str(k)): v
-            for k, v in analytics.relationship_strength_distribution.items()
-        }
+        # Safely handle enum conversions
+        relationship_strength_distribution = {}
+        if analytics.relationship_strength_distribution:
+            relationship_strength_distribution = {
+                (k.value if hasattr(k, "value") else str(k)): v
+                for k, v in analytics.relationship_strength_distribution.items()
+            }
 
-        opportunities_by_event_type = {
-            (k.value if hasattr(k, "value") else str(k)): v
-            for k, v in analytics.opportunities_by_event_type.items()
-        }
+        opportunities_by_event_type = {}
+        if analytics.opportunities_by_event_type:
+            opportunities_by_event_type = {
+                (k.value if hasattr(k, "value") else str(k)): v
+                for k, v in analytics.opportunities_by_event_type.items()
+            }
 
-        event_roi_by_type = {
-            (k.value if hasattr(k, "value") else str(k)): v
-            for k, v in analytics.event_roi_by_type.items()
-        }
+        event_roi_by_type = {}
+        if analytics.event_roi_by_type:
+            event_roi_by_type = {
+                (k.value if hasattr(k, "value") else str(k)): v
+                for k, v in analytics.event_roi_by_type.items()
+            }
 
-        most_profitable_event_types = [
-            (t.value if hasattr(t, "value") else str(t))
-            for t in analytics.most_profitable_event_types
-        ]
+        most_profitable_event_types = []
+        if analytics.most_profitable_event_types:
+            most_profitable_event_types = [
+                (t.value if hasattr(t, "value") else str(t))
+                for t in analytics.most_profitable_event_types
+            ]
 
         performance_metrics = {
-            "networking_activities": analytics.total_networking_activities,
-            "total_contacts_made": analytics.total_contacts_made,
-            "quality_conversations_ratio": analytics.quality_conversations_ratio,
-            "average_event_satisfaction": analytics.average_event_satisfaction,
+            "networking_activities": analytics.total_networking_activities or 0,
+            "total_contacts_made": analytics.total_contacts_made or 0,
+            "quality_conversations_ratio": analytics.quality_conversations_ratio or 0,
+            "average_event_satisfaction": analytics.average_event_satisfaction or 0,
         }
 
         relationship_analytics = {
-            "new_relationships": analytics.new_relationships,
-            "strengthened_relationships": analytics.strengthened_relationships,
+            "new_relationships": analytics.new_relationships or 0,
+            "strengthened_relationships": analytics.strengthened_relationships or 0,
             "relationship_strength_distribution": relationship_strength_distribution,
-            "average_trust_score": analytics.average_trust_score,
-            "high_value_relationships": analytics.high_value_relationships,
+            "average_trust_score": analytics.average_trust_score or 0,
+            "high_value_relationships": analytics.high_value_relationships or 0,
         }
 
         engagement_analytics = {
-            "average_response_rate": analytics.average_response_rate,
-            "follow_up_completion_rate": analytics.follow_up_completion_rate,
-            "interaction_frequency_trend": analytics.interaction_frequency_trend,
+            "average_response_rate": analytics.average_response_rate or 0,
+            "follow_up_completion_rate": analytics.follow_up_completion_rate or 0,
+            "interaction_frequency_trend": analytics.interaction_frequency_trend or "stable",
         }
 
         opportunity_analytics = {
-            "referrals_generated": analytics.referrals_generated,
-            "interviews_from_networking": analytics.interviews_from_networking,
-            "offers_from_networking": analytics.offers_from_networking,
-            "accepted_offers_from_networking": analytics.accepted_offers_from_networking,
+            "referrals_generated": analytics.referrals_generated or 0,
+            "interviews_from_networking": analytics.interviews_from_networking or 0,
+            "offers_from_networking": analytics.offers_from_networking or 0,
+            "accepted_offers_from_networking": analytics.accepted_offers_from_networking or 0,
             "opportunities_by_event_type": opportunities_by_event_type,
         }
 
         roi_analytics = {
-            "total_investment": analytics.total_investment,
-            "total_roi_value": analytics.total_roi_value,
-            "roi_percentage": analytics.roi_percentage,
+            "total_investment": analytics.total_investment or 0,
+            "total_roi_value": analytics.total_roi_value or 0,
+            "roi_percentage": analytics.roi_percentage or 0,
             "event_roi_by_type": event_roi_by_type,
             "most_profitable_event_types": most_profitable_event_types,
-            "cost_per_opportunity": analytics.cost_per_opportunity,
-            "time_to_opportunity": analytics.time_to_opportunity,
-            "best_conversion_channels": analytics.best_conversion_channels,
+            "cost_per_opportunity": analytics.cost_per_opportunity or 0,
+            "time_to_opportunity": analytics.time_to_opportunity or 0,
+            "best_conversion_channels": analytics.best_conversion_channels or [],
         }
 
         return {
@@ -284,11 +319,52 @@ async def get_networking_dashboard(
             "engagement_analytics": engagement_analytics,
             "opportunity_analytics": opportunity_analytics,
             "roi_analytics": roi_analytics,
-            "industry_benchmarks": analytics.industry_benchmarks,
-            "improvement_recommendations": analytics.improvement_recommendations,
+            "industry_benchmarks": analytics.industry_benchmarks or {},
+            "improvement_recommendations": analytics.improvement_recommendations or [],
         }
     except Exception as e:
-        raise HTTPException(500, str(e))
+        # Log the error for debugging but return safe defaults
+        print(f"Error generating networking dashboard for {uuid}: {str(e)}")
+        # Return empty but valid dashboard structure
+        return {
+            "performance_metrics": {
+                "networking_activities": 0,
+                "total_contacts_made": 0,
+                "quality_conversations_ratio": 0,
+                "average_event_satisfaction": 0,
+            },
+            "relationship_analytics": {
+                "new_relationships": 0,
+                "strengthened_relationships": 0,
+                "relationship_strength_distribution": {},
+                "average_trust_score": 0,
+                "high_value_relationships": 0,
+            },
+            "engagement_analytics": {
+                "average_response_rate": 0,
+                "follow_up_completion_rate": 0,
+                "interaction_frequency_trend": "stable",
+            },
+            "opportunity_analytics": {
+                "referrals_generated": 0,
+                "interviews_from_networking": 0,
+                "offers_from_networking": 0,
+                "accepted_offers_from_networking": 0,
+                "opportunities_by_event_type": {},
+            },
+            "roi_analytics": {
+                "total_investment": 0,
+                "total_roi_value": 0,
+                "roi_percentage": 0,
+                "event_roi_by_type": {},
+                "most_profitable_event_types": [],
+                "cost_per_opportunity": 0,
+                "time_to_opportunity": 0,
+                "best_conversion_channels": [],
+            },
+            "industry_benchmarks": {},
+            "improvement_recommendations": ["Start by adding networking events to track your activities"],
+        }
 
 
 @network_analytics_router.post("/networking/roi-outcome", tags=["analytics"])
@@ -316,5 +392,7 @@ async def track_networking_roi_outcome(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, str(e))
+        # Log error but provide meaningful response
+        print(f"Error tracking ROI outcome for {uuid}: {str(e)}")
+        raise HTTPException(500, "Failed to track ROI outcome. Please try again.")
 

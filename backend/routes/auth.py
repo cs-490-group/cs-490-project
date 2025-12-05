@@ -53,6 +53,20 @@ async def register(info: RegistInfo):
         raise HTTPException(400, "User profile already exists")
     except Exception as e:
         raise HTTPException(500, str(e))
+    
+    # Create user as a contact in the global network
+    try:
+        from mongo.network_dao import networks_dao
+        contact_data = {
+            "name": info.username,
+            "email": info.email.lower(),
+            "uuid": uuid,
+            "relationship_to_owner": "self"
+        }
+        await networks_dao.add_contact(contact_data)
+    except Exception as e:
+        # Non-critical error - user registration should succeed even if contact creation fails
+        print(f"Warning: Could not create contact for new user: {e}")
 
     # Begin Session
     session_token = session_manager.begin_session(uuid)

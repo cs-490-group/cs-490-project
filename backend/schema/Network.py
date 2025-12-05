@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, Literal, List
+from datetime import datetime
 
 class Numbers(BaseModel):
     primary: Optional[str] = None  # Fixed: should be string, not literal
@@ -32,9 +33,16 @@ class ContactEducation(BaseModel):
     education_level: Optional[str] = None
     achievements: Optional[str] = None
 
+class UserAssociation(BaseModel):
+    """Tracks a user's association with a contact"""
+    uuid: str  # User's UUID
+    added_date: Optional[datetime] = None
+    relationship_to_owner: Optional[Literal["direct", "colleague_referral", "alumni", "discovery", "imported"]] = "direct"
+    personal_notes: Optional[str] = None  # User-specific notes about this contact
+
 class Contact(BaseModel):
     name: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[str] = None  # UNIQUE IDENTIFIER
     phone_numbers: Optional[Numbers] = None
     websites: Optional[Websites] = None
     employment: Optional[Employment] = None
@@ -62,3 +70,7 @@ class Contact(BaseModel):
     mutual_connections: Optional[List[str]] = None  # List of contact IDs
     linked_job_opportunities: Optional[List[str]] = None  # List of job opportunity IDs
     linked_companies: Optional[List[str]] = None  # List of company IDs
+    
+    # NEW: Contact ownership and user associations
+    owned_by: Optional[str] = None  # UUID of user who originally created this contact
+    associated_users: Optional[List[UserAssociation]] = None  # All users who have associated with this contact
