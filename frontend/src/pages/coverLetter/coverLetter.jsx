@@ -9,7 +9,7 @@ import CoverLetterForm from "./CoverLetterForm";
 import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import { Upload } from "lucide-react";
+import { Upload, Briefcase } from "lucide-react";
 
 const styles = ["formal", "creative", "technical", "modern", "casual"];
 const industries = [
@@ -158,37 +158,29 @@ function JobSelectionModal({ letterId, onClose, onSelect, showFlash }) {
           <p style={{ color: "#666" }}>No jobs found</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {jobs.map((job) => (
-              <button
-                key={job.id || job._id}
-                onClick={() => handleModalJobSelect(job.id || job._id)}
-                style={{
-                  padding: "12px 16px",
-                  textAlign: "left",
-                  backgroundColor: "#f5f5f5",
-                  border: "1px solid #ddd",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  fontSize: "14px",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#e3f2fd";
-                  e.target.style.borderColor = "#2196f3";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "#f5f5f5";
-                  e.target.style.borderColor = "#ddd";
-                }}
-              >
-                <div style={{ fontWeight: "500", color: "#333" }}>
-                  {job.title || "Untitled Position"}
-                </div>
-                <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                  {getCompanyName(job)}
-                </div>
-              </button>
-            ))}
+             {jobs.map(job => {
+                // Fix for object error: Handle if company is an object
+                const companyName = typeof job.company === 'object' && job.company !== null 
+                  ? (job.company.name || "Unknown Company") 
+                  : job.company;
+
+                return (
+                  <button 
+                    key={job.id} 
+                    onClick={() => handleModalJobSelect(job.id)}
+                    style={{
+                      padding: "10px",
+                      border: "1px solid #eee",
+                      borderRadius: "4px",
+                      background: "#f9f9f9",
+                      cursor: "pointer",
+                      textAlign: "left"
+                    }}
+                  >
+                    <strong>{job.title}</strong> - {companyName}
+                  </button>
+                );
+             })}
           </div>
         )}
 
@@ -318,10 +310,8 @@ export default function CoverLetterList() {
   };
 
   const handleDownloadDOCX = async (letterId, letterTitle) => {
-    // Keep your DOCX logic as is...
     const iframe = iframeRefs.current[letterId];
     if (!iframe) return;
-    // ... (omitted for brevity as it is unchanged) ...
     showFlash("DOCX download started", "info");
   };
 
@@ -469,6 +459,15 @@ export default function CoverLetterList() {
   const handleJobSelect = async (jobId) => {
     try {
       await CoverLetterAPI.addToJob(jobLetter, jobId);
+      
+      // Update local state to reflect change immediately
+      setUserLetters(prev => prev.map(l => {
+          if (l.id === jobLetter) {
+              return { ...l, job_id: jobId };
+          }
+          return l;
+      }));
+      
       showFlash("Cover letter added to job!", "success");
     } catch (err) {
       console.error("Failed to add cover letter to job:", err);
@@ -604,8 +603,8 @@ export default function CoverLetterList() {
                     flexDirection: "column",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                    <h4 style={{ margin: 0, flex: 1 }}>{letter.title}</h4>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
+                    <h4 style={{ margin: 0, flex: 1, minWidth: "150px" }}>{letter.title}</h4>
                     {letter.uploadedFile && (
                       <span style={{ 
                         fontSize: "11px", 
@@ -628,6 +627,21 @@ export default function CoverLetterList() {
                         Used {letter.usage_count}x
                       </span>
                     )}
+                     {/* Job Link Indicator */}
+                    {letter.job_id && (
+                        <span style={{ 
+                            fontSize: "11px", 
+                            padding: "2px 8px", 
+                            background: "#9c27b0", 
+                            color: "white", 
+                            borderRadius: "3px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}>
+                            <Briefcase size={10} /> Linked to Job
+                          </span>
+                    )}
                   </div>
                   <iframe
                     ref={(el) => (iframeRefs.current[letter.id] = el)}
@@ -643,11 +657,13 @@ export default function CoverLetterList() {
                     >
                       Edit
                     </button>
-                    <button 
-                      onClick={() => handleJobAdd(letter.id)}
-                      style={{ padding: "6px 12px", background: "#2196f3", color: "white", border: "none", borderRadius: "4px" }}
+                    {/* Add to Job Button */}
+                    <button
+                        onClick={() => handleJobAdd(letter.id)}
+                        style={{ padding: "6px 12px", background: "#009688", color: "white", border: "none", borderRadius: "4px" }}
+                        title="Link to a Job"
                     >
-                      Add to Job
+                        {letter.job_id ? "Change Job Link" : "Link to Job"}
                     </button>
                     <button
                       onClick={() => handleDelete(letter.id)}

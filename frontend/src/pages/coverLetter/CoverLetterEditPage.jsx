@@ -5,7 +5,7 @@ import JobsAPI from "../../api/jobs";
 import UserAPI from "../../api/user";
 import AIAPI from "../../api/AI";
 import { useFlash } from "../../context/flashContext";
-import { Undo2, Redo2, Bold, Italic, Underline, List, Zap, Save, Clock, AlertCircle, CheckCircle } from "lucide-react";
+import { Undo2, Redo2, Bold, Italic, Underline, List, Zap, Save, Clock, AlertCircle, CheckCircle, Briefcase } from "lucide-react";
 
 export default function EditCoverLetterPage() {
   const navigate = useNavigate();
@@ -16,6 +16,8 @@ export default function EditCoverLetterPage() {
   const [title, setTitle] = useState("");
   const [company, setCompany] = useState("");
   const [position, setPosition] = useState("");
+  const [linkedJobId, setLinkedJobId] = useState(null); 
+  
   const contentRef = useRef("");
   const [letterLoaded, setLetterLoaded] = useState(false);
   const [editorMode, setEditorMode] = useState("visual");
@@ -37,14 +39,11 @@ export default function EditCoverLetterPage() {
   const [aiSuggestions, setAiSuggestions] = useState("");
   const [showAISuggestions, setShowAISuggestions] = useState(false);
 
-  
-
   // Load cover letter
   useEffect(() => {
     if (!id) return;
     const loadData = async () => {
       try {
-        // Fetch Letter AND Versions in parallel
         const [letterRes, versionsRes] = await Promise.all([
           CoverLetterAPI.get(id),
           CoverLetterAPI.getVersions(id) 
@@ -54,10 +53,18 @@ export default function EditCoverLetterPage() {
         setTitle(letter.title || "");
         setCompany(letter.company || "");
         setPosition(letter.position || "");
+        
+        // Handle linked job
+        const jobIdRaw = letter.job_id;
+        if (jobIdRaw && typeof jobIdRaw === 'object') {
+           setLinkedJobId(jobIdRaw._id || jobIdRaw.id);
+        } else {
+           setLinkedJobId(jobIdRaw || null);
+        }
+
         contentRef.current = letter.content || "";
         setHtmlContent(letter.content || "");
         
-        // Transform database versions for the UI
         const history = (versionsRes.data || []).map(v => ({
           timestamp: new Date(v.created_at),
           content: v.content_snapshot
@@ -85,7 +92,6 @@ export default function EditCoverLetterPage() {
     setReadabilityScore(Math.round(score));
   };
 
-  // Iframe editor setup
   useEffect(() => {
     if (!iframeRef.current || !letterLoaded || editorMode !== "visual") return;
     const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
@@ -119,7 +125,6 @@ export default function EditCoverLetterPage() {
     };
   }, [letterLoaded, editorMode]);
 
-  // Auto-save
   useEffect(() => {
     const autoSaveInterval = setInterval(() => {
       if (autoSaveStatus === "unsaved" && contentRef.current) performAutoSave();
@@ -211,10 +216,8 @@ export default function EditCoverLetterPage() {
         ? iframeRef.current.contentDocument.documentElement.innerHTML
         : htmlContent;
 
-      // Update main document
       await CoverLetterAPI.update(id, { title, company, position, content: contentToSave });
       await CoverLetterAPI.createVersion(id, {version_name: `Save: ${new Date().toLocaleTimeString()}`,content_snapshot: contentToSave,title_snapshot: title});
-
 
       const versionsRes = await CoverLetterAPI.getVersions(id);
       const history = (versionsRes.data || []).map(v => ({
@@ -231,89 +234,144 @@ export default function EditCoverLetterPage() {
     }
   };
 
-const handleGenerateCoverLetter = async () => {
-  setAiLoading(true);
-  try {
-    const userData = await UserAPI.getAllData();
-    
-    // Fetch all jobs to find the matching one
-    let jobData = null;
+  const handleGenerateCoverLetter = async () => {
+    setAiLoading(true);
     try {
-      const jobsRes = await JobsAPI.getAll();
-      const jobs = jobsRes.data || [];
+      // 1. Fetch Data
+      const fullUserData = await UserAPI.getAllData();
       
-      // Try to find a job that matches the company/position in the cover letter
-      if (company || position) {
-        jobData = jobs.find(j => 
-          (company && j.company && j.company.toLowerCase().includes(company.toLowerCase())) ||
-          (position && j.title && j.title.toLowerCase().includes(position.toLowerCase()))
-        );
-      }
+      // 2. AGGRESSIVE SANITIZATION: User Data
+      // We manually build this object to ensure NO hidden binary data/images/PDFs are included.
+      const sanitizedUser = {
+        name: fullUserData.profile?.full_name || fullUserData.profile?.username,
+        email: fullUserData.profile?.email,
+        phone: fullUserData.profile?.phone_number,
+        bio: (fullUserData.profile?.biography || "").substring(0, 500), // Cap bio length
+        
+        // Only take the first 3 items and only specific text fields
+        education: (fullUserData.education || []).slice(0, 3).map(edu => ({
+           degree: edu.degree,
+           field: edu.field_of_study,
+           school: edu.institution_name,
+           year: new Date(edu.end_date).getFullYear()
+        })),
+        
+        employment: (fullUserData.employment || []).slice(0, 3).map(emp => ({
+           title: emp.title,
+           company: emp.company,
+           description: (emp.description || "").substring(0, 400) // Truncate descriptions
+        })),
+        
+        skills: (fullUserData.skills || []).slice(0, 20).map(s => s.name) // Limit skill count
+      };
       
-      // If no match found, use the most recent job
-      if (!jobData && jobs.length > 0) {
-        jobData = jobs[0];
+      let jobData = null;
+      try {
+        const jobsRes = await JobsAPI.getAll();
+        const jobs = jobsRes.data || [];
+        
+        // Priority 1: Linked Job
+        if (linkedJobId) {
+          jobData = jobs.find(j => j.id === linkedJobId || j._id === linkedJobId);
+        }
+
+        // Priority 2: Fuzzy Match
+        if (!jobData && (company || position)) {
+          jobData = jobs.find(j => {
+             const jCompany = (typeof j.company === 'object' && j.company) ? j.company.name : j.company;
+             return (
+               (company && jCompany && jCompany.toLowerCase().includes(company.toLowerCase())) ||
+               (position && j.title && j.title.toLowerCase().includes(position.toLowerCase()))
+             );
+          });
+        }
+        
+        // Priority 3: Default (ONLY if list is small, otherwise safer to send nothing to avoid token bloat)
+        if (!jobData && jobs.length > 0 && jobs.length < 3) {
+          jobData = jobs[0];
+        }
+      } catch (err) {
+        console.warn("Failed to fetch job data:", err);
       }
+
+      // 3. AGGRESSIVE SANITIZATION: Job Data
+      let sanitizedJob = null;
+      let companyForPrompt = company;
+      let positionForPrompt = position;
+
+      if (jobData) {
+        const jCompanyName = (typeof jobData.company === 'object' && jobData.company) ? jobData.company.name : jobData.company;
+        
+        sanitizedJob = {
+            title: jobData.title,
+            company: jCompanyName,
+            // Truncate job description to ~1500 chars to save tokens
+            description: (jobData.description || "").substring(0, 1500),
+            requirements: (jobData.requirements || jobData.skills_required || "").substring(0, 1000)
+        };
+
+        if (linkedJobId || sanitizedJob.company) {
+            companyForPrompt = sanitizedJob.company || company;
+            positionForPrompt = sanitizedJob.title || position;
+        }
+      }
+
+      // 4. CLEAN HTML CONTENT
+      // If the user pasted an image, contentRef might contain huge base64 strings.
+      // We strip <img> tags for the PROMPT context (we keep them in the editor though).
+      let cleanCurrentContent = contentRef.current || "";
+      // Regex to remove img tags entirely from the string sent to AI
+      cleanCurrentContent = cleanCurrentContent.replace(/<img[^>]*>/g, "[Image Placeholder]");
+
+      // Debug: Check payload size
+      const payload = JSON.stringify({ sanitizedUser, sanitizedJob, cleanCurrentContent });
+      console.log("AI Payload approx size (chars):", payload.length);
+
+      const res = await AIAPI.generateText({
+        prompt: `
+  User instructions: "${aiPrompt}"
+  Personalize for company "${companyForPrompt}" and role "${positionForPrompt}".
+  
+  PRESERVE ALL HTML and inline styles.
+  Return ONLY updated HTML content.
+  DO NOT ADD YOUR OWN STYLINGS OR HTML ELEMENTS OR CSS. ONLY WHAT WAS ORIGINALLY THERE. 
+  
+  User Profile:
+  ${JSON.stringify(sanitizedUser, null, 2)}
+  
+  ${sanitizedJob ? `
+  TARGET JOB:
+  Title: ${sanitizedJob.title}
+  Company: ${sanitizedJob.company}
+  Description: ${sanitizedJob.description}
+  ` : ''}
+  
+  Current letter content:
+  ${cleanCurrentContent}
+        `,
+        system_message: `You are a professional cover letter writer. Return ONLY HTML content.`
+      });
+
+      const generated = res.data.response || res.data.result || res.data.text || "";
+      if (iframeRef.current && editorMode === "visual") {
+        const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
+        doc.body.innerHTML = generated;
+        contentRef.current = doc.documentElement.innerHTML;
+        setHtmlContent(doc.documentElement.innerHTML);
+        calculateStats(doc.documentElement.innerHTML);
+        setAutoSaveStatus("unsaved");
+      }
+
+      setAiPrompt("");
+      showFlash("Cover letter generated successfully.", "success");
     } catch (err) {
-      console.warn("Failed to fetch job data:", err);
+      console.error(err);
+      showFlash("Failed to generate cover letter. Content may be too long.", "error");
+    } finally {
+      setAiLoading(false);
     }
+  };
 
-    const res = await AIAPI.generateText({
-      prompt: `
-User instructions: "${aiPrompt}"
-Personalize for company "${company}" and role "${position}".
-if "${company}" is specified, then you MUST provide at one or two specific details about the company, as well as a comment about recent news of the company in the cover letter (the more specific, the better). This is non-negotiable.
-Preserve all HTML and inline styles.
-Return ONLY updated HTML content.
-DO NOT ADD YOUR OWN STYLINGS OR HTML ELEMENTS OR CSS. ONLY WHAT WAS ORIGINALLY THERE. 
-Return ONLY HTML content.
-Don't invent any personal details/certifications/education/skills. Only use what you are given in the cover letter.
-
-User Profile Data:
-${JSON.stringify(userData, null, 2)}
-
-${jobData ? `
-Job Details:
-${JSON.stringify(jobData, null, 2)}
-` : ''}
-
-Current letter content:
-${contentRef.current}
-      `,
-      system_message: `
-You are a professional cover letter writer.
-Preserve all HTML and inline styles.
-DO NOT ADD YOUR OWN STYLINGS OR HTML ELEMENTS OR CSS. ONLY WHAT WAS ORIGINALLY THERE. 
-Return ONLY HTML content.
-Don't invent any personal details/certifications/education/skills. Only use what you are given.
-
-Reference Data:
-${JSON.stringify(userData, null, 2)}
-${jobData ? `\nJob Data:\n${JSON.stringify(jobData, null, 2)}` : ''}
-`
-    });
-
-    const generated = res.data.response || res.data.result || res.data.text || "";
-    if (iframeRef.current && editorMode === "visual") {
-      const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
-      doc.body.innerHTML = generated;
-      contentRef.current = doc.documentElement.innerHTML;
-      setHtmlContent(doc.documentElement.innerHTML);
-      calculateStats(doc.documentElement.innerHTML);
-      setAutoSaveStatus("unsaved");
-    }
-
-    setAiPrompt("");
-    showFlash("Cover letter generated successfully.", "success");
-  } catch (err) {
-    console.error(err);
-    showFlash("Failed to generate cover letter.", "error");
-  } finally {
-    setAiLoading(false);
-  }
-};
-
-  // AI Suggestions handler (text-only)
   const handleAISuggestions = async () => {
     if (!contentRef.current) return;
     setAiLoading(true);
@@ -355,9 +413,16 @@ Return plain text suggestions only. Do not mention html/css elements or tags in 
         </div>
       </div>
 
-      {/* Form Fields */}
       <div style={{ marginBottom: "20px" }}>
-        <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" style={{ width: "100%", marginBottom: "10px", padding: "10px", fontSize: "14px" }} />
+        <div style={{display: "flex", gap: "10px", alignItems: "center", marginBottom: "10px"}}>
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" style={{ flex: 1, padding: "10px", fontSize: "14px" }} />
+          {linkedJobId && (
+            <div style={{ padding: "5px 10px", background: "#e3f2fd", color: "#1976d2", borderRadius: "4px", fontSize: "12px", display: "flex", alignItems: "center", gap: "5px", border: "1px solid #bbdefb" }}>
+              <Briefcase size={14} />
+              Job Linked
+            </div>
+          )}
+        </div>
         <div style={{ display: "flex", gap: "10px" }}>
           <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Company" style={{ flex: 1, padding: "10px", fontSize: "14px" }} />
           <input type="text" value={position} onChange={e => setPosition(e.target.value)} placeholder="Position" style={{ flex: 1, padding: "10px", fontSize: "14px" }} />
@@ -422,6 +487,12 @@ Return plain text suggestions only. Do not mention html/css elements or tags in 
                 <Zap size={18} />
                 <h4 style={{ margin: 0 }}>AI Helper</h4>
               </div>
+
+              {linkedJobId && (
+                <div style={{fontSize: "12px", color: "#2e7d32", marginBottom: "10px", fontStyle: "italic"}}>
+                  * AI will use your linked job description for context.
+                </div>
+              )}
 
               <textarea 
                 value={aiPrompt} 
