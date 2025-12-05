@@ -171,7 +171,7 @@ async def bulk_import_users(
     cohort_name: str = Form(...),
     uuid: str = Depends(authorize)
 ):
-    """Bulk onboard users via CSV file and send invites."""
+    """Bulk onboard users via CSV file. Skips users who are already in a team."""
     org = await organization_dao.get_admin_org(uuid)
     if not org:
         raise HTTPException(status_code=403, detail="You are not an Enterprise Administrator")
@@ -215,11 +215,7 @@ async def bulk_import_users(
                 "organization_id": org_id,
                 "type": "cohort",
                 "members": [{
-                    "uuid": uuid, 
-                    "role": "admin", 
-                    "status": "active", 
-                    "name": "Admin", 
-                    "joined_at": datetime.utcnow()
+                    "uuid": uuid, "role": "admin", "status": "active", "name": "Admin", "joined_at": datetime.utcnow()
                 }],
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
@@ -227,9 +223,18 @@ async def bulk_import_users(
             team_id = await teams_dao.add_team(team_data)
             await organization_dao.link_team_to_org(org_id, str(team_id))
 
-        # Add Members & Queue Emails
+        # Add Members
         added_count = 0
+        skipped_count = 0
+        
         for user in users_to_add:
+            # 🔍 CHECK IF USER ALREADY EXISTS IN ANY TEAM
+            existing_team = await teams_dao.find_team_by_member_email(user["email"])
+            if existing_team:
+                print(f"⚠️ Skipping {user['email']} - Already in team {existing_team.get('name')}")
+                skipped_count += 1
+                continue
+
             new_member = {
                 "uuid": None,
                 "email": user["email"],
@@ -237,14 +242,12 @@ async def bulk_import_users(
                 "role": "candidate",
                 "status": "invited",
                 "invited_at": datetime.utcnow(),
-                "goals": [],
-                "applications": [],
-                "feedback": []
+                "goals": [], "applications": [], "feedback": []
             }
-            # Add to DB
+            
             await teams_dao.add_member_to_team(team_id, new_member)
             
-            # 📨 QUEUE EMAIL (Non-blocking)
+            # Queue Email
             background_tasks.add_task(
                 send_cohort_invite_email, 
                 to_email=user["email"], 
@@ -264,12 +267,13 @@ async def bulk_import_users(
                 "cohort_name": cohort_name,
                 "users_processed": len(users_to_add),
                 "users_added": added_count,
+                "users_skipped": skipped_count,
                 "filename": file.filename
             }
         })
 
         return {
-            "message": f"Successfully processed {added_count} users. Emails are being sent in the background.",
+            "message": f"Processed {len(users_to_add)} rows. Added {added_count} new users. Skipped {skipped_count} existing users.",
             "cohort_id": str(team_id)
         }
 
