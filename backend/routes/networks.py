@@ -22,8 +22,13 @@ async def add_contact(contact: Contact, uuid: str = Depends(authorize), relation
     except DuplicateKeyError:
         # Contact with this email already exists - user is now associated
         raise HTTPException(200, "Contact added successfully (already in system)")
+    except ValueError as e:
+        raise HTTPException(400, f"Invalid contact data: {str(e)}")
     except Exception as e:
-        raise HTTPException(500, str(e))
+        print(f"Error adding contact: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to add contact: {str(e)}")
     
     return {"contact_id": result}
 
@@ -37,7 +42,8 @@ async def get_contact(contact_id: str, uuid: str = Depends(authorize)):
     if result:
         return {"contact": result}
     else:
-        raise HTTPException(400, "Could not find contact")
+        # Contact not found (may have been deleted by creator)
+        raise HTTPException(404, "Contact not found or has been deleted")
 
 @networks_router.get("/me", tags = ["networks"])
 async def get_all_contacts(uuid: str = Depends(authorize)):
@@ -53,10 +59,14 @@ async def update_contact(contact_id: str, contact: Contact, uuid: str = Depends(
     try:
         result = await networks_dao.update_contact(contact_id, contact.model_dump(exclude_unset = True), uuid)
     except Exception as e:
-        raise HTTPException(500, str(e))
+        error_msg = str(e)
+        # Check if it's an authorization error
+        if "Only the contact creator can update" in error_msg:
+            raise HTTPException(403, error_msg)
+        raise HTTPException(500, error_msg)
     
     if result == 0:
-        raise HTTPException(400, "Could not find contact to update")
+        raise HTTPException(404, "Could not find contact to update")
     else:
         return {"detail": "Sucessfully updated contact"}
 
@@ -65,10 +75,14 @@ async def delete_contact(contact_id: str, uuid: str = Depends(authorize)):
     try:
         result = await networks_dao.delete_contact(contact_id, uuid)
     except Exception as e:
-        raise HTTPException(500, str(e))
+        error_msg = str(e)
+        # Authorization/deletion errors
+        if "User identification required" in error_msg:
+            raise HTTPException(400, error_msg)
+        raise HTTPException(500, error_msg)
     
     if result == 0:
-        raise HTTPException(400, "Could not find contact to delete")
+        raise HTTPException(404, "Could not find contact to delete")
     else:
         return {"detail": "Sucessfully deleted contact"}
 
@@ -171,10 +185,15 @@ async def update_avatar(contact_id: str, media: UploadFile, uuid: str = Depends(
 async def get_all_discovery_contacts(uuid: str = Depends(authorize)):
     try:
         results = await networks_dao.get_all_discovery_contacts(uuid)
+        if results is None:
+            return []
     except Exception as e:
-        raise HTTPException(500, str(e))
+        print(f"Discovery contacts error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to fetch discovery contacts: {str(e)}")
     
-    return results
+    return results if isinstance(results, list) else []
 
 @networks_router.delete("/avatar", tags = ["networks"])
 async def delete_avatar(contact_id: str, uuid: str = Depends(authorize)):
