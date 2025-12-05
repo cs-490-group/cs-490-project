@@ -21,6 +21,49 @@ class OrganizationDAO:
     async def get_admin_org(self, user_uuid: str) -> Optional[dict]:
         """Find which org this user manages"""
         return await self.org_collection.find_one({"admin_ids": user_uuid})
+    
+    async def remove_admin(self, org_id: str, user_uuid: str) -> bool:
+        """Remove a user from the organization's admin list"""
+        result = await self.org_collection.update_one(
+            {"_id": ObjectId(org_id)},
+            {"$pull": {"admin_ids": user_uuid}}
+        )
+        return result.modified_count > 0
+    
+    async def delete_organization(self, org_id: str) -> bool:
+        """Permanently delete an organization"""
+        result = await self.org_collection.delete_one({"_id": ObjectId(org_id)})
+        return result.deleted_count > 0
+    
+    async def get_org_members(self, org_id: str) -> List[Dict]:
+        """Get a flat list of all members across all cohorts in the organization"""
+        pipeline = [
+            # 1. Find all teams belonging to this Org
+            {"$match": {"organization_id": org_id}},
+            # 2. Deconstruct the members array
+            {"$unwind": "$members"},
+            # 3. Filter for Candidates only (optional, remove if you want mentors too)
+            {"$match": {"members.role": "candidate"}},
+            # 4. Format the output
+            {"$project": {
+                "_id": 0,
+                "cohort_name": "$name",
+                "cohort_id": {"$toString": "$_id"},
+                "uuid": "$members.uuid",
+                "name": "$members.name",
+                "email": "$members.email",
+                "role": "$members.role",
+                "status": "$members.status",
+                "joined_at": "$members.joined_at",
+                # Grab high-level stats if available
+                "progress": "$members.progress.overall",
+                "engagement": "$members.kpis.engagement"
+            }},
+            {"$sort": {"joined_at": -1}}
+        ]
+        
+        cursor = self.teams_collection.aggregate(pipeline)
+        return [doc async for doc in cursor]
 
     # ============ COHORT MANAGEMENT ============
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ChevronDown, Plus, Mail, Edit2, Trash2, TrendingUp, CheckCircle, AlertCircle, MessageSquare, Users, Target, Zap, CreditCard, Settings, ArrowRight } from "lucide-react";
+import { ChevronDown, Plus, Mail, Edit2, Trash2, TrendingUp, CheckCircle, AlertCircle, MessageSquare, Users, Target, Zap, CreditCard, Settings, ArrowRight, Clock } from "lucide-react";
 import teamsAPI from "../api/teams";
 import UserProfile from "./otherProfile";
 import TeamReports from "./teams/TeamReports";
@@ -8,8 +8,8 @@ import ProgressSharingHub from "./teams/ProgressSharingHub";
 import MilestoneCelebration from "./teams/MilestoneCelebration";
 import CoachingDashboard from "../components/coaching/CoachingDashboard";
 import ReviewImpactWidget from "../components/ReviewImpactWidget";
-import { Container, Row, Col, Card, Button, Nav, ProgressBar, Badge, Spinner } from 'react-bootstrap';
-import '../styles/resumes.css'; // For dashboard-gradient and hover effects
+import { Container, Row, Col, Card, Button, Nav, ProgressBar, Badge, Spinner, Table } from 'react-bootstrap';
+import '../styles/resumes.css';
 
 function TeamsDashboard() {
   const [team, setTeam] = useState(null);
@@ -25,10 +25,7 @@ function TeamsDashboard() {
   const [progress, setProgress] = useState(null);
   const [currentUserUuid, setCurrentUserUuid] = useState(null);
   const [viewingUserProfile, setViewingUserProfile] = useState(null);
-  
-  // Billing state
-  const [feedback, setFeedback] = useState(""); // For mentor feedback
-  const [selectedPlan, setSelectedPlan] = useState("");
+  const [feedback, setFeedback] = useState(""); 
 
   useEffect(() => {
     const userUuid = localStorage.getItem("uuid"); 
@@ -37,6 +34,28 @@ function TeamsDashboard() {
     fetchTeamProgress();
     fetchTeamReports();
   }, []);
+
+
+  const leaveTeam = async () => {
+  const teamId = localStorage.getItem("teamId");
+  const uuid = localStorage.getItem("uuid");
+
+  if (!teamId || !uuid) return;
+
+  if (!window.confirm("Are you sure you want to leave this team?")) return;
+
+  try {
+    await teamsAPI.removeTeamMember(teamId, uuid);   // or teamsAPI.leaveTeam(...)
+    
+    // Clear team from local storage
+    localStorage.removeItem("teamId");
+
+    // Redirect or reload
+    window.location.reload();
+  } catch (err) {
+    alert("Failed to leave team");
+  }
+};
 
   const fetchTeamData = async () => {
     try {
@@ -50,7 +69,6 @@ function TeamsDashboard() {
       const teamData = await teamsAPI.getTeam(teamId);
       setTeam(teamData);
       setMembers(teamData.members || []);
-      setSelectedPlan(teamData.billing?.plan || "basic");
       setError(null);
     } catch (err) {
       console.error("Failed to fetch team data", err);
@@ -86,19 +104,6 @@ function TeamsDashboard() {
     return progress?.memberProgress?.find(m => m.uuid === memberUuid);
   };
 
-  const extractGoalsData = (memberProgressData) => {
-    if (memberProgressData?.goals && Array.isArray(memberProgressData.goals)) {
-      const completed = memberProgressData.goals.filter(g => g.completed).length;
-      const total = memberProgressData.goals.length;
-      return { completed, total, pending: total - completed };
-    }
-    return {
-      completed: memberProgressData?.completedGoals || 0,
-      total: memberProgressData?.totalGoals || 0,
-      pending: memberProgressData?.pendingGoals || 0
-    };
-  };
-
   const filteredMembers = members.filter((m) => {
     const roleMatch = filterRole === "all" || m.role === filterRole;
     const textMatch = m.name?.toLowerCase().includes(search.toLowerCase()) || 
@@ -112,7 +117,9 @@ function TeamsDashboard() {
       const member = members.find(m => m.uuid === currentUserUuid);
       if (member && member.role) return member.role;
     }
-    return null;
+    // Fallback creator check
+    if (team && team.creator_id === currentUserUuid) return "admin";
+    return "candidate";
   };
 
   const isAdmin = () => getUserRole() === "admin";
@@ -125,13 +132,13 @@ function TeamsDashboard() {
     return false;
   };
 
+  // ============ RENDER FUNCTIONS ============
 
 
   const renderOverview = () => (
     <>
       {team && (
         <Row className="g-4 mb-4">
-          {/* KPI Cards */}
           {[
             { label: "Total Members", value: team.memberCount || 0, icon: <Users size={24} className="text-primary"/> },
             { label: "Admins", value: team.admins || 0, icon: <Settings size={24} className="text-secondary"/> },
@@ -155,7 +162,6 @@ function TeamsDashboard() {
             </Col>
           ))}
 
-          {/* Team Goals */}
           <Col md={12}>
             <Card className="border-0 shadow-sm rounded-4">
               <Card.Header className="bg-white border-0 pt-4 px-4">
@@ -181,7 +187,6 @@ function TeamsDashboard() {
             </Card>
           </Col>
 
-          {/* Team Performance List */}
           {progress && (
             <Col md={12}>
               <Card className="border-0 shadow-sm rounded-4">
@@ -254,7 +259,6 @@ function TeamsDashboard() {
                 )}
             </div>
 
-            {/* Filters */}
             {!isCandidate() && (
                 <div className="d-flex gap-3 mb-4">
                     <input 
@@ -272,7 +276,6 @@ function TeamsDashboard() {
                 </div>
             )}
 
-            {/* Member Grid */}
             <Row className="g-3">
                 {filteredMembers.map(member => {
                     const canView = canViewMemberDetails(member.uuid);
@@ -288,11 +291,32 @@ function TeamsDashboard() {
                                             <h5 className="fw-bold mb-1">{member.name} {isMe && "(You)"}</h5>
                                             <Badge bg="secondary" className="text-uppercase">{member.role}</Badge>
                                         </div>
-                                        {canView && (
-                                            <Button variant="light" size="sm" onClick={() => setViewingUserProfile(member.uuid)}>
-                                                Profile
-                                            </Button>
-                                        )}
+                                        <div className="d-flex gap-1">
+                                            {canView && (
+                                                <Button variant="light" size="sm" onClick={() => setViewingUserProfile(member.uuid)}>
+                                                    Profile
+                                                </Button>
+                                            )}
+                                            {isAdmin() && !isMe && (
+                                                <Button 
+                                                    variant="outline-danger" 
+                                                    size="sm" 
+                                                    onClick={async () => {
+                                                        if(!window.confirm(`Remove ${member.name} from the team?`)) return;
+                                                        try {
+                                                            await teamsAPI.removeTeamMember(team.id, member.uuid);
+                                                            alert("Member removed");
+                                                            fetchTeamData();
+                                                        } catch (e) {
+                                                            alert("Failed to remove member");
+                                                        }
+                                                    }}
+                                                    title="Remove from Team"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {progressData && (
@@ -305,7 +329,6 @@ function TeamsDashboard() {
                                         </div>
                                     )}
 
-                                    {/* Actions */}
                                     <div className="d-grid gap-2">
                                         {canView && (member.role === 'candidate' || isMe) && (
                                             <Button 
@@ -324,7 +347,6 @@ function TeamsDashboard() {
                 })}
             </Row>
 
-            {/* Selected Member Modal / Section */}
             {selectedMember && (
                 <div className="mt-4 p-4 border rounded-3 bg-light">
                     <div className="d-flex justify-content-between align-items-center mb-4">
@@ -339,7 +361,6 @@ function TeamsDashboard() {
                         onGoalsUpdate={() => { fetchTeamData(); }}
                     />
                     
-                    {/* Feedback Section */}
                     <div className="mt-4">
                         <h5 className="fw-bold">Feedback History</h5>
                         <div className="list-group mb-3">
@@ -399,17 +420,144 @@ function TeamsDashboard() {
 
   const renderCoaching = () => <CoachingDashboard />;
 
+  // 👇 RESTORED BILLING RENDER FUNCTION
   const renderBilling = () => {
-    // Simplified billing render for brevity, wrapped in card
+    const plans = [
+      { id: "basic", name: "Basic", price: 99, features: ["Up to 50 members", "Basic reporting", "Goal tracking"] },
+      { id: "standard", name: "Standard", price: 199, features: ["Up to 150 members", "Advanced analytics", "Priority support"] },
+      { id: "premium", name: "Premium", price: 299, features: ["Unlimited members", "Custom integrations", "Dedicated manager"] }
+    ];
+
+    const handlePlanChange = async (newPlan) => {
+      if (newPlan === team.billing?.plan) return;
+      try {
+        await teamsAPI.updateBilling(team.id, { plan: newPlan });
+        alert(`Plan updated to ${newPlan}`);
+        fetchTeamData();
+      } catch (err) {
+        alert("Failed to update plan");
+      }
+    };
+
+    const handleCancelSubscription = async () => {
+      if (!window.confirm("Are you sure?")) return;
+      try {
+        await teamsAPI.cancelSubscription(team.id);
+        alert("Subscription cancelled");
+        fetchTeamData();
+      } catch (err) {
+        alert("Failed to cancel");
+      }
+    };
+
     return (
-        <Card className="border-0 shadow-sm rounded-4">
-            <Card.Body className="p-4 text-center">
-                <CreditCard size={48} className="text-primary mb-3" />
-                <h3 className="fw-bold">Billing Management</h3>
-                <p className="text-muted">Current Plan: <Badge bg="success" className="text-uppercase">{team?.billing?.plan}</Badge></p>
-                {/* Add full billing controls here if needed */}
+      <div className="billing-container">
+        {/* Billing Status Card */}
+        <Card className="border-0 shadow-sm rounded-4 mb-4">
+            <Card.Header className="bg-white border-0 pt-4 px-4">
+                 <div className="d-flex justify-content-between align-items-center">
+                    <h4 className="fw-bold text-dark mb-0">Subscription Status</h4>
+                    <Badge bg="success" className="px-3 py-2">ACTIVE</Badge>
+                 </div>
+            </Card.Header>
+            <Card.Body className="p-4">
+                 <Row className="g-4">
+                     <Col md={6}>
+                         <div className="p-3 bg-light rounded-3">
+                             <small className="text-muted text-uppercase fw-bold">Current Plan</small>
+                             <h2 className="text-primary fw-bold text-capitalize mb-0">{team.billing?.plan || "Basic"}</h2>
+                             <p className="mb-0 text-muted">${team.billing?.price || 99}/month</p>
+                         </div>
+                     </Col>
+                     <Col md={6}>
+                         <div className="p-3 bg-light rounded-3">
+                             <small className="text-muted text-uppercase fw-bold">Payment Method</small>
+                             <div className="d-flex align-items-center gap-2 mt-1">
+                                 <CreditCard size={24} className="text-dark"/>
+                                 <div>
+                                     <div className="fw-bold text-dark">•••• {team.billing?.last4 || "4242"}</div>
+                                     <div className="small text-muted">Exp {team.billing?.expMonth || 12}/{team.billing?.expYear || 25}</div>
+                                 </div>
+                             </div>
+                         </div>
+                     </Col>
+                 </Row>
             </Card.Body>
         </Card>
+
+        {/* Plan Selection */}
+        <Row className="g-4 mb-4">
+            {plans.map(plan => (
+                <Col md={4} key={plan.id}>
+                    <Card className={`h-100 border-0 shadow-sm rounded-4 ${team.billing?.plan === plan.id ? 'ring-2 ring-primary' : ''}`}>
+                        <Card.Body className="p-4 d-flex flex-column">
+                            <div className="mb-3">
+                                <h4 className="fw-bold mb-1">{plan.name}</h4>
+                                <h2 className="text-primary fw-bold">${plan.price}<span className="fs-6 text-muted">/mo</span></h2>
+                            </div>
+                            <ul className="list-unstyled mb-4 flex-grow-1">
+                                {plan.features.map((f, i) => (
+                                    <li key={i} className="d-flex align-items-center gap-2 mb-2 text-muted small">
+                                        <CheckCircle size={14} className="text-success"/> {f}
+                                    </li>
+                                ))}
+                            </ul>
+                            <Button 
+                                variant={team.billing?.plan === plan.id ? "success" : "outline-primary"}
+                                className="w-100 fw-bold"
+                                disabled={team.billing?.plan === plan.id}
+                                onClick={() => handlePlanChange(plan.id)}
+                            >
+                                {team.billing?.plan === plan.id ? "Current Plan" : "Upgrade"}
+                            </Button>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            ))}
+        </Row>
+
+        {/* Invoice History */}
+        <Card className="border-0 shadow-sm rounded-4 mb-4">
+            <Card.Header className="bg-white border-0 pt-4 px-4">
+                <h5 className="fw-bold mb-0">Invoice History</h5>
+            </Card.Header>
+            <Card.Body className="p-0">
+                <Table hover className="mb-0 align-middle">
+                    <thead className="bg-light">
+                        <tr>
+                            <th className="px-4 border-0 text-muted small text-uppercase">Date</th>
+                            <th className="border-0 text-muted small text-uppercase">Amount</th>
+                            <th className="border-0 text-muted small text-uppercase">Status</th>
+                            <th className="px-4 border-0 text-end text-muted small text-uppercase">Invoice</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {team.billing?.invoices?.length > 0 ? team.billing.invoices.map((inv, i) => (
+                            <tr key={i}>
+                                <td className="px-4">{new Date(inv.date).toLocaleDateString()}</td>
+                                <td className="fw-bold">${inv.amount}</td>
+                                <td><Badge bg="success" className="fw-normal">Paid</Badge></td>
+                                <td className="px-4 text-end"><Button variant="link" size="sm">Download</Button></td>
+                            </tr>
+                        )) : (
+                            <tr><td colSpan="4" className="text-center py-4 text-muted">No invoices found</td></tr>
+                        )}
+                    </tbody>
+                </Table>
+            </Card.Body>
+        </Card>
+
+        {/* Danger Zone */}
+        <Card className="border-danger shadow-sm rounded-4 bg-danger bg-opacity-10">
+            <Card.Body className="p-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 className="text-danger fw-bold mb-1">Cancel Subscription</h5>
+                    <p className="text-danger text-opacity-75 mb-0 small">This will downgrade you to the free plan immediately.</p>
+                </div>
+                <Button variant="danger" onClick={handleCancelSubscription}>Cancel Plan</Button>
+            </Card.Body>
+        </Card>
+      </div>
     );
   };
 
@@ -438,6 +586,12 @@ function TeamsDashboard() {
                 {team?.name}
             </h1>
             <p className="opacity-75">Team Dashboard</p>
+        </div>
+
+        <div>
+          <button className="btn btn-danger" onClick={leaveTeam}>
+  Leave Team
+</button>
         </div>
 
         {/* Navigation Tabs - Styled as Card */}
