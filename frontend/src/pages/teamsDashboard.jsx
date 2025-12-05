@@ -5,6 +5,7 @@ import UserProfile from "./otherProfile";
 import TeamReports from "./teams/TeamReports";
 import GoalTracker from "./teams/GoalTracker";
 import ProgressSharingHub from "./teams/ProgressSharingHub";
+import { useNavigate } from 'react-router-dom';
 import MilestoneCelebration from "./teams/MilestoneCelebration";
 import CoachingDashboard from "../components/coaching/CoachingDashboard";
 import ReviewImpactWidget from "../components/ReviewImpactWidget";
@@ -26,6 +27,7 @@ function TeamsDashboard() {
   const [currentUserUuid, setCurrentUserUuid] = useState(null);
   const [viewingUserProfile, setViewingUserProfile] = useState(null);
   const [feedback, setFeedback] = useState(""); 
+  const navigate = useNavigate();
 
   useEffect(() => {
     const userUuid = localStorage.getItem("uuid"); 
@@ -51,7 +53,8 @@ function TeamsDashboard() {
     localStorage.removeItem("teamId");
 
     // Redirect or reload
-    window.location.reload();
+    navigate("/setup-team");
+    
   } catch (err) {
     alert("Failed to leave team");
   }

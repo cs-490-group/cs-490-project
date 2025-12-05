@@ -5,13 +5,20 @@ from typing import List, Optional, Dict
 
 class OrganizationDAO:
     def __init__(self):
+        # 1. ORG COLLECTION (For the Institution itself)
         self.org_collection = db_client.get_collection("organizations")
+        
+        # 2. TEAMS COLLECTION (For Cohorts)
         self.teams_collection = db_client.get_collection(TEAMS)
+        
+        # 3. JOBS COLLECTION (For Analytics)
         self.jobs_collection = db_client.get_collection(JOBS)
 
     # ============ ORG MANAGEMENT ============
 
     async def create_organization(self, data: dict) -> str:
+        """Create a new Organization document"""
+        # 🚨 ENSURE THIS USES org_collection, NOT teams_collection
         result = await self.org_collection.insert_one(data)
         return str(result.inserted_id)
 
@@ -68,33 +75,108 @@ class OrganizationDAO:
     # ============ COHORT MANAGEMENT ============
 
     async def link_team_to_org(self, org_id: str, team_id: str) -> bool:
-        """Mark a team as a 'Cohort' belonging to this Org"""
-        # 1. Update Org array
+        """
+        Links a Team (Cohort) to an Organization.
+        Updates BOTH collections.
+        """
+        # 1. Add Team ID to Organization's cohort list
         await self.org_collection.update_one(
             {"_id": ObjectId(org_id)},
             {"$addToSet": {"cohort_ids": team_id}}
         )
-        # 2. Tag the Team document
+        
+        # 2. Add Org ID to Team document
         result = await self.teams_collection.update_one(
             {"_id": ObjectId(team_id)},
             {"$set": {"organization_id": org_id, "type": "cohort"}}
         )
         return result.modified_count > 0
 
+    async def get_org_cohorts(self, org_id: str) -> List[Dict]:
+        """Get detailed stats for all cohorts (teams) in the organization"""
+        cursor = self.teams_collection.find({"organization_id": org_id})
+        cohorts = []
+        
+        async for team in cursor:
+            members = team.get("members", [])
+            candidates = [m for m in members if m.get("role") == "candidate"]
+            
+            total_students = len(candidates)
+            
+            if total_students == 0:
+                cohorts.append({
+                    "id": str(team["_id"]),
+                    "name": team.get("name"),
+                    "students": 0,
+                    "activity_score": "N/A",
+                    "placement_rate": 0,
+                    "status": "Active"
+                })
+                continue
+                
+            # Activity Score
+            total_engagement = sum(c.get("kpis", {}).get("engagement", 0) for c in candidates)
+            avg_engagement = total_engagement / total_students
+            if avg_engagement > 70: activity_label = "High"
+            elif avg_engagement > 40: activity_label = "Moderate"
+            else: activity_label = "Low"
+            
+            # Placement Rate
+            placed_count = 0
+            for c in candidates:
+                apps = c.get("applications", [])
+                if any(app.get("status") == "Offer" for app in apps):
+                    placed_count += 1
+            
+            placement_rate = round((placed_count / total_students) * 100)
+            
+            cohorts.append({
+                "id": str(team["_id"]),
+                "name": team.get("name"),
+                "students": total_students,
+                "activity_score": activity_label,
+                "placement_rate": placement_rate,
+                "status": "Active"
+            })
+            
+        return cohorts
+
+    async def get_org_members(self, org_id: str) -> List[Dict]:
+        """Get a flat list of all members across all cohorts"""
+        pipeline = [
+            {"$match": {"organization_id": org_id}},
+            {"$unwind": "$members"},
+            {"$match": {"members.role": "candidate"}},
+            {"$project": {
+                "_id": 0,
+                "cohort_name": "$name",
+                "cohort_id": {"$toString": "$_id"},
+                "uuid": "$members.uuid",
+                "name": "$members.name",
+                "email": "$members.email",
+                "role": "$members.role",
+                "status": "$members.status",
+                "joined_at": "$members.joined_at",
+                "progress": "$members.progress.overall",
+                "engagement": "$members.kpis.engagement"
+            }},
+            {"$sort": {"joined_at": -1}}
+        ]
+        
+        cursor = self.teams_collection.aggregate(pipeline)
+        if hasattr(cursor, '__await__'): cursor = await cursor
+        return [doc async for doc in cursor]
+
     # ============ ENTERPRISE ANALYTICS ============
 
     async def get_program_effectiveness(self, org_id: str) -> Dict:
-        """
-        Aggregates stats across ALL cohorts to show program health.
-        """
-        # 1. Get all teams/cohorts in this org
+        """Aggregates stats across ALL cohorts"""
         org = await self.get_organization(org_id)
         if not org: return {}
         
         cohort_ids = [ObjectId(tid) for tid in org.get("cohort_ids", [])]
         
-        # 2. Aggregate Member Stats
-        # FIX: Await the aggregate call first to get the cursor
+        # 1. Member Stats
         pipeline = [
             {"$match": {"_id": {"$in": cohort_ids}}},
             {"$unwind": "$members"},
@@ -103,25 +185,16 @@ class OrganizationDAO:
                 "total_students": {"$sum": 1},
                 "active_students": {
                     "$sum": {"$cond": [{"$eq": ["$members.status", "active"]}, 1, 0]}
-                },
-                # Check if offers > 0
-                "placed_students": {
-                    "$sum": {"$cond": [{"$gt": ["$members.kpis.offers", 0]}, 1, 0]}
                 }
             }}
         ]
         
-        # Robust await logic for aggregate
         cursor = self.teams_collection.aggregate(pipeline)
-        if hasattr(cursor, '__await__'):
-            cursor = await cursor
-            
+        if hasattr(cursor, '__await__'): cursor = await cursor
         member_stats = await cursor.to_list(1)
-        
-        stats = member_stats[0] if member_stats else {"total_students": 0, "active_students": 0, "placed_students": 0}
+        stats = member_stats[0] if member_stats else {"total_students": 0, "active_students": 0}
 
-        # Aggregate Activity (ROI)
-        # Find all students
+        # 2. Activity (ROI)
         teams = await self.teams_collection.find(
             {"_id": {"$in": cohort_ids}}, 
             {"members.uuid": 1}
@@ -132,8 +205,6 @@ class OrganizationDAO:
             for m in t.get("members", []):
                 if m.get("uuid"): student_uuids.append(m["uuid"])
         
-        # Count jobs for these students
-       
         job_pipeline = [
             {"$match": {"uuid": {"$in": student_uuids}}},
             {"$group": {
@@ -143,17 +214,10 @@ class OrganizationDAO:
         ]
         
         job_cursor = self.jobs_collection.aggregate(job_pipeline)
-        if hasattr(job_cursor, '__await__'):
-            job_cursor = await job_cursor
-            
+        if hasattr(job_cursor, '__await__'): job_cursor = await job_cursor
         job_stats = await job_cursor.to_list(None)
         
-        # Format job funnel
-        funnel = {
-            "Applied": 0,
-            "Interview": 0,
-            "Offer": 0
-        }
+        funnel = {"Applied": 0, "Interview": 0, "Offer": 0}
         for status_group in job_stats:
             status_key = status_group["_id"]
             if status_key in funnel:
@@ -176,58 +240,5 @@ class OrganizationDAO:
                 "total_applications": funnel["Applied"] + funnel["Interview"] + funnel["Offer"]
             }
         }
-    
-    async def get_org_cohorts(self, org_id: str) -> List[Dict]:
-        """Get detailed stats for all cohorts in the organization"""
-        # Find all teams belonging to this org
-        cursor = self.teams_collection.find({"organization_id": org_id})
-        cohorts = []
-        
-        async for team in cursor:
-            members = team.get("members", [])
-            candidates = [m for m in members if m.get("role") == "candidate"]
-            
-            total_students = len(candidates)
-            
-            
-            if total_students == 0:
-                cohorts.append({
-                    "id": str(team["_id"]),
-                    "name": team.get("name"),
-                    "students": 0,
-                    "activity_score": "N/A",
-                    "placement_rate": 0,
-                    "status": "Active"
-                })
-                continue
-                
-            
-            total_engagement = sum(c.get("kpis", {}).get("engagement", 0) for c in candidates)
-            avg_engagement = total_engagement / total_students
-            
-            if avg_engagement > 70: activity_label = "High"
-            elif avg_engagement > 40: activity_label = "Moderate"
-            else: activity_label = "Low"
-            
-            
-            placed_count = 0
-            for c in candidates:
-                # Check applications for 'Offer' status
-                apps = c.get("applications", [])
-                if any(app.get("status") == "Offer" for app in apps):
-                    placed_count += 1
-            
-            placement_rate = round((placed_count / total_students) * 100)
-            
-            cohorts.append({
-                "id": str(team["_id"]),
-                "name": team.get("name"),
-                "students": total_students,
-                "activity_score": activity_label,
-                "placement_rate": placement_rate,
-                "status": "Active" # You could add logic for "Archived" later
-            })
-            
-        return cohorts
 
 organization_dao = OrganizationDAO()
