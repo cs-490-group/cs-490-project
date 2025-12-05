@@ -76,6 +76,7 @@ function JobSelectionModal({ letterId, onClose, onSelect, showFlash }) {
   useEffect(() => {
     const loadJobs = async () => {
       try {
+        console.log()
         const res = await JobsAPI.getAll();
         setJobs(res.data || []);
       } catch (err) {
@@ -131,37 +132,6 @@ function JobSelectionModal({ letterId, onClose, onSelect, showFlash }) {
           <p style={{ color: "#666" }}>No jobs found</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {jobs.map((job) => (
-              <button
-                key={job.id || job._id}
-                onClick={() => handleModalJobSelect(job.id || job._id)}
-                style={{
-                  padding: "12px 16px",
-                  textAlign: "left",
-                  backgroundColor: "#f5f5f5",
-                  border: "1px solid #ddd",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  fontSize: "14px",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#e3f2fd";
-                  e.target.style.borderColor = "#2196f3";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "#f5f5f5";
-                  e.target.style.borderColor = "#ddd";
-                }}
-              >
-                <div style={{ fontWeight: "500", color: "#333" }}>
-                  {job.title || "Untitled Position"}
-                </div>
-                <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                  {job.company || "Company"}
-                </div>
-              </button>
-            ))}
           </div>
         )}
 
@@ -615,12 +585,6 @@ export default function CoverLetterList() {
                       style={{ padding: "6px 12px", background: "#ffa500", color: "white", border: "none", borderRadius: "4px" }}
                     >
                       Edit
-                    </button>
-                    <button 
-                      onClick={() => handleJobAdd(letter.id)}
-                      style={{ padding: "6px 12px", background: "#2196f3", color: "white", border: "none", borderRadius: "4px" }}
-                    >
-                      Add to Job
                     </button>
                     <button
                       onClick={() => handleDelete(letter.id)}
