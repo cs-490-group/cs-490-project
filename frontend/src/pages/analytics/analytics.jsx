@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import TimelineAnalytics from "./TimelineAnalytics";
 import JobAnalytics from "./JobAnalytics";
-import NetworkAnalytics from "./NetworkAnalytics";
+import NetworkAnalytics from "../network/NetworkingAnalytics";
 import SkillsAnalytics from "./SkillsAnalytics";
 import PerformanceAnalytics from "./PerformanceAnalytics";
 import SalaryAnalytics from "./SalaryAnalytics";
@@ -16,8 +16,8 @@ const AnalyticsPage = () => {
     { id: "goals", name: "Goal Tracking", icon: "🎯" },
     { id: "salary", name: "Salary Analytics", icon: "💰" },
     { id: "time", name: "Time Tracking", icon: "⏱️" },
-    { id: "timeline", name: "Timeline Analytics", icon: "📈" },
     { id: "jobs", name: "Job Analytics", icon: "💼" },
+    { id: "timeline", name: "Timeline Analytics", icon: "📈" },
     { id: "network", name: "Network Analytics", icon: "🌐" },
     { id: "skills", name: "Skills Analytics", icon: "🧠" },
     { id: "performance", name: "Performance Analytics", icon: "⚡" },
@@ -28,8 +28,8 @@ const AnalyticsPage = () => {
       case "goals": return <GoalTracking />;
       case "salary": return <SalaryAnalytics />;
       case "time": return <TimeTracking />;
-      case "timeline": return <TimelineAnalytics />;
       case "jobs": return <JobAnalytics />;
+      case "timeline": return <TimelineAnalytics />;
       case "network": return <NetworkAnalytics />;
       case "skills": return <SkillsAnalytics />;
       case "performance": return <PerformanceAnalytics />;

@@ -61,14 +61,31 @@ export default function OfferForm({ offer, onSave, onCancel }) {
         fetchJobs();
     }, []);
 
+    // Helper function to safely extract string value from potentially nested objects
+    const getStringValue = (value) => {
+        if (typeof value === 'string') {
+            return value;
+        }
+        if (typeof value === 'object' && value !== null) {
+            // Handle common object structures
+            if (value.name) return value.name;
+            if (value.location) return value.location;
+            if (value.city && value.state) return `${value.city}, ${value.state}`;
+            // Return JSON string as fallback
+            return JSON.stringify(value);
+        }
+        return String(value || '');
+    };
+
     const handleJobSelect = (selectedJobId) => {
         setJobId(selectedJobId);
         if (selectedJobId) {
             const selectedJob = jobs.find(j => j._id === selectedJobId);
             if (selectedJob) {
-                setJobTitle(selectedJob.job_title || "");
-                setCompany(selectedJob.company || "");
-                setLocation(selectedJob.location || "");
+                // Use job_title if available, otherwise fallback to title
+                setJobTitle(getStringValue(selectedJob.job_title || selectedJob.title));
+                setCompany(getStringValue(selectedJob.company));
+                setLocation(getStringValue(selectedJob.location));
             }
         }
     };
@@ -144,11 +161,17 @@ export default function OfferForm({ offer, onSave, onCancel }) {
                             disabled={loadingJobs}
                         >
                             <option value="">-- Select a job to auto-fill details --</option>
-                            {jobs.map((job) => (
-                                <option key={job._id} value={job._id}>
-                                    {job.job_title} at {job.company} ({job.location})
-                                </option>
-                            ))}
+                            {jobs.map((job) => {
+                                const jobTitle = getStringValue(job.job_title || job.title);
+                                const company = getStringValue(job.company);
+                                const location = getStringValue(job.location);
+                                
+                                return (
+                                    <option key={job._id} value={job._id}>
+                                        {jobTitle} at {company} ({location})
+                                    </option>
+                                );
+                            })}
                         </Form.Select>
                         <Form.Text className="text-muted">
                             Select a job from your saved postings to auto-fill job title, company, and location

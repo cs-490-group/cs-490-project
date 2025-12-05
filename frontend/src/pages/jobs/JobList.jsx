@@ -9,6 +9,7 @@ import MaterialsAnalytics from "./materials/MaterialsAnalytics";
 import JobStatistics from "./JobStatistics";
 import PerformanceDashboard from "./performance/PerformanceDashboard";
 import FloatingDeadlineWidget from "./FloatingDeadlineWidget";
+import SalaryResearch from "./SalaryResearch"; // Add this import
 import JobsAPI from "../../api/jobs";
 import ProfilesAPI from "../../api/profiles";
 import { Container, Spinner } from 'react-bootstrap';
@@ -22,7 +23,6 @@ import { useJobOperations } from "./hooks/useJobOperations";
 import JobMatchingPage from "./JobMatchingPage";
 import SkillsGapPage from "./SkillsGapPage";
 import InterviewInsights from "./InterviewInsights";
-import SalaryResearch from "./SalaryResearch";
 
 export default function JobList() {
   const [jobs, setJobs] = useState([]);
@@ -304,12 +304,13 @@ export default function JobList() {
         <PerformanceDashboard jobs={jobs} />
       )}
 
-      {view === "salary" && (
-        <SalaryResearch />
-      )}
-
       {view === "interviewInsights" && (
         <InterviewInsights />
+      )}
+
+      {/* Add Salary Research View */}
+      {view === "salary" && (
+        <SalaryResearch />
       )}
 
       {view === "pipeline" && (
