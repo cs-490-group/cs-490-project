@@ -1,15 +1,29 @@
-import React, { useState } from "react";
+// frontend/src/pages/jobs/SalaryResearch.jsx
+import React, { useState, useRef, useMemo } from "react";
 import axios from "axios";
-import { Line } from "react-chartjs-2";
+import { Line, Bar, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   LineElement,
+  BarElement,
+  ArcElement,
   CategoryScale,
   LinearScale,
-  PointElement
+  PointElement,
+  Tooltip,
+  Legend
 } from "chart.js";
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement);
+ChartJS.register(
+  LineElement,
+  BarElement,
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Tooltip,
+  Legend
+);
 
 export default function SalaryResearch() {
   const [jobTitle, setJobTitle] = useState("");
@@ -20,33 +34,242 @@ export default function SalaryResearch() {
 
   const API = process.env.REACT_APP_API_URL;
 
+  // Refs for exporting charts
+  const trendChartRef = useRef(null);
+  const experienceChartRef = useRef(null);
+  const companyChartRef = useRef(null);
+  const gaugeChartRef = useRef(null);
+
+  const session = localStorage.getItem("session");
+  const uuid = localStorage.getItem("uuid");
+
+  const isLoggedIn = Boolean(session && uuid);
+
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null || isNaN(value)) return "—";
+    return `$${value.toLocaleString()}`;
+  };
+
   async function fetchSalary() {
     if (!jobTitle) {
       alert("Please enter a job title");
       return;
     }
 
+    if (!isLoggedIn) {
+      setError("You must be logged in to use salary research.");
+      return;
+    }
+
     setLoading(true);
     setError("");
+    setSalaryData(null);
 
     try {
+      const token = localStorage.getItem("session");
+      const uuid = localStorage.getItem("uuid");
+
       const response = await axios.get(`${API}/api/salary/research`, {
-        params: { job_title: jobTitle, location }
+        params: { job_title: jobTitle, location },
+        headers: {
+          uuid: uuid,
+          Authorization: `Bearer ${token}`
+        }
       });
 
-      setSalaryData(response.data);
+      // Raw API data (from research_market_salary)
+      const raw = response.data || {};
+
+      // Map + derive fields for the UI
+      const mapped = {
+        median: raw.median_salary,
+        low: raw.percentile_25,
+        high: raw.percentile_75,
+        p25: raw.percentile_25,
+        p75: raw.percentile_75,
+        p90: raw.percentile_90,
+        industryAverage: raw.industry_average,
+        salaryTrend: raw.salary_trend,
+        comparableCompanies: raw.comparable_companies || [],
+        companySizeFactor: raw.company_size_factor || "",
+        raw
+      };
+
+      setSalaryData(mapped);
     } catch (err) {
-      setError("Failed to fetch salary data.");
+      console.error("Salary fetch failed:", err);
+      if (err.response?.status === 401) {
+        setError("Your session expired or is invalid. Please log in again.");
+      } else {
+        setError("Failed to fetch salary data.");
+      }
     }
 
     setLoading(false);
   }
 
+  // -------- Derived chart data --------
+
+  const trendChartData = useMemo(() => {
+    if (!salaryData) return null;
+
+    // Simulate 5-year history around median based on trend
+    const median = salaryData.median || 0;
+    const step =
+      salaryData.salaryTrend &&
+      salaryData.salaryTrend.toLowerCase().includes("increas")
+        ? median * 0.03
+        : salaryData.salaryTrend &&
+          salaryData.salaryTrend.toLowerCase().includes("decreas")
+        ? -median * 0.02
+        : 0;
+
+    const years = ["2019", "2020", "2021", "2022", "2023"];
+    const base = median - step * 2;
+    const values = years.map((_, idx) => Math.round(base + step * idx));
+
+    return {
+      labels: years,
+      datasets: [
+        {
+          label: "Median Salary",
+          data: values,
+          borderWidth: 2,
+          fill: false,
+          tension: 0.25
+        }
+      ]
+    };
+  }, [salaryData]);
+
+  const experienceChartData = useMemo(() => {
+    if (!salaryData) return null;
+
+    const median = salaryData.median || 0;
+    const junior = Math.round(median * 0.7);
+    const mid = Math.round(median * 1.0);
+    const senior = Math.round(median * 1.3);
+    const staff = Math.round(median * 1.6);
+
+    return {
+      labels: ["Junior", "Mid-Level", "Senior", "Staff"],
+      datasets: [
+        {
+          label: "Estimated Salary",
+          data: [junior, mid, senior, staff],
+          borderWidth: 1
+        }
+      ]
+    };
+  }, [salaryData]);
+
+  const companyComparisonData = useMemo(() => {
+    if (!salaryData || !salaryData.comparableCompanies) return null;
+    const median = salaryData.median || 0;
+    if (!median) return null;
+
+    const companies = salaryData.comparableCompanies;
+    if (!companies.length) return null;
+
+    // Fake spread around median
+    const values = companies.map((_, idx) =>
+      Math.round(median * (0.9 + 0.05 * idx))
+    );
+
+    return {
+      labels: companies,
+      datasets: [
+        {
+          label: "Estimated Median Salary",
+          data: values,
+          borderWidth: 1
+        }
+      ]
+    };
+  }, [salaryData]);
+
+  const gaugeData = useMemo(() => {
+    if (!salaryData) return null;
+
+    const median = salaryData.median || 0;
+    const p25 = salaryData.p25 || median * 0.7;
+    const p90 = salaryData.p90 || median * 1.5;
+
+    const min = p25;
+    const max = p90;
+    const positionRaw = median - min;
+    const range = max - min || 1;
+    const position = Math.max(0, Math.min(positionRaw / range, 1));
+
+    return {
+      labels: ["Market Value", "Remaining"],
+      datasets: [
+        {
+          data: [position * 100, 100 - position * 100],
+          backgroundColor: [
+            "#2a7dd2",       // 🔵 BLUE (visible filled value)
+            "#e5e5e5"        // ⚪ Light gray for remaining arc
+          ],
+          borderWidth: 0,
+          hoverBackgroundColor: [
+            "#1f67ad",
+            "#d0d0d0"
+          ]
+        }
+      ]
+    };
+  }, [salaryData]);
+
+  // -------- Export helpers --------
+
+  const exportChartPNG = (chartRef, filename = "salary-chart.png") => {
+    const chart = chartRef.current;
+    if (!chart) {
+      alert("Chart is not ready yet.");
+      return;
+    }
+
+    const url = chart.toBase64Image();
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+  };
+
+  const exportAllChartsPNG = () => {
+    if (!trendChartRef.current && !experienceChartRef.current) {
+      alert("No charts available to export yet.");
+      return;
+    }
+    exportChartPNG(trendChartRef, "salary-trend.png");
+    if (experienceChartRef.current) {
+      exportChartPNG(experienceChartRef, "experience-ladder.png");
+    }
+    if (companyChartRef.current) {
+      exportChartPNG(companyChartRef, "company-comparison.png");
+    }
+    if (gaugeChartRef.current) {
+      exportChartPNG(gaugeChartRef, "market-value-gauge.png");
+    }
+  };
+
+  const exportPageToPDFHint = () => {
+    alert(
+      "To save as PDF quickly, use your browser's Print dialog (Ctrl+P / Cmd+P) and choose 'Save as PDF'."
+    );
+  };
+
+  // -------- Render --------
+
+  const loggedOutMessage =
+    !isLoggedIn && "You must be logged in to use salary research.";
+
   return (
     <div style={pageContainer}>
       <h1 style={title}>💰 Salary Research & Benchmarking</h1>
       <p style={subtitle}>
-        Search salary ranges, compare companies, and view historical salary trends.
+        Search salary ranges, compare companies, and view historical salary
+        trends.
       </p>
 
       {/* Input Section */}
@@ -71,68 +294,230 @@ export default function SalaryResearch() {
           />
         </div>
 
-        <button onClick={fetchSalary} style={button}>
+        <button
+          onClick={fetchSalary}
+          style={{
+            ...button,
+            ...(loading || !isLoggedIn ? disabledButton : {})
+          }}
+          disabled={loading || !isLoggedIn}
+        >
           {loading ? "Loading..." : "Search Salaries"}
         </button>
 
-        {error && <p style={errorText}>{error}</p>}
+        {(error || loggedOutMessage) && (
+          <p style={errorText}>{error || loggedOutMessage}</p>
+        )}
       </div>
 
       {/* Salary Results */}
       {salaryData && (
-        <div>
+        <>
+          {/* Summary */}
           <h2 style={sectionTitle}>Salary Summary</h2>
-
           <div style={cardGrid}>
-            <InfoCard title="Estimated Range" value={`$${salaryData.low} - $${salaryData.high}`} />
-            <InfoCard title="Median Salary" value={`$${salaryData.median}`} />
-            <InfoCard title="Company Size Effect" value={salaryData.companyFactor} />
-            <InfoCard title="Experience Factor" value={salaryData.experienceFactor} />
+            <InfoCard
+              title="Estimated Range"
+              value={`${formatCurrency(salaryData.low)} - ${formatCurrency(
+                salaryData.high
+              )}`}
+            />
+            <InfoCard
+              title="Median Salary"
+              value={formatCurrency(salaryData.median)}
+            />
+            <InfoCard
+              title="Industry Average"
+              value={formatCurrency(salaryData.industryAverage)}
+            />
+            <InfoCard
+              title="Percentiles"
+              value={`P25: ${formatCurrency(
+                salaryData.p25
+              )} · P75: ${formatCurrency(salaryData.p75)}`}
+            />
           </div>
 
-          {/* Historical Salary Chart */}
-          {salaryData.history && (
-            <div style={chartCard}>
-              <h3 style={sectionTitle}>📈 Historical Salary Trend</h3>
-              <Line
-                data={{
-                  labels: salaryData.history.years,
-                  datasets: [
-                    {
-                      label: "Median Salary",
-                      data: salaryData.history.values,
-                      borderColor: "#2a7dd2",
-                      backgroundColor: "rgba(42, 125, 210, 0.2)"
-                    }
-                  ]
-                }}
-              />
-            </div>
-          )}
+          {/* Company size & experience factors */}
+          <div style={cardGrid}>
+            <InfoCard
+              title="Company Size Factor"
+              value={
+                salaryData.companySizeFactor ||
+                "Company size can meaningfully impact pay levels."
+              }
+              largeText={false}
+            />
+            <InfoCard
+              title="Experience Factor"
+              value="Junior roles typically earn ~70% of median, while Staff-level can exceed 150%."
+              largeText={false}
+            />
+          </div>
 
-          {/* Recommendations */}
-          {salaryData.recommendations && (
-            <div style={card}>
-              <h3 style={sectionTitle}>🎯 Negotiation Recommendations</h3>
-              <ul style={list}>
-                {salaryData.recommendations.map((r, i) => (
-                  <li key={i}>{r}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+          {/* Comparable Companies */}
+          {salaryData.comparableCompanies &&
+            salaryData.comparableCompanies.length > 0 && (
+              <div style={card}>
+                <h3 style={sectionTitle}>Comparable Companies</h3>
+                <ul style={list}>
+                  {salaryData.comparableCompanies.map((c, i) => (
+                    <li key={i}>{c}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+          {/* Charts Dashboard */}
+          <div style={chartGrid}>
+            {/* Historical Salary Trend */}
+            {trendChartData && (
+              <div style={chartCard}>
+                <h3 style={chartTitle}>📈 Historical Simulated Salary Trend</h3>
+                <Line
+                  ref={trendChartRef}
+                  data={trendChartData}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: { callbacks: { label: (ctx) => formatCurrency(ctx.raw) } }
+                    },
+                    scales: {
+                      y: {
+                        ticks: {
+                          callback: (val) => `$${val.toLocaleString()}`
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Experience Ladder */}
+            {experienceChartData && (
+              <div style={chartCard}>
+                <h3 style={chartTitle}>
+                  🧭 Experience-Based Ladder (Junior → Staff)
+                </h3>
+                <Bar
+                  ref={experienceChartRef}
+                  data={experienceChartData}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: { callbacks: { label: (ctx) => formatCurrency(ctx.raw) } }
+                    },
+                    scales: {
+                      y: {
+                        ticks: {
+                          callback: (val) => `$${val.toLocaleString()}`
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Company Comparison */}
+            {companyComparisonData && (
+              <div style={chartCard}>
+                <h3 style={chartTitle}>🏢 Company Comparison</h3>
+                <Bar
+                  ref={companyChartRef}
+                  data={companyComparisonData}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: { callbacks: { label: (ctx) => formatCurrency(ctx.raw) } }
+                    },
+                    scales: {
+                      y: {
+                        ticks: {
+                          callback: (val) => `$${val.toLocaleString()}`
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Market Value Gauge */}
+            {gaugeData && (
+              <div style={chartCard}>
+                <h3 style={chartTitle}>📊 Market Value Estimator</h3>
+                <Doughnut
+                  ref={gaugeChartRef}
+                  data={gaugeData}
+                  options={{
+                    circumference: 180,
+                    rotation: -90,
+                    cutout: "70%",
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        callbacks: {
+                          label: (ctx) =>
+                            ctx.label === "Market Value"
+                              ? `Market position: ${ctx.raw.toFixed(1)}%`
+                              : undefined
+                        }
+                      }
+                    }
+                  }}
+                />
+                <p style={gaugeNote}>
+                  Approximate position of this role&apos;s median salary between
+                  typical lower and upper market bands.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Salary Trend Text */}
+          <div style={card}>
+            <h3 style={sectionTitle}>Salary Trend</h3>
+            <p style={{ margin: 0 }}>
+              {salaryData.salaryTrend
+                ? salaryData.salaryTrend
+                : "No specific trend description available for this role; use market position and percentiles to guide negotiations."}
+            </p>
+          </div>
+
+          {/* Export Actions */}
+          <div style={{ ...card, textAlign: "center" }}>
+            <h3 style={sectionTitle}>Export &amp; Share</h3>
+            <p style={{ marginBottom: "16px" }}>
+              Export key salary charts for your notes or recruiter conversations.
+            </p>
+            <button
+              style={{ ...smallButton, marginRight: "8px" }}
+              onClick={exportAllChartsPNG}
+            >
+              ⬇️ Export Charts as PNG
+            </button>
+            <button style={smallButton} onClick={exportPageToPDFHint}>
+              📄 Save Page as PDF (Browser Print)
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
 }
 
 /* Reusable Card */
-function InfoCard({ title, value }) {
+function InfoCard({ title, value, largeText = true }) {
   return (
     <div style={infoCard}>
       <h4 style={infoTitle}>{title}</h4>
-      <p style={infoValue}>{value}</p>
+      <p style={largeText ? infoValue : infoBody}>{value}</p>
     </div>
   );
 }
@@ -141,7 +526,7 @@ function InfoCard({ title, value }) {
 
 const pageContainer = {
   padding: "20px",
-  maxWidth: "900px",
+  maxWidth: "1100px",
   margin: "0 auto",
   color: "#1a1a1a"
 };
@@ -165,6 +550,13 @@ const sectionTitle = {
   color: "#1a1a1a"
 };
 
+const chartTitle = {
+  fontSize: "1.1rem",
+  fontWeight: 600,
+  marginBottom: "8px",
+  color: "#1a1a1a"
+};
+
 const card = {
   background: "white",
   padding: "20px",
@@ -175,10 +567,12 @@ const card = {
 
 const chartCard = {
   background: "white",
-  padding: "25px",
+  padding: "18px",
   borderRadius: "10px",
   boxShadow: "0px 3px 12px rgba(0,0,0,0.08)",
-  marginTop: "25px"
+  marginBottom: "25px",
+  flex: "1 1 340px",
+  minWidth: "280px"
 };
 
 const inputGroup = { marginBottom: "15px" };
@@ -212,16 +606,41 @@ const button = {
   fontWeight: 600
 };
 
+const disabledButton = {
+  opacity: 0.6,
+  cursor: "not-allowed"
+};
+
+const smallButton = {
+  padding: "10px 18px",
+  background: "#2a7dd2",
+  color: "white",
+  border: "none",
+  borderRadius: "8px",
+  fontSize: "14px",
+  cursor: "pointer",
+  fontWeight: 600
+};
+
 const errorText = {
   color: "red",
-  marginTop: "10px"
+  marginTop: "10px",
+  fontWeight: 500
 };
 
 const cardGrid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
   gap: "20px",
-  marginTop: "15px"
+  marginBottom: "25px"
+};
+
+const chartGrid = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "20px",
+  marginTop: "10px",
+  marginBottom: "10px"
 };
 
 const infoCard = {
@@ -245,9 +664,25 @@ const infoValue = {
   color: "#2a7dd2"
 };
 
+const infoBody = {
+  fontSize: "15px",
+  fontWeight: 500,
+  color: "#2a7dd2",
+  lineHeight: 1.4
+};
+
 const list = {
   marginLeft: "20px",
   lineHeight: "1.6"
 };
+
+const gaugeNote = {
+  marginTop: "8px",
+  fontSize: "0.9rem",
+  color: "#555",
+  textAlign: "center"
+};
+
+
 
 

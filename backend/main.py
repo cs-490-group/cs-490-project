@@ -50,6 +50,7 @@ from routes.insights import insights_router
 from routes.referral_message_routes import referral_message_router
 from routes.goals import goals_router
 from routes.time_tracking import time_tracking_router
+from routes.salary_research_routes import salary_research_router
 
 app = FastAPI()
 
@@ -98,6 +99,8 @@ app.include_router(ai_router, prefix=api_prefix)
 app.include_router(salary_router)
 app.include_router(insights_router)
 app.include_router(referral_message_router, prefix=api_prefix)
+app.include_router(salary_research_router, prefix=api_prefix)
+
 
 
 app.include_router(coaching_router, prefix = api_prefix)

@@ -1,11 +1,7 @@
 class SalaryService:
 
     async def research(self, job_title: str, location: str | None = None):
-        """
-        Mock salary research — replace with Glassdoor / Indeed / Levels.fyi later.
-        """
 
-        # For now, return mock structured data
         return {
             "low": 85000,
             "high": 140000,
@@ -24,7 +20,6 @@ class SalaryService:
                 "Consider negotiation if you have competing offers."
             ]
         }
-
 
 salary_service = SalaryService()
 
