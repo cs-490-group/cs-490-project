@@ -68,6 +68,33 @@ const sortLetters = (letters, sortOrder) => {
   return sorted;
 };
 
+// Helper function to safely get company name
+const getCompanyName = (job) => {
+  if (!job) return "Company";
+  
+  // If company is a string, return it
+  if (typeof job.company === 'string') {
+    return job.company || "Company";
+  }
+  
+  // If company is an object, it might have a name property
+  if (typeof job.company === 'object' && job.company !== null) {
+    return job.company.name || "Company";
+  }
+  
+  // Check company_data as fallback
+  if (job.company_data) {
+    if (typeof job.company_data === 'string') {
+      return job.company_data;
+    }
+    if (typeof job.company_data === 'object' && job.company_data.name) {
+      return job.company_data.name;
+    }
+  }
+  
+  return "Company";
+};
+
 // Job Selection Modal Component
 function JobSelectionModal({ letterId, onClose, onSelect, showFlash }) {
   const [jobs, setJobs] = useState([]);
@@ -158,7 +185,7 @@ function JobSelectionModal({ letterId, onClose, onSelect, showFlash }) {
                   {job.title || "Untitled Position"}
                 </div>
                 <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                  {job.company || "Company"}
+                  {getCompanyName(job)}
                 </div>
               </button>
             ))}
