@@ -16,7 +16,10 @@ export default function EditCoverLetterPage() {
   const [title, setTitle] = useState("");
   const [company, setCompany] = useState("");
   const [position, setPosition] = useState("");
+  
+  // JOB LINK STATE
   const [linkedJobId, setLinkedJobId] = useState(null); 
+  const [linkedJobData, setLinkedJobData] = useState(null); 
   
   const contentRef = useRef("");
   const [letterLoaded, setLetterLoaded] = useState(false);
@@ -34,12 +37,16 @@ export default function EditCoverLetterPage() {
   const [selectedWord, setSelectedWord] = useState(null);
   const [synonyms, setSynonyms] = useState([]);
   const [showSynonyms, setShowSynonyms] = useState(false);
-
-  // AI Suggestions state
   const [aiSuggestions, setAiSuggestions] = useState("");
   const [showAISuggestions, setShowAISuggestions] = useState(false);
 
-  // Load cover letter
+  // Helper to safely compare IDs (handles int vs string and _id vs id)
+  const idsMatch = (id1, id2) => {
+    if (!id1 || !id2) return false;
+    return String(id1) === String(id2);
+  };
+
+  // 1. LOAD DATA ON MOUNT
   useEffect(() => {
     if (!id) return;
     const loadData = async () => {
@@ -50,28 +57,67 @@ export default function EditCoverLetterPage() {
         ]);
 
         const letter = letterRes.data;
-        setTitle(letter.title || "");
-        setCompany(letter.company || "");
-        setPosition(letter.position || "");
-        
-        // Handle linked job
-        const jobIdRaw = letter.job_id;
-        if (jobIdRaw && typeof jobIdRaw === 'object') {
-           setLinkedJobId(jobIdRaw._id || jobIdRaw.id);
-        } else {
-           setLinkedJobId(jobIdRaw || null);
-        }
+        console.log("RAW LETTER DATA:", letter); // Debugging
 
+        setTitle(letter.title || "");
         contentRef.current = letter.content || "";
         setHtmlContent(letter.content || "");
+
+        // --- JOB LINKING LOGIC ---
+        const rawJobId = letter.job_id || letter.job; 
         
+        if (rawJobId) {
+            // Case A: Backend sent the full object (Populated)
+            if (typeof rawJobId === 'object') {
+                console.log("Job Linked (Object):", rawJobId);
+                const actualId = rawJobId._id || rawJobId.id;
+                setLinkedJobId(actualId);
+                setLinkedJobData(rawJobId);
+                
+                // Auto-fill UI
+                const compName = (typeof rawJobId.company === 'object') ? rawJobId.company.name : rawJobId.company;
+                setCompany(compName || "");
+                setPosition(rawJobId.title || "");
+            } 
+            // Case B: Backend sent an ID String/Number
+            else {
+                console.log("Job Linked (ID Only):", rawJobId);
+                setLinkedJobId(rawJobId);
+                
+                // We MUST fetch the job details to fill the UI
+                try {
+                    const jobsRes = await JobsAPI.getAll();
+                    const allJobs = jobsRes.data || [];
+                    
+                    const found = allJobs.find(j => idsMatch(j.id, rawJobId) || idsMatch(j._id, rawJobId));
+                    
+                    if (found) {
+                        console.log("Job Found in List:", found);
+                        setLinkedJobData(found);
+                        const compName = (typeof found.company === 'object') ? found.company.name : found.company;
+                        setCompany(compName || "");
+                        setPosition(found.title || "");
+                    } else {
+                        console.warn(`Linked Job ID ${rawJobId} not found in user's job list.`);
+                    }
+                } catch (e) {
+                    console.error("Error fetching jobs to resolve link:", e);
+                }
+            }
+        } else {
+            // No link, just use stored text
+            setCompany(letter.company || "");
+            setPosition(letter.position || "");
+        }
+        // -------------------------
+
         const history = (versionsRes.data || []).map(v => ({
           timestamp: new Date(v.created_at),
           content: v.content_snapshot
         }));
-        
         setVersionHistory(history);
         setLetterLoaded(true);
+
       } catch (err) {
         console.error(err);
         showFlash("Failed to load cover letter data.", "error");
@@ -237,95 +283,99 @@ export default function EditCoverLetterPage() {
   const handleGenerateCoverLetter = async () => {
     setAiLoading(true);
     try {
-      // 1. Fetch Data
+      // 1. Fetch User Data & Sanitize
       const fullUserData = await UserAPI.getAllData();
-      
-      // 2. AGGRESSIVE SANITIZATION: User Data
-      // We manually build this object to ensure NO hidden binary data/images/PDFs are included.
       const sanitizedUser = {
         name: fullUserData.profile?.full_name || fullUserData.profile?.username,
         email: fullUserData.profile?.email,
         phone: fullUserData.profile?.phone_number,
-        bio: (fullUserData.profile?.biography || "").substring(0, 500), // Cap bio length
-        
-        // Only take the first 3 items and only specific text fields
+        bio: (fullUserData.profile?.biography || "").substring(0, 500), 
         education: (fullUserData.education || []).slice(0, 3).map(edu => ({
            degree: edu.degree,
            field: edu.field_of_study,
            school: edu.institution_name,
            year: new Date(edu.end_date).getFullYear()
         })),
-        
         employment: (fullUserData.employment || []).slice(0, 3).map(emp => ({
            title: emp.title,
            company: emp.company,
-           description: (emp.description || "").substring(0, 400) // Truncate descriptions
+           description: (emp.description || "").substring(0, 400) 
         })),
-        
-        skills: (fullUserData.skills || []).slice(0, 20).map(s => s.name) // Limit skill count
+        skills: (fullUserData.skills || []).slice(0, 20).map(s => s.name)
       };
       
       let jobData = null;
-      try {
-        const jobsRes = await JobsAPI.getAll();
-        const jobs = jobsRes.data || [];
-        
-        // Priority 1: Linked Job
-        if (linkedJobId) {
-          jobData = jobs.find(j => j.id === linkedJobId || j._id === linkedJobId);
-        }
+      
+      // --- STRICT JOB RETRIEVAL LOGIC ---
+      
+      // PATH A: We have a Linked Job ID. We MUST use this job and only this job.
+      if (linkedJobId) {
+          console.log(`[AI Gen] Enforcing Linked Job ID: ${linkedJobId}`);
+          
+          // Try to get data from state first
+          if (linkedJobData && (idsMatch(linkedJobData.id, linkedJobId) || idsMatch(linkedJobData._id, linkedJobId))) {
+               jobData = linkedJobData;
+          } 
+          // If state is empty/stale, fetch fresh
+          else {
+              try {
+                  const jobsRes = await JobsAPI.getAll();
+                  const jobs = jobsRes.data || [];
+                  jobData = jobs.find(j => idsMatch(j.id, linkedJobId) || idsMatch(j._id, linkedJobId));
+              } catch(e) { console.error("Error fetching jobs for generation", e); }
+          }
 
-        // Priority 2: Fuzzy Match
-        if (!jobData && (company || position)) {
-          jobData = jobs.find(j => {
-             const jCompany = (typeof j.company === 'object' && j.company) ? j.company.name : j.company;
-             return (
-               (company && jCompany && jCompany.toLowerCase().includes(company.toLowerCase())) ||
-               (position && j.title && j.title.toLowerCase().includes(position.toLowerCase()))
-             );
-          });
-        }
-        
-        // Priority 3: Default (ONLY if list is small, otherwise safer to send nothing to avoid token bloat)
-        if (!jobData && jobs.length > 0 && jobs.length < 3) {
-          jobData = jobs[0];
-        }
-      } catch (err) {
-        console.warn("Failed to fetch job data:", err);
+          if (!jobData) {
+              console.warn("Linked Job ID exists, but job could not be retrieved from DB.");
+              // Critical: Do NOT fall through to fuzzy match here. 
+              // If the link is broken, it's better to fail gracefully or use generic mode than to guess wrong.
+          }
       }
+      
+      // PATH B: No Link exists. Only THEN do we check text boxes.
+      else if (company || position) {
+         console.log(`[AI Gen] No Link. Fuzzy matching for: ${company} / ${position}`);
+         try {
+             const jobsRes = await JobsAPI.getAll();
+             const jobs = jobsRes.data || [];
+             jobData = jobs.find(j => {
+                const jCompany = (typeof j.company === 'object' && j.company) ? j.company.name : j.company;
+                return (
+                  (company && jCompany && jCompany.toLowerCase().includes(company.toLowerCase())) ||
+                  (position && j.title && j.title.toLowerCase().includes(position.toLowerCase()))
+                );
+             });
+         } catch(e) {}
+      }
+      
+      // ----------------------------------
 
-      // 3. AGGRESSIVE SANITIZATION: Job Data
+      // 3. Prepare AI Payload
       let sanitizedJob = null;
       let companyForPrompt = company;
       let positionForPrompt = position;
 
       if (jobData) {
+        console.log("jobData found for AI:", jobData.title);
         const jCompanyName = (typeof jobData.company === 'object' && jobData.company) ? jobData.company.name : jobData.company;
         
         sanitizedJob = {
             title: jobData.title,
             company: jCompanyName,
-            // Truncate job description to ~1500 chars to save tokens
             description: (jobData.description || "").substring(0, 1500),
             requirements: (jobData.requirements || jobData.skills_required || "").substring(0, 1000)
         };
-
-        if (linkedJobId || sanitizedJob.company) {
-            companyForPrompt = sanitizedJob.company || company;
-            positionForPrompt = sanitizedJob.title || position;
-        }
+        
+        // Update prompts to use found data
+        companyForPrompt = sanitizedJob.company || company;
+        positionForPrompt = sanitizedJob.title || position;
+      } else {
+        console.log("No specific job data found. AI will use generic inputs.");
       }
 
       // 4. CLEAN HTML CONTENT
-      // If the user pasted an image, contentRef might contain huge base64 strings.
-      // We strip <img> tags for the PROMPT context (we keep them in the editor though).
       let cleanCurrentContent = contentRef.current || "";
-      // Regex to remove img tags entirely from the string sent to AI
       cleanCurrentContent = cleanCurrentContent.replace(/<img[^>]*>/g, "[Image Placeholder]");
-
-      // Debug: Check payload size
-      const payload = JSON.stringify({ sanitizedUser, sanitizedJob, cleanCurrentContent });
-      console.log("AI Payload approx size (chars):", payload.length);
 
       const res = await AIAPI.generateText({
         prompt: `
@@ -382,7 +432,7 @@ Provide text-only suggestions for improving this cover letter content.
 Do NOT change HTML structure, CSS, or inline styles.
 
 Current letter content:
-${contentRef.current}
+${contentRef.current.substring(0, 5000)} 
       `,
       system_message: `
 You are a helpful AI assistant providing suggestions for improving cover letters.

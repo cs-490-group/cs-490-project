@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFlash } from "../../context/flashContext";
 import teamsAPI from "../../api/teams";
-import ProfilesAPI from "../../api/profiles";
-import { Plus, UserPlus } from "lucide-react";
+import { Plus, UserPlus, Users, ArrowRight } from "lucide-react";
 
 function SetupTeam() {
   const navigate = useNavigate();
@@ -12,29 +11,43 @@ function SetupTeam() {
   const [teamName, setTeamName] = useState("");
   const [teamDescription, setTeamDescription] = useState("");
   const [inviteCode, setInviteCode] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userTeams, setUserTeams] = useState([]);
 
   useEffect(() => {
-    // Check if user is authenticated
-    const sessionToken = localStorage.getItem("session");
-    const uuid = localStorage.getItem("uuid");
-    const teamId = localStorage.getItem("teamId");
+    const checkUserAndFetchTeams = async () => {
+      const sessionToken = localStorage.getItem("session");
+      const uuid = localStorage.getItem("uuid");
 
-    if (!sessionToken || !uuid) {
-      navigate("/register");
-      return;
-    }
 
-    // If user already has teamId, go to teams dashboard
-    if (teamId) {
-      navigate("/teams");
-      return;
-    }
+      // Fetch Teams 
+      try {
+        setLoading(true);
+        const response = await teamsAPI.getUserTeams(uuid);
+        
+        // Handle response formats (array vs object)
+        const teamsList = Array.isArray(response) ? response : (response.data || []);
+        setUserTeams(teamsList);
+      } catch (error) {
+        console.error("Failed to fetch user teams:", error);
+        // Don't show flash error here, just show empty list if it fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserAndFetchTeams();
   }, [navigate]);
+
+  const handleSelectTeam = (teamId) => {
+    // Set the active context
+    localStorage.setItem("teamId", teamId);
+    showFlash("Entering team workspace...", "success");
+    navigate("/teams");
+  };
 
   const handleCreateTeam = async (e) => {
     e.preventDefault();
-    
     if (!teamName.trim()) {
       showFlash("Team name is required", "error");
       return;
@@ -43,7 +56,6 @@ function SetupTeam() {
     setLoading(true);
     try {
       const uuid = localStorage.getItem("uuid");
-      
       const response = await teamsAPI.createTeam({
         uuid: uuid,
         email: null, 
@@ -52,31 +64,11 @@ function SetupTeam() {
       });
 
       if (response && response.id) {
-        localStorage.setItem("teamId", response.id);
-        showFlash("Team created successfully!", "success");
-        navigate("/teams");
-      } else {
-        showFlash("Unexpected response from server", "error");
+        handleSelectTeam(response.id);
       }
     } catch (error) {
       console.error("Create team error:", error);
-      
-      let msg = "Failed to create team";
-      
-      if (error.response?.data) {
-        if (Array.isArray(error.response.data)) {
-          // Pydantic validation errors
-          msg = error.response.data[0]?.msg || "Validation error";
-        } else if (typeof error.response.data === "object") {
-          msg = error.response.data.detail || error.response.data.message || msg;
-        } else {
-          msg = error.response.data;
-        }
-      } else if (error.message) {
-        msg = error.message;
-      }
-      
-      showFlash(msg, "error");
+      showFlash("Failed to create team", "error");
     } finally {
       setLoading(false);
     }
@@ -84,7 +76,6 @@ function SetupTeam() {
 
   const handleJoinTeam = async (e) => {
     e.preventDefault();
-    
     if (!inviteCode.trim()) {
       showFlash("Invite code is required", "error");
       return;
@@ -95,87 +86,144 @@ function SetupTeam() {
       const teamId = inviteCode;
       const uuid = localStorage.getItem("uuid");
       
-      // First verify team exists
-      const teamResponse = await teamsAPI.getTeam(teamId);
-      
-      if (!teamResponse) {
-        showFlash("Invalid invite code", "error");
-        return;
-      }
-
-      //accept the invitation to become an active member
-      const acceptResponse = await teamsAPI.acceptInvitation(teamId, {
-        email: localStorage.getItem("email"), // Make sure email is stored
+      await teamsAPI.acceptInvitation(teamId, {
+        email: localStorage.getItem("email"),
         uuid: uuid
       });
 
-      localStorage.setItem("teamId", teamId);
-      showFlash("Successfully joined team!", "success");
-      navigate("/teams");
+      handleSelectTeam(teamId);
     } catch (error) {
-      const msg =
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to join team";
+      const msg = error.response?.data?.detail || "Failed to join team";
       showFlash(msg, "error");
     } finally {
       setLoading(false);
     }
   };
 
+  if (loading && !mode) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#f0f4f8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="spinner-border text-primary" role="status"></div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(to bottom right, #eff6ff, #e0e7ff)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
       <div style={{ maxWidth: "56rem", width: "100%" }}>
+        
         {/* Header */}
         {!mode && (
           <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-            <h1 style={{ fontSize: "2.25rem", fontWeight: "bold", color: "#111827", marginBottom: "1rem" }}>
-              Get Started with Teams
+            <h1 style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#111827", marginBottom: "0.5rem" }}>
+              Welcome to Teams
             </h1>
-            <p style={{ fontSize: "1.125rem", color: "#4b5563" }}>
-              Create a new team or join an existing one to get started
+            <p style={{ fontSize: "1.125rem", color: "#6b7280" }}>
+              Collaborate, track goals, and succeed together.
             </p>
           </div>
         )}
 
-        {/* Mode Selection */}
+        {/* --- SECTION 1: YOUR TEAMS --- */}
+        {!mode && userTeams.length > 0 && (
+          <div style={{ marginBottom: "3rem" }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "1rem" }}>
+              <Users size={20} className="text-primary me-2" />
+              <h2 style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#374151", margin: 0 }}>Your Teams</h2>
+            </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem" }}>
+              {userTeams.map((team) => (
+                <div 
+                  key={team.id}
+                  onClick={() => handleSelectTeam(team.id)}
+                  style={{
+                    background: "white",
+                    borderRadius: "0.75rem",
+                    padding: "1.5rem",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    border: "1px solid transparent"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.1)";
+                    e.currentTarget.style.borderColor = "#3b82f6";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.1)";
+                    e.currentTarget.style.borderColor = "transparent";
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                    <div>
+                      <h3 style={{ fontSize: "1.125rem", fontWeight: "bold", color: "#111827", marginBottom: "0.25rem" }}>
+                        {team.name}
+                      </h3>
+                      <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                        {team.description || "No description"}
+                      </p>
+                    </div>
+                    <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "50%" }}>
+                      <ArrowRight size={16} className="text-primary" />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      {team.role || "Member"}
+                    </span>
+                    <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+                      {team.memberCount || 0} Members
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div style={{ margin: "2rem 0", height: "1px", background: "#e5e7eb", position: "relative" }}>
+              <span style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", background: "#eff6ff", padding: "0 1rem", color: "#9ca3af", fontSize: "0.875rem" }}>
+                OR
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* --- SECTION 2: ACTIONS (Create / Join) --- */}
         {!mode && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1.5rem" }}>
             {/* Create Team Card */}
             <button
               onClick={() => setMode("create")}
               style={{
                 background: "white",
-                borderRadius: "0.5rem",
-                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                borderRadius: "0.75rem",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                 padding: "2rem",
                 textAlign: "left",
-                border: "none",
+                border: "1px dashed #cbd5e1",
                 cursor: "pointer",
                 transition: "all 0.3s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0, 0, 0, 0.15)";
-                e.currentTarget.style.transform = "scale(1.05)";
+                e.currentTarget.style.backgroundColor = "#f8fafc";
+                e.currentTarget.style.borderColor = "#3b82f6";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.1)";
-                e.currentTarget.style.transform = "scale(1)";
+                e.currentTarget.style.backgroundColor = "white";
+                e.currentTarget.style.borderColor = "#cbd5e1";
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "3rem", height: "3rem", background: "#dbeafe", borderRadius: "0.5rem", marginBottom: "1rem" }}>
                 <Plus style={{ width: "1.5rem", height: "1.5rem", color: "#2563eb" }} />
               </div>
-              <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#111827", marginBottom: "0.5rem" }}>
+              <h2 style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#111827", marginBottom: "0.5rem" }}>
                 Create New Team
               </h2>
-              <p style={{ color: "#4b5563", marginBottom: "1rem" }}>
-                Start fresh with a new team. You'll be the admin and can invite others.
+              <p style={{ color: "#4b5563", fontSize: "0.875rem" }}>
+                Start fresh with a new team. You'll be the admin.
               </p>
-              <div style={{ fontSize: "0.875rem", color: "#2563eb", fontWeight: "600" }}>
-                Create Team →
-              </div>
             </button>
 
             {/* Join Team Card */}
@@ -183,35 +231,32 @@ function SetupTeam() {
               onClick={() => setMode("join")}
               style={{
                 background: "white",
-                borderRadius: "0.5rem",
-                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                borderRadius: "0.75rem",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                 padding: "2rem",
                 textAlign: "left",
-                border: "none",
+                border: "1px dashed #cbd5e1",
                 cursor: "pointer",
                 transition: "all 0.3s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0, 0, 0, 0.15)";
-                e.currentTarget.style.transform = "scale(1.05)";
+                e.currentTarget.style.backgroundColor = "#f8fafc";
+                e.currentTarget.style.borderColor = "#16a34a";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.1)";
-                e.currentTarget.style.transform = "scale(1)";
+                e.currentTarget.style.backgroundColor = "white";
+                e.currentTarget.style.borderColor = "#cbd5e1";
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "3rem", height: "3rem", background: "#dcfce7", borderRadius: "0.5rem", marginBottom: "1rem" }}>
                 <UserPlus style={{ width: "1.5rem", height: "1.5rem", color: "#16a34a" }} />
               </div>
-              <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#111827", marginBottom: "0.5rem" }}>
+              <h2 style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#111827", marginBottom: "0.5rem" }}>
                 Join Existing Team
               </h2>
-              <p style={{ color: "#4b5563", marginBottom: "1rem" }}>
-                Have an invite code? Join a team and start collaborating right away.
+              <p style={{ color: "#4b5563", fontSize: "0.875rem" }}>
+                Have an invite code? Enter it to join a team.
               </p>
-              <div style={{ fontSize: "0.875rem", color: "#16a34a", fontWeight: "600" }}>
-                Join Team →
-              </div>
             </button>
           </div>
         )}
@@ -233,94 +278,34 @@ function SetupTeam() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div>
-                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>
-                  Team Name *
-                </label>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Team Name *</label>
                 <input
                   type="text"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   placeholder="e.g., Tech Talent 2025"
-                  style={{
-                    width: "100%",
-                    padding: "0.75rem 1rem",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "0.5rem",
-                    fontSize: "1rem",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "#3b82f6";
-                    e.target.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.1)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "#d1d5db";
-                    e.target.style.boxShadow = "none";
-                  }}
-                  required
+                  className="form-control"
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", borderRadius: "0.5rem" }}
                 />
               </div>
-
               <div>
-                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>
-                  Team Description (Optional)
-                </label>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Description</label>
                 <textarea
                   value={teamDescription}
                   onChange={(e) => setTeamDescription(e.target.value)}
-                  placeholder="What is your team about? What are your goals?"
-                  style={{
-                    width: "100%",
-                    padding: "0.75rem 1rem",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "0.5rem",
-                    fontSize: "1rem",
-                    outline: "none",
-                    boxSizing: "border-box",
-                    fontFamily: "inherit",
-                    minHeight: "6rem",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "#3b82f6";
-                    e.target.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.1)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "#d1d5db";
-                    e.target.style.boxShadow = "none";
-                  }}
+                  placeholder="Goals and details..."
+                  className="form-control"
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", borderRadius: "0.5rem", minHeight: "100px" }}
                 />
               </div>
-
               <button
                 onClick={handleCreateTeam}
                 disabled={loading}
-                style={{
-                  width: "100%",
-                  background: loading ? "#9ca3af" : "#2563eb",
-                  color: "white",
-                  fontWeight: "600",
-                  padding: "0.75rem 1rem",
-                  borderRadius: "0.5rem",
-                  border: "none",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  fontSize: "1rem",
-                  transition: "background 0.3s",
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) e.currentTarget.style.background = "#1d4ed8";
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) e.currentTarget.style.background = "#2563eb";
-                }}
+                style={{ width: "100%", background: "#2563eb", color: "white", padding: "0.75rem", borderRadius: "0.5rem", border: "none", fontWeight: "600", cursor: loading ? "wait" : "pointer" }}
               >
-                {loading ? "Creating Team..." : "Create Team"}
+                {loading ? "Creating..." : "Create Team"}
               </button>
             </div>
-
-            <p style={{ fontSize: "0.875rem", color: "#6b7280", marginTop: "1rem", textAlign: "center" }}>
-              You'll become the admin of this team and can invite others.
-            </p>
           </div>
         )}
 
@@ -341,75 +326,27 @@ function SetupTeam() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div>
-                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>
-                  Invite Code *
-                </label>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Invite Code *</label>
                 <input
                   type="text"
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value)}
-                  placeholder="Paste your invite code here"
-                  style={{
-                    width: "100%",
-                    padding: "0.75rem 1rem",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "0.5rem",
-                    fontSize: "0.875rem",
-                    outline: "none",
-                    boxSizing: "border-box",
-                    fontFamily: "monospace",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "#16a34a";
-                    e.target.style.boxShadow = "0 0 0 3px rgba(22, 163, 74, 0.1)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "#d1d5db";
-                    e.target.style.boxShadow = "none";
-                  }}
-                  required
+                  placeholder="Paste invite code"
+                  className="form-control"
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", borderRadius: "0.5rem", fontFamily: "monospace" }}
                 />
               </div>
-
               <button
                 onClick={handleJoinTeam}
                 disabled={loading}
-                style={{
-                  width: "100%",
-                  background: loading ? "#9ca3af" : "#16a34a",
-                  color: "white",
-                  fontWeight: "600",
-                  padding: "0.75rem 1rem",
-                  borderRadius: "0.5rem",
-                  border: "none",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  fontSize: "1rem",
-                  transition: "background 0.3s",
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) e.currentTarget.style.background = "#15803d";
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) e.currentTarget.style.background = "#16a34a";
-                }}
+                style={{ width: "100%", background: "#16a34a", color: "white", padding: "0.75rem", borderRadius: "0.5rem", border: "none", fontWeight: "600", cursor: loading ? "wait" : "pointer" }}
               >
-                {loading ? "Joining Team..." : "Join Team"}
+                {loading ? "Joining..." : "Join Team"}
               </button>
-            </div>
-
-            <div style={{
-              background: "#eff6ff",
-              border: "1px solid #bfdbfe",
-              borderRadius: "0.5rem",
-              padding: "1rem",
-              marginTop: "1.5rem",
-            }}>
-              <p style={{ fontSize: "0.875rem", color: "#1e40af" }}>
-                <strong>Don't have an invite code?</strong> Ask your team admin to send you one, or go back and create a new team.
-              </p>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );

@@ -38,11 +38,12 @@ class TeamsDAO:
         """Get all teams"""
         return await self.collection.find().to_list(None)
     
-    async def get_user_teams(self, user_id: str) -> List[Dict]:
+    async def get_user_teams(self, user_uuid: str) -> List[Dict]:
         """Get all teams a user belongs to"""
-        return await self.collection.find(
-            {"members.uuid": user_id}
-        ).to_list(None)
+        # This query finds ALL teams where this user is in the members list
+        cursor = self.collection.find({"members.uuid": user_uuid})
+        return [doc async for doc in cursor]
+
     
     async def get_user_team(self, user_id: str) -> Optional[Dict]:
         """Get the single team a user belongs to (max 1 per user)"""
@@ -112,28 +113,10 @@ class TeamsDAO:
     # ============ TEAM MEMBERS ============
     
     async def add_member_to_team(self, team_id: ObjectId, member_data: Dict) -> int:
-        """Add a member to a team"""
-
-        full_member_data = {
-        **member_data,
-        "progress_sharing": member_data.get("progress_sharing", {
-            "allow_sharing": True,
-            "default_privacy_settings": {
-                "can_see_goals": True,
-                "can_see_applications": True,
-                "can_see_engagement": True,
-                "can_see_full_progress": False,
-                "can_see_milestones": True,
-                "can_see_feedback": False
-            },
-            "shared_with": []
-        }),
-        "milestones": member_data.get("milestones", []),
-        "celebrations": member_data.get("celebrations", [])
-    }
+    
         result = await self.collection.update_one(
             {"_id": team_id},
-            {"$push": {"members": full_member_data}}
+            {"$addToSet": {"members": member_data}} # $addToSet prevents duplicate joining of SAME team
         )
         return result.modified_count
     

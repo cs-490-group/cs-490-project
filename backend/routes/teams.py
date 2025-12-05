@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
 from bson import ObjectId
 import os
@@ -8,10 +8,11 @@ from dotenv import load_dotenv
 from mongo.teams_dao import teams_dao
 from mongo.jobs_dao import jobs_dao
 from mongo.progress_sharing_dao import progress_sharing_dao
+from sessions.session_authorizer import authorize 
 from schema.teams import (
     CreateTeamRequest, UpdateTeamRequest, InviteMemberRequest,
     UpdateMemberRequest, UpdateBillingRequest, SendFeedbackRequest,
-    AcceptInvitationRequest,UpdateGoalsRequest
+    AcceptInvitationRequest, UpdateGoalsRequest
 )
 
 load_dotenv()
@@ -122,17 +123,20 @@ def send_team_invite_email(to_email: str, team_name: str, team_id: str, inviter_
 
 
 @teams_router.post("/create")
-async def create_team(request: CreateTeamRequest):
+async def create_team(
+    request: CreateTeamRequest, 
+    uuid: str = Depends(authorize)
+):
     try:
         team_data = {
             "name": request.name,
             "description": request.description or "",
-            "creator_id": request.uuid,
+            "creator_id": uuid, # <--- Use injected uuid, NOT request.uuid
             "members": [
                 {
-                    "uuid": request.uuid,
+                    "uuid": uuid, # <--- Use injected uuid
                     "email": request.email or "",
-                    "name": request.name.split()[0],
+                    "name": request.name.split()[0], # Fallback name if user profile not fetched yet
                     "role": "admin",
                     "joined_at": datetime.utcnow(),
                     "status": "active"
@@ -218,25 +222,28 @@ async def get_team(team_id: str):
 
 
 @teams_router.get("/user/{uuid}")
-async def get_user_team(uuid: str):
+async def get_user_teams_endpoint(uuid: str):
     try:
-        team = await teams_dao.get_user_team(uuid)
-        if not team:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not in any team")
+        # Use the new DAO method that returns a list
+        teams = await teams_dao.get_user_teams(uuid)
         
-        member = next((m for m in team.get("members", []) if m["uuid"] == uuid), None)
+        if not teams:
+            # It is valid to have 0 teams now, returning empty list is better than 404
+            return [] 
         
-        return {
-            "id": str(team["_id"]),
-            "name": team.get("name"),
-            "description": team.get("description"),
-            "memberCount": len(team.get("members", [])),
-            "role": member.get("role") if member else "member"
-        }
-    except HTTPException:
-        raise
+        # Map to a simplified structure for the switcher
+        return [
+            {
+                "id": str(t["_id"]),
+                "name": t.get("name"),
+                "description": t.get("description"),
+                "role": next((m["role"] for m in t["members"] if m["uuid"] == uuid), "member"),
+                "memberCount": len(t.get("members", []))
+            }
+            for t in teams
+        ]
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @teams_router.put("/{team_id}")
@@ -317,10 +324,6 @@ async def invite_member(team_id: str, request: InviteMemberRequest):
         
         if any(m["email"] == request.email for m in team.get("members", [])):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already a member")
-        
-        existing_team = await teams_dao.find_team_by_member_email(request.email)
-        if existing_team:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is already in another team")
         
         if len(team.get("members", [])) >= team.get("settings", {}).get("maxMembers", 50):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Team is full")

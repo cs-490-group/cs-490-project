@@ -112,6 +112,12 @@ class CoverLetterAPI {
   getPerformanceStats() {
     return api.get(`${BASE_URL}/analytics/performance`);
   }
+
+  downloadDOCX(coverLetterId) {
+    return api.get(`${BASE_URL}/${coverLetterId}/download/docx`, {
+      responseType: 'blob', 
+    });
+  }
 }
 
 export default new CoverLetterAPI();
