@@ -22,8 +22,13 @@ async def add_contact(contact: Contact, uuid: str = Depends(authorize), relation
     except DuplicateKeyError:
         # Contact with this email already exists - user is now associated
         raise HTTPException(200, "Contact added successfully (already in system)")
+    except ValueError as e:
+        raise HTTPException(400, f"Invalid contact data: {str(e)}")
     except Exception as e:
-        raise HTTPException(500, str(e))
+        print(f"Error adding contact: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to add contact: {str(e)}")
     
     return {"contact_id": result}
 

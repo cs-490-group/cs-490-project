@@ -47,7 +47,10 @@ class NetworkDAO:
                 if uuid:
                     # Check if user is already associated
                     associated_users = existing_contact.get("associated_users", [])
-                    user_already_associated = any(assoc["uuid"] == uuid for assoc in associated_users)
+                    # Ensure associated_users is a list (may be None from old data)
+                    if not isinstance(associated_users, list):
+                        associated_users = []
+                    user_already_associated = any(assoc.get("uuid") == uuid for assoc in associated_users)
                     
                     if not user_already_associated:
                         # Add new user association
@@ -108,9 +111,14 @@ class NetworkDAO:
     async def get_all_contacts(self, uuid: str) -> list[dict]:
         """Get all contacts associated with a user (excluding their own profile)"""
         # Exclude user's own contact (relationship_to_owner="self")
+        # Use $elemMatch to ensure both conditions apply to the same array element
         cursor = self.collection.find({
-            "associated_users.uuid": uuid,
-            "associated_users.relationship_to_owner": {"$ne": "self"}
+            "associated_users": {
+                "$elemMatch": {
+                    "uuid": uuid,
+                    "relationship_to_owner": {"$ne": "self"}
+                }
+            }
         })
         results = []
         async for doc in cursor:
