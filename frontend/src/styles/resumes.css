@@ -312,9 +312,28 @@ h1, h2 {
 /* Resume List */
 .resume-list-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.resume-list-header .btn {
+  white-space: nowrap;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background: #007bff;
+  border: none;
+  color: white;
+  align-self: flex-start;
+}
+
+.resume-list-header .btn:hover {
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+  background: #0056b3;
 }
 
 .resume-list-header h1,
