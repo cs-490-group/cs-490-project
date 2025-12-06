@@ -466,6 +466,7 @@ async def retry_job_research(job_id: str, uuid: str = Depends(authorize)):
 async def get_job(job_id: str, uuid: str = Depends(authorize)):
     try:
         result = await jobs_dao.get_job(job_id)
+        print(result)
     except Exception as e:
         raise HTTPException(500, str(e))
     

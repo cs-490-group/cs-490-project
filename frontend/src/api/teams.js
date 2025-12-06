@@ -129,6 +129,17 @@ class TeamsAPI {
     }
   };
 
+  getMemberWork = async (teamId, memberUuid) => {
+    try {
+      const response = await api.get(`${BASE_URL}/${teamId}/members/${memberUuid}/work`);
+      return response.data || response;
+    } catch (error) {
+      console.error("Failed to fetch member work:", error);
+      // Return empty structures to prevent UI crash
+      return { resumes: [], jobs: [], coverLetters: [] };
+    }
+  };
+
   getMemberGoals = async (teamId, memberUuid) => {
     try {
       const response = await api.get(
@@ -236,8 +247,21 @@ class TeamsAPI {
     return response.data || response;
   };
 
+  getReviewImpact = async (teamId) => {
+    const response = await api.get(`${BASE_URL}/${teamId}/resume-impact`);
+    return response.data || response;
+  };
+
   acceptInvitation = async (teamId, data) => {
     const response = await api.post(`${BASE_URL}/${teamId}/accept-invite`, data);
+    return response.data || response;
+  };
+
+  getReviewToken = async (teamId, memberUuid, type, docId) => {
+    const response = await api.post(`${BASE_URL}/${teamId}/members/${memberUuid}/get-review-token`, {
+      type,
+      id: docId
+    });
     return response.data || response;
   };
 }

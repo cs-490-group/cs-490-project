@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { ChevronDown, Plus, Mail, Edit2, Trash2, TrendingUp, CheckCircle, AlertCircle, MessageSquare, Users, Target, Zap, CreditCard, Settings, ArrowRight, Clock } from "lucide-react";
+import { FileText, ChevronDown, Plus, Mail, Edit2, Trash2, TrendingUp, CheckCircle, AlertCircle, MessageSquare, Users, Target, Zap, CreditCard, Settings, ArrowRight, Clock } from "lucide-react";
 import teamsAPI from "../api/teams";
 import UserProfile from "./otherProfile";
 import TeamReports from "./teams/TeamReports";
 import GoalTracker from "./teams/GoalTracker";
 import ProgressSharingHub from "./teams/ProgressSharingHub";
 import { useNavigate } from 'react-router-dom';
-import MilestoneCelebration from "./teams/MilestoneCelebration";
+import MemberWorkReview from "../components/MemberWorkReview";
 import CoachingDashboard from "../components/coaching/CoachingDashboard";
 import ReviewImpactWidget from "../components/ReviewImpactWidget";
 import { Container, Row, Col, Card, Button, Nav, ProgressBar, Badge, Spinner, Table } from 'react-bootstrap';
@@ -17,6 +17,7 @@ function TeamsDashboard() {
   const [members, setMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
   const [filterRole, setFilterRole] = useState("all");
+  const [reviewingWorkMember, setReviewingWorkMember] = useState(null);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [newInvite, setNewInvite] = useState({ email: "", role: "candidate" });
@@ -27,6 +28,7 @@ function TeamsDashboard() {
   const [currentUserUuid, setCurrentUserUuid] = useState(null);
   const [viewingUserProfile, setViewingUserProfile] = useState(null);
   const [feedback, setFeedback] = useState(""); 
+  const [analyticsData, setAnalyticsData] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -284,6 +286,7 @@ function TeamsDashboard() {
                     const canView = canViewMemberDetails(member.uuid);
                     const progressData = getMemberProgressData(member.uuid);
                     const isMe = member.uuid === currentUserUuid;
+                    const isTargetCandidate = member.role === 'candidate';
 
                     return (
                         <Col md={6} lg={4} key={member.uuid}>
@@ -332,17 +335,36 @@ function TeamsDashboard() {
                                         </div>
                                     )}
 
-                                    <div className="d-grid gap-2">
-                                        {canView && (member.role === 'candidate' || isMe) && (
-                                            <Button 
-                                                variant="outline-primary" 
-                                                size="sm"
-                                                onClick={() => setSelectedMember(member)}
-                                            >
-                                                🎯 View Goals & Feedback
-                                            </Button>
+                                    <div className="d-flex flex-column gap-2">
+                                        {canView && isTargetCandidate && (
+                                            <>
+                                                {/* PRIMARY ACTION: Review Work */}
+                                                <Button 
+                                                    variant="outline-dark" 
+                                                    size="sm" 
+                                                    className="d-flex align-items-center justify-content-center gap-2"
+                                                    onClick={() => setReviewingWorkMember(member)} 
+                                                >
+                                                    <FileText size={16} /> 
+                                                    {isMe ? "My Profile & Work" : "Review Work (Docs/Jobs)"}
+                                                </Button>
+
+                                                {/* SECONDARY ACTION: Goals */}
+                                                {(member.role === 'candidate' || isMe) && (
+                                                    <Button 
+                                                        variant="outline-primary" 
+                                                        size="sm"
+                                                        className="d-flex align-items-center justify-content-center gap-2"
+                                                        onClick={() => setSelectedMember(member)}
+                                                    >
+                                                        <Target size={16} /> View Goals & Feedback
+                                                    </Button>
+                                                )}
+                                            </>
                                         )}
                                     </div>
+
+                                    
                                 </Card.Body>
                             </Card>
                         </Col>
@@ -399,14 +421,48 @@ function TeamsDashboard() {
     </Card>
   );
 
-  const renderReports = () => (
-    <>
-      <div className="mb-4">
-        <ReviewImpactWidget />
+  const renderReports = () => {
+    // 1. Handle Loading State
+    if (loading) {
+      return (
+        <div className="d-flex justify-content-center align-items-center p-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      );
+    }
+
+    // 2. Handle Error State
+    if (error) {
+      return (
+        <div className="alert alert-danger shadow-sm" role="alert">
+          <i className="bi bi-exclamation-triangle-fill me-2"></i>
+          {error}
+        </div>
+      );
+    }
+
+    // 3. Main Dashboard Content
+    return (
+      <div className="animate__animated animate__fadeIn">
+        
+        {/* --- NEW WIDGET SECTION --- */}
+        {/* Pass team.id so the widget knows to fetch CANDIDATE data */}
+        <div className="mb-4">
+           <ReviewImpactWidget teamId={team?.id} />
+        </div>
+
+        {/* --- EXISTING REPORTS --- */}
+        <TeamReports 
+            reports={reports} 
+            teamId={team?.id} 
+        />
+        
       </div>
-      <TeamReports />
-    </>
-  );
+    );
+  };
+
 
   const renderSharing = () => {
     const userId = localStorage.getItem("uuid");
@@ -633,6 +689,14 @@ function TeamsDashboard() {
         {activeTab === "billing" && renderBilling()}
 
       </Container>
+
+      {reviewingWorkMember && (
+        <MemberWorkReview 
+            teamId={team.id}
+            member={reviewingWorkMember}
+            onClose={() => setReviewingWorkMember(null)}
+        />
+      )}
 
       {viewingUserProfile && (
         <UserProfile 

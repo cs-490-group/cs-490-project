@@ -397,8 +397,8 @@ const Nav = () => {
                   onMouseEnter={() => setShowSocialDropdown(true)}
                   onMouseLeave={() => setShowSocialDropdown(false)}
                 >
-                  {/* Links to Dashboard if they have a team, otherwise Setup page */}
-                  <NavDropdown.Item as={NavLink} to={teamId ? "/teams" : "/setup-team"}>
+                  {/* Updated Link: Always goes to setup-team */}
+                  <NavDropdown.Item as={NavLink} to="/setup-team">
                     Teams
                   </NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/newGroup">

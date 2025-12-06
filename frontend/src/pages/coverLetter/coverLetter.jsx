@@ -158,30 +158,33 @@ function JobSelectionModal({ letterId, onClose, onSelect, showFlash }) {
           <p style={{ color: "#666" }}>No jobs found</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-             {jobs.map(job => {
-                // Fix for object error: Handle if company is an object
-                const companyName = typeof job.company === 'object' && job.company !== null 
-                  ? (job.company.name || "Unknown Company") 
-                  : job.company;
+            {jobs.map(job => {
+            // Handle company name object vs string
+            const companyName = typeof job.company === 'object' && job.company !== null 
+                ? (job.company.name || "Unknown Company") 
+                : job.company;
 
-                return (
-                  <button 
-                    key={job.id} 
-                    onClick={() => handleModalJobSelect(job.id)}
-                    style={{
-                      padding: "10px",
-                      border: "1px solid #eee",
-                      borderRadius: "4px",
-                      background: "#f9f9f9",
-                      cursor: "pointer",
-                      textAlign: "left"
-                    }}
-                  >
-                    <strong>{job.title}</strong> - {companyName}
-                  </button>
-                );
-             })}
-          </div>
+           
+            const validJobId = job.id || job._id; 
+
+            return (
+                <button 
+                key={validJobId} // Use the valid ID for key
+                onClick={() => handleModalJobSelect(validJobId)} // Use valid ID for selection
+                style={{
+                    padding: "10px",
+                    border: "1px solid #eee",
+                    borderRadius: "4px",
+                    background: "#f9f9f9",
+                    cursor: "pointer",
+                    textAlign: "left"
+                }}
+                >
+                <strong>{job.title}</strong> - {companyName}
+                </button>
+            );
+            })}
+        </div>
         )}
 
         <button
@@ -309,10 +312,30 @@ export default function CoverLetterList() {
     }
   };
 
+  // UPDATED: Now calls the backend to generate and serve the DOCX file
   const handleDownloadDOCX = async (letterId, letterTitle) => {
-    const iframe = iframeRefs.current[letterId];
-    if (!iframe) return;
-    showFlash("DOCX download started", "info");
+    try {
+      showFlash("Generating DOCX...", "info");
+      
+      // Call API (Ensure downloadDOCX is added to your API file, see note below)
+      const res = await CoverLetterAPI.downloadDOCX(letterId);
+      
+      // Create a blob link to download the file
+      const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${letterTitle || "cover_letter"}.docx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showFlash("DOCX downloaded successfully!", "success");
+    } catch (err) {
+      console.error("Failed to download DOCX:", err);
+      showFlash("Failed to download DOCX. Ensure the backend is running.", "error");
+    }
   };
 
   const handleDownloadHTML = (letterId, letterTitle) => {

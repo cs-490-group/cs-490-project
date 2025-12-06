@@ -38,11 +38,12 @@ class TeamsDAO:
         """Get all teams"""
         return await self.collection.find().to_list(None)
     
-    async def get_user_teams(self, user_id: str) -> List[Dict]:
+    async def get_user_teams(self, user_uuid: str) -> List[Dict]:
         """Get all teams a user belongs to"""
-        return await self.collection.find(
-            {"members.uuid": user_id}
-        ).to_list(None)
+        # This query finds ALL teams where this user is in the members list
+        cursor = self.collection.find({"members.uuid": user_uuid})
+        return [doc async for doc in cursor]
+
     
     async def get_user_team(self, user_id: str) -> Optional[Dict]:
         """Get the single team a user belongs to (max 1 per user)"""
@@ -112,28 +113,10 @@ class TeamsDAO:
     # ============ TEAM MEMBERS ============
     
     async def add_member_to_team(self, team_id: ObjectId, member_data: Dict) -> int:
-        """Add a member to a team"""
-
-        full_member_data = {
-        **member_data,
-        "progress_sharing": member_data.get("progress_sharing", {
-            "allow_sharing": True,
-            "default_privacy_settings": {
-                "can_see_goals": True,
-                "can_see_applications": True,
-                "can_see_engagement": True,
-                "can_see_full_progress": False,
-                "can_see_milestones": True,
-                "can_see_feedback": False
-            },
-            "shared_with": []
-        }),
-        "milestones": member_data.get("milestones", []),
-        "celebrations": member_data.get("celebrations", [])
-    }
+    
         result = await self.collection.update_one(
             {"_id": team_id},
-            {"$push": {"members": full_member_data}}
+            {"$addToSet": {"members": member_data}} # $addToSet prevents duplicate joining of SAME team
         )
         return result.modified_count
     
@@ -339,6 +322,14 @@ class TeamsDAO:
             "engagement_score": member.get("kpis", {}).get("engagement", 0)
         }
     
+    def _get_active_candidates(self, members: List[Dict]) -> List[Dict]:
+        """Helper to strictly filter for active candidates (ignores admins/mentors)"""
+        return [
+            m for m in members 
+            if m.get("status") == "active" and 
+            str(m.get("role", "")).lower() == "candidate"
+        ]
+    
     # ============ PROGRESS CALCULATION ============
     
     async def calculate_team_progress(self, team_id: ObjectId, jobs_dao=None) -> Dict:
@@ -353,7 +344,7 @@ class TeamsDAO:
         print(f"Total members: {len(members)}")
         
         # Only calculate progress for active members AND candidates
-        active_members = [m for m in members if m.get("status") == "active" and m.get("role") == "candidate"]
+        active_members = self._get_active_candidates(members)
         
         if not active_members:
             return {
@@ -597,8 +588,9 @@ class TeamsDAO:
             return {}
         
         members = team.get("members", [])
-        # Only include active candidates in reports
-        active_members = [m for m in members if m.get("status") == "active" and m.get("role") == "candidate"]
+        
+        # CHANGE: Use strict helper to filter for candidates
+        active_members = self._get_active_candidates(members)
         
         if not active_members:
             return {
@@ -1088,6 +1080,89 @@ class TeamsDAO:
             "goalDetails": member_goals
         }
 
+    async def calculate_team_resume_impact(self, team_id: ObjectId, jobs_dao, resumes_dao) -> Dict:
+        """
+        Aggregates resume performance across all CANDIDATES in the team.
+        """
+        team = await self.collection.find_one({"_id": team_id})
+        if not team:
+            return {
+                "reviewed_resumes": {"success_rate": 0, "applications": 0},
+                "unreviewed_resumes": {"success_rate": 0, "applications": 0},
+                "success_boost": 0
+            }
+
+        active_candidates = self._get_active_candidates(team.get("members", []))
+        
+        metrics = {
+            "reviewed": {"total": 0, "success": 0},
+            "unreviewed": {"total": 0, "success": 0}
+        }
+
+        resume_cache = {}
+
+        for member in active_candidates:
+            member_uuid = member.get("uuid")
+            if not member_uuid: continue
+
+            jobs = await jobs_dao.get_all_jobs(member_uuid)
+            
+            for job in jobs:
+                resume_id = job.get("resume_id") or (job.get("materials") or {}).get("resume_id")
+                if not resume_id: continue 
+
+                if resume_id not in resume_cache:
+                    resume = await resumes_dao.get_resume(resume_id) # Removed member_uuid arg if not needed
+                    resume_cache[resume_id] = resume
+                
+                resume_doc = resume_cache.get(resume_id)
+                if not resume_doc: continue
+
+               
+                # 1. Explicit flag
+                flag_reviewed = resume_doc.get("is_reviewed", False)
+                # 2. Has feedback comments
+                has_feedback = resume_doc.get("feedback_count", 0) > 0
+                # 3. Has an approval status (Approved / Changes Requested)
+                status = resume_doc.get("approval_status", "").lower()
+                has_status = status in ["approved", "changes_requested"]
+                
+                is_reviewed = flag_reviewed or has_feedback or has_status
+               
+                
+                category = "reviewed" if is_reviewed else "unreviewed"
+                
+                status = job.get("status", "").lower()
+                is_success = status in ["interview", "offer"]
+
+                metrics[category]["total"] += 1
+                if is_success:
+                    metrics[category]["success"] += 1
+
+        # Calculate Rates
+        def calc_rate(data):
+            return int((data["success"] / data["total"] * 100) if data["total"] > 0 else 0)
+
+        reviewed_rate = calc_rate(metrics["reviewed"])
+        unreviewed_rate = calc_rate(metrics["unreviewed"])
+        
+        boost = 0
+        if unreviewed_rate > 0:
+            boost = round(((reviewed_rate - unreviewed_rate) / unreviewed_rate) * 100, 1)
+        elif reviewed_rate > 0:
+            boost = 100.0
+
+        return {
+            "reviewed": { 
+                "success_rate": reviewed_rate,
+                "count": metrics["reviewed"]["total"] # Changed key to 'count' to match Frontend
+            },
+            "unreviewed": { # Changed key to match Frontend expectation
+                "success_rate": unreviewed_rate,
+                "count": metrics["unreviewed"]["total"]
+            },
+            "lift": boost
+        }
 
     def _generate_member_insights(self,engagement: int, completed_goals: int, pending_goals: int, 
                                 job_metrics: Dict, progress_score: int) -> List[str]:
