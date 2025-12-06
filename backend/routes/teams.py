@@ -7,6 +7,8 @@ from email.mime.text import MIMEText
 from dotenv import load_dotenv
 from mongo.teams_dao import teams_dao
 from mongo.jobs_dao import jobs_dao
+from mongo.resumes_dao import resumes_dao
+from mongo.cover_letters_dao import cover_letters_dao
 from mongo.progress_sharing_dao import progress_sharing_dao
 from sessions.session_authorizer import authorize 
 from schema.teams import (
@@ -90,6 +92,17 @@ async def log_milestone_for_event(team_id: ObjectId, member_uuid: str, event_typ
         print(f" Failed to log milestone: {e}")
 
 
+@teams_router.get("/{team_id}/resume-impact")
+async def get_team_resume_impact(team_id: str):
+    try:
+        impact_data = await teams_dao.calculate_team_resume_impact(
+            ObjectId(team_id), 
+            jobs_dao, 
+            resumes_dao
+        )
+        return impact_data
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 def send_team_invite_email(to_email: str, team_name: str, team_id: str, inviter_name: str) -> bool:
     """Send team invitation email"""
@@ -800,3 +813,123 @@ async def log_manual_milestone(team_id: str, member_uuid: str, milestone_data: d
         raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+@teams_router.get("/{team_id}/members/{member_uuid}/work")
+async def get_member_work(
+    team_id: str, 
+    member_uuid: str, 
+    uuid: str = Depends(authorize)
+):
+    """
+    Fetch all work documents (resumes, jobs, cover letters) for a team member.
+    """
+    try:
+        #  Verify Team & Permissions
+        team = await teams_dao.get_team_by_id(ObjectId(team_id))
+        if not team:
+            raise HTTPException(status_code=404, detail="Team not found")
+        
+        requester = next((m for m in team.get("members", []) if m.get("uuid") == uuid), None)
+        if not requester:
+            raise HTTPException(status_code=403, detail="Not a member of this team")
+        
+        is_self = (uuid == member_uuid)
+        is_privileged = requester.get("role") in ["admin", "mentor"]
+        
+        if not (is_self or is_privileged):
+            raise HTTPException(status_code=403, detail="Access denied.")
+
+        # Fetch Data (Using CORRECT DAO Method Names)
+        
+        # --- RESUMES ---
+        try:
+
+            resumes = await resumes_dao.get_all_resumes(member_uuid)
+        except Exception as e:
+            print(f"Error fetching resumes: {e}")
+            resumes = []
+
+        # --- COVER LETTERS ---
+        try:
+            cover_letters = await cover_letters_dao.get_all_cover_letters(member_uuid)
+        except Exception as e:
+            print(f"Error fetching cover letters: {e}")
+            cover_letters = []
+
+     
+        try:
+          
+            jobs = await jobs_dao.get_all_jobs(member_uuid)
+        except Exception as e:
+            print(f"Error fetching jobs: {e}")
+            jobs = []
+
+        return {
+            "resumes": resumes,
+            "jobs": jobs,
+            "coverLetters": cover_letters
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in get_member_work: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    
+
+@teams_router.post("/{team_id}/members/{member_uuid}/get-review-token")
+async def get_review_token(
+    team_id: str,
+    member_uuid: str,
+    request: dict, # Expects { "type": "resume"|"cover_letter", "id": "..." }
+    uuid: str = Depends(authorize)
+):
+    """
+    Get (or create) a public token so a Mentor can review a private document.
+    """
+    try:
+        team_id_obj = ObjectId(team_id)
+        # 1. Permission Check (Mentor/Admin/Self)
+        team = await teams_dao.get_team_by_id(team_id_obj)
+        if not team: raise HTTPException(404, "Team not found")
+        
+        requester = next((m for m in team.get("members", []) if m.get("uuid") == uuid), None)
+        if not requester: raise HTTPException(403, "Not member")
+        
+        is_privileged = requester.get("role") in ["admin", "mentor"] or uuid == member_uuid
+        if not is_privileged: raise HTTPException(403, "Access denied")
+
+        doc_type = request.get("type")
+        doc_id = request.get("id")
+        
+        token = None
+        
+        # 2. Get/Create Token based on type
+        if doc_type == "resume":
+            # Check for existing link
+            link = await resumes_dao.get_share_link(doc_id)
+            if link:
+                token = link.get("token")
+            else:
+                # Auto-create link for review
+                new_share = await resumes_dao.create_share_link(doc_id, {"can_comment": True, "expiration_days": 30})
+                token = new_share.get("token")
+                
+        elif doc_type == "cover_letter":
+            # Check for existing link
+            link = await cover_letters_dao.get_share_link(doc_id)
+            if link:
+                token = link.get("token")
+            else:
+                # Auto-create link for review
+                new_share = await cover_letters_dao.create_share_link(doc_id, {"can_comment": True, "expiration_days": 30})
+                token = new_share.get("token")
+        
+        if not token:
+            raise HTTPException(404, "Could not generate token")
+            
+        return {"token": token}
+
+    except Exception as e:
+        print(f"Error getting review token: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
