@@ -25,4 +25,23 @@ class UserDataDAO:
         result = await self.collection.delete_one({"_id": uuid})
         return result.deleted_count
 
+    async def update_account_tier(self, uuid: str, tier: str) -> int:
+        """Update user's account tier to 'base_member' or 'admin'"""
+        result = await self.collection.update_one(
+            {"_id": uuid},
+            {"$set": {"account_tier": tier}}
+        )
+        return result.modified_count
+
+    async def is_admin(self, uuid: str) -> bool:
+        """Check if user has admin tier"""
+        profile = await self.collection.find_one({"_id": uuid})
+        if profile:
+            return profile.get("account_tier") == "admin"
+        return False
+
+    async def get_profile_by_email(self, email: str) -> dict | None:
+        """Get profile by email address"""
+        return await self.collection.find_one({"email": email})
+
 profiles_dao = UserDataDAO()

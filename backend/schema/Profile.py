@@ -14,6 +14,7 @@ class Profile(BaseModel):
     biography: Optional[str] = None
     industry: Optional[str] = None
     experience_level: Optional[str] = None
+    account_tier: Optional[str] = "base_member" # "base_member" or "admin"
     # IMAGE MEDIA
 
 class DeletePassword(BaseModel): # for profile deletion

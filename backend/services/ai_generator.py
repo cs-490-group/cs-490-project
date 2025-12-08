@@ -12,6 +12,7 @@ import re
 from typing import Dict, List, Any
 import cohere
 from services.prompt_templates import PromptTemplates
+from services.tracked_ai_clients import TrackedCohereClient
 
 
 class AIGenerator:
@@ -22,15 +23,10 @@ class AIGenerator:
 
     @classmethod
     def get_client(cls):
-        """Get or create Cohere client"""
+        """Get or create Tracked Cohere client"""
         if cls._client is None:
-            api_key = os.getenv('COHERE_API_KEY')
-            if not api_key:
-                raise ValueError(
-                    "COHERE_API_KEY environment variable not set. "
-                    "Please add your Cohere API key to the .env file."
-                )
-            cls._client = cohere.ClientV2(api_key=api_key)
+            # Use TrackedCohereClient for automatic logging and fallback
+            cls._client = TrackedCohereClient()
         return cls._client
 
     @staticmethod
