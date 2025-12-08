@@ -277,3 +277,111 @@ async def verify_microsoft_token(request: Request):
             "has_password": existing_user != None and pass_exists
         },
     )
+
+@auth_router.post("/login/linkedin", tags=["profiles"])
+async def verify_linkedin_token(request: Request):
+    LINKEDIN_CLIENT_ID = os.getenv("LINKEDIN_CLIENT_ID")
+    LINKEDIN_CLIENT_SECRET = os.getenv("LINKEDIN_CLIENT_SECRET")
+    
+    data = await request.json()
+    code = data.get("code")
+    
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing authorization code")
+    
+    # Exchange authorization code for access token
+    token_url = "https://www.linkedin.com/oauth/v2/accessToken"
+    token_data = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": os.getenv("LINKEDIN_REDIRECT_URI", "http://localhost:3000/callback/linkedin"),
+        "client_id": LINKEDIN_CLIENT_ID,
+        "client_secret": LINKEDIN_CLIENT_SECRET,
+    }
+    
+    async with httpx.AsyncClient() as client:
+        token_response = await client.post(token_url, data=token_data)
+        if token_response.status_code != 200:
+            raise HTTPException(status_code=400, detail="Failed to exchange code for token")
+        
+        token_data = token_response.json()
+        access_token = token_data.get("access_token")
+        
+        if not access_token:
+            raise HTTPException(status_code=400, detail="No access token received")
+    
+    # Get user profile from LinkedIn OpenID Connect
+    # LinkedIn OpenID Connect provides user info directly in the token response
+    # or we can use the userinfo endpoint
+    userinfo_url = "https://api.linkedin.com/v2/userinfo"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    
+    async with httpx.AsyncClient() as client:
+        userinfo_response = await client.get(userinfo_url, headers=headers)
+        if userinfo_response.status_code != 200:
+            raise HTTPException(status_code=400, detail="Failed to fetch LinkedIn user info")
+        
+        user_info = userinfo_response.json()
+    
+    # Extract user information from OpenID Connect response
+    email = user_info.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email not found in LinkedIn response")
+    
+    # Extract name from OpenID Connect response
+    name = user_info.get("name", "")
+    given_name = user_info.get("given_name", "")
+    family_name = user_info.get("family_name", "")
+    
+    # Fallback parsing if name is not provided
+    if not name and (given_name or family_name):
+        name = f"{given_name} {family_name}".strip()
+    
+    # Extract other useful fields
+    sub = user_info.get("sub", "")  # LinkedIn user ID
+    picture = user_info.get("picture")  # Profile picture URL
+    
+    linkedin_data = {
+        "email": email,
+        "username": email,
+        "full_name": name,
+        "first_name": given_name,
+        "last_name": family_name,
+        "linkedin_id": sub,
+        "picture": picture,
+    }
+    
+    # Check if user exists
+    existing_user = await auth_dao.get_uuid(email)
+    pass_exists = None
+    
+    if existing_user:
+        uuid = existing_user
+        pass_exists = await auth_dao.get_password_by_uuid(uuid)
+    else:
+        uuid = str(uuid4())
+        user_data = {
+            "email": email,
+            "username": email,
+            "password": "",  # No password for LinkedIn users
+        }
+        await auth_dao.add_user(uuid, user_data)
+        
+        existing_profile = await profiles_dao.get_profile(uuid)
+        if not existing_profile:
+            await profiles_dao.add_profile(uuid, linkedin_data)
+    
+    session_token = session_manager.begin_session(uuid)
+    
+    return JSONResponse(
+        status_code=200,
+        content={
+            "detail": "success",
+            "uuid": uuid,
+            "email": email,
+            "session_token": session_token,
+            "has_password": existing_user != None and pass_exists
+        },
+    )

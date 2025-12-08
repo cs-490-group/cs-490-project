@@ -29,12 +29,15 @@ def make_aware(dt):
         return None
     if dt.tzinfo is not None and dt.tzinfo.utcoffset(dt) is not None:
         return dt.astimezone(timezone.utc)
-    return dt.replace(tzinfo=timezone.utc)
+    # Assume naive datetime is EST from frontend, convert to UTC
+    est = timezone(timedelta(hours=-5))
+    dt = dt.replace(tzinfo=est)
+    return dt.astimezone(timezone.utc)
 
 
 async def parse_event_datetime(event_data: Dict[str, Any]) -> tuple:
     """
-    Parse event date and time into a datetime object.
+    Parse event date and time into a datetime object with proper timezone handling.
     
     Returns:
         Tuple of (event_datetime, error_message)
@@ -51,15 +54,29 @@ async def parse_event_datetime(event_data: Dict[str, Any]) -> tuple:
             try:
                 # Try ISO format first
                 event_date = datetime.fromisoformat(event_date_raw.replace('Z', '+00:00'))
+                if event_date.tzinfo is None:
+                    # Assume EST from frontend
+                    est = timezone(timedelta(hours=-5))
+                    event_date = event_date.replace(tzinfo=est)
+                event_date = event_date.astimezone(timezone.utc)
             except:
                 try:
                     # Try common date formats
                     event_date = datetime.strptime(event_date_raw, "%Y-%m-%d")
-                    event_date = event_date.replace(tzinfo=timezone.utc)
+                    # Assume EST from frontend and convert to UTC
+                    est = timezone(timedelta(hours=-5))
+                    event_date = event_date.replace(tzinfo=est)
+                    event_date = event_date.astimezone(timezone.utc)
                 except:
                     return None, f"Could not parse event_date: {event_date_raw}"
         elif isinstance(event_date_raw, datetime):
-            event_date = event_date_raw
+            if event_date_raw.tzinfo is None:
+                # Assume EST from frontend
+                est = timezone(timedelta(hours=-5))
+                event_date = event_date_raw.replace(tzinfo=est)
+            else:
+                event_date = event_date_raw
+            event_date = event_date.astimezone(timezone.utc)
         else:
             return None, f"Invalid event_date type: {type(event_date_raw)}"
         
@@ -78,12 +95,17 @@ async def parse_event_datetime(event_data: Dict[str, Any]) -> tuple:
                 
                 # Combine date and time
                 event_datetime = datetime.combine(event_date.date(), start_time)
-                event_datetime = event_datetime.replace(tzinfo=timezone.utc)
+                # Assume EST for the time and convert to UTC
+                est = timezone(timedelta(hours=-5))
+                event_datetime = event_datetime.replace(tzinfo=est)
+                event_datetime = event_datetime.astimezone(timezone.utc)
             else:
                 event_datetime = event_date
         else:
-            # No start time, use noon as default
-            event_datetime = event_date.replace(hour=12, minute=0, second=0, microsecond=0)
+            # No start time, use noon as default (EST)
+            est = timezone(timedelta(hours=-5))
+            event_datetime = event_date.replace(hour=12, minute=0, second=0, microsecond=0, tzinfo=est)
+            event_datetime = event_datetime.astimezone(timezone.utc)
         
         return make_aware(event_datetime), None
         

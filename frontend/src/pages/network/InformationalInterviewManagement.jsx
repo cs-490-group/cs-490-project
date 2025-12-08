@@ -281,19 +281,19 @@ export default function InformationalInterviewManagement() {
         const today = new Date();
         const interviewLocalDate = toLocalDate(interview.scheduled_date || interview.request_date);
         const interviewDate = new Date(interviewLocalDate);
-        
+
         // Check if interview is today
         if (interviewDate.toDateString() !== today.toDateString()) {
             return false;
         }
-        
+
         // Create full datetime objects for accurate comparison
         const interviewDateTime = new Date(interviewLocalDate);
         if (interview.start_time) {
             const [hours, minutes] = interview.start_time.split(':');
             interviewDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
         }
-        
+
         // Check if interview is later today
         return interviewDateTime > today;
     };
@@ -356,8 +356,8 @@ export default function InformationalInterviewManagement() {
                 <div
                     key={day}
                     className={`calendar-day-cell ${isTodayCheck(day)
-                            ? "calendar-day-cell-today"
-                            : "calendar-day-cell-default"
+                        ? "calendar-day-cell-today"
+                        : "calendar-day-cell-default"
                         } ${hasInterviews ? "calendar-day-cell-has-events" : ""
                         }`}
                     style={{ cursor: hasInterviews ? "pointer" : "default" }}
@@ -465,13 +465,9 @@ export default function InformationalInterviewManagement() {
                 Informational Interview Management
             </h1>
 
-            <Row>
-                <Col xs={12} className="mb-4">
-                    <Button onClick={() => { setShowModal(true); resetForm(); }}>
-                        + Schedule Informational Interview
-                    </Button>
-                </Col>
-            </Row>
+            <Button onClick={() => { setShowModal(true); resetForm(); }} style={{width:"fit-content", margin:"0 auto 0 auto"}}>
+                + Schedule Informational Interview
+            </Button>
 
             <Row className="py-4">
                 <Col xs={12} className="mb-4">
@@ -662,7 +658,7 @@ export default function InformationalInterviewManagement() {
                     )}
                 </Col>
             </Row>
-            <Row className="mb-4" style={{margin: "0rem 1rem 0rem 1rem"}}>
+            <Row className="mb-4" style={{ margin: "0rem 1rem 0rem 1rem" }}>
                 <h5 className="text-white mb-3">Interview Calendar</h5>
                 {renderCalendarView()}
             </Row>

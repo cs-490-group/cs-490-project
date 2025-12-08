@@ -38,6 +38,10 @@ class AuthAPI {
     loginMicrosoft(tokenData) {
         return api.put(`${BASE_URL}/login/microsoft`, tokenData);
     }
+
+    loginLinkedIn(codeData) {
+        return api.post(`${BASE_URL}/login/linkedin`, codeData);
+    }
 }
 
 export default new AuthAPI();

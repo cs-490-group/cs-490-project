@@ -242,6 +242,112 @@ function Login() {
     }
   }
 
+  async function handleLinkedInLogin() {
+    try {
+      // LinkedIn OAuth 2.0 flow
+      const LINKEDIN_CLIENT_ID = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "your_linkedin_client_id";
+      const REDIRECT_URI = `${window.location.origin}/callback/linkedin`;
+      const SCOPE = "openid profile email";
+      
+      // Construct LinkedIn OAuth URL
+      const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPE)}`;
+      
+      // Open popup for LinkedIn authorization
+      const popup = window.open(authUrl, "linkedinOAuth", "width=600,height=600");
+      
+      // Listen for message from popup
+      let checkPopup;
+      let timeout;
+      
+      const handleMessage = async (event) => {
+        if (event.origin !== window.location.origin) return;
+        
+        if (event.data.type === "LINKEDIN_AUTH_SUCCESS") {
+          const { code, error } = event.data;
+          
+          // Clean up event listeners and timers
+          clearInterval(checkPopup);
+          clearTimeout(timeout);
+          window.removeEventListener("message", handleMessage);
+          
+          if (error) {
+            showFlash("LinkedIn login cancelled or failed", "error");
+            popup.close();
+            return;
+          }
+          
+          if (code) {
+            try {
+              const res = await AuthAPI.loginLinkedIn({ code });
+              
+              if (res.status !== 200) {
+                showFlash(res.data?.detail || "LinkedIn login failed", "error");
+                popup.close();
+                return;
+              }
+              
+              localStorage.setItem("session", res.data.session_token);
+              localStorage.setItem("uuid", res.data.uuid);
+              localStorage.setItem("email", res.data.email || "");
+              
+              // Load user's team
+              const teamId = await loadUserTeam(res.data.uuid);
+              
+              // Log login activity for engagement tracking
+              if (teamId && res.data.uuid) {
+                await logUserLogin(teamId, res.data.uuid);
+              }
+              
+              // Accept invite if user has pending invitation
+              if (teamId) {
+                await acceptPendingInvite(teamId, res.data.email, res.data.uuid);
+              }
+              
+              if (!res.data.has_password) {
+                navigate("/set-password");
+                popup.close();
+                return;
+              }
+              
+              navigate("/dashboard");
+              popup.close();
+            } catch (error) {
+              console.error("LinkedIn login error:", error);
+              showFlash(error?.response?.data?.detail || "LinkedIn login failed", "error");
+              popup.close();
+            }
+          }
+        }
+      };
+      
+      window.addEventListener("message", handleMessage);
+      
+      // Check if popup was blocked
+      checkPopup = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopup);
+          clearTimeout(timeout);
+          window.removeEventListener("message", handleMessage);
+          showFlash("LinkedIn login was cancelled", "error");
+        }
+      }, 1000);
+      
+      // Timeout after 5 minutes in case user doesn't complete auth
+      timeout = setTimeout(() => {
+        clearInterval(checkPopup);
+        window.removeEventListener("message", handleMessage);
+        if (!popup.closed) {
+          popup.close();
+        }
+        showFlash("LinkedIn login timed out", "error");
+      }, 5 * 60 * 1000); // 5 minutes
+      
+    } catch (err) {
+      console.error("LinkedIn login failed:", err);
+      showFlash("LinkedIn login failed", "error");
+    }
+  }
+
   return (
     <div className="login-page">
       <div className="login-card shadow">
@@ -285,10 +391,17 @@ function Login() {
           </div>
 
           <button
-            className="btn btn-outline-dark w-100 fw-semibold microsoft-login"
+            className="btn btn-outline-dark w-100 fw-semibold microsoft-login mb-2"
             onClick={handleMicrosoftLogin}
           >
             <i className="fab fa-microsoft me-2"></i> Login with Microsoft
+          </button>
+
+          <button
+            className="btn btn-outline-dark w-100 fw-semibold linkedin-login mb-2"
+            onClick={handleLinkedInLogin}
+          >
+            <i className="fab fa-linkedin me-2"></i> Login with LinkedIn
           </button>
         </div>
 
