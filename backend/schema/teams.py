@@ -2,14 +2,12 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
 
-
 class MemberKPIs(BaseModel):
     completedGoals: int = 0
     pendingGoals: int = 0
     engagement: int = 0
     applications: int = 0
     lastLogin: Optional[str] = None
-
 
 class Goal(BaseModel):
     id: str
@@ -27,7 +25,6 @@ class Material(BaseModel):
     name: str
     link: str
 
-
 class Application(BaseModel):
     id: str
     position: str
@@ -35,23 +32,22 @@ class Application(BaseModel):
     status: str  # applied, interview, rejected, offer
     materials: Optional[List[Material]] = []
 
-
 class TeamMember(BaseModel):
     uuid: str
     email: str
     name: str
     role: str  # admin, mentor, candidate
     status: str = "active"  # active, invited, inactive
-    progress: dict = {"overall": 0}
+    # Progress and Goals are specific to THIS team context
+    progress: dict = {"overall": 0} 
     kpis: Optional[MemberKPIs] = None
     goals: Optional[List[Goal]] = []
     applications: Optional[List[Application]] = []
     joined_at: Optional[datetime] = None
 
-
 class BillingInfo(BaseModel):
-    plan: str = "basic"  # basic, standard, premium
-    status: str = "active"  # active, cancelled, expired
+    plan: str = "basic"
+    status: str = "active"
     price: int = 99
     renewalDate: Optional[str] = None
     cardBrand: Optional[str] = None
@@ -60,19 +56,21 @@ class BillingInfo(BaseModel):
     expYear: Optional[str] = None
     invoices: Optional[List[dict]] = []
 
-
 class TeamSettings(BaseModel):
     maxMembers: int = 50
-    visibility: str = "private"  # private, public
+    visibility: str = "private"
     allowInvites: bool = True
 
-
 class CreateTeamRequest(BaseModel):
-    uuid: str
+    # Removed uuid here, usually inferred from the logged-in user (token)
     email: Optional[str] = None
     name: str
     description: Optional[str] = None
 
+# === NEW: For switching context ===
+class SwitchTeamRequest(BaseModel):
+    team_id: str
+# ==================================
 
 class UpdateTeamRequest(BaseModel):
     name: Optional[str] = None
@@ -80,27 +78,35 @@ class UpdateTeamRequest(BaseModel):
     billingPlan: Optional[str] = None
     maxMembers: Optional[int] = None
 
-
 class InviteMemberRequest(BaseModel):
     email: EmailStr
     role: str  
 
-
 class AcceptInvitationRequest(BaseModel):
     email: EmailStr
     uuid: str
+    team_id: str # Explicitly state which team is being accepted
 
 class UpdateMemberRequest(BaseModel):
     role: str
 
-
 class UpdateBillingRequest(BaseModel):
-    plan: str  # basic, standard, premium
-
+    plan: str
 
 class SendFeedbackRequest(BaseModel):
     feedback: str
     mentorId: str
+
+
+class TeamSummary(BaseModel):
+    id: str
+    name: str
+    role: str
+    description: Optional[str] = None
+
+class UserTeamsResponse(BaseModel):
+    active_team_id: Optional[str]
+    teams: List[TeamSummary]
 
 
 class TeamResponse(BaseModel):
