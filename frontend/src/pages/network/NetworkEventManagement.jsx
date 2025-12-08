@@ -607,7 +607,7 @@ export default function NetworkEventManagement() {
                 Networking Event Management
             </h1>
 
-            <Row style={{ width:"fit-content", margin:"auto" }}>
+            <Row style={{ width:"fit-content", margin:"0 auto 0 auto" }}>
                 <Button onClick={() => { setShowModal(true); resetForm(); }}>
                     + Add Event
                 </Button>

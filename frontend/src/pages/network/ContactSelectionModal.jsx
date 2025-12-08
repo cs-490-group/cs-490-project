@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Modal, Button, Row, Col, Card, Form, Badge } from "react-bootstrap";
+import "./ReferralModals.css";
 
 export default function ContactSelectionModal({
     showModal,
@@ -195,7 +196,7 @@ export default function ContactSelectionModal({
     );
 
     return (
-        <Modal show={showModal} onHide={handleClose} size="xl" centered contentClassName="modal-centered-content">
+        <Modal show={showModal} onHide={handleClose} size="xl" centered contentClassName="modal-centered-content" dialogClassName="modal-dialog-centered">
             <Modal.Header closeButton>
                 <Modal.Title>Select a Contact for Referral</Modal.Title>
             </Modal.Header>
