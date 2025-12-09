@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as APIMetrics from '../api/apiMetrics';
 import ProfilesAPI from '../api/profiles';
 import { Container, Row, Col, Card, Button, Table, Badge, ProgressBar, Spinner, Alert } from 'react-bootstrap';
-import { Activity, Download, AlertTriangle } from 'lucide-react';
+import { Activity, Download, AlertTriangle, Lock } from 'lucide-react';
 import '../styles/analytics.css';
 
 export default function APIMetricsPage() {
@@ -92,18 +92,48 @@ export default function APIMetricsPage() {
   // Unauthorized state
   if (!authorized) {
     return (
-      <div className="dashboard-gradient min-vh-100" style={{ paddingTop: "100px" }}>
+      <div className="dashboard-gradient min-vh-100 d-flex align-items-center justify-content-center">
         <Container>
           <div className="analyticsDashboard-content">
-            <Card className="border-0 shadow-sm rounded-4 text-center p-5">
-              <AlertTriangle size={48} className="text-warning mx-auto mb-3" />
-              <h2 className="fw-bold mb-3">Unauthorized Access</h2>
-              <p className="text-muted mb-4">
-                You need admin access to view API metrics. Please contact your system administrator if you believe this is an error.
+            <Card className="border-0 shadow-lg rounded-4 text-center p-5 dashboardFadeIn" style={{ maxWidth: '600px', margin: '0 auto', background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)' }}>
+              <div className="mb-4" style={{
+                background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
+                width: '100px',
+                height: '100px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto',
+                boxShadow: '0 4px 15px rgba(220, 53, 69, 0.3)'
+              }}>
+                <Lock size={48} color="white" strokeWidth={2.5} />
+              </div>
+              <h1 className="fw-bold mb-3" style={{ fontSize: '2rem', color: '#212529' }}>Access Restricted</h1>
+              <p className="text-muted mb-2" style={{ fontSize: '1.1rem' }}>
+                This page requires <strong>administrator privileges</strong>
               </p>
-              <Button variant="primary" onClick={() => navigate('/dashboard')}>
-                Go to Dashboard
-              </Button>
+              <p className="text-muted mb-4" style={{ fontSize: '0.95rem' }}>
+                API metrics and usage data are only accessible to admin accounts. If you believe you should have access, please contact your system administrator.
+              </p>
+              <div className="d-flex gap-3 justify-content-center mt-4">
+                <Button
+                  variant="primary"
+                  onClick={() => navigate('/dashboard')}
+                  className="px-4 py-2"
+                  style={{ borderRadius: '8px' }}
+                >
+                  Go to Dashboard
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  onClick={() => navigate(-1)}
+                  className="px-4 py-2"
+                  style={{ borderRadius: '8px' }}
+                >
+                  Go Back
+                </Button>
+              </div>
             </Card>
           </div>
         </Container>

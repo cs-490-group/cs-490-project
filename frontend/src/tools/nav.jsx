@@ -413,21 +413,19 @@ const Nav = () => {
                   </NavDropdown.Item>
                 </NavDropdown>
 
-                {accountTier === 'admin' && (
-                  <NavDropdown
-                    title="Admin"
-                    id="admin-dropdown"
-                    className="mx-3"
-                    show={showAdminDropdown}
-                    onMouseEnter={() => setShowAdminDropdown(true)}
-                    onMouseLeave={() => setShowAdminDropdown(false)}
-                  >
-                    <NavDropdown.Item as={NavLink} to="/api-metrics">
-                      <i className="fas fa-chart-bar" style={{ marginRight: "8px" }}></i>
-                      API Metrics
-                    </NavDropdown.Item>
-                  </NavDropdown>
-                )}
+                <NavDropdown
+                  title="Admin"
+                  id="admin-dropdown"
+                  className="mx-3"
+                  show={showAdminDropdown}
+                  onMouseEnter={() => setShowAdminDropdown(true)}
+                  onMouseLeave={() => setShowAdminDropdown(false)}
+                >
+                  <NavDropdown.Item as={NavLink} to="/api-metrics">
+                    <i className="fas fa-chart-bar" style={{ marginRight: "8px" }}></i>
+                    API Metrics
+                  </NavDropdown.Item>
+                </NavDropdown>
 
                 <NavDropdown
                   title={
