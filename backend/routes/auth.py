@@ -24,6 +24,7 @@ from schema.Profile import Profile
 import httpx
 from jose import jwt, JWTError
 import os
+from bson import ObjectId
 
 auth_router = APIRouter(prefix = "/auth")
 
@@ -88,6 +89,73 @@ async def login(credentials: LoginCred):
         raise HTTPException(401, "Invalid email or password.")
     
     if bcrypt.checkpw(credentials.password.encode("utf-8"), pass_hash.encode("utf-8")):
+        # Ensure user has a contact card
+        try:
+            from mongo.network_dao import networks_dao
+            existing_contacts = await networks_dao.get_all_contacts(uuid)
+            
+            if not existing_contacts or len(existing_contacts) == 0:
+                # Try to find existing contact by email using direct collection access
+                contact_collection = networks_dao.collection
+                matching_contact = await contact_collection.find_one({"email": credentials.email.lower()})
+                
+                if matching_contact:
+                    # Link existing contact to this user
+                    contact_id = str(matching_contact["_id"])
+                    associated_users = matching_contact.get("associated_users", [])
+                    
+                    # Check if user is already associated
+                    user_already_associated = any(
+                        user.get("uuid") == uuid for user in associated_users
+                    )
+                    
+                    if not user_already_associated:
+                        # Add user to associated_users array
+                        await contact_collection.update_one(
+                            {"_id": ObjectId(contact_id)},
+                            {
+                                "$push": {
+                                    "associated_users": {
+                                        "uuid": uuid,
+                                        "relationship_to_owner": "self",
+                                        "date_added": datetime.now(timezone.utc).isoformat()
+                                    }
+                                }
+                            }
+                        )
+                else:
+                    # Create new contact card
+                    print(f"Regular Login: Creating new contact for email {credentials.email.lower()}")
+                    # Get user profile data for contact creation
+                    user_profile = await profiles_dao.get_profile(uuid)
+                    
+                    # Create new contact card with profile data
+                    contact_data = {
+                        "name": user_profile.get("full_name", credentials.email.split("@")[0]),
+                        "email": credentials.email.lower(),
+                        "phone_numbers": {
+                            "primary": user_profile.get("phone_number")
+                        } if user_profile.get("phone_number") else None,
+                        "employment": {
+                            "position": user_profile.get("title"),
+                            "company": None  # Could be extracted from email domain
+                        } if user_profile.get("title") else None,
+                        "industry": user_profile.get("industry"),
+                        "notes": user_profile.get("biography"),
+                        "associated_users": [{
+                            "uuid": uuid,
+                            "relationship_to_owner": "self",
+                            "date_added": datetime.now(timezone.utc).isoformat()
+                        }]
+                    }
+                    # Remove None values to keep contact clean
+                    contact_data = {k: v for k, v in contact_data.items() if v is not None}
+                    await networks_dao.add_contact(contact_data)
+                    print(f"Regular Login: Created new contact")
+        except Exception as e:
+            # Non-critical error - login should succeed even if contact creation fails
+            print(f"Warning: Could not ensure contact for user {uuid}: {e}")
+        
         # begin session
         session_token = session_manager.begin_session(uuid)
 
@@ -175,13 +243,103 @@ async def verify_google_token(token: dict = Body(...)):
             uuid = data
             pass_exists = await auth_dao.get_password_by_uuid(uuid)
         else:
-
             uuid = str(uuid4())
             idinfo["username"] = idinfo["email"]
             await auth_dao.add_user(uuid,idinfo)
             await profiles_dao.add_profile(uuid, idinfo)
             image = Requests.get(idinfo.get("picture"))
             await media_dao.add_media(uuid,idinfo.get("picture"),image.content,content_type="image/jpeg")
+        
+        # Ensure user has a contact card (for both new and existing users)
+        try:
+            from mongo.network_dao import networks_dao
+            print(f"Google OAuth: Checking contacts for user {uuid}")
+            existing_contacts = await networks_dao.get_all_contacts(uuid)
+            print(f"Google OAuth: Found {len(existing_contacts) if existing_contacts else 0} existing contacts")
+            
+            # Check if user has their own contact (relationship_to_owner: "self")
+            has_self_contact = False
+            if existing_contacts:
+                for contact in existing_contacts:
+                    associated_users = contact.get("associated_users", [])
+                    user_association = next((user for user in associated_users if user.get("uuid") == uuid), None)
+                    if user_association and user_association.get("relationship_to_owner") == "self":
+                        has_self_contact = True
+                        print(f"Google OAuth: User already has self contact")
+                        break
+            
+            if not has_self_contact:
+                print(f"Google OAuth: No self contact found, searching for email {idinfo['email'].lower()}")
+                # Try to find existing contact by email using direct collection access
+                contact_collection = networks_dao.collection
+                matching_contact = await contact_collection.find_one({"email": idinfo["email"].lower()})
+                print(f"Google OAuth: Matching contact found: {matching_contact is not None}")
+                
+                if matching_contact:
+                    print(f"Google OAuth: Linking to existing contact {matching_contact['_id']}")
+                    # Link existing contact to this user
+                    contact_id = str(matching_contact["_id"])
+                    associated_users = matching_contact.get("associated_users", [])
+                    
+                    # Check if user is already associated
+                    user_already_associated = any(
+                        user.get("uuid") == uuid for user in associated_users
+                    )
+                    print(f"Google OAuth: User already associated: {user_already_associated}")
+                    
+                    if not user_already_associated:
+                        # Add user to associated_users array
+                        await contact_collection.update_one(
+                            {"_id": ObjectId(contact_id)},
+                            {
+                                "$push": {
+                                    "associated_users": {
+                                        "uuid": uuid,
+                                        "relationship_to_owner": "self",
+                                        "date_added": datetime.now(timezone.utc).isoformat()
+                                    }
+                                }
+                            }
+                        )
+                        print(f"Google OAuth: Successfully linked user to existing contact")
+                else:
+                    print(f"Google OAuth: Creating new contact for email {idinfo['email'].lower()}")
+                    # Get user profile data for contact creation
+                    user_profile = await profiles_dao.get_profile(uuid)
+                    
+                    # Create new contact card with profile data
+                    contact_data = {
+                        "name": idinfo.get("name", user_profile.get("full_name", idinfo["email"].split("@")[0])),
+                        "email": idinfo["email"].lower(),
+                        "phone_numbers": {
+                            "primary": user_profile.get("phone_number")
+                        } if user_profile.get("phone_number") else None,
+                        "websites": {
+                            "linkedin": idinfo.get("sub")  # Google sub is unique identifier
+                        } if idinfo.get("sub") else None,
+                        "employment": {
+                            "position": user_profile.get("title"),
+                            "company": None  # Could be extracted from email domain
+                        } if user_profile.get("title") else None,
+                        "industry": user_profile.get("industry"),
+                        "notes": user_profile.get("biography"),
+                        "associated_users": [{
+                            "uuid": uuid,
+                            "relationship_to_owner": "self",
+                            "date_added": datetime.now(timezone.utc).isoformat()
+                        }]
+                    }
+                    # Remove None values to keep contact clean
+                    contact_data = {k: v for k, v in contact_data.items() if v is not None}
+                    result = await networks_dao.add_contact(contact_data)
+                    print(f"Google OAuth: Created new contact with ID: {result}")
+            else:
+                print(f"Google OAuth: User already has self contact, skipping creation")
+        except Exception as e:
+            # Non-critical error - login should succeed even if contact creation fails
+            print(f"ERROR: Could not ensure contact for OAuth user {uuid}: {e}")
+            import traceback
+            traceback.print_exc()
         
         session_token = session_manager.begin_session(uuid)
         print("here is it")
@@ -264,7 +422,76 @@ async def verify_microsoft_token(request: Request):
         existing_profile = await profiles_dao.get_profile(uuid)
         if not existing_profile:
             await profiles_dao.add_profile(uuid, claims)
-
+        
+        # Ensure user has a contact card (for both new and existing users)
+        try:
+            from mongo.network_dao import networks_dao
+            existing_contacts = await networks_dao.get_all_contacts(uuid)
+            
+            if not existing_contacts or len(existing_contacts) == 0:
+                # Try to find existing contact by email using direct collection access
+                contact_collection = networks_dao.collection
+                matching_contact = await contact_collection.find_one({"email": email.lower()})
+                
+                if matching_contact:
+                    # Link existing contact to this user
+                    contact_id = str(matching_contact["_id"])
+                    associated_users = matching_contact.get("associated_users", [])
+                    
+                    # Check if user is already associated
+                    user_already_associated = any(
+                        user.get("uuid") == uuid for user in associated_users
+                    )
+                    
+                    if not user_already_associated:
+                        # Add user to associated_users array
+                        await contact_collection.update_one(
+                            {"_id": ObjectId(contact_id)},
+                            {
+                                "$push": {
+                                    "associated_users": {
+                                        "uuid": uuid,
+                                        "relationship_to_owner": "self",
+                                        "date_added": datetime.now(timezone.utc).isoformat()
+                                    }
+                                }
+                            }
+                        )
+                else:
+                    print(f"Microsoft OAuth: Creating new contact for email {email.lower()}")
+                    # Get user profile data for contact creation
+                    user_profile = await profiles_dao.get_profile(uuid)
+                    
+                    # Create new contact card with profile data
+                    contact_data = {
+                        "name": claims.get("name", user_profile.get("full_name", email.split("@")[0])),
+                        "email": email.lower(),
+                        "phone_numbers": {
+                            "primary": user_profile.get("phone_number")
+                        } if user_profile.get("phone_number") else None,
+                        "websites": {
+                            "linkedin": claims.get("sub")  # Microsoft sub is unique identifier
+                        } if claims.get("sub") else None,
+                        "employment": {
+                            "position": user_profile.get("title"),
+                            "company": None  # Could be extracted from email domain
+                        } if user_profile.get("title") else None,
+                        "industry": user_profile.get("industry"),
+                        "notes": user_profile.get("biography"),
+                        "associated_users": [{
+                            "uuid": uuid,
+                            "relationship_to_owner": "self",
+                            "date_added": datetime.now(timezone.utc).isoformat()
+                        }]
+                    }
+                    # Remove None values to keep contact clean
+                    contact_data = {k: v for k, v in contact_data.items() if v is not None}
+                    await networks_dao.add_contact(contact_data)
+                    print(f"Microsoft OAuth: Created new contact")
+        except Exception as e:
+            # Non-critical error - login should succeed even if contact creation fails
+            print(f"Warning: Could not ensure contact for Microsoft user {uuid}: {e}")
+    
     session_token = session_manager.begin_session(uuid)
 
     return JSONResponse(
@@ -324,6 +551,7 @@ async def verify_linkedin_token(request: Request):
             raise HTTPException(status_code=400, detail="Failed to fetch LinkedIn user info")
         
         user_info = userinfo_response.json()
+        print(f"LinkedIn OAuth: Raw user info received: {user_info}")
     
     # Extract user information from OpenID Connect response
     email = user_info.get("email")
@@ -343,9 +571,11 @@ async def verify_linkedin_token(request: Request):
     sub = user_info.get("sub", "")  # LinkedIn user ID
     picture = user_info.get("picture")  # Profile picture URL
     
+    print(f"LinkedIn OAuth: Extracted data - email: {email}, name: {name}, picture: {picture}")
+    
     linkedin_data = {
         "email": email,
-        "username": email,
+        "username": email.split("@")[0],  # Use email username (minus domain)
         "full_name": name,
         "first_name": given_name,
         "last_name": family_name,
@@ -364,14 +594,99 @@ async def verify_linkedin_token(request: Request):
         uuid = str(uuid4())
         user_data = {
             "email": email,
-            "username": email,
+            "username": email.split("@")[0],  # Use email username (minus domain)
             "password": "",  # No password for LinkedIn users
         }
         await auth_dao.add_user(uuid, user_data)
         
         existing_profile = await profiles_dao.get_profile(uuid)
         if not existing_profile:
+            print(f"LinkedIn OAuth: Creating new profile with data: {linkedin_data}")
             await profiles_dao.add_profile(uuid, linkedin_data)
+            
+            # Download and store profile picture if available
+            if picture:
+                try:
+                    print(f"LinkedIn OAuth: Downloading profile picture from {picture}")
+                    image_response = Requests.get(picture)
+                    if image_response.status_code == 200:
+                        await media_dao.add_media(uuid, picture, image_response.content, content_type="image/jpeg")
+                        print(f"LinkedIn OAuth: Successfully stored profile picture")
+                    else:
+                        print(f"LinkedIn OAuth: Failed to download profile picture, status: {image_response.status_code}")
+                except Exception as e:
+                    print(f"LinkedIn OAuth: Error downloading profile picture: {e}")
+        else:
+            print(f"LinkedIn OAuth: User already has profile, skipping creation")
+        
+        # Ensure user has a contact card (for both new and existing users)
+        try:
+            from mongo.network_dao import networks_dao
+            existing_contacts = await networks_dao.get_all_contacts(uuid)
+            
+            if not existing_contacts or len(existing_contacts) == 0:
+                # Try to find existing contact by email using direct collection access
+                contact_collection = networks_dao.collection
+                matching_contact = await contact_collection.find_one({"email": email.lower()})
+                
+                if matching_contact:
+                    # Link existing contact to this user
+                    contact_id = str(matching_contact["_id"])
+                    associated_users = matching_contact.get("associated_users", [])
+                    
+                    # Check if user is already associated
+                    user_already_associated = any(
+                        user.get("uuid") == uuid for user in associated_users
+                    )
+                    
+                    if not user_already_associated:
+                        # Add user to associated_users array
+                        await contact_collection.update_one(
+                            {"_id": ObjectId(contact_id)},
+                            {
+                                "$push": {
+                                    "associated_users": {
+                                        "uuid": uuid,
+                                        "relationship_to_owner": "self",
+                                        "date_added": datetime.now(timezone.utc).isoformat()
+                                    }
+                                }
+                            }
+                        )
+                else:
+                    print(f"LinkedIn OAuth: Creating new contact for email {email.lower()}")
+                    # Get user profile data for contact creation
+                    user_profile = await profiles_dao.get_profile(uuid)
+                    
+                    # Create new contact card with profile data
+                    contact_data = {
+                        "name": name or user_profile.get("full_name", email.split("@")[0]),
+                        "email": email.lower(),
+                        "phone_numbers": {
+                            "primary": user_profile.get("phone_number")
+                        } if user_profile.get("phone_number") else None,
+                        "websites": {
+                            "linkedin": sub  # LinkedIn sub is unique identifier
+                        } if sub else None,
+                        "employment": {
+                            "position": user_profile.get("title"),
+                            "company": None  # Could be extracted from email domain
+                        } if user_profile.get("title") else None,
+                        "industry": user_profile.get("industry"),
+                        "notes": user_profile.get("biography"),
+                        "associated_users": [{
+                            "uuid": uuid,
+                            "relationship_to_owner": "self",
+                            "date_added": datetime.now(timezone.utc).isoformat()
+                        }]
+                    }
+                    # Remove None values to keep contact clean
+                    contact_data = {k: v for k, v in contact_data.items() if v is not None}
+                    await networks_dao.add_contact(contact_data)
+                    print(f"LinkedIn OAuth: Created new contact")
+        except Exception as e:
+            # Non-critical error - login should succeed even if contact creation fails
+            print(f"Warning: Could not ensure contact for LinkedIn user {uuid}: {e}")
     
     session_token = session_manager.begin_session(uuid)
     

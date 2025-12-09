@@ -143,7 +143,7 @@ class NetworkingAnalyticsService:
             quality_conversations = sum(event.get("quality_conversations", 0) for event in events) if events else 0
             
             # Calculate ROI
-            roi_data = await self._calculate_roi(user_uuid, events, jobs, offers, referrals)
+            roi_data = await self._calculate_roi(user_uuid, events, jobs, offers, referrals, period_start, period_end)
             
             # Relationship analytics
             relationship_data = self._analyze_relationships(contacts, period_start, period_end)
@@ -256,9 +256,48 @@ class NetworkingAnalyticsService:
         events: List[Dict], 
         jobs: List[Dict], 
         offers: List[Dict],
-        referrals: List[Dict]
+        referrals: List[Dict],
+        period_start: Optional[datetime] = None,
+        period_end: Optional[datetime] = None
     ) -> Dict:
-        """Calculate return on investment for networking activities"""
+        """Calculate return on investment for networking activities using point system"""
+        
+        # Get total contacts for division
+        contacts = await network_dao.get_all_contacts(user_uuid) or []
+        total_contacts = len(contacts) if contacts else 1  # Avoid division by zero
+        
+        # Filter jobs by time period if provided
+        filtered_jobs = jobs
+        if period_start and period_end:
+            filtered_jobs = [
+                job for job in jobs 
+                if job.get("date_created") and self._dates_within_range(
+                    job.get("date_created"), 
+                    period_start.isoformat(), 
+                    int((period_end - period_start).days) + 1
+                )
+            ]
+        
+        # Calculate total points from jobs with referrals
+        total_points = 0
+        
+        # Count completed jobs with referrals (0.5 points each for Interview stage, 1 point for Offer stage)
+        interview_completed = [
+            job for job in filtered_jobs 
+            if job.get("status") == "Interview" and job.get("referral_id")
+        ]
+        interview_points = len(interview_completed) * 0.5
+        
+        offer_completed = [
+            job for job in filtered_jobs 
+            if job.get("status") == "Offer" and job.get("referral_id")
+        ]
+        offer_points = len(offer_completed) * 1.0
+        
+        total_points = interview_points + offer_points
+        
+        # Calculate networking ROI as points per contact
+        networking_roi = total_points / total_contacts
         
         # Calculate total investment (time + money)
         total_time_hours = sum(
@@ -269,43 +308,36 @@ class NetworkingAnalyticsService:
         
         # Value time at $50/hour for opportunity cost
         time_value = total_time_hours * 50
-        total_investment = total_money + time_value
+        total_investment = time_value + total_money
         
-        # Calculate returns from jobs and offers
-        total_value = 0
-        opportunities_count = 0
+        # Calculate ROI percentage - ensure no negative values
+        if total_points == 0:
+            roi_percentage = 0
+        else:
+            # Use points directly as value, scale appropriately
+            point_value = total_points * 100  # Each point worth $100 for calculation
+            roi_percentage = ((point_value - total_investment) / total_investment * 100) if total_investment > 0 else 0
         
-        for job in jobs:
-            # Check if job came from networking
-            if self._is_networking_sourced(job, events, referrals):
-                # Estimate value based on salary
-                estimated_salary = job.get("salary_range", {}).get("max", 80000)
-                total_value += estimated_salary * 0.1  # 10% of annual salary as opportunity value
-                opportunities_count += 1
-        
-        for offer in offers:
-            if self._is_networking_sourced(offer, events, referrals):
-                salary = offer.get("salary", 0)
-                total_value += salary * 0.15  # 15% of offer value
-                opportunities_count += 1
-        
-        # Calculate ROI percentage
-        roi_percentage = ((total_value - total_investment) / total_investment * 100) if total_investment > 0 else 0
+        # Ensure ROI is not negative
+        roi_percentage = max(0, roi_percentage)
         
         # Calculate cost per opportunity
-        cost_per_opportunity = total_investment / opportunities_count if opportunities_count > 0 else 0
+        cost_per_opportunity = total_investment / total_points if total_points > 0 else 0
         
         # Calculate average time to opportunity
         time_to_opportunity = self._calculate_time_to_opportunity(events, jobs, offers)
         
         return {
             "total_investment": total_investment,
-            "total_value": total_value,
+            "total_value": total_points * 100,  # Each point worth $100
             "roi_percentage": roi_percentage,
             "cost_per_opportunity": cost_per_opportunity,
             "time_to_opportunity": time_to_opportunity,
             "total_time_hours": total_time_hours,
-            "total_money": total_money
+            "total_money": total_money,
+            "networking_roi": networking_roi,
+            "total_points": total_points,
+            "total_contacts": total_contacts
         }
     
     def _is_networking_sourced(
