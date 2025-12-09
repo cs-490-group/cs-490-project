@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import OrganizationsAPI from '../api/organizations';
-import * as APIMetrics from '../api/apiMetrics';
-import { Container, Row, Col, Card, Button, Table, Badge, ProgressBar, Form, Nav, Spinner, InputGroup, Alert } from 'react-bootstrap';
-import { Building, Users, TrendingUp, ShieldCheck, Upload, Settings, Download, FileText, Briefcase, Trash2, LogOut, Search, Activity, AlertTriangle } from 'lucide-react';
+import { Container, Row, Col, Card, Button, Table, Badge, ProgressBar, Form, Nav, Spinner, InputGroup } from 'react-bootstrap';
+import { Building, TrendingUp, ShieldCheck, Upload, Download, Trash2, LogOut, Search } from 'lucide-react';
 import '../styles/resumes.css'; 
 
 export default function EnterpriseDashboard() {
@@ -18,22 +17,10 @@ export default function EnterpriseDashboard() {
   const [members, setMembers] = useState([]);
   const [memberSearch, setMemberSearch] = useState("");
 
-  // API Metrics state
-  const [quotaStatus, setQuotaStatus] = useState(null);
-  const [usageStats, setUsageStats] = useState([]);
-  const [recentErrors, setRecentErrors] = useState([]);
-  const [fallbackEvents, setFallbackEvents] = useState([]);
-  const [metricsLoading, setMetricsLoading] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
-
-  useEffect(() => {
-    if (activeTab === 'api-metrics') {
-      fetchAPIMetrics();
-    }
-  }, [activeTab]);
 
   const fetchDashboardData = async () => {
     try {
@@ -122,43 +109,6 @@ export default function EnterpriseDashboard() {
       } catch (err) { alert("Import failed: " + err.message); }
   };
 
-  const fetchAPIMetrics = async () => {
-    try {
-      setMetricsLoading(true);
-
-      // Fetch all metrics data in parallel
-      const [quotaRes, usageRes, errorsRes, fallbacksRes] = await Promise.all([
-        APIMetrics.getQuotaStatus(),
-        APIMetrics.getUsageStats(null, null), // Last 7 days by default
-        APIMetrics.getRecentErrors(20),
-        APIMetrics.getFallbackEvents(null, null) // Last 7 days by default
-      ]);
-
-      setQuotaStatus(quotaRes.quotas);
-      setUsageStats(usageRes.stats || []);
-      setRecentErrors(errorsRes.errors || []);
-      setFallbackEvents(fallbacksRes.events || []);
-
-    } catch (err) {
-      console.error("Failed to load API metrics", err);
-      if (err.response && err.response.status === 403) {
-        alert("You need admin access to view API metrics");
-        setActiveTab('overview');
-      }
-    } finally {
-      setMetricsLoading(false);
-    }
-  };
-
-  const handleExportMetricsReport = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      await APIMetrics.exportWeeklyReport(weekAgo, today);
-    } catch (err) {
-      alert("Failed to export metrics report");
-    }
-  };
 
   const primaryColor = data?.organization?.branding?.primary_color || "#0f172a";
   const logoUrl = data?.organization?.branding?.logo_url;
@@ -205,8 +155,8 @@ export default function EnterpriseDashboard() {
                 <Card className="border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
                     <Card.Body className="p-2">
                         <Nav className="flex-column gap-1 nav-pills">
-                            {['overview', 'cohorts', 'onboarding', 'api-metrics', 'settings'].map(key => (
-                                <Nav.Link 
+                            {['overview', 'cohorts', 'onboarding', 'settings'].map(key => (
+                                <Nav.Link
                                     key={key}
                                     active={activeTab === key}
                                     onClick={() => setActiveTab(key)}
@@ -352,192 +302,6 @@ export default function EnterpriseDashboard() {
                             <Button type="submit" className="w-100 fw-bold">Start Import</Button>
                         </Form>
                     </Card>
-                )}
-
-                {activeTab === 'api-metrics' && (
-                    <>
-                        {metricsLoading ? (
-                            <div className="text-center py-5">
-                                <Spinner animation="border" variant="primary" />
-                                <p className="text-muted mt-3">Loading API metrics...</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Quota Status Section */}
-                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <h4 className="fw-bold"><Activity size={24} className="me-2"/>API Metrics Dashboard</h4>
-                                    <Button variant="primary" size="sm" onClick={handleExportMetricsReport}>
-                                        <Download size={16} className="me-2"/>Export Report (PDF)
-                                    </Button>
-                                </div>
-
-                                {/* Quota Alert */}
-                                {quotaStatus && quotaStatus.cohere && quotaStatus.cohere.percent_remaining < 15 && (
-                                    <Alert variant="danger" className="d-flex align-items-center">
-                                        <AlertTriangle size={20} className="me-2"/>
-                                        <div>
-                                            <strong>Warning:</strong> Cohere API quota is below 15% ({quotaStatus.cohere.remaining} calls remaining out of {quotaStatus.cohere.limit})
-                                        </div>
-                                    </Alert>
-                                )}
-
-                                {/* Quota Overview Cards */}
-                                <Row className="g-3 mb-4">
-                                    {quotaStatus && Object.entries(quotaStatus).map(([provider, quota]) => (
-                                        <Col md={6} key={provider}>
-                                            <Card className="border-0 shadow-sm rounded-4">
-                                                <Card.Body className="p-4">
-                                                    <div className="d-flex justify-content-between align-items-center mb-3">
-                                                        <h6 className="text-uppercase text-muted fw-bold m-0">{provider}</h6>
-                                                        <Badge bg={quota.percent_remaining > 50 ? 'success' : quota.percent_remaining > 15 ? 'warning' : 'danger'}>
-                                                            {quota.limit ? `${quota.percent_remaining.toFixed(1)}% left` : 'No limit'}
-                                                        </Badge>
-                                                    </div>
-                                                    {quota.limit ? (
-                                                        <>
-                                                            <h3 className="fw-bold mb-2">{quota.used} / {quota.limit} calls</h3>
-                                                            <ProgressBar
-                                                                now={quota.percent_used}
-                                                                variant={quota.percent_used < 50 ? 'success' : quota.percent_used < 85 ? 'warning' : 'danger'}
-                                                                className="mb-2"
-                                                                style={{height: '8px'}}
-                                                            />
-                                                            <small className="text-muted">{quota.remaining} calls remaining this month</small>
-                                                        </>
-                                                    ) : (
-                                                        <h3 className="fw-bold mb-2">{quota.used} calls</h3>
-                                                    )}
-                                                </Card.Body>
-                                            </Card>
-                                        </Col>
-                                    ))}
-                                </Row>
-
-                                {/* Usage Stats */}
-                                <Card className="border-0 shadow-sm rounded-4 mb-4">
-                                    <Card.Header className="bg-light border-0 pt-4 px-4">
-                                        <h5 className="fw-bold m-0">Usage by Provider (Last 7 Days)</h5>
-                                    </Card.Header>
-                                    <Card.Body className="p-0">
-                                        <div className="table-responsive">
-                                            <Table className="mb-0">
-                                                <thead className="table-light">
-                                                    <tr>
-                                                        <th>Provider</th>
-                                                        <th>Key Owner</th>
-                                                        <th>Total Calls</th>
-                                                        <th>Success Rate</th>
-                                                        <th>Avg Response Time</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {usageStats.length === 0 ? (
-                                                        <tr><td colSpan="5" className="text-center text-muted py-4">No usage data available</td></tr>
-                                                    ) : (
-                                                        usageStats.map((stat, idx) => {
-                                                            const successRate = (stat.successful_calls / stat.total_calls * 100).toFixed(1);
-                                                            return (
-                                                                <tr key={idx}>
-                                                                    <td className="fw-bold">{stat.provider}</td>
-                                                                    <td><Badge bg="secondary">{stat.key_owner}</Badge></td>
-                                                                    <td>{stat.total_calls}</td>
-                                                                    <td>
-                                                                        <Badge bg={successRate > 95 ? 'success' : successRate > 80 ? 'warning' : 'danger'}>
-                                                                            {successRate}%
-                                                                        </Badge>
-                                                                    </td>
-                                                                    <td>{stat.avg_duration_ms.toFixed(0)}ms</td>
-                                                                </tr>
-                                                            );
-                                                        })
-                                                    )}
-                                                </tbody>
-                                            </Table>
-                                        </div>
-                                    </Card.Body>
-                                </Card>
-
-                                {/* Fallback Events */}
-                                <Card className="border-0 shadow-sm rounded-4 mb-4">
-                                    <Card.Header className="bg-light border-0 pt-4 px-4">
-                                        <h5 className="fw-bold m-0">Fallback Events</h5>
-                                    </Card.Header>
-                                    <Card.Body className="p-4">
-                                        {fallbackEvents.length === 0 ? (
-                                            <p className="text-muted mb-0">No fallback events in the last 7 days</p>
-                                        ) : (
-                                            <>
-                                                <p className="text-muted mb-3">
-                                                    Total: <strong>{fallbackEvents.length}</strong> fallback events
-                                                </p>
-                                                <div className="table-responsive">
-                                                    <Table size="sm">
-                                                        <thead className="table-light">
-                                                            <tr>
-                                                                <th>Timestamp</th>
-                                                                <th>Fallback Path</th>
-                                                                <th>Status</th>
-                                                                <th>Error</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {fallbackEvents.slice(0, 10).map((event, idx) => (
-                                                                <tr key={idx}>
-                                                                    <td>{new Date(event.timestamp).toLocaleString()}</td>
-                                                                    <td>{event.primary_provider} → {event.fallback_provider}</td>
-                                                                    <td>
-                                                                        <Badge bg={event.success ? 'success' : 'danger'}>
-                                                                            {event.success ? 'Success' : 'Failed'}
-                                                                        </Badge>
-                                                                    </td>
-                                                                    <td className="small text-muted">{event.original_error?.substring(0, 50)}...</td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </Table>
-                                                </div>
-                                            </>
-                                        )}
-                                    </Card.Body>
-                                </Card>
-
-                                {/* Recent Errors */}
-                                <Card className="border-0 shadow-sm rounded-4 mb-4">
-                                    <Card.Header className="bg-light border-0 pt-4 px-4">
-                                        <h5 className="fw-bold m-0">Recent Errors</h5>
-                                    </Card.Header>
-                                    <Card.Body className="p-0">
-                                        <div className="table-responsive">
-                                            <Table size="sm" className="mb-0">
-                                                <thead className="table-light">
-                                                    <tr>
-                                                        <th>Timestamp</th>
-                                                        <th>Provider</th>
-                                                        <th>Key Owner</th>
-                                                        <th>Error Message</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {recentErrors.length === 0 ? (
-                                                        <tr><td colSpan="4" className="text-center text-muted py-4">No errors in the last 7 days 🎉</td></tr>
-                                                    ) : (
-                                                        recentErrors.map((error, idx) => (
-                                                            <tr key={idx}>
-                                                                <td className="small">{new Date(error.timestamp).toLocaleString()}</td>
-                                                                <td><Badge bg="secondary">{error.provider}</Badge></td>
-                                                                <td>{error.key_owner}</td>
-                                                                <td className="small text-danger">{error.error_message?.substring(0, 60)}...</td>
-                                                            </tr>
-                                                        ))
-                                                    )}
-                                                </tbody>
-                                            </Table>
-                                        </div>
-                                    </Card.Body>
-                                </Card>
-                            </>
-                        )}
-                    </>
                 )}
 
                 {activeTab === 'settings' && (

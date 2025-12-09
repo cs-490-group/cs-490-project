@@ -1,5 +1,5 @@
 import os
-import cohere
+from services.tracked_ai_clients import TrackedCohereClient
 import json
 import requests
 from bs4 import BeautifulSoup
@@ -9,7 +9,7 @@ import re
 from dateutil import parser as dateparser
 
 load_dotenv()
-co = cohere.Client(os.getenv("COHERE_API_KEY"))
+co = TrackedCohereClient()
 
 
 # ============================================================
@@ -164,11 +164,14 @@ Rules:
 - relevance_score: 1–100.
 """
 
-    response = co.chat(message=prompt)
+    response = co.chat(
+        model="command-a-03-2025",
+        messages=[{"role": "user", "content": prompt}]
+    )
 
     # --- extract text safely ---
-    text = getattr(response, "text", None)
-    if not text and hasattr(response, "message") and response.message:
+    text = None
+    if hasattr(response, "message") and response.message:
         try:
             text = response.message.content[0].text
         except:

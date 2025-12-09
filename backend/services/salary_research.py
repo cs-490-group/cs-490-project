@@ -1,17 +1,18 @@
 import json
 import os
-from openai import AsyncOpenAI
+from services.tracked_ai_clients import TrackedOpenAIClient
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
-openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Use tracked client for metrics logging
+openai_client = TrackedOpenAIClient()
 
 
 async def call_cohere_api(prompt: str) -> str:
     """Call OpenAI API (formerly Cohere) - same interface, better results"""
     try:
-        response = await openai_client.chat.completions.create(
+        response = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are an expert salary negotiation coach with deep knowledge of compensation packages, market rates, and negotiation strategies."},

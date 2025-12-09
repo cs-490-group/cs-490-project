@@ -6,11 +6,14 @@ import time
 import asyncio
 from datetime import datetime, timezone
 from typing import Any
+import threading
 import cohere
 from openai import OpenAI
 
 from services.api_key_manager import api_key_manager
-from mongo.api_metrics_dao import api_metrics_dao
+
+# Thread-local storage for event loops and DAOs
+_thread_local = threading.local()
 
 
 class TrackedCohereClient:
@@ -39,19 +42,76 @@ class TrackedCohereClient:
     def _log_call_sync(self, provider, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
         """Synchronous wrapper to log API call"""
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If event loop is running, schedule the coroutine
-                asyncio.create_task(self._async_log_call(
+            # Get or create thread-local event loop
+            if not hasattr(_thread_local, 'loop') or _thread_local.loop.is_closed():
+                _thread_local.loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(_thread_local.loop)
+
+            # Run the async log call in the thread-local event loop
+            _thread_local.loop.run_until_complete(
+                self._async_log_call_local(
                     provider, endpoint, key_owner, duration_ms, success, error_message, tokens_used
-                ))
-            else:
-                # If no loop is running, run it
-                loop.run_until_complete(self._async_log_call(
-                    provider, endpoint, key_owner, duration_ms, success, error_message, tokens_used
-                ))
+                )
+            )
         except Exception as e:
             print(f"[TrackedClient] Error logging API call: {e}")
+
+    async def _async_log_call_local(self, provider, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
+        """Async method to log API call using thread-local MongoDB connection"""
+        try:
+            import os
+            import certifi
+            from pymongo import AsyncMongoClient
+            from datetime import datetime, timezone
+
+            # Create a fresh MongoDB connection for this thread
+            mongo_connection_string = os.getenv("MONGO_CONNECTION_STRING")
+            database_name = os.getenv("MONGO_APPLICATION_DATABASE")
+
+            client = AsyncMongoClient(mongo_connection_string, tls=True, tlsCAFile=certifi.where())
+            db = client.get_database(database_name)
+            call_logs = db.get_collection("api_call_logs")
+            usage_quotas = db.get_collection("api_usage_quotas")
+
+            # Log the API call
+            log_entry = {
+                "timestamp": datetime.now(timezone.utc),
+                "provider": provider,
+                "endpoint": endpoint,
+                "key_owner": key_owner,
+                "duration_ms": duration_ms,
+                "success": success,
+                "error_message": error_message,
+                "tokens_used": tokens_used
+            }
+            await call_logs.insert_one(log_entry)
+
+            # Update usage quotas
+            current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+            await usage_quotas.update_one(
+                {
+                    "provider": provider,
+                    "key_owner": key_owner,
+                    "period": current_month
+                },
+                {
+                    "$inc": {
+                        "calls": 1,
+                        "tokens": tokens_used,
+                        "errors": 0 if success else 1
+                    },
+                    "$set": {
+                        "updated_at": datetime.now(timezone.utc)
+                    }
+                },
+                upsert=True
+            )
+
+            # Properly close the async connection
+            await client.close()
+
+        except Exception as e:
+            print(f"[TrackedClient] Error in _async_log_call_local: {e}")
 
     async def _async_log_call(self, provider, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
         """Async method to log API call and update quotas"""
@@ -190,17 +250,76 @@ class TrackedOpenAIClient:
     def _log_call_sync(self, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
         """Synchronous wrapper to log API call"""
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(self._async_log_call(
+            # Get or create thread-local event loop
+            if not hasattr(_thread_local, 'loop') or _thread_local.loop.is_closed():
+                _thread_local.loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(_thread_local.loop)
+
+            # Run the async log call in the thread-local event loop
+            _thread_local.loop.run_until_complete(
+                self._async_log_call_local(
                     endpoint, key_owner, duration_ms, success, error_message, tokens_used
-                ))
-            else:
-                loop.run_until_complete(self._async_log_call(
-                    endpoint, key_owner, duration_ms, success, error_message, tokens_used
-                ))
+                )
+            )
         except Exception as e:
             print(f"[TrackedOpenAIClient] Error logging API call: {e}")
+
+    async def _async_log_call_local(self, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
+        """Async method to log API call using thread-local MongoDB connection"""
+        try:
+            import os
+            import certifi
+            from pymongo import AsyncMongoClient
+            from datetime import datetime, timezone
+
+            # Create a fresh MongoDB connection for this thread
+            mongo_connection_string = os.getenv("MONGO_CONNECTION_STRING")
+            database_name = os.getenv("MONGO_APPLICATION_DATABASE")
+
+            client = AsyncMongoClient(mongo_connection_string, tls=True, tlsCAFile=certifi.where())
+            db = client.get_database(database_name)
+            call_logs = db.get_collection("api_call_logs")
+            usage_quotas = db.get_collection("api_usage_quotas")
+
+            # Log the API call
+            log_entry = {
+                "timestamp": datetime.now(timezone.utc),
+                "provider": "openai",
+                "endpoint": endpoint,
+                "key_owner": key_owner,
+                "duration_ms": duration_ms,
+                "success": success,
+                "error_message": error_message,
+                "tokens_used": tokens_used
+            }
+            await call_logs.insert_one(log_entry)
+
+            # Update usage quotas
+            current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+            await usage_quotas.update_one(
+                {
+                    "provider": "openai",
+                    "key_owner": key_owner,
+                    "period": current_month
+                },
+                {
+                    "$inc": {
+                        "calls": 1,
+                        "tokens": tokens_used,
+                        "errors": 0 if success else 1
+                    },
+                    "$set": {
+                        "updated_at": datetime.now(timezone.utc)
+                    }
+                },
+                upsert=True
+            )
+
+            # Properly close the async connection
+            await client.close()
+
+        except Exception as e:
+            print(f"[TrackedOpenAIClient] Error in _async_log_call_local: {e}")
 
     async def _async_log_call(self, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
         """Async method to log API call and update quotas"""

@@ -130,7 +130,9 @@ class APIMetricsDAO:
             }
         ])
 
-        results = await self.call_logs.aggregate(pipeline).to_list(None)
+        results = []
+        async for doc in await self.call_logs.aggregate(pipeline):
+            results.append(doc)
         return results
 
     async def get_quota_status(self, provider: str, key_owner: Optional[str] = None) -> List[Dict]:
@@ -228,7 +230,9 @@ class APIMetricsDAO:
             {"$sort": {"date": 1}}
         ]
 
-        results = await self.call_logs.aggregate(pipeline).to_list(None)
+        results = []
+        async for doc in await self.call_logs.aggregate(pipeline):
+            results.append(doc)
         return results
 
     async def get_monthly_usage(self, provider: str, year_month: str) -> int:

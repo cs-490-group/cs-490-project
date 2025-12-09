@@ -12,7 +12,7 @@ import traceback
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from concurrent.futures import ThreadPoolExecutor
-from openai import OpenAI
+from services.tracked_ai_clients import TrackedOpenAIClient
 
 
 class CompanyResearchService:
@@ -25,7 +25,7 @@ class CompanyResearchService:
     def _call_openai(prompt: str, system_message: str = "") -> str:
         """Call OpenAI API with the given prompt and system message (synchronous)"""
         try:
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            client = TrackedOpenAIClient()
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[

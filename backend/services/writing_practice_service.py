@@ -8,7 +8,7 @@ import os
 import json
 from typing import Dict, List, Any
 from collections import Counter
-from openai import OpenAI
+from services.tracked_ai_clients import TrackedOpenAIClient
 from pymongo.asynchronous.database import AsyncDatabase
 
 
@@ -405,7 +405,7 @@ class WritingPracticeService:
         Falls back to manual analysis if AI fails
         """
         try:
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            client = TrackedOpenAIClient(api_key=os.getenv("OPENAI_API_KEY"))
 
             # Get manual analysis first (quick baseline)
             manual_analysis = WritingPracticeService.analyze_response_quality(response_text, question_category)

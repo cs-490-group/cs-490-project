@@ -20,8 +20,10 @@ const Nav = () => {
   const [showInterviewDropdown, setShowInterviewDropdown] = React.useState(false);
   const [showNetworkDropdown, setShowNetworkDropdown] = React.useState(false);
   const [showSocialDropdown, setShowSocialDropdown] = React.useState(false);
+  const [showAdminDropdown, setShowAdminDropdown] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState(null);
   const [username, setUsername] = React.useState(localStorage.getItem("username") || "");
+  const [accountTier, setAccountTier] = React.useState(null);
   const hasValidated = React.useRef(false);
   React.useEffect(() => {
     const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword","/shared-progress","/advisor-portal","/resumes/public","/cover-letter/public"];
@@ -69,13 +71,15 @@ const Nav = () => {
           try {
             // Set default avatar immediately
             setAvatarUrl("/default.png");
-            
+
             // Fetch profile data first (critical for header)
             const profileRes = await ProfilesAPI.get();
             const newUsername = profileRes.data.username || "User";
+            const tier = profileRes.data.account_tier || "";
             setUsername(newUsername);
+            setAccountTier(tier.toLowerCase());
             localStorage.setItem("username", newUsername);
-            
+
             // Fetch avatar in background to update when ready
             ProfilesAPI.getAvatar()
               .then(avatarRes => {
@@ -408,6 +412,22 @@ const Nav = () => {
                     Enterprise Portal
                   </NavDropdown.Item>
                 </NavDropdown>
+
+                {accountTier === 'admin' && (
+                  <NavDropdown
+                    title="Admin"
+                    id="admin-dropdown"
+                    className="mx-3"
+                    show={showAdminDropdown}
+                    onMouseEnter={() => setShowAdminDropdown(true)}
+                    onMouseLeave={() => setShowAdminDropdown(false)}
+                  >
+                    <NavDropdown.Item as={NavLink} to="/api-metrics">
+                      <i className="fas fa-chart-bar" style={{ marginRight: "8px" }}></i>
+                      API Metrics
+                    </NavDropdown.Item>
+                  </NavDropdown>
+                )}
 
                 <NavDropdown
                   title={
