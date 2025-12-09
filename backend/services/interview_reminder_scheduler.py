@@ -65,6 +65,7 @@ async def check_and_send_interview_reminders():
                     continue
 
                 # Parse interview datetime
+                                # Parse interview datetime
                 try:
                     interview_date_str = interview.get("scheduled_date")
                     interview_time_str = interview.get("start_time")
@@ -72,10 +73,19 @@ async def check_and_send_interview_reminders():
                     # Handle both ISO format and simple date formats
                     if "T" in interview_date_str:
                         interview_datetime = datetime.fromisoformat(interview_date_str.replace("Z", "+00:00"))
+                        if interview_datetime.tzinfo is None:
+                            # Assume EST from frontend
+                            est = timezone(timedelta(hours=-5))
+                            interview_datetime = interview_datetime.replace(tzinfo=est)
+                        interview_datetime = interview_datetime.astimezone(timezone.utc)
                     else:
                         # Combine date and time
                         datetime_str = f"{interview_date_str}T{interview_time_str}:00"
-                        interview_datetime = datetime.fromisoformat(datetime_str).replace(tzinfo=timezone.utc)
+                        interview_datetime = datetime.fromisoformat(datetime_str)
+                        # Assume EST from frontend and convert to UTC
+                        est = timezone(timedelta(hours=-5))
+                        interview_datetime = interview_datetime.replace(tzinfo=est)
+                        interview_datetime = interview_datetime.astimezone(timezone.utc)
 
                 except Exception as e:
                     print(

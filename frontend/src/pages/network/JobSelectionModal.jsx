@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Row, Col, Card, Form } from "react-bootstrap";
 import jobsAPI from "../../api/jobs";
+import "./ReferralModals.css";
 
 export default function JobSelectionModal({ showModal, setShowModal, onJobSelect, selectedJobId }) {
     const [jobs, setJobs] = useState([]);
@@ -70,7 +71,7 @@ export default function JobSelectionModal({ showModal, setShowModal, onJobSelect
     };
 
     return (
-        <Modal show={showModal} onHide={handleClose} size="lg" centered contentClassName="modal-centered-content">
+        <Modal show={showModal} onHide={handleClose} size="xl" centered contentClassName="modal-centered-content" dialogClassName="modal-dialog-centered">
             <Modal.Header closeButton>
                 <Modal.Title>Select a Job</Modal.Title>
             </Modal.Header>
@@ -149,63 +150,61 @@ export default function JobSelectionModal({ showModal, setShowModal, onJobSelect
                     </div>
                 ) : (
                     <div className="job-selection-grid">
-                        <Row xs={1} md={2} className="g-3">
+                        <div style={{ display: "flex", flexDirection: "row", overflow: "auto", gap: "1rem", paddingBottom: "1rem" }}>
                             {filteredJobs.map((job) => (
-                                <Col key={job.id || job._id}>
-                                    <Card 
-                                        className={`job-card h-100 cursor-pointer ${isSelected(job) ? 'border-primary bg-light' : ''}`}
-                                        onClick={() => handleJobSelect(job)}
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        <Card.Body>
-                                            <div className="d-flex justify-content-between align-items-start mb-2">
-                                                <Card.Title as="h6" className="mb-1">
-                                                    {job.title}
-                                                </Card.Title>
-                                                {isSelected(job) && (
-                                                    <div className="badge bg-primary">Selected</div>
-                                                )}
+                                <Card key={job.id || job._id}
+                                    className={`job-card h-100 cursor-pointer ${isSelected(job) ? 'border-primary bg-light' : ''}`}
+                                    onClick={() => handleJobSelect(job)}
+                                    style={{ cursor: 'pointer', minWidth: '400px', maxWidth: '500px' }}
+                                >
+                                    <Card.Body>
+                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                            <Card.Title as="h6" className="mb-1">
+                                                {job.title}
+                                            </Card.Title>
+                                            {isSelected(job) && (
+                                                <div className="badge bg-primary">Selected</div>
+                                            )}
+                                        </div>
+                                        <Card.Subtitle as="div" className="mb-2 text-muted">
+                                            <strong>{job.company}</strong>
+                                        </Card.Subtitle>
+                                        
+                                        {job.industry && (
+                                            <div className="mb-1">
+                                                <small className="text-muted">
+                                                    <strong>Industry:</strong> {job.industry}
+                                                </small>
                                             </div>
-                                            <Card.Subtitle as="div" className="mb-2 text-muted">
-                                                <strong>{job.company}</strong>
-                                            </Card.Subtitle>
-                                            
-                                            {job.industry && (
-                                                <div className="mb-1">
-                                                    <small className="text-muted">
-                                                        <strong>Industry:</strong> {job.industry}
-                                                    </small>
-                                                </div>
-                                            )}
-                                            
-                                            {job.location && (
-                                                <div className="mb-1">
-                                                    <small className="text-muted">
-                                                        <strong>Location:</strong> {job.location}
-                                                    </small>
-                                                </div>
-                                            )}
-                                            
-                                            {job.salary && (
-                                                <div className="mb-1">
-                                                    <small className="text-muted">
-                                                        <strong>Salary:</strong> {job.salary}
-                                                    </small>
-                                                </div>
-                                            )}
-                                            
-                                            {job.deadline && (
-                                                <div className="mb-1">
-                                                    <small className="text-muted">
-                                                        <strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString()}
-                                                    </small>
-                                                </div>
-                                            )}
-                                        </Card.Body>
-                                    </Card>
-                                </Col>
+                                        )}
+                                        
+                                        {job.location && (
+                                            <div className="mb-1">
+                                                <small className="text-muted">
+                                                    <strong>Location:</strong> {job.location}
+                                                </small>
+                                            </div>
+                                        )}
+                                        
+                                        {job.salary && (
+                                            <div className="mb-1">
+                                                <small className="text-muted">
+                                                    <strong>Salary:</strong> {job.salary}
+                                                </small>
+                                            </div>
+                                        )}
+                                        
+                                        {job.deadline && (
+                                            <div className="mb-1">
+                                                <small className="text-muted">
+                                                    <strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString()}
+                                                </small>
+                                            </div>
+                                        )}
+                                    </Card.Body>
+                                </Card>
                             ))}
-                        </Row>
+                        </div>
                     </div>
                 )}
             </Modal.Body>

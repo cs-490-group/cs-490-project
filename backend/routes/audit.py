@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from sessions.session_authorizer import authorize
 from mongo.audit_dao import audit_dao
-from mongo.organization_dao import organization_dao
+from mongo.organizations_dao import organization_dao
 from schema.audit import AuditLog
 
 audit_router = APIRouter(prefix="/enterprise/audit")

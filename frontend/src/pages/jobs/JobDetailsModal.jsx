@@ -330,14 +330,40 @@ export default function JobDetailsModal({
       <>
         <button
           onClick={() => setReminderJob(selectedJob)}
-          style={{ /* ... existing styles ... */ }}
+          style={{
+            marginLeft: "12px",
+            padding: "6px 12px",
+            background: "#ff9800",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontSize: "12px",
+            fontWeight: "600"
+          }}
         >
           ⏰ Set Reminder
         </button>
 
         <button
-          onClick={() => { /* ... existing logic ... */ }}
-          style={{ /* ... existing styles ... */ }}
+          onClick={() => { const newDeadline = prompt("Enter new deadline (YYYY-MM-DD):", selectedJob.deadline);
+            if (newDeadline) {
+              const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+              if (dateRegex.test(newDeadline)) {
+                updateJob({ ...selectedJob, deadline: newDeadline });
+              } else {
+                alert("Invalid date format. Please use YYYY-MM-DD");
+              }
+            }}}
+          style={{marginLeft: "8px",
+            padding: "6px 12px",
+            background: "#2196f3",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontSize: "12px",
+            fontWeight: "600"}}
         >
           📅 Extend
         </button>
