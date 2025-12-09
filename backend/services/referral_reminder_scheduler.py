@@ -34,7 +34,7 @@ def make_aware(dt):
 
 
 async def parse_date_string(date_str):
-    """Parse date string to datetime"""
+    """Parse date string to datetime with proper timezone handling"""
     if isinstance(date_str, datetime):
         return date_str
     
@@ -49,13 +49,27 @@ async def parse_date_string(date_str):
         
         for fmt in formats:
             try:
-                return datetime.strptime(date_str, fmt)
+                parsed_dt = datetime.strptime(date_str, fmt)
+                # If no timezone info, assume it's EST from frontend and convert to UTC
+                if parsed_dt.tzinfo is None:
+                    # Assume EST (UTC-5) and convert to UTC
+                    est = timezone(timedelta(hours=-5))
+                    parsed_dt = parsed_dt.replace(tzinfo=est)
+                    return parsed_dt.astimezone(timezone.utc)
+                else:
+                    # Convert existing timezone to UTC
+                    return parsed_dt.astimezone(timezone.utc)
             except ValueError:
                 continue
         
         # If no format matches, try ISO format
         try:
-            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            parsed_dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            if parsed_dt.tzinfo is None:
+                # Assume EST from frontend
+                est = timezone(timedelta(hours=-5))
+                parsed_dt = parsed_dt.replace(tzinfo=est)
+            return parsed_dt.astimezone(timezone.utc)
         except:
             print(f"⚠️  Could not parse date: {date_str}")
             return None
