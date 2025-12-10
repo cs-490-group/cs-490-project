@@ -146,16 +146,67 @@ export default function InformationalInterviewManagement() {
                 future_opportunities: formData.future_opportunities || []
             };
 
+            // Check if status is being set to completed and it wasn't completed before
+            const isBecomingCompleted = dataToSend.status === "completed" && 
+                (!editing || formData.status !== "completed");
+
             if (editing && editingInterviewId) {
                 await InformationalInterviewsAPI.update(editingInterviewId, dataToSend);
+                
+                // If interview is being marked as completed, update contact interaction history
+                if (isBecomingCompleted && dataToSend.contact_id) {
+                    await addInterviewInteraction(dataToSend.contact_id, dataToSend);
+                }
             } else {
                 await InformationalInterviewsAPI.add(dataToSend);
+                
+                // If new interview is already completed, update contact interaction history
+                if (dataToSend.status === "completed" && dataToSend.contact_id) {
+                    await addInterviewInteraction(dataToSend.contact_id, dataToSend);
+                }
             }
+            
             await fetchData();
             setShowModal(false);
             resetForm();
         } catch (error) {
             console.error("Error saving interview:", error);
+        }
+    };
+
+    const addInterviewInteraction = async (contactId, interviewData) => {
+        try {
+            const contact = contacts.find(c => c._id === contactId);
+            if (!contact) return;
+
+            const now = new Date().toISOString();
+            const newInteraction = {
+                date: interviewData.scheduled_date || now,
+                type: "meeting",
+                notes: `Informational interview at ${interviewData.company}${interviewData.industry ? ` (${interviewData.industry})` : ''}${interviewData.interview_notes ? `. Topics: ${interviewData.interview_notes.substring(0, 100)}...` : '.'}${interviewData.key_insights ? ` Key insights: ${interviewData.key_insights.substring(0, 100)}...` : ''}`
+            };
+
+            const updatedHistory = [
+                ...(contact.interaction_history || []),
+                newInteraction
+            ];
+
+            const updatePayload = {
+                interaction_history: updatedHistory,
+                last_interaction_date: interviewData.scheduled_date || now
+            };
+
+            await NetworksAPI.update(contactId, updatePayload);
+
+            setContacts(prevContacts =>
+                prevContacts.map(c =>
+                    c._id === contactId
+                        ? { ...c, interaction_history: updatedHistory, last_interaction_date: interviewData.scheduled_date || now }
+                        : c
+                )
+            );
+        } catch (error) {
+            console.error("Failed to log interview interaction:", error);
         }
     };
 
