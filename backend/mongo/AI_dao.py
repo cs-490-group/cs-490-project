@@ -2,11 +2,13 @@ import cohere
 import os
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from services.tracked_ai_clients import TrackedCohereClient
 
 
 class AIDAO:
     def __init__(self):
-        self.co = cohere.ClientV2(os.getenv("COHERE_API_KEY"))
+        # Use TrackedCohereClient for automatic logging and fallback
+        self.co = TrackedCohereClient()
         self.executor = ThreadPoolExecutor(max_workers=3)
 
     async def generate_text(self, prompt: str, system_message="") -> str:

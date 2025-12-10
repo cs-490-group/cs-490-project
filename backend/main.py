@@ -55,6 +55,7 @@ from services.referral_followup_scheduler import start_referral_followup_schedul
 from services.event_reminder_scheduler import start_event_reminder_scheduler, stop_event_reminder_scheduler
 from services.interview_reminder_scheduler import start_interview_reminder_scheduler, stop_interview_reminder_scheduler
 from routes.salary_research_routes import salary_research_router
+from routes.api_metrics import router as api_metrics_router
 
 app = FastAPI()
 
@@ -129,6 +130,7 @@ app.include_router(mentorship_router, prefix = api_prefix)
 app.include_router(network_campaigns_router, prefix = api_prefix)
 app.include_router(professional_references_router, prefix = api_prefix)
 app.include_router(network_analytics_router, prefix = api_prefix)
+app.include_router(api_metrics_router, prefix = f"{api_prefix}/metrics")
 
 
 @app.on_event("startup")

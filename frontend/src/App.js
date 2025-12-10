@@ -79,6 +79,7 @@ import InterviewDetail from "./pages/network/InterviewDetail";
 import MentorshipManagement from "./pages/network/MentorshipManagement";
 import DiscoveryPage from "./pages/network/DiscoveryPage";
 import NetworkingAnalytics from "./pages/network/NetworkingAnalytics";
+import APIMetricsPage from "./pages/APIMetrics";
 import LinkedInCallback from "./pages/callback/linkedin";
 
 // inside your router
@@ -185,6 +186,7 @@ export function App() {
               <Route path="/network/mentorship" element={<MentorshipManagement />} />
               <Route path="/network/discovery" element={<DiscoveryPage />} />
               <Route path="/network/analytics" element={<NetworkingAnalytics />} />
+              <Route path="/api-metrics" element={<APIMetricsPage />} />
               <Route path="/callback/linkedin" element={<LinkedInCallback />} />
               </Routes>
             </JobProvider>

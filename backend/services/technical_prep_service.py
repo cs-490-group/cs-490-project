@@ -3,7 +3,7 @@ import random
 import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
-from openai import OpenAI
+from services.tracked_ai_clients import TrackedOpenAIClient
 from mongo.technical_prep_dao import technical_prep_dao
 from schema.TechnicalChallenge import (
     TechnicalChallenge, CodingChallenge, TestCase, SolutionFramework,
@@ -1490,7 +1490,7 @@ VALIDATION CHECKLIST FOR EACH TEST CASE:
 
 Return ONLY the JSON array, nothing else. NO EXPLANATIONS."""
 
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            client = TrackedOpenAIClient()
 
             response = client.chat.completions.create(
                 model="gpt-4",
@@ -1574,7 +1574,7 @@ Return ONLY the JSON array, nothing else. NO EXPLANATIONS."""
 
         # Run tests
         results = []
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        client = TrackedOpenAIClient()
         rate_limited = False
 
         for i, test in enumerate(test_cases):
@@ -1746,7 +1746,7 @@ Solution:"""
 
             # Call OpenAI API with error handling
             try:
-                client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+                client = TrackedOpenAIClient()
                 response = client.chat.completions.create(
                     model="gpt-4",
                     messages=[

@@ -2,6 +2,7 @@ from openai import OpenAI
 import os
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from services.tracked_ai_clients import TrackedOpenAIClient
 
 
 class InterviewAIDAO:
@@ -14,7 +15,8 @@ class InterviewAIDAO:
     """
 
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Use TrackedOpenAIClient for automatic logging
+        self.client = TrackedOpenAIClient(key_owner="interview_coaching")
         self.executor = ThreadPoolExecutor(max_workers=3)
 
     async def generate_text(self, prompt: str, system_message="") -> str:

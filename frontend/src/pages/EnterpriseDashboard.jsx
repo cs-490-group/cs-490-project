@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import OrganizationsAPI from '../api/organizations';
 import { Container, Row, Col, Card, Button, Table, Badge, ProgressBar, Form, Nav, Spinner, InputGroup } from 'react-bootstrap';
-import { Building, Users, TrendingUp, ShieldCheck, Upload, Settings, Download, FileText, Briefcase, Trash2, LogOut, Search } from 'lucide-react';
+import { Building, TrendingUp, ShieldCheck, Upload, Download, Trash2, LogOut, Search } from 'lucide-react';
 import '../styles/resumes.css'; 
 
 export default function EnterpriseDashboard() {
@@ -14,8 +14,9 @@ export default function EnterpriseDashboard() {
   const [cohorts, setCohorts] = useState([]);
   const [insights, setInsights] = useState(null);
   const navigate = useNavigate();
-  const [members, setMembers] = useState([]); 
+  const [members, setMembers] = useState([]);
   const [memberSearch, setMemberSearch] = useState("");
+
 
   useEffect(() => {
     fetchDashboardData();
@@ -108,7 +109,8 @@ export default function EnterpriseDashboard() {
       } catch (err) { alert("Import failed: " + err.message); }
   };
 
-  const primaryColor = data?.organization?.branding?.primary_color || "#0f172a"; 
+
+  const primaryColor = data?.organization?.branding?.primary_color || "#0f172a";
   const logoUrl = data?.organization?.branding?.logo_url;
 
   const filteredMembers = members.filter(m => 
@@ -154,7 +156,7 @@ export default function EnterpriseDashboard() {
                     <Card.Body className="p-2">
                         <Nav className="flex-column gap-1 nav-pills">
                             {['overview', 'cohorts', 'onboarding', 'settings'].map(key => (
-                                <Nav.Link 
+                                <Nav.Link
                                     key={key}
                                     active={activeTab === key}
                                     onClick={() => setActiveTab(key)}

@@ -1,10 +1,10 @@
 import os
-import cohere
+from services.tracked_ai_clients import TrackedCohereClient
 import json
 from dotenv import load_dotenv
 
 load_dotenv()
-co = cohere.Client(os.getenv("COHERE_API_KEY"))
+co = TrackedCohereClient()
 
 async def run_company_research(company_name: str):
     """Generate detailed structured company research for a company."""
@@ -64,9 +64,17 @@ async def run_company_research(company_name: str):
     - ONLY return clean JSON.
     """
 
-    response = co.chat(message=prompt)
+    response = co.chat(
+        model="command-a-03-2025",
+        messages=[{"role": "user", "content": prompt}]
+    )
 
-    text = getattr(response, "text", None)
+    text = None
+    if hasattr(response, "message") and response.message:
+        try:
+            text = response.message.content[0].text
+        except:
+            text = None
 
     if not text:
         return {"error": "Cohere returned no text"}
