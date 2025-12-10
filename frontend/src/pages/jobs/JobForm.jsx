@@ -6,6 +6,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
   const [title, setTitle] = useState("");
   const [company, setCompany] = useState("");
   const [location, setLocation] = useState("");
+  const [workLocation, setWorkLocation] = useState("");
   const [salary, setSalary] = useState("");
   const [url, setUrl] = useState("");
   const [importUrl, setImportUrl] = useState("");
@@ -48,6 +49,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       setNotes(editJob.notes || "");
       setContacts(editJob.contacts || "");
       setInterviewNotes(editJob.interview_notes || editJob.interviewNotes || "");
+      setWorkLocation(editJob.work_location || "");
       setId(editJob.id);
 
       // UPDATED: Handle both URL and base64 image formats
@@ -442,6 +444,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       return;
     }
 
+
     const now = new Date().toISOString();
 
     // UPDATED: Build company data object supporting both base64 and URL images
@@ -458,6 +461,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       title: title.trim(),
       company: company.trim(),
       location: location.trim(),
+      work_location: workLocation.trim() || undefined,
       salary: salary.trim() || undefined,
       url: url.trim() || undefined,
       deadline: deadline,
@@ -898,7 +902,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
           🔍 Job Details
         </h3>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "12px" }}>
           <div>
             <label style={labelStyle}>Industry *</label>
             <select
@@ -937,7 +941,20 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
               <option value="Freelance">Freelance</option>
             </select>
           </div>
-
+          <div>
+          <label style={labelStyle}>Location Type</label>
+          <select
+            style={inputStyle}
+            value={workLocation}
+            onChange={(e) => setWorkLocation(e.target.value)}
+            required
+          >
+            <option value="">Select Type</option>
+            <option value="Remote">Remote</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="On-site">On-site</option>
+          </select>
+        </div>
           <div>
             <label style={labelStyle}>Status</label>
             <select

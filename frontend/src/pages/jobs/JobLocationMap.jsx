@@ -247,9 +247,9 @@ export function SingleJobLocation({ job, compact = false, ProfilesAPI }) {
                 borderTop: '1px solid #90caf9'
               }}>
                 <div>
-                  <div style={{ fontSize: '10px', color: '#666', marginBottom: '2px' }}>Type</div>
+                  <div style={{ fontSize: '10px', color: '#666', marginBottom: '2px' }}>Work Location</div>
                   <div style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>
-                    {job.job_type || 'Not specified'}
+                    {job.work_location || 'Not specified'}
                   </div>
                 </div>
                 
@@ -526,7 +526,7 @@ export default function JobLocationMap({ jobs = [], ProfilesAPI }) {
   const [loading, setLoading] = useState(false);
   const [maxDistance, setMaxDistance] = useState('');
   const [maxTime, setMaxTime] = useState('');
-  const [locationTypeFilter, setLocationTypeFilter] = useState('all');
+  const [workLocationFilter, setWorkLocationFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedJob, setSelectedJob] = useState(null);
   const [showComparison, setShowComparison] = useState(false);
@@ -686,7 +686,7 @@ export default function JobLocationMap({ jobs = [], ProfilesAPI }) {
   // Filter jobs
   const filteredJobs = geocodedJobs.filter(job => {
     if (statusFilter !== 'all' && job.status !== statusFilter) return false;
-    if (locationTypeFilter !== 'all' && job.job_type !== locationTypeFilter) return false;
+    if (workLocationFilter !== 'all' && job.work_location !== workLocationFilter) return false;
     if (maxDistance && job.distance && job.distance > parseFloat(maxDistance)) return false;
     if (maxTime && job.travelTime && job.travelTime > parseFloat(maxTime)) return false;
     return true;
@@ -824,11 +824,11 @@ export default function JobLocationMap({ jobs = [], ProfilesAPI }) {
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>
-              Location Type
+              Job Type
             </label>
             <select
-              value={locationTypeFilter}
-              onChange={(e) => setLocationTypeFilter(e.target.value)}
+              value={workLocationFilter}
+              onChange={(e) => setWorkLocationFilter(e.target.value)}
               style={{
                 width: '100%',
                 padding: '8px',
@@ -837,7 +837,7 @@ export default function JobLocationMap({ jobs = [], ProfilesAPI }) {
                 fontSize: '14px'
               }}
             >
-              <option value="all">All Types</option>
+              <option value="all">All</option>
               <option value="Remote">Remote</option>
               <option value="Hybrid">Hybrid</option>
               <option value="On-site">On-site</option>
@@ -1009,7 +1009,8 @@ export default function JobLocationMap({ jobs = [], ProfilesAPI }) {
                         marginTop: '8px'
                       }}>
                         <div><strong>Status:</strong> {job.status}</div>
-                        {job.job_type && <div><strong>Type:</strong> {job.job_type}</div>}
+                        {job.work_location && <div><strong>Job Type:</strong> {job.work_location}</div>}
+                        {job.job_type && <div><strong>Employment Type:</strong> {job.job_type}</div>}
                         {job.distance && (
                           <div><strong>Distance:</strong> {job.distance.toFixed(1)} km</div>
                         )}
@@ -1071,7 +1072,7 @@ export default function JobLocationMap({ jobs = [], ProfilesAPI }) {
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Job</th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Company</th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Location</th>
-                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Type</th>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Work Location</th>
                     <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>Distance</th>
                     <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>Travel Time</th>
                     <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd' }}>Status</th>
