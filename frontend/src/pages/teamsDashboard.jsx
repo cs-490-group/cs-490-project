@@ -5,6 +5,8 @@ import UserProfile from "./otherProfile";
 import TeamReports from "./teams/TeamReports";
 import GoalTracker from "./teams/GoalTracker";
 import ProgressSharingHub from "./teams/ProgressSharingHub";
+import MilestoneCelebration from "./teams/MilestoneCelebration";
+import TeamActivityFeed from "./teams/TeamActivityFeed";
 import { useNavigate } from 'react-router-dom';
 import MemberWorkReview from "../components/MemberWorkReview";
 import CoachingDashboard from "../components/coaching/CoachingDashboard";
@@ -193,35 +195,45 @@ function TeamsDashboard() {
           </Col>
 
           {progress && (
-            <Col md={12}>
-              <Card className="border-0 shadow-sm rounded-4">
-                <Card.Header className="bg-white border-0 pt-4 px-4">
-                    <h4 className="fw-bold text-dark">Team Performance</h4>
-                </Card.Header>
-                <Card.Body className="p-4">
-                  <div className="d-flex flex-column gap-3">
-                    {progress.memberProgress?.map((member) => (
-                      <div key={member.uuid} className="p-3 border rounded-3 hover-bg-light transition-all">
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                          <div>
-                            <h6 className="fw-bold mb-0 text-dark">{member.name}</h6>
-                            <small className="text-muted text-capitalize">{member.role}</small>
+            <>
+
+              <Col lg={7}>
+                <Card className="border-0 shadow-sm rounded-4 h-100">
+                  <Card.Header className="bg-white border-0 pt-4 px-4">
+                      <h4 className="fw-bold text-dark">Team Performance</h4>
+                  </Card.Header>
+                  <Card.Body className="p-4">
+                    <div className="d-flex flex-column gap-3">
+                      {progress.memberProgress?.map((member) => (
+                        <div key={member.uuid} className="p-3 border rounded-3 hover-bg-light transition-all">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                              <h6 className="fw-bold mb-0 text-dark">{member.name}</h6>
+                              <small className="text-muted text-capitalize">{member.role}</small>
+                            </div>
+                            <span className="fw-bold text-primary">{member.progress}%</span>
                           </div>
-                          <span className="fw-bold text-primary">{member.progress}%</span>
+                          <ProgressBar now={member.progress} variant="primary" style={{height: '6px'}} className="mb-3" />
+                          
+                          <Row className="g-2">
+                              <Col><Badge bg="success" className="w-100 py-2 fw-normal">Success: {member.applications.successRate}%</Badge></Col>
+                              <Col><Badge bg="primary" className="w-100 py-2 fw-normal">Interview: {member.applications.interviewRate}%</Badge></Col>
+                          </Row>
                         </div>
-                        <ProgressBar now={member.progress} variant="primary" style={{height: '6px'}} className="mb-3" />
-                        
-                        <Row className="g-2">
-                            <Col><Badge bg="success" className="w-100 py-2 fw-normal">Success: {member.applications.successRate}%</Badge></Col>
-                            <Col><Badge bg="primary" className="w-100 py-2 fw-normal">Interview: {member.applications.interviewRate}%</Badge></Col>
-                            <Col><Badge bg="info" className="w-100 py-2 fw-normal">Response: {member.applications.responseRate}%</Badge></Col>
-                        </Row>
-                      </div>
-                    ))}
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
+                      ))}
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+
+              <Col lg={5}>
+                 <TeamActivityFeed 
+                    teamId={team.id} 
+                    members={members} 
+                    currentUserId={currentUserUuid}
+                 />
+              </Col>
+            </>
           )}
         </Row>
       )}
@@ -373,48 +385,65 @@ function TeamsDashboard() {
             </Row>
 
             {selectedMember && (
-                <div className="mt-4 p-4 border rounded-3 bg-light">
+                <div className="mt-4 p-4 border rounded-3 bg-light" style={{position: 'relative'}}>
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <h3 className="fw-bold m-0">Managing: {selectedMember.name}</h3>
                         <Button variant="outline-secondary" onClick={() => setSelectedMember(null)}>Close</Button>
                     </div>
                     
-                    <GoalTracker 
-                        teamId={team.id} 
-                        member={selectedMember} 
-                        currentUserRole={getUserRole()} 
-                        onGoalsUpdate={() => { fetchTeamData(); }}
-                    />
-                    
-                    <div className="mt-4">
-                        <h5 className="fw-bold">Feedback History</h5>
-                        <div className="list-group mb-3">
-                            {selectedMember.feedback?.map((fb, i) => (
-                                <div key={i} className="list-group-item">
-                                    <p className="mb-1">{fb.feedback}</p>
-                                    <small className="text-muted">{new Date(fb.created_at).toLocaleDateString()}</small>
-                                </div>
-                            ))}
-                            {!selectedMember.feedback?.length && <p className="text-muted">No feedback yet.</p>}
-                        </div>
-                        
-                        {isMentor() && (
-                            <div className="d-flex gap-2">
-                                <input 
-                                    className="form-control" 
-                                    placeholder="Write feedback..." 
-                                    value={feedback} 
-                                    onChange={e => setFeedback(e.target.value)}
+                    <Row className="g-4">
+                        {/* LEFT COLUMN: Goals */}
+                        <Col lg={7}>
+                            <GoalTracker 
+                                teamId={team.id} 
+                                member={selectedMember} 
+                                currentUserRole={getUserRole()} 
+                                onGoalsUpdate={() => { fetchTeamData(); }}
+                            />
+                            
+                            <div className="mt-4">
+                                <MilestoneCelebration 
+                                    teamId={team.id} 
+                                    memberId={selectedMember.uuid} 
+                                    memberName={selectedMember.name} 
+                                    currentUserId={currentUserUuid}
                                 />
-                                <Button onClick={async () => {
-                                    await teamsAPI.sendFeedback(team.id, selectedMember.uuid, { mentorId: currentUserUuid, feedback });
-                                    setFeedback("");
-                                    fetchTeamData();
-                                    alert("Sent!");
-                                }}>Send</Button>
                             </div>
-                        )}
-                    </div>
+                        </Col>
+
+                        {/* RIGHT COLUMN: Feedback */}
+                        <Col lg={5}>
+                             <div className="bg-white p-4 rounded-3 border">
+                                <h5 className="fw-bold mb-3">Feedback History</h5>
+                                <div className="list-group mb-3">
+                                    {selectedMember.feedback?.map((fb, i) => (
+                                        <div key={i} className="list-group-item">
+                                            <p className="mb-1">{fb.feedback}</p>
+                                            <small className="text-muted">{new Date(fb.created_at).toLocaleDateString()}</small>
+                                        </div>
+                                    ))}
+                                    {!selectedMember.feedback?.length && <p className="text-muted">No feedback yet.</p>}
+                                </div>
+                                
+                                {isMentor() && (
+                                    <div className="d-flex gap-2">
+                                        <input 
+                                            className="form-control" 
+                                            placeholder="Write feedback..." 
+                                            value={feedback} 
+                                            onChange={e => setFeedback(e.target.value)}
+                                        />
+                                        <Button onClick={async () => {
+                                            await teamsAPI.sendFeedback(team.id, selectedMember.uuid, { mentorId: currentUserUuid, feedback });
+                                            setFeedback("");
+                                            fetchTeamData();
+                                            alert("Sent!");
+                                        }}>Send</Button>
+                                    </div>
+                                )}
+                            </div>
+                        </Col>
+                    </Row>
                 </div>
             )}
         </Card.Body>
@@ -447,8 +476,7 @@ function TeamsDashboard() {
     return (
       <div className="animate__animated animate__fadeIn">
         
-        {/* --- NEW WIDGET SECTION --- */}
-        {/* Pass team.id so the widget knows to fetch CANDIDATE data */}
+        
         <div className="mb-4">
            <ReviewImpactWidget teamId={team?.id} />
         </div>

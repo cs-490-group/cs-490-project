@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Trophy, Heart, Sparkles } from "lucide-react";
 import progressAPI from "../../api/progressSharing";
 
-export default function MilestoneCelebration({ teamId, memberId, memberName }) {
+export default function MilestoneCelebration({ teamId, memberId, memberName, currentUserId }) {
   const [milestones, setMilestones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [celebrations, setCelebrations] = useState([]);
@@ -112,27 +112,29 @@ export default function MilestoneCelebration({ teamId, memberId, memberName }) {
               <div style={{ fontSize: "12px", color: "#666", marginBottom: "12px" }}>
                 {milestone.description}
               </div>
-              <button
-                onClick={() => addCelebration(milestone)}
-                style={{
-                  width: "100%",
-                  padding: "8px",
-                  background: "#fbc02d",
-                  color: "#333",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px"
-                }}
-              >
-                <Sparkles size={14} />
-                Celebrate
-              </button>
+              {memberId !== currentUserId && (
+                  <button
+                    onClick={() => addCelebration(milestone)}
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      background: "#fbc02d",
+                      color: "#333",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <Sparkles size={14} />
+                    Celebrate
+                  </button>
+                )}
             </div>
           ))}
         </div>

@@ -181,7 +181,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
               <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>Activity Increase</div>
               <div style={{ fontSize: "32px", fontWeight: "bold", color: "#f57f17", marginBottom: "4px" }}>
                 {impact.activityIncreasePercent > 0 ? "+" : ""}
-                {impact.activityIncreasePercent || 0}%
+                {Math.max(0, impact.activityIncreasePercent || 0)}%
               </div>
               <div style={{ fontSize: "12px", color: "#666" }}>Since starting accountability</div>
             </div>
@@ -219,7 +219,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
       </div>
 
       <div style={{ marginBottom: "32px" }}>
-        <MilestoneCelebration teamId={teamId} memberId={memberId} memberName={memberName} />
+        <MilestoneCelebration teamId={teamId} memberId={memberId} memberName={memberName} currentUserId={memberId} />
       </div>
     </div>
   );
