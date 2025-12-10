@@ -28,6 +28,8 @@ from mongo.job_requirements_extractor_dao import job_requirements_extractor_dao
 
 
 from services.salary_research import generate_job_salary_negotiation
+from services.automation_engine import process_automation_for_job
+
 
 
 # Import the new enhanced scraper
@@ -311,16 +313,27 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         # PHASE 1: Create the job immediately WITHOUT research data
         job_id = await jobs_dao.add_job(model)
         print(f"✅ Job created successfully with ID: {job_id}")
+        
+        # 🔁 RUN AUTOMATION ENGINE: ON_JOB_CREATED
+        try:
+            await process_automation_for_job(
+                job_id,
+                event_type="on_job_created"
+            )
+            print(f"⚙️ Automation rules processed for job {job_id}")
+        except Exception as e:
+            print(f"⚠️ Automation processing failed for job {job_id}: {e}")
 
+        
         # Store extraction snapshot separately for auditing
         try:
-            await job_requirements_extractor_dao.save_requirements(
-                uuid=uuid,
+            await job_requirements_extractor_dao.save_extraction(
                 job_id=job_id,
-                description=description,
-                required_skills=required_skills,
-                min_years_experience=min_years,
-                education_level=edu_level,
+                extracted={
+                    "requiredSkills": required_skills,
+                    "minYearsExperience": min_years,
+                    "educationLevel": edu_level,
+                }
             )
             print(f"✅ Requirements snapshot saved for job {job_id}")
         except Exception as e:
@@ -374,8 +387,10 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
             created_job["_id"] = str(created_job["_id"])
 
         # TRIGGER MILESTONE CHECK
-        print(f"[Jobs Router] Job Added. ID: {job_id}")
-        await check_and_log_milestones(uuid, model, old_job_data=None)
+        
+        await check_and_log_milestones(uuid, created_job, old_job_data=None)
+
+
         
         return {
             "detail": "Successfully added job",
@@ -586,6 +601,18 @@ async def update_job(job_id: str, job: Job, uuid: str = Depends(authorize)):
             # Merge old data with new model to get complete picture for milestone description
             merged_data = {**old_job, **model}
             await check_and_log_milestones(uuid, merged_data, old_job_data=old_job)
+            
+        # 🔁 RUN AUTOMATION ENGINE FOR STATUS CHANGE
+            try:
+                await process_automation_for_job(
+                    job_id,
+                    event_type="on_status_change",
+                    old_status=old_job.get("status"),
+                    new_status=model.get("status", old_job.get("status"))
+                )
+                print(f"⚙️ Automation rules processed for status change on job {job_id}")
+            except Exception as e:
+                print(f"⚠️ Automation status-change failed for job {job_id}: {e}")
 
     except Exception as e:
         raise HTTPException(500, str(e))

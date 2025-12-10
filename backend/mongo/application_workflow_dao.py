@@ -68,6 +68,13 @@ class ApplicationWorkflowDAO:
         )
         return result.matched_count
     
+    async def mark_package_used(self, package_id: str, uuid: str):
+        return await self.packages_collection.update_one(
+            {"_id": ObjectId(package_id), "uuid": uuid},
+            {"$inc": {"usage_count": 1}}
+        )
+
+    
     async def delete_package(self, package_id: str) -> int:
         """Delete an application package"""
         result = await self.packages_collection.delete_one({"_id": package_id})

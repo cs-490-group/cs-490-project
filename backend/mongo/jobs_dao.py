@@ -28,6 +28,31 @@ class JobsDAO:
         data["date_updated"] = datetime.now(timezone.utc)
         updated = await self.collection.update_one({"_id": ObjectId(job_id)}, {"$set": data})
         return updated.matched_count
+    
+    async def bulk_apply(self, user_uuid: str, package_id: str, job_ids: list[str]) -> int:
+        """
+        Apply a package to many jobs at once.
+        """
+        now = datetime.now(timezone.utc)
+
+        result = await self.collection.update_many(
+            {
+                "_id": {"$in": [ObjectId(j) for j in job_ids]},
+                "uuid": user_uuid
+            },
+            {
+                "$set": {
+                    "application_package_id": package_id,
+                    "submitted": True,
+                    "submitted_at": now,
+                    "status": "SUBMITTED",
+                    "date_updated": now
+                }
+            }
+        )
+
+        return result.modified_count
+
 
     async def delete_job(self, job_id: str) -> int:
         result = await self.collection.delete_one({"_id": ObjectId(job_id)})
@@ -52,5 +77,7 @@ class JobsDAO:
             return job.get("offers", []) if job else []
         except Exception:
             return []
+    
+    
 
 jobs_dao = JobsDAO()

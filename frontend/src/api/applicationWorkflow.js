@@ -1,182 +1,94 @@
 import api from "./base";
 
-const BASE_URL = "/application-workflow";
-
 class ApplicationWorkflowAPI {
-    // ============================================
-    // APPLICATION PACKAGES (UC-069)
-    // ============================================
-    
-    createPackage(data) {
-        return api.post(`${BASE_URL}/packages`, data);
-    }
 
-    getPackages() {
-        return api.get(`${BASE_URL}/packages`);
-    }
+  /* PACKAGES */
+  getPackages() {
+    return api.get("/application-workflow/packages");
+  }
 
-    getPackage(packageId) {
-        return api.get(`${BASE_URL}/packages/${packageId}`);
-    }
+  createPackage(data) {
+    return api.post("/application-workflow/packages", data);
+  }
 
-    updatePackage(packageId, data) {
-        return api.put(`${BASE_URL}/packages/${packageId}`, data);
-    }
+  deletePackage(id) {
+    return api.delete(`/application-workflow/packages/${id}`);
+  }
 
-    deletePackage(packageId) {
-        return api.delete(`${BASE_URL}/packages/${packageId}`);
-    }
+  markPackageUsed(packageId) {
+  return api.post(`/application-workflow/packages/${packageId}/use`);
+}
+    bulkApply(data) {
+    return api.post("/application-workflow/bulk-apply", data);
+}
 
-    usePackage(packageId) {
-        return api.post(`${BASE_URL}/packages/${packageId}/use`);
-    }
+  /* TEMPLATES */
+    getTemplates() {
+        return api.get("/application-workflow/templates");
+  }
 
-    // ============================================
-    // APPLICATION SCHEDULING (UC-069)
-    // ============================================
-    
-    scheduleApplication(data) {
-        return api.post(`${BASE_URL}/schedules`, data);
-    }
-
-    getScheduledApplications() {
-        return api.get(`${BASE_URL}/schedules`);
-    }
-
-    updateSchedule(scheduleId, data) {
-        return api.put(`${BASE_URL}/schedules/${scheduleId}`, data);
-    }
-
-    cancelSchedule(scheduleId, reason = null) {
-        return api.post(`${BASE_URL}/schedules/${scheduleId}/cancel`, { reason });
-    }
-
-    // ============================================
-    // RESPONSE TEMPLATES (UC-069)
-    // ============================================
-    
     createTemplate(data) {
-        return api.post(`${BASE_URL}/templates`, data);
-    }
+        return api.post("/application-workflow/templates", data);
+}
 
-    getTemplates(category = null) {
-        const params = category ? `?category=${category}` : '';
-        return api.get(`${BASE_URL}/templates${params}`);
-    }
+    deleteTemplate(id) {
+        return api.delete(`/application-workflow/templates/${id}`);
+}
 
-    updateTemplate(templateId, data) {
-        return api.put(`${BASE_URL}/templates/${templateId}`, data);
-    }
 
-    deleteTemplate(templateId) {
-        return api.delete(`${BASE_URL}/templates/${templateId}`);
-    }
+  /* SCHEDULES */
+  getSchedules() {
+    return api.get("/application-workflow/schedules");
+  }
 
-    useTemplate(templateId) {
-        return api.post(`${BASE_URL}/templates/${templateId}/use`);
-    }
+  createSchedule(data) {
+    return api.post("/application-workflow/schedules", data);
+  }
 
-    // ============================================
-    // AUTOMATION RULES (UC-069)
-    // ============================================
-    
-    createAutomationRule(data) {
-        return api.post(`${BASE_URL}/automation-rules`, data);
-    }
+  cancelSchedule(id) {
+    return api.post(`/application-workflow/schedules/${id}/cancel`);
+  }
 
-    getAutomationRules(enabledOnly = false) {
-        const params = enabledOnly ? '?enabled_only=true' : '';
-        return api.get(`${BASE_URL}/automation-rules${params}`);
-    }
+  /* AUTOMATION RULES */
+  getAutomationRules() {
+    return api.get("/application-workflow/automation-rules");
+  }
 
-    updateAutomationRule(ruleId, data) {
-        return api.put(`${BASE_URL}/automation-rules/${ruleId}`, data);
-    }
+  createAutomationRule(data) {
+    return api.post("/application-workflow/automation-rules", data);
+  }
 
-    toggleAutomationRule(ruleId, enabled) {
-        return api.post(`${BASE_URL}/automation-rules/${ruleId}/toggle`, { enabled });
-    }
+  deleteAutomationRule(id) {
+    return api.delete(`/application-workflow/automation-rules/${id}`);
+  }
 
-    deleteAutomationRule(ruleId) {
-        return api.delete(`${BASE_URL}/automation-rules/${ruleId}`);
+  /** 
+   * FIXED: Backend expects a *raw boolean*, not { enabled: true }
+   */
+  toggleAutomationRule(id, enabled) {
+  return api.post(
+    `/application-workflow/automation-rules/${id}/toggle`,
+    JSON.stringify(enabled),
+    {
+      headers: {
+        "Content-Type": "application/json"
+      }
     }
-
-    // ============================================
-    // BULK OPERATIONS (UC-069)
-    // ============================================
-    
-    bulkCreatePackages(packages) {
-        return api.post(`${BASE_URL}/packages/bulk`, { packages });
-    }
-
-    bulkScheduleApplications(schedules) {
-        return api.post(`${BASE_URL}/schedules/bulk`, { schedules });
-    }
-
-    bulkCancelSchedules(scheduleIds, reason = null) {
-        return api.post(`${BASE_URL}/schedules/bulk-cancel`, {
-            schedule_ids: scheduleIds,
-            reason
-        });
-    }
-
-    // ============================================
-    // APPLICATION ANALYTICS (UC-072)
-    // ============================================
-    
-    getApplicationFunnel(startDate = null, endDate = null) {
-        let params = '';
-        if (startDate && endDate) {
-            params = `?start_date=${startDate}&end_date=${endDate}`;
-        }
-        return api.get(`${BASE_URL}/analytics/funnel${params}`);
-    }
-
-    getResponseTimes(groupBy = null) {
-        const params = groupBy ? `?group_by=${groupBy}` : '';
-        return api.get(`${BASE_URL}/analytics/response-times${params}`);
-    }
-
-    getSuccessRates(groupBy = null) {
-        const params = groupBy ? `?group_by=${groupBy}` : '';
-        return api.get(`${BASE_URL}/analytics/success-rates${params}`);
-    }
-
-    getApplicationTrends(days = 90) {
-        return api.get(`${BASE_URL}/analytics/trends?days=${days}`);
-    }
-
-    getPerformanceBenchmarks() {
-        return api.get(`${BASE_URL}/analytics/benchmarks`);
-    }
-
-    getOptimizationRecommendations() {
-        return api.get(`${BASE_URL}/analytics/recommendations`);
-    }
-
-    // ============================================
-    // GOAL TRACKING (UC-072)
-    // ============================================
-    
-    createGoal(data) {
-        return api.post(`${BASE_URL}/goals`, data);
-    }
-
-    getGoals() {
-        return api.get(`${BASE_URL}/goals`);
-    }
-
-    updateGoalProgress(goalId, progress) {
-        return api.put(`${BASE_URL}/goals/${goalId}`, { progress });
-    }
- 
-    deleteGoal(goalId) {
-        return api.delete(`${BASE_URL}/goals/${goalId}`);
-    }
-
-    updateGoal(goalId, data) {
-        return api.put(`${BASE_URL}/goals/${goalId}`, data);
-    }
+  );
+}
 }
 
 export default new ApplicationWorkflowAPI();
+
+
+
+
+
+
+
+
+
+
+
+
+

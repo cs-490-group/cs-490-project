@@ -1,6 +1,6 @@
 // PipelineManagement.jsx
 import React, { useState } from "react";
-import WorkflowAutomation from "./WorkflowAutomation";
+import WorkflowAutomation from "./workflow/WorkflowAutomation";
 import StatusMonitoring from "./StatusMonitoring";
 import InterviewScheduling from "./InterviewScheduling";
 import AnalyticsDashboard from "./AnalyticsDashboard";
