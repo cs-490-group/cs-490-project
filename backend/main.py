@@ -54,7 +54,12 @@ from services.referral_reminder_scheduler import start_referral_reminder_schedul
 from services.referral_followup_scheduler import start_referral_followup_scheduler, stop_referral_followup_scheduler
 from services.event_reminder_scheduler import start_event_reminder_scheduler, stop_event_reminder_scheduler
 from services.interview_reminder_scheduler import start_interview_reminder_scheduler, stop_interview_reminder_scheduler
+from services.application_workflow_scheduler import (
+    start_workflow_scheduler,
+    stop_workflow_scheduler
+)
 from routes.salary_research_routes import salary_research_router
+
 
 app = FastAPI()
 
@@ -155,6 +160,12 @@ async def startup_event():
         start_interview_reminder_scheduler()
     except Exception as e:
         print(f"[Startup] Warning: Could not start interview reminder scheduler: {e}")
+    # Start workflow automation scheduler
+    try:
+        start_workflow_scheduler()
+    except Exception as e:
+        print(f"[Startup] Warning: Could not start workflow automation scheduler: {e}")
+
 
 
 @app.on_event("shutdown")
@@ -181,6 +192,12 @@ async def shutdown_event():
         stop_interview_reminder_scheduler()
     except Exception as e:
         print(f"[Shutdown] Warning: Could not stop interview reminder scheduler: {e}")
+    # Stop workflow automation scheduler
+    try:
+        stop_workflow_scheduler()
+    except Exception as e:
+        print(f"[Shutdown] Warning: Could not stop workflow automation scheduler: {e}")
+
 
 
 

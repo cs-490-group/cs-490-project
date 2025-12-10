@@ -83,24 +83,24 @@ class TemplateUpdate(BaseModel):
 # ============================================
 
 class AutomationRule(BaseModel):
-    """Schema for workflow automation rules"""
+    uuid: Optional[str] = None
     name: str
-    description: Optional[str] = None
-    trigger_type: str  # status_change, deadline_approaching, time_based, manual
-    trigger_conditions: Dict[str, Any]  # Flexible conditions
-    actions: List[Dict[str, Any]]  # List of actions to perform
-    enabled: Optional[bool] = True
-    priority: Optional[int] = 1  # 1-10, higher = more important
+    enabled: bool = True
+    trigger: str  # "on_job_created", "on_status_change", etc.
+    rule_type: str  # AUTO TYPES: "auto_assign_materials", "auto_create_package", "auto_submit", "auto_schedule"
+    conditions: Optional[Dict] = None  # ex: {"company": "Google"}
+    actions: Dict  # ex: {"resume_id": "...", "cover_letter_id": "...", "schedule_time": "09:00"}
+    date_created: Optional[datetime] = None
+    date_updated: Optional[datetime] = None
+    execution_count: Optional[int] = 0
+
 
 class AutomationRuleUpdate(BaseModel):
-    """Schema for updating automation rules"""
     name: Optional[str] = None
-    description: Optional[str] = None
-    trigger_type: Optional[str] = None
-    trigger_conditions: Optional[Dict[str, Any]] = None
-    actions: Optional[List[Dict[str, Any]]] = None
     enabled: Optional[bool] = None
-    priority: Optional[int] = None
+    conditions: Optional[Dict] = None
+    actions: Optional[Dict] = None
+    rule_type: Optional[str] = None
 
 # ============================================
 # BULK OPERATION SCHEMAS (UC-069)

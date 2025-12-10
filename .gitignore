@@ -25,6 +25,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 __pycache__
+venv/
+backend/venv/
 .venv
 .env
 /.vs
