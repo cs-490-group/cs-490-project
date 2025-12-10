@@ -456,6 +456,21 @@ export default function ContactForm({
                                 </Form.Select>
                             </Col>
                         </Row>
+                        <Row className="mt-3">
+                            <Col md={12}>
+                                <Form.Group className="mb-3">
+                                    <Form.Check
+                                        type="checkbox"
+                                        label="Industry Professional"
+                                        checked={formData.industry_professional || false}
+                                        onChange={(e) => setFormData({ ...formData, industry_professional: e.target.checked })}
+                                    />
+                                    <Form.Text className="text-muted">
+                                        Mark this contact as an industry professional for discovery and networking features
+                                    </Form.Text>
+                                </Form.Group>
+                            </Col>
+                        </Row>
                     </div>
 
                     {/* Contact Details Section */}

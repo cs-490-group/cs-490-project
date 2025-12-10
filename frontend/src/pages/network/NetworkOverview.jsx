@@ -29,7 +29,10 @@ export default function NetworkOverview() {
 		position: "",
 		location: "",
 		institution: "",
-		degree: ""
+		degree: "",
+		relationship_strength: "",
+		relationship_type: "",
+		industry: ""
 	});
 	const [formData, setFormData] = useState({
 		name: "",
@@ -61,6 +64,7 @@ export default function NetworkOverview() {
 		relationship_type: "colleague",
 		relationship_strength: "moderate",
 		industry: "",
+		industry_professional: false,
 		professional_interests: "",
 		personal_interests: "",
 		interaction_history: [],
@@ -119,6 +123,27 @@ export default function NetworkOverview() {
 		return [...new Set(degrees)].sort();
 	};
 
+	const getUniqueRelationshipStrengths = () => {
+		const strengths = contacts
+			.map(contact => contact.relationship_strength)
+			.filter(strength => strength && strength.trim() !== '');
+		return [...new Set(strengths)].sort();
+	};
+
+	const getUniqueRelationshipTypes = () => {
+		const types = contacts
+			.map(contact => contact.relationship_type)
+			.filter(type => type && type.trim() !== '');
+		return [...new Set(types)].sort();
+	};
+
+	const getUniqueIndustries = () => {
+		const industries = contacts
+			.map(contact => contact.industry)
+			.filter(industry => industry && industry.trim() !== '');
+		return [...new Set(industries)].sort();
+	};
+
 	const filterContacts = (contactsToFilter) => {
 		return contactsToFilter.filter(contact => {
 			if (filterText.name && !contact.name?.toLowerCase().includes(filterText.name.toLowerCase())) {
@@ -145,6 +170,15 @@ export default function NetworkOverview() {
 			if (filterText.degree && !contact.education?.degree?.toLowerCase().includes(filterText.degree.toLowerCase())) {
 				return false;
 			}
+			if (filterText.relationship_strength && !contact.relationship_strength?.toLowerCase().includes(filterText.relationship_strength.toLowerCase())) {
+				return false;
+			}
+			if (filterText.relationship_type && !contact.relationship_type?.toLowerCase().includes(filterText.relationship_type.toLowerCase())) {
+				return false;
+			}
+			if (filterText.industry && !contact.industry?.toLowerCase().includes(filterText.industry.toLowerCase())) {
+				return false;
+			}
 			return true;
 		});
 	};
@@ -166,7 +200,10 @@ export default function NetworkOverview() {
 			position: "",
 			location: "",
 			institution: "",
-			degree: ""
+			degree: "",
+			relationship_strength: "",
+			relationship_type: "",
+			industry: ""
 		});
 	};
 
@@ -202,6 +239,7 @@ export default function NetworkOverview() {
 				relationship_type: formData.relationship_type || null,
 				relationship_strength: formData.relationship_strength || null,
 				industry: formData.industry || null,
+				industry_professional: formData.industry_professional || false,
 				professional_interests: formData.professional_interests || null,
 				personal_interests: formData.personal_interests || null,
 				interaction_history: formData.interaction_history || [],
@@ -300,6 +338,7 @@ export default function NetworkOverview() {
 			relationship_type: contact.relationship_type || "colleague",
 			relationship_strength: contact.relationship_strength || "moderate",
 			industry: contact.industry || "",
+			industry_professional: contact.industry_professional || false,
 			professional_interests: contact.professional_interests || "",
 			personal_interests: contact.personal_interests || "",
 			interaction_history: contact.interaction_history || [],
@@ -361,6 +400,7 @@ export default function NetworkOverview() {
 			relationship_type: "colleague",
 			relationship_strength: "moderate",
 			industry: "",
+			industry_professional: false,
 			professional_interests: "",
 			personal_interests: "",
 			interaction_history: [],
@@ -510,6 +550,57 @@ export default function NetworkOverview() {
 									))}
 								</select>
 							</div>
+							<div className="filter-group">
+								<select
+									placeholder="Search by relationship strength..."
+									name="relationship_strength"
+									value={filterText.relationship_strength}
+									onChange={handleFilterChange}
+									className="filter-input"
+									style={{color:"black"}}
+								>
+									<option value="">All Strengths</option>
+									{getUniqueRelationshipStrengths().map(strength => (
+										<option key={strength} value={strength}>
+											{strength}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="filter-group">
+								<select
+									placeholder="Search by relationship type..."
+									name="relationship_type"
+									value={filterText.relationship_type}
+									onChange={handleFilterChange}
+									className="filter-input"
+									style={{color:"black"}}
+								>
+									<option value="">All Types</option>
+									{getUniqueRelationshipTypes().map(type => (
+										<option key={type} value={type}>
+											{type}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="filter-group">
+								<select
+									placeholder="Search by industry..."
+									name="industry"
+									value={filterText.industry}
+									onChange={handleFilterChange}
+									className="filter-input"
+									style={{color:"black"}}
+								>
+									<option value="">All Industries</option>
+									{getUniqueIndustries().map(industry => (
+										<option key={industry} value={industry}>
+											{industry}
+										</option>
+									))}
+								</select>
+							</div>
 							{Object.values(filterText).some(val => val !== "") && (
 								<Button className="filter-clear-btn" onClick={clearFilters}>Clear Filters</Button>
 							)}
@@ -647,7 +738,13 @@ export default function NetworkOverview() {
 												<small className="section-title">Relationship</small>
 											</div>
 											<div className="section-content">
-												<div className="d-flex gap-2 mb-2">
+												<div className="d-flex gap-2 mb-2 flex-wrap">
+													{contact.industry_professional && (
+														<Badge bg="info" className="small-badge">
+															<i className="bi bi-briefcase-fill me-1"></i>
+															Industry Professional
+														</Badge>
+													)}
 													{contact.relationship_type && (
 														<Badge bg={getRelationshipColor(contact.relationship_type)} className="small-badge">
 															{contact.relationship_type}
