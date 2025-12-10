@@ -52,6 +52,7 @@ class Contact(BaseModel):
     relationship_type: Optional[Literal["colleague", "mentor", "mentee", "friend", "client", "recruiter", "other"]] = None
     industry: Optional[str] = None
     relationship_strength: Optional[Literal["strong", "moderate", "weak"]] = None
+    industry_professional: Optional[bool] = False
     
     # UC-086: Interaction history
     interaction_history: Optional[List[InteractionRecord]] = None

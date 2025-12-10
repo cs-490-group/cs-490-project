@@ -502,6 +502,12 @@ export default function DiscoveryPage() {
 											</div>
 											<div className="section-content">
 												<div className="d-flex gap-2 mb-2 flex-wrap">
+													{contact.industry_professional && (
+														<Badge bg="info" className="small-badge">
+															<i className="bi bi-briefcase-fill me-1"></i>
+															Industry Professional
+														</Badge>
+													)}
 													{getConnectionDegreeBadge(contact)}
 													{getAlumniBadge(contact)}
 													{contact.relationship_type && (
