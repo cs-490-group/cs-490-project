@@ -285,6 +285,8 @@ export default function EditCoverLetterPage() {
     try {
       // 1. Fetch User Data & Sanitize
       const fullUserData = await UserAPI.getAllData();
+      
+      // FIX 1: Rename 'employment' to 'past_work_history' to prevent AI confusion
       const sanitizedUser = {
         name: fullUserData.profile?.full_name || fullUserData.profile?.username,
         email: fullUserData.profile?.email,
@@ -296,7 +298,8 @@ export default function EditCoverLetterPage() {
            school: edu.institution_name,
            year: new Date(edu.end_date).getFullYear()
         })),
-        employment: (fullUserData.employment || []).slice(0, 3).map(emp => ({
+        // RENAME HERE:
+        past_work_history: (fullUserData.employment || []).slice(0, 3).map(emp => ({
            title: emp.title,
            company: emp.company,
            description: (emp.description || "").substring(0, 400) 
@@ -308,7 +311,7 @@ export default function EditCoverLetterPage() {
       
       // --- STRICT JOB RETRIEVAL LOGIC ---
       
-      // PATH A: We have a Linked Job ID. We MUST use this job and only this job.
+      // PATH A: We have a Linked Job ID. We MUST use this job.
       if (linkedJobId) {
           console.log(`[AI Gen] Enforcing Linked Job ID: ${linkedJobId}`);
           
@@ -324,15 +327,9 @@ export default function EditCoverLetterPage() {
                   jobData = jobs.find(j => idsMatch(j.id, linkedJobId) || idsMatch(j._id, linkedJobId));
               } catch(e) { console.error("Error fetching jobs for generation", e); }
           }
-
-          if (!jobData) {
-              console.warn("Linked Job ID exists, but job could not be retrieved from DB.");
-              // Critical: Do NOT fall through to fuzzy match here. 
-              // If the link is broken, it's better to fail gracefully or use generic mode than to guess wrong.
-          }
       }
       
-      // PATH B: No Link exists. Only THEN do we check text boxes.
+      // PATH B: No Link exists. Fuzzy match text boxes.
       else if (company || position) {
          console.log(`[AI Gen] No Link. Fuzzy matching for: ${company} / ${position}`);
          try {
@@ -369,34 +366,39 @@ export default function EditCoverLetterPage() {
         // Update prompts to use found data
         companyForPrompt = sanitizedJob.company || company;
         positionForPrompt = sanitizedJob.title || position;
-      } else {
-        console.log("No specific job data found. AI will use generic inputs.");
       }
 
       // 4. CLEAN HTML CONTENT
       let cleanCurrentContent = contentRef.current || "";
       cleanCurrentContent = cleanCurrentContent.replace(/<img[^>]*>/g, "[Image Placeholder]");
 
+      // FIX 2: Explicit Headers in Prompt
       const res = await AIAPI.generateText({
         prompt: `
   User instructions: "${aiPrompt}"
+  
+  CONTEXT: Write a cover letter for the CANDIDATE applying to the TARGET JOB.
   Personalize for company "${companyForPrompt}" and role "${positionForPrompt}".
   
   PRESERVE ALL HTML and inline styles.
   Return ONLY updated HTML content.
-  DO NOT ADD YOUR OWN STYLINGS OR HTML ELEMENTS OR CSS. ONLY WHAT WAS ORIGINALLY THERE. 
   
-  User Profile:
+  === CANDIDATE PROFILE (The Applicant's History) ===
   ${JSON.stringify(sanitizedUser, null, 2)}
   
+  === TARGET JOB DESCRIPTION ( The Goal - Apply to THIS ) ===
   ${sanitizedJob ? `
-  TARGET JOB:
   Title: ${sanitizedJob.title}
   Company: ${sanitizedJob.company}
   Description: ${sanitizedJob.description}
-  ` : ''}
+  Requirements: ${sanitizedJob.requirements}
+  ` : `
+  Title: ${positionForPrompt}
+  Company: ${companyForPrompt}
+  (No specific job description linked. Use general best practices for this role.)
+  `}
   
-  Current letter content:
+  === CURRENT LETTER DRAFT ===
   ${cleanCurrentContent}
         `,
         system_message: `You are a professional cover letter writer. Return ONLY HTML content.`
