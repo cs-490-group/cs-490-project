@@ -32,7 +32,8 @@ export default function NetworkOverview() {
 		degree: "",
 		relationship_strength: "",
 		relationship_type: "",
-		industry: ""
+		industry: "",
+		industry_professional: ""
 	});
 	const [formData, setFormData] = useState({
 		name: "",
@@ -179,6 +180,9 @@ export default function NetworkOverview() {
 			if (filterText.industry && !contact.industry?.toLowerCase().includes(filterText.industry.toLowerCase())) {
 				return false;
 			}
+			if (filterText.industry_professional && ((contact.industry_professional && filterText.industry_professional === "false") || (!contact.industry_professional && filterText.industry_professional === "true"))) {
+				return false;
+			}
 			return true;
 		});
 	};
@@ -203,7 +207,8 @@ export default function NetworkOverview() {
 			degree: "",
 			relationship_strength: "",
 			relationship_type: "",
-			industry: ""
+			industry: "",
+			industry_professional: ""
 		});
 	};
 
@@ -599,6 +604,20 @@ export default function NetworkOverview() {
 											{industry}
 										</option>
 									))}
+								</select>
+							</div>
+							<div className="filter-group">
+								<select
+									placeholder="Filter by industry professional..."
+									name="industry_professional"
+									value={filterText.industry_professional}
+									onChange={handleFilterChange}
+									className="filter-input"
+									style={{color:"black"}}
+								>
+									<option value="">All Contacts</option>
+									<option value="true">Industry Professionals</option>
+									<option value="false">Non-Professionals</option>
 								</select>
 							</div>
 							{Object.values(filterText).some(val => val !== "") && (
