@@ -529,7 +529,10 @@ async def verify_linkedin_token(request: Request):
     async with httpx.AsyncClient() as client:
         token_response = await client.post(token_url, data=token_data)
         if token_response.status_code != 200:
-            raise HTTPException(status_code=400, detail="Failed to exchange code for token")
+            print(f"LinkedIn OAuth Error - Status: {token_response.status_code}")
+            print(f"LinkedIn OAuth Error - Response: {token_response.text}")
+            print(f"LinkedIn OAuth Error - Data sent: {token_data}")
+            raise HTTPException(status_code=400, detail=f"Failed to exchange code for token: {token_response.text}")
         
         token_data = token_response.json()
         access_token = token_data.get("access_token")
