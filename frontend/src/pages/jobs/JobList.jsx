@@ -23,6 +23,8 @@ import { useJobOperations } from "./hooks/useJobOperations";
 import JobMatchingPage from "./JobMatchingPage";
 import SkillsGapPage from "./SkillsGapPage";
 import InterviewInsights from "./InterviewInsights";
+import JobLocationMap, { SingleJobLocation } from "./JobLocationMap";
+
 
 export default function JobList() {
   const [jobs, setJobs] = useState([]);
@@ -438,6 +440,10 @@ export default function JobList() {
             setReminderJob(null);
           }}
         />
+      )}
+
+      {view === "map" && (
+        <JobLocationMap jobs={jobs.filter(j => !j.archived)} ProfilesAPI={ProfilesAPI} />
       )}
       
       {showFloatingWidget && <FloatingDeadlineWidget jobs={jobs} onJobClick={(job) => setSelectedJob(job)} />}

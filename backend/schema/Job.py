@@ -24,6 +24,7 @@ class Job(BaseModel):
     title: Optional[str] = None
     company: Optional[Union[str, dict]] = None  # Can be string name or dict with company data
     location: Optional[str] = None
+    work_location: Optional[str] = None
     salary: Optional[str] = None
     url: Optional[str] = None
     deadline: Optional[str] = None

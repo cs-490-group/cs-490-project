@@ -229,7 +229,23 @@ export default function JobListHeader({
             >
                🎯 Skills Gap
             </button>
-
+            <button
+              onClick={() => setView("map")}
+              style={{
+                padding: "7px 12px",
+                background: view === "map" ? "#2196f3" : "white",
+                color: view === "map" ? "white" : "#333",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "11px",
+                whiteSpace: "nowrap",
+                minWidth: "fit-content"
+              }}
+            >
+              🗺️ Location Map
+            </button>
             <button
               onClick={() => {
                 setView("pipeline");
