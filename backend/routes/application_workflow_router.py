@@ -318,7 +318,44 @@ async def delete_automation_rule(
 
 
 # ================================================================
-# ANALYTICS + GOALS
+# ANALYTICS (UC-072)
 # ================================================================
-# (If you have extra analytics/goal endpoints, keep them here – they
-# do not need to change for automation to work.)
+
+@workflow_router.get("/analytics/funnel")
+async def analytics_funnel(uuid: str = Depends(authorize)):
+    return await application_analytics_dao.get_application_funnel(uuid)
+
+
+@workflow_router.get("/analytics/response-times")
+async def analytics_response_times(uuid: str = Depends(authorize)):
+    return await application_analytics_dao.calculate_response_times(uuid)
+
+
+@workflow_router.get("/analytics/success-rates")
+async def analytics_success_rates(uuid: str = Depends(authorize)):
+    return await application_analytics_dao.analyze_success_rates(uuid)
+
+
+@workflow_router.get("/analytics/trends")
+async def analytics_trends(uuid: str = Depends(authorize)):
+    return await application_analytics_dao.get_application_trends(uuid)
+
+
+@workflow_router.get("/analytics/benchmarks")
+async def analytics_benchmarks(uuid: str = Depends(authorize)):
+    return await application_analytics_dao.get_performance_benchmarks(uuid)
+
+
+@workflow_router.get("/analytics/recommendations")
+async def analytics_recommendations(uuid: str = Depends(authorize)):
+    return await application_analytics_dao.generate_recommendations(uuid)
+
+# ================================================================
+# GOALS
+# ================================================================
+
+@workflow_router.get("/goals")
+async def get_goals(uuid: str = Depends(authorize)):
+    return await application_analytics_dao.get_user_goals(uuid)
+
+
