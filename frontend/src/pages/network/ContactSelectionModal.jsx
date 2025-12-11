@@ -25,6 +25,13 @@ export default function ContactSelectionModal({
         return "";
     };
 
+    const getContactCompanyName = (company) => {
+        if (company === null || company === undefined) return "";
+        if (typeof company === 'string') return company;
+        if (typeof company === 'object') return company.name || "";
+        return "";
+    };
+
     // Remove the checkbox for optimal suggestions since we're showing them automatically
 
     const scoredContacts = useMemo(() => {
@@ -39,14 +46,14 @@ export default function ContactSelectionModal({
                 }
             }
             if (jobDetails?.company && contact.employment?.company) {
-                if (contact.employment.company.toLowerCase() === getCompanyName(jobDetails.company).toLowerCase()) {
+                if (getContactCompanyName(contact.employment.company).toLowerCase() === getCompanyName(jobDetails.company).toLowerCase()) {
                     score += 25;
-                    reasons.push("Current employee");
+                    reasons.push("Same company");
                 }
             }
             if (jobDetails?.company && contact.employment?.company) {
                 const jobCompanyLower = getCompanyName(jobDetails.company).toLowerCase();
-                const contactCompanyLower = contact.employment.company.toLowerCase();
+                const contactCompanyLower = getContactCompanyName(contact.employment.company).toLowerCase();
                 const relatedPatterns = [
                     /\b(google|alphabet)\b/i,
                     /\b(microsoft|azure|office)\b/i,
@@ -126,7 +133,7 @@ export default function ContactSelectionModal({
         }
         if (searchCompany) {
             filtered = filtered.filter(contact =>
-                contact.employment?.company?.toLowerCase().includes(searchCompany.toLowerCase())
+                getContactCompanyName(contact.employment?.company).toLowerCase().includes(searchCompany.toLowerCase())
             );
         }
         if (searchIndustry) {
@@ -213,12 +220,12 @@ export default function ContactSelectionModal({
                         <Card className="bg-light border-info">
                             <Card.Body className="py-3">
                                 <h6 className="fw-bold mb-2">Referral Target</h6>
-                                <div className="row">
-                                    <div className="col-md-6">
+                                <div className="row g-2">
+                                    <div className="col-12 col-md-6">
                                         <p className="mb-1"><strong>Position:</strong> {jobDetails.title}</p>
-                                        <p className="mb-1"><strong>Company:</strong> {jobDetails.company}</p>
+                                        <p className="mb-1"><strong>Company:</strong> {getCompanyName(jobDetails.company)}</p>
                                     </div>
-                                    <div className="col-md-6">
+                                    <div className="col-12 col-md-6">
                                         {jobDetails.industry && (
                                             <p className="mb-1"><strong>Industry:</strong> {jobDetails.industry}</p>
                                         )}
@@ -306,18 +313,19 @@ export default function ContactSelectionModal({
                 ) : (
                     <div className="contact-selection-grid">
                         {/* Suggested Contacts Section */}
-                        {optimalContacts.length > 0 && (
-                            <div className="mb-4">
-                                <h5 className="text-primary mb-3">
-                                    <strong>Suggested ({optimalContacts.length})</strong>
-                                </h5>
-                                <div className="g-3 mb-4" style={{ display: "flex", flexDirection: "row", overflow: "auto", gap: "0.5rem" }}>
+                        <div className="mb-4">
+                            <h5 className="text-primary mb-3">
+                                <strong>Suggested ({optimalContacts.length})</strong>
+                            </h5>
+                            {optimalContacts.length > 0 ? (
+                                <Row className="g-3 mb-4">
                                     {optimalContacts.map((contact) => (
-                                        <Card key={contact._id}
-                                            className={`contact-card h-100 cursor-pointer ${isSelected(contact) ? 'border-primary bg-light' : ''}`}
-                                            onClick={() => handleContactSelect(contact)}
-                                            style={{ cursor: 'pointer' }}
-                                        >
+                                        <Col key={contact._id} xs={12} sm={6} md={4} lg={3}>
+                                            <Card
+                                                className={`contact-card h-100 cursor-pointer ${isSelected(contact) ? 'border-primary bg-light' : ''}`}
+                                                onClick={() => handleContactSelect(contact)}
+                                                style={{ cursor: 'pointer' }}
+                                            >
                                             <Card.Body>
                                                 <div className="d-flex justify-content-between align-items-start mb-2">
                                                     <Card.Title as="h6" className="mb-1">
@@ -354,7 +362,7 @@ export default function ContactSelectionModal({
                                                 {contact.employment?.company && (
                                                     <div className="mb-1">
                                                         <small className="text-muted">
-                                                            <strong>Company:</strong> {contact.employment.company}
+                                                            <strong>Company:</strong> {getContactCompanyName(contact.employment.company)}
                                                         </small>
                                                     </div>
                                                 )}
@@ -398,16 +406,22 @@ export default function ContactSelectionModal({
                                                     </div>
                                                 )}
                                             </Card.Body>
-                                        </Card>
+                                            </Card>
+                                        </Col>
                                     ))}
+                                </Row>
+                            ) : (
+                                <div className="text-center py-3 text-muted">
+                                    <p className="mb-0">No optimal contacts found for this job.</p>
+                                    <small>Consider selecting from all contacts below.</small>
                                 </div>
+                            )}
 
-                                {/* Horizontal separator */}
-                                {otherContacts.length > 0 && (
-                                    <hr className="my-4" />
-                                )}
-                            </div>
-                        )}
+                            {/* Horizontal separator */}
+                            {otherContacts.length > 0 && (
+                                <hr className="my-4" />
+                            )}
+                        </div>
 
                         {/* Other Contacts Section */}
                         {otherContacts.length > 0 && (
@@ -415,13 +429,14 @@ export default function ContactSelectionModal({
                                 <h5 className="text-muted mb-3">
                                     <strong>Others ({otherContacts.length})</strong>
                                 </h5>
-                                <div style={{ display: "flex", flexDirection: "row", overflow: "auto", gap: "0.5rem" }}>
+                                <Row className="g-3">
                                     {otherContacts.map((contact) => (
-                                        <Card key={contact._id}
-                                            className={`contact-card h-100 cursor-pointer ${isSelected(contact) ? 'border-primary bg-light' : ''}`}
-                                            onClick={() => handleContactSelect(contact)}
-                                            style={{ cursor: 'pointer' }}
-                                        >
+                                        <Col key={contact._id} xs={12} sm={6} md={4} lg={3}>
+                                            <Card
+                                                className={`contact-card h-100 cursor-pointer ${isSelected(contact) ? 'border-primary bg-light' : ''}`}
+                                                onClick={() => handleContactSelect(contact)}
+                                                style={{ cursor: 'pointer' }}
+                                            >
                                             <Card.Body>
                                                 <div className="d-flex justify-content-between align-items-start mb-2">
                                                     <Card.Title as="h6" className="mb-1">
@@ -458,7 +473,7 @@ export default function ContactSelectionModal({
                                                 {contact.employment?.company && (
                                                     <div className="mb-1">
                                                         <small className="text-muted">
-                                                            <strong>Company:</strong> {contact.employment.company}
+                                                            <strong>Company:</strong> {getContactCompanyName(contact.employment.company)}
                                                         </small>
                                                     </div>
                                                 )}
@@ -502,9 +517,10 @@ export default function ContactSelectionModal({
                                                     </div>
                                                 )}
                                             </Card.Body>
-                                        </Card>
+                                            </Card>
+                                        </Col>
                                     ))}
-                                </div>
+                                </Row>
                             </div>
                         )}
                     </div>

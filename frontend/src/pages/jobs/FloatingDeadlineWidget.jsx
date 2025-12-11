@@ -6,10 +6,10 @@ export default function FloatingDeadlineWidget({ jobs, onJobClick, className, st
   const [hoveredJob, setHoveredJob] = useState(null);
 
   const getCompanyName = (company) => {
-    if (company === null || company === undefined) return "Unknown Company";
+    if (company === null || company === undefined) return "";
     if (typeof company === 'string') return company;
-    if (typeof company === 'object') return company.name || "Company Info Available";
-    return "Unknown Company";
+    if (typeof company === 'object') return company.name || "";
+    return "";
   };
 
   const today = new Date();

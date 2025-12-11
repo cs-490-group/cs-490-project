@@ -253,7 +253,7 @@ export default function JobDetailsModal({
               <div style={{ marginBottom: "16px", background: "#f0f7ff", padding: "16px", borderRadius: "6px", border: "1px solid #d0e4ff" }}>
                 <h3 style={{ margin: "0 0 12px 0", color: "#1976d2", fontSize: "16px" }}>🏢 Company Information</h3>
                 
-                {selectedJob.companyData.image && (
+                {selectedJob.companyData.image && typeof selectedJob.companyData.image === 'string' && (
                   <div style={{ marginBottom: "12px", textAlign: "center" }}>
                     <img
                       src={selectedJob.companyData.image.startsWith("http") ? selectedJob.companyData.image : `data:image/png;base64,${selectedJob.companyData.image}`}
@@ -262,32 +262,31 @@ export default function JobDetailsModal({
                         typeof selectedJob.company === 'object' 
                           ? (selectedJob.company.name || "Company") 
                           : selectedJob.company
-                      } logo`}
-                      
-                      style={{ maxWidth: "150px", maxHeight: "80px", objectFit: "contain", borderRadius: "4px" }}
+                      }`}
+                      style={{ maxWidth: "100%", height: "auto", maxHeight: "150px", borderRadius: "8px", objectFit: "contain" }}
                     />
                   </div>
                 )}
 
-        {selectedJob.companyData.size && (
+        {selectedJob.companyData.size && typeof selectedJob.companyData.size === 'string' && (
           <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
             <strong>👥 Company Size:</strong> {selectedJob.companyData.size}
           </div>
         )}
 
-        {selectedJob.companyData.industry && (
+        {selectedJob.companyData.industry && typeof selectedJob.companyData.industry === 'string' && (
           <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
             <strong>🏭 Industry:</strong> {selectedJob.companyData.industry}
           </div>
         )}
 
-        {selectedJob.companyData.location && (
+        {selectedJob.companyData.location && typeof selectedJob.companyData.location === 'string' && (
           <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
             <strong>📍 Headquarters:</strong> {selectedJob.companyData.location}
           </div>
         )}
 
-        {selectedJob.companyData.website && (
+        {selectedJob.companyData.website && typeof selectedJob.companyData.website === 'string' && (
           <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
             <strong>🌐 Website:</strong>{" "}
             <a
@@ -301,7 +300,7 @@ export default function JobDetailsModal({
           </div>
         )}
 
-        {selectedJob.companyData.description && (
+        {selectedJob.companyData.description && typeof selectedJob.companyData.description === 'string' && (
           <div style={{ marginTop: "12px", color: "#000", fontSize: "14px" }}>
             <strong>About:</strong>
             <div style={{ marginTop: "6px", color: "#555", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>

@@ -4,10 +4,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { useNavigate } from "react-router-dom";
 
 const getCompanyName = (company) => {
-  if (company === null || company === undefined) return "Unknown Company";
+  if (company === null || company === undefined) return "";
   if (typeof company === 'string') return company;
-  if (typeof company === 'object') return company.name || "Company Info Available";
-  return "Unknown Company";
+  if (typeof company === 'object') return company.name || "";
+  return "";
 };
 
 function MatchPreview({ jobId }) {

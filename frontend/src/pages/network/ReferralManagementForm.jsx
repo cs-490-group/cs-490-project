@@ -37,10 +37,10 @@ export default function ReferralManagementForm({
     };
 
     const getCompanyName = (company) => {
-        if (company === null || company === undefined) return "Unknown Company";
+        if (company === null || company === undefined) return "";
         if (typeof company === 'string') return company;
-        if (typeof company === 'object') return company.name || "Company Info Available";
-        return "Unknown Company";
+        if (typeof company === 'object') return company.name || "";
+        return "";
     };
 
     const getOptimalReferralTiming = (deadline) => {
@@ -150,7 +150,7 @@ export default function ReferralManagementForm({
 
         let updatedFields = {
             job_id: job.id || job._id,
-            company: job.company,
+            company: getCompanyName(job.company),
             position: job.title
         };
 
@@ -422,7 +422,7 @@ export default function ReferralManagementForm({
                                 <Form.Label>Company</Form.Label>
                                 <Form.Control
                                     type="text"
-                                    value={formData.company}
+                                    value={getCompanyName(formData.company)}
                                     onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                                     required
                                     disabled={!!selectedJob}

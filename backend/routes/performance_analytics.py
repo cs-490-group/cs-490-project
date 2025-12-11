@@ -160,8 +160,8 @@ async def analyze_competitive_positioning(user_id, user_skills, peer_skills):
     peer_skill_counts = [len(skills) for skills in peer_skills] if peer_skills else [0]
     
     # Skill categories analysis
-    user_categories = set(skill.category for skill in user_skills) if user_skills else set()
-    peer_categories = [set(skill.category for skill in skills) for skills in peer_skills] if peer_skills else [set()]
+    user_categories = set(skill.get("category") for skill in user_skills) if user_skills else set()
+    peer_categories = [set(skill.get("category") for skill in skills) for skills in peer_skills] if peer_skills else [set()]
     
     return {
         "skills_competitiveness": {
@@ -175,8 +175,8 @@ async def analyze_competitive_positioning(user_id, user_skills, peer_skills):
             "industry_alignment": calculate_industry_alignment(user_id, user_skills)
         },
         "achievements_comparison": {
-            "certifications": len([skill for skill in user_skills if skill.type == "certification"]) if user_skills else 0,
-            "projects": len([skill for skill in user_skills if skill.type == "project"]) if user_skills else 0
+            "certifications": len([skill for skill in user_skills if skill.get("type") == "certification"]) if user_skills else 0,
+            "projects": len([skill for skill in user_skills if skill.get("type") == "project"]) if user_skills else 0
         }
     }
 
@@ -187,13 +187,13 @@ def analyze_industry_standards(user_applications, peer_applications):
     
     # Group by industry
     for app in user_applications:
-        industry = app.company_industry or "Unknown"
+        industry = app.get("company_industry") or "Unknown"
         if industry not in user_industry_stats:
             user_industry_stats[industry] = []
         user_industry_stats[industry].append(app)
     
     for app in peer_applications:
-        industry = app.company_industry or "Unknown"
+        industry = app.get("company_industry") or "Unknown"
         if industry not in peer_industry_stats:
             peer_industry_stats[industry] = []
         peer_industry_stats[industry].append(app)
@@ -236,12 +236,12 @@ def analyze_career_progression(user_applications, user_interviews, peer_career_d
 
 def analyze_skill_gaps(user_skills, peer_skills):
     """Include skill gap analysis compared to top performers"""
-    user_skill_names = set(skill.name.lower() for skill in user_skills) if user_skills else set()
+    user_skill_names = set(skill.get("name", "").lower() for skill in user_skills) if user_skills else set()
     
     # Find most common skills among peers
     all_peer_skills = []
     for skills in peer_skills:
-        all_peer_skills.extend([skill.name.lower() for skill in skills])
+        all_peer_skills.extend([skill.get("name", "").lower() for skill in skills])
     
     skill_frequency = {}
     for skill in all_peer_skills:
@@ -344,7 +344,7 @@ def predict_interview_success(user_interviews, user_applications):
         }
     
     # Calculate historical success rate
-    successful_interviews = len([interview for interview in user_interviews if interview.outcome == "offer"])
+    successful_interviews = len([interview for interview in user_interviews if interview.get("outcome") in ["offer", "passed"]])
     success_rate = successful_interviews / len(user_interviews)
     
     # Calculate confidence based on sample size
@@ -366,18 +366,6 @@ def predict_job_search_timeline(user_applications, user_interviews):
             "factors": ["no_historical_data"],
             "recommendations": ["Start applying to jobs to generate timeline predictions"]
         }
-    
-    # Helper function to parse date_created field
-    def parse_date_created(app):
-        date_str = app.get("date_created")
-        if not date_str:
-            return datetime.utcnow()
-        try:
-            if isinstance(date_str, str):
-                return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-            return date_str
-        except:
-            return datetime.utcnow()
     
     # Calculate application rate and success patterns
     now = datetime.utcnow()
@@ -502,7 +490,7 @@ def generate_improvement_recommendations(user_applications, user_interviews):
     
     # Interview improvements
     if user_interviews:
-        interview_success_rate = len([interview for interview in user_interviews if interview.outcome == "offer"]) / len(user_interviews)
+        interview_success_rate = len([interview for interview in user_interviews if interview.get("outcome") in ["offer", "passed"]]) / len(user_interviews)
         if interview_success_rate < 0.3:
             recommendations.append({
                 "area": "interviews",
@@ -542,21 +530,21 @@ def calculate_prediction_accuracy(user_applications, user_interviews):
     }
 
 # Helper functions
+def parse_date_created(app):
+    """Helper function to parse date_created field from application data"""
+    date_str = app.get("date_created")
+    if not date_str:
+        return datetime.utcnow()
+    try:
+        if isinstance(date_str, str):
+            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        return date_str
+    except:
+        return datetime.utcnow()
+
 def calculate_application_stats(applications):
     if not applications:
         return {"avg_applications_per_month": 0, "success_rate": 0, "interview_rate": 0, "individual_stats": []}
-    
-    # Helper function to parse date_created field
-    def parse_date_created(app):
-        date_str = app.get("date_created")
-        if not date_str:
-            return datetime.utcnow()
-        try:
-            if isinstance(date_str, str):
-                return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-            return date_str
-        except:
-            return datetime.utcnow()
     
     # Calculate monthly application rate
     app_dates = [parse_date_created(app) for app in applications]
@@ -630,15 +618,15 @@ def calculate_time_to_success(applications):
     if not successful_apps:
         return None
     
-    time_to_success = [(app.updated_at - app.created_at).days for app in successful_apps]
+    time_to_success = [(datetime.utcnow() - parse_date_created(app)).days for app in successful_apps]
     return statistics.mean(time_to_success)
 
 def find_unique_skills(user_skills, peer_skills):
-    user_skill_names = set(skill.name.lower() for skill in user_skills) if user_skills else set()
+    user_skill_names = set(skill.get("name", "").lower() for skill in user_skills) if user_skills else set()
     
     all_peer_skills = set()
     for skills in peer_skills:
-        all_peer_skills.update([skill.name.lower() for skill in skills])
+        all_peer_skills.update([skill.get("name", "").lower() for skill in skills])
     
     return list(user_skill_names - all_peer_skills)
 
@@ -646,13 +634,13 @@ def analyze_salary_progression(salaries):
     if not salaries:
         return {"current_salary": 0, "average_salary": 0, "individual_salaries": []}
     
-    current_salary = max([salary.base_salary for salary in salaries]) if salaries else 0
-    average_salary = statistics.mean([salary.base_salary for salary in salaries]) if salaries else 0
+    current_salary = max([salary.get("base_salary", 0) for salary in salaries]) if salaries else 0
+    average_salary = statistics.mean([salary.get("base_salary", 0) for salary in salaries]) if salaries else 0
     
     return {
         "current_salary": current_salary,
         "average_salary": average_salary,
-        "individual_salaries": [{"current_salary": salary.base_salary} for salary in salaries]
+        "individual_salaries": [{"current_salary": salary.get("base_salary", 0)} for salary in salaries]
     }
 
 def calculate_salary_percentile(user_salary, peer_salaries):
@@ -675,7 +663,7 @@ def analyze_success_factors(interviews):
     factors = []
     
     # Analyze what correlates with success
-    successful_interviews = [interview for interview in interviews if interview.outcome == "offer"]
+    successful_interviews = [interview for interview in interviews if interview.get("outcome") in ["offer", "passed"]]
     if successful_interviews:
         factors.append("historical_success_pattern")
     
@@ -702,12 +690,12 @@ def calculate_salary_growth(salaries):
         return 5  # Default 5% growth
     
     # Calculate year-over-year growth
-    sorted_salaries = sorted(salaries, key=lambda x: x.created_at)
+    sorted_salaries = sorted(salaries, key=lambda x: x.get("created_at", datetime.min))
     growth_rates = []
     
     for i in range(1, len(sorted_salaries)):
-        prev_salary = sorted_salaries[i-1].base_salary
-        curr_salary = sorted_salaries[i].base_salary
+        prev_salary = sorted_salaries[i-1].get("base_salary", 0)
+        curr_salary = sorted_salaries[i].get("base_salary", 0)
         if prev_salary > 0:
             growth_rate = ((curr_salary - prev_salary) / prev_salary) * 100
             growth_rates.append(growth_rate)
@@ -719,7 +707,7 @@ def calculate_negotiation_success_rate(interviews):
     if not interviews:
         return 0.5  # Default baseline
     
-    successful_outcomes = len([interview for interview in interviews if interview.get("outcome") == "offer"])
+    successful_outcomes = len([interview for interview in interviews if interview.get("outcome") in ["offer", "passed"]])
     total_interviews = len(interviews)
     
     return successful_outcomes / total_interviews if total_interviews > 0 else 0.5

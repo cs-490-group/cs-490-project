@@ -4,10 +4,10 @@ import ProfilesAPI from "../../api/profiles";
 import { formatLocalDate, formatLocalDateTime, toLocalDate, isToday, getLocalDay, getLocalMonth, getLocalYear } from "../../utils/dateUtils";
 
 const getCompanyName = (company) => {
-  if (company === null || company === undefined) return "Unknown Company";
+  if (company === null || company === undefined) return "";
   if (typeof company === 'string') return company;
-  if (typeof company === 'object') return company.name || "Company Info Available";
-  return "Unknown Company";
+  if (typeof company === 'object') return company.name || "";
+  return "";
 };
 
 export function DeadlineWidget({ jobs, onJobClick }) {
