@@ -367,15 +367,28 @@ def predict_job_search_timeline(user_applications, user_interviews):
             "recommendations": ["Start applying to jobs to generate timeline predictions"]
         }
     
+    # Helper function to parse date_created field
+    def parse_date_created(app):
+        date_str = app.get("date_created")
+        if not date_str:
+            return datetime.utcnow()
+        try:
+            if isinstance(date_str, str):
+                return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            return date_str
+        except:
+            return datetime.utcnow()
+    
     # Calculate application rate and success patterns
+    now = datetime.utcnow()
     recent_applications = [app for app in user_applications if 
-                          (datetime.utcnow() - app.created_at).days <= 30]
+                          (now - parse_date_created(app)).days <= 30]
     application_rate = len(recent_applications) / 30 if recent_applications else 0
     
     # Calculate average time to success
-    successful_applications = [app for app in user_applications if app.status == "accepted"]
+    successful_applications = [app for app in user_applications if app.get("status") == "Offer"]
     if successful_applications:
-        avg_time_to_success = statistics.mean([(app.updated_at - app.created_at).days for app in successful_applications])
+        avg_time_to_success = statistics.mean([(now - parse_date_created(app)).days for app in successful_applications])
     else:
         avg_time_to_success = 60  # Industry average
     
@@ -515,17 +528,30 @@ def calculate_application_stats(applications):
     if not applications:
         return {"avg_applications_per_month": 0, "success_rate": 0, "interview_rate": 0, "individual_stats": []}
     
+    # Helper function to parse date_created field
+    def parse_date_created(app):
+        date_str = app.get("date_created")
+        if not date_str:
+            return datetime.utcnow()
+        try:
+            if isinstance(date_str, str):
+                return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            return date_str
+        except:
+            return datetime.utcnow()
+    
     # Calculate monthly application rate
-    date_range = max([app.created_at for app in applications]) - min([app.created_at for app in applications])
+    app_dates = [parse_date_created(app) for app in applications]
+    date_range = max(app_dates) - min(app_dates)
     months = max(1, date_range.days / 30)
     avg_applications_per_month = len(applications) / months
     
     # Calculate success and interview rates
-    successful_apps = len([app for app in applications if app.status == "accepted"])
+    successful_apps = len([app for app in applications if app.get("status") == "Offer"])
     success_rate = successful_apps / len(applications)
     
     # Interview rate (simplified - would need actual interview data linkage)
-    interview_rate = len([app for app in applications if app.status == "interview"]) / len(applications)
+    interview_rate = len([app for app in applications if app.get("status") == "Interview"]) / len(applications)
     
     return {
         "avg_applications_per_month": avg_applications_per_month,
