@@ -36,7 +36,6 @@ from routes import matching
 from routes.offers import offers_router
 from routes.technical_prep import technical_prep_router
 from routes.application_workflow_router import workflow_router
-from routes.application_analytics_router import analytics_router
 from routes.networks import networks_router
 from routes.referrals import referrals_router
 from routes.network_events import network_events_router
