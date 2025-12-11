@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formal Cover Letter</title>
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            color: #333;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .date {
+            text-align: left;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .body {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .body p {
+            margin: 15px 0;
+        }
+        .closing {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .signature {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .skills {
+            display: inline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p>{{name}}</p>
+            <p>{{address}}</p>
+            <p>{{email}} | {{phone}}</p>
+        </div>
+        <div class="date">
+            {{date}}
+        </div>
+        <div class="greeting">
+            Dear Hiring Manager,
+        </div>
+        <div class="body">
+            <p>
+                I am excited to apply for the {{title}} role in the {{industry}} sector, leveraging my {{experience_level}} experience to contribute to your team’s success. With a strong foundation in <span class="skills">{{skills}}</span>, I have consistently delivered impactful results in fast-paced environments. During my tenure as {{latest_title}} at {{latest_company}} in {{latest_location}}, I spearheaded initiatives that drove brand awareness and customer engagement, showcasing my ability to align marketing strategies with business goals.
+            </p>
+            <p>
+                My academic background, including a {{top_degree}} in {{top_field}} from {{top_institution}}, has equipped me with a deep understanding of market dynamics and consumer behavior. Additionally, my certifications in {{certifications}} have enhanced my technical proficiency, enabling me to execute data-driven campaigns with precision. I am confident that my blend of strategic thinking, creative problem-solving, and analytical skills will make me a valuable asset to your organization.
+            </p>
+            <p>
+                I am particularly drawn to this opportunity because of your company’s reputation for innovation and excellence in the {{industry}} space. I would welcome the chance to discuss how my experience and skills align with your objectives. Thank you for considering my application.
+            </p>
+        </div>
+        <div class="closing">
+            Sincerely,
+        </div>
+        <div class="signature">
+            {{name}}
+        </div>
+    </div>
+</body>
+</html>

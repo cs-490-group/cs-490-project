@@ -1,0 +1,171 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: none;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.navbar {
+  z-index: 1 !important;
+}
+
+/* Remove the hover-based dropdown display since React controls it */
+.navbar .dropdown-menu {
+  margin-top: 0;
+  display: none;
+}
+
+.navbar .dropdown-menu.show {
+  display: block;
+}
+
+/* Hide all dropdown toggle arrows */
+.navbar .dropdown-toggle::after {
+  display: none !important;
+}
+
+/* Target all dropdown IDs to ensure arrows are hidden */
+#dashboard-dropdown::after,
+#profile-dropdown::after,
+#interview-dropdown::after,
+#network-dropdown::after,
+#social-dropdown::after {
+  display: none !important;
+}
+
+/* Override the mx-3 class that's in the JSX */
+.navbar-nav .nav-link.mx-3,
+.navbar-nav .dropdown.mx-3 {
+  margin-left: 0.3rem !important;
+  margin-right: 0.3rem !important;
+}
+
+/* Minimal padding for maximum text size */
+.navbar-nav .nav-link,
+.navbar-nav .dropdown {
+  padding-left: 0.3rem !important;
+  padding-right: 0.3rem !important;
+  white-space: nowrap !important;
+}
+
+/* Maximum font size */
+.navbar-nav {
+  font-size: 1.25rem;
+}
+
+/* Brand styling */
+.navbar-brand {
+  font-size: 1.4rem !important;
+  margin-right: 1rem !important;
+  white-space: nowrap !important;
+}
+
+.navbar-brand img {
+  height: 45px !important;
+  margin-right: 8px !important;
+}
+
+/* Remove extra spacing between brand and nav items */
+.navbar-collapse {
+  margin-left: 0 !important;
+  flex-grow: 1 !important;
+}
+
+/* Spread authenticated nav items across navbar */
+.navbar-nav.ms-auto.authenticated-nav {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  flex-grow: 1 !important;
+  justify-content: space-between !important;
+  gap: 0 !important;
+  padding-left: 2rem !important;
+}
+
+/* Keep login/register grouped together on the right */
+.navbar-nav.ms-auto.unauthenticated-nav {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  justify-content: flex-end !important;
+  gap: 0 !important;
+  flex-grow: 0 !important;
+}
+
+/* Ensure unauthenticated nav items stay close together */
+.navbar-nav.unauthenticated-nav .nav-link {
+  margin-left: 0.5rem !important;
+  margin-right: 0.5rem !important;
+}
+
+/* Slightly smaller on large screens if needed */
+@media (max-width: 1600px) {
+  .navbar-nav {
+    font-size: 1.1rem;
+  }
+  
+  .navbar-nav .nav-link.mx-3,
+  .navbar-nav .dropdown.mx-3 {
+    margin-left: 0.25rem !important;
+    margin-right: 0.25rem !important;
+  }
+  
+  .navbar-nav .nav-link,
+  .navbar-nav .dropdown {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+}
+
+/* Adjust for medium screens */
+@media (max-width: 1400px) {
+  .navbar-nav {
+    font-size: 0.95rem;
+  }
+  
+  .navbar-nav .nav-link.mx-3,
+  .navbar-nav .dropdown.mx-3 {
+    margin-left: 0.2rem !important;
+    margin-right: 0.2rem !important;
+  }
+  
+  .navbar-nav .nav-link,
+  .navbar-nav .dropdown {
+    padding-left: 0.2rem !important;
+    padding-right: 0.2rem !important;
+  }
+  
+  .navbar-brand {
+    font-size: 1.2rem !important;
+  }
+}

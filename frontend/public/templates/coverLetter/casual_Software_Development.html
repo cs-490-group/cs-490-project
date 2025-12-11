@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Casual Cover Letter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #fef3e4, #e0f7fa);
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffffcc; /* slightly translucent */
+            padding: 35px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative corner circles */
+        .container::before, .container::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.15;
+        }
+        .container::before {
+            width: 120px;
+            height: 120px;
+            background: #ffab91;
+            top: -40px;
+            left: -40px;
+        }
+        .container::after {
+            width: 80px;
+            height: 80px;
+            background: #4dd0e1;
+            bottom: -30px;
+            right: -30px;
+        }
+
+        .header {
+            text-align: right;
+            margin-bottom: 25px;
+            color: #555;
+        }
+        .header p {
+            margin: 2px 0;
+        }
+        .date {
+            text-align: left;
+            margin-bottom: 25px;
+            color: #00796b;
+            font-weight: 500;
+        }
+        .greeting {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #004d40;
+            font-weight: 600;
+        }
+        .body {
+            margin-bottom: 25px;
+            color: #333;
+            font-size: 16px;
+        }
+        .body p {
+            margin-bottom: 18px;
+        }
+        .highlight {
+            color: #ff5722;
+            font-weight: 600;
+        }
+        .closing {
+            text-align: left;
+            margin-top: 25px;
+            color: #004d40;
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px 20px;
+            }
+            .greeting, .body, .closing {
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p>{{name}}</p>
+            <p>{{address}}</p>
+            <p>{{email}} | {{phone}}</p>
+        </div>
+        <div class="date">
+            <p>{{date}}</p>
+        </div>
+        <div class="greeting">
+            <p>Dear Hiring Manager,</p>
+        </div>
+        <div class="body">
+            <p>
+                I am excited to apply for the <span class="highlight">{{title}}</span> role in the <span class="highlight">{{industry}}</span> sector. With <span class="highlight">{{experience_level}}</span> of experience in software development, I have honed my skills in <span class="highlight">{{skills}}</span>, among others. At <span class="highlight">{{latest_company}}</span> in <span class="highlight">{{latest_location}}</span>, I served as a <span class="highlight">{{latest_title}}</span>, successfully delivering projects that improved system efficiency by 20%.
+            </p>
+            <p>
+                My educational background includes a <span class="highlight">{{top_degree}}</span> in <span class="highlight">{{top_field}}</span> from <span class="highlight">{{top_institution}}</span>, providing a solid foundation in software engineering principles. Additionally, I hold certifications in <span class="highlight">{{certifications}}</span>, showing my commitment to continuous growth and keeping up with industry trends.
+            </p>
+            <p>
+                I am particularly drawn to this opportunity because of the innovative projects your team is working on. I am confident that my technical expertise, combined with my collaborative approach, would make me a valuable addition to your organization.
+            </p>
+        </div>
+        <div class="closing">
+            <p>Sincerely,<br>{{name}}</p>
+        </div>
+    </div>
+</body>
+</html>

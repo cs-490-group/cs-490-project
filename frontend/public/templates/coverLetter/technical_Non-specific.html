@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cover Letter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+            background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0), 
+                            linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: right;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .header p {
+            margin: 2px 0;
+        }
+
+        .date {
+            text-align: left;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .greeting {
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .body {
+            margin-bottom: 20px;
+            color: #34495e;
+        }
+
+        .closing {
+            text-align: left;
+            margin-top: 20px;
+            color: #2c3e50;
+        }
+
+        .signature {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .highlight {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <p>{{name}}</p>
+        <p>{{address}}</p>
+        <p>{{email}} | {{phone}}</p>
+    </div>
+
+    <div class="date">
+        <p>{{date}}</p>
+    </div>
+
+    <div class="greeting">
+        <p>Dear Hiring Manager,</p>
+    </div>
+
+    <div class="body">
+        <p>
+            I am excited to apply for the {{title}} role within the {{industry}} sector. With {{experience_level}} of experience in technical roles, I have developed a strong foundation in <span class="highlight">{{skills}}</span>, among other areas. My most recent position as {{latest_title}} at {{latest_company}} in {{latest_location}} allowed me to refine my abilities in a fast-paced, innovative environment.
+        </p>
+        <p>
+            During my tenure at {{latest_company}}, I successfully led and contributed to various projects that required a deep understanding of technical concepts and problem-solving skills. My educational background, including a {{top_degree}} in {{top_field}} from {{top_institution}}, has provided me with a solid theoretical foundation that I have applied in practical, real-world scenarios. Additionally, I hold certifications in <span class="highlight">{{certifications}}</span>, which have further enhanced my expertise.
+        </p>
+        <p>
+            I am particularly drawn to this opportunity because it aligns with my passion for leveraging technology to drive efficiency and innovation. I am confident that my combination of technical skills, hands-on experience, and continuous learning mindset makes me a strong candidate for this role. I would welcome the opportunity to discuss how my background and skills align with the needs of your team.
+        </p>
+    </div>
+
+    <div class="closing">
+        <p>Sincerely,</p>
+        <div class="signature">
+            <p>{{name}}</p>
+        </div>
+    </div>
+</body>
+</html>

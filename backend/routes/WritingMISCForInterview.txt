@@ -1,0 +1,271 @@
+DAO 
+class WritingPracticeDAO:
+    """Data Access Object for writing practice sessions"""
+
+    def __init__(self, db_client: AsyncIOMotorDatabase):
+        self.db = db_client
+        self.collection = db_client["writing_practice_sessions"]
+
+    async def create_session(self, data: dict) -> str:
+        """Create a new writing practice session"""
+        data["uuid"] = str(uuid.uuid4())
+        data["date_created"] = datetime.now(timezone.utc)
+        
+        await self.collection.insert_one(data)
+        return data["uuid"]
+
+    async def get_session(self, session_uuid: str) -> Optional[dict]:
+        """Get a specific session"""
+        doc = await self.collection.find_one({"uuid": session_uuid})
+        if doc:
+            doc["_id"] = str(doc["_id"])
+        return doc
+
+
+# ============================================================================
+# WRITING PRACTICE ENDPOINTS (UC-084)
+# ============================================================================
+
+@writing_router.post("/start")
+async def start_writing_practice(
+    question_uuid: str,
+    time_limit_seconds: int = 300,
+    uuid_val: str = Depends(authorize)
+):
+    """Start a timed writing practice session"""
+    import uuid
+    
+    session_data = {
+        "uuid": str(uuid.uuid4()),
+        "user_uuid": uuid_val,
+        "question_uuid": question_uuid,
+        "time_limit_seconds": time_limit_seconds,
+        "started_at": datetime.utcnow()
+    }
+    
+    # Note: Session is stored when completed, not at start
+    
+    return {
+        "detail": "Writing practice session started",
+        "session_uuid": session_data["uuid"],
+        "time_limit_seconds": time_limit_seconds
+    }
+
+
+@writing_router.post("/submit")
+async def submit_writing_practice(
+    session_uuid: str,
+    question_uuid: str,
+    response_text: str,
+    time_taken_seconds: int,
+    question_category: str = "general",
+    uuid_val: str = Depends(authorize)
+):
+    """Submit a writing practice response for analysis"""
+    try:
+        # Analyze response quality
+        analysis = writing_service.analyze_response_quality(
+            response_text,
+            question_category
+        )
+        
+        # Get previous attempts for comparison
+        previous_sessions = await writing_dao.get_sessions_by_question(
+            uuid_val,
+            question_uuid
+        )
+        
+        previous_analyses = [
+            {
+                "overall_score": s.get("overall_score"),
+                "clarity_score": s.get("clarity_score"),
+                "structure_score": s.get("structure_score"),
+                "conciseness_score": s.get("conciseness_score")
+            }
+            for s in previous_sessions
+            if s.get("overall_score") is not None
+        ]
+        
+        comparison = writing_service.compare_with_previous(
+            analysis,
+            previous_analyses
+        )
+        
+        # Store session
+        session_data = {
+            "uuid": session_uuid,
+            "user_uuid": uuid_val,
+            "question_uuid": question_uuid,
+            "time_limit_seconds": 300,  # Default
+            "time_taken_seconds": time_taken_seconds,
+            "started_at": datetime.utcnow(),
+            "completed_at": datetime.utcnow(),
+            "response_text": response_text,
+            "word_count": analysis["word_count"],
+            **analysis,
+            "comparison_with_previous": comparison
+        }
+        
+        await writing_dao.create_session(session_data)
+        
+        return {
+            "detail": "Response analyzed successfully",
+            "analysis": analysis,
+            "comparison": comparison
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing response: {str(e)}")
+
+
+@writing_router.get("/sessions")
+async def get_writing_sessions(uuid_val: str = Depends(authorize)):
+    """Get all writing practice sessions for the user"""
+    sessions = await writing_dao.get_user_sessions(uuid_val)
+    
+    return {
+        "sessions": sessions,
+        "count": len(sessions)
+    }
+
+
+@writing_router.get("/sessions/{session_id}")
+async def get_writing_session(
+    session_id: str,
+    uuid_val: str = Depends(authorize)
+):
+    """Get a specific writing practice session"""
+    session = await writing_dao.get_session(session_id)
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if session["user_uuid"] != uuid_val:
+        raise HTTPException(status_code=403, detail="Unauthorized access")
+    
+    return {"session": session}
+
+
+@writing_router.get("/sessions/question/{question_id}")
+async def get_sessions_by_question(
+    question_id: str,
+    uuid_val: str = Depends(authorize)
+):
+    """Get all practice sessions for a specific question"""
+    sessions = await writing_dao.get_sessions_by_question(uuid_val, question_id)
+    
+    return {
+        "sessions": sessions,
+        "count": len(sessions),
+        "question_uuid": question_id
+    }
+
+=============================================================================================
+API PART
+==============================================================================================
+const WritingPracticeAPI = {
+  // ============================================================================
+  // WRITING PRACTICE (UC-084)
+  // ============================================================================
+  
+  startSession: (questionUuid, timeLimitSeconds = 300) => {
+    return axios.post(
+      `${API_BASE_URL}/interview/writing-practice/start`,
+      null,
+      { 
+        params: { question_uuid: questionUuid, time_limit_seconds: timeLimitSeconds },
+        headers: getAuthHeaders() 
+      }
+    );
+  },
+  
+  submitResponse: (sessionUuid, questionUuid, responseText, timeTaken, questionCategory = 'general') => {
+    return axios.post(
+      `${API_BASE_URL}/interview/writing-practice/submit`,
+      null,
+      {
+        params: {
+          session_uuid: sessionUuid,
+          question_uuid: questionUuid,
+          response_text: responseText,
+          time_taken_seconds: timeTaken,
+          question_category: questionCategory
+        },
+        headers: getAuthHeaders()
+      }
+    );
+  },
+  
+  getSessions: () => {
+    return axios.get(
+      `${API_BASE_URL}/interview/writing-practice/sessions`,
+      { headers: getAuthHeaders() }
+    );
+  },
+  
+  getSession: (sessionId) => {
+    return axios.get(
+      `${API_BASE_URL}/interview/writing-practice/sessions/${sessionId}`,
+      { headers: getAuthHeaders() }
+    );
+  },
+  
+  getSessionsByQuestion: (questionId) => {
+    return axios.get(
+      `${API_BASE_URL}/interview/writing-practice/sessions/question/${questionId}`,
+      { headers: getAuthHeaders() }
+    );
+  }
+};
+
+
+# ============================================================================
+# WRITING PRACTICE SCHEMAS
+# ============================================================================
+
+class WritingPracticeSession(BaseModel):
+    """Schema for a timed writing practice session"""
+    uuid: str
+    user_uuid: str
+    question_uuid: str
+    
+    # Timing
+    time_limit_seconds: int = Field(default=300, description="5 minutes default")
+    time_taken_seconds: int
+    started_at: datetime
+    completed_at: datetime
+    
+    # Response
+    response_text: str
+    word_count: int
+    
+    # Analysis
+    clarity_score: Optional[float] = Field(None, description="0-100")
+    structure_score: Optional[float] = Field(None, description="STAR framework adherence")
+    conciseness_score: Optional[float] = Field(None, description="0-100")
+    professionalism_score: Optional[float] = Field(None, description="0-100")
+    overall_score: Optional[float] = Field(None, description="Average of above")
+    
+    # Detailed feedback
+    strengths: List[str] = Field(default_factory=list)
+    areas_for_improvement: List[str] = Field(default_factory=list)
+    specific_suggestions: List[str] = Field(default_factory=list)
+    
+    # Comparison
+    comparison_with_previous: Optional[Dict[str, Any]] = None
+    
+    date_created: datetime = Field(default_factory=datetime.utcnow)
+
+
+class WritingAnalysisResult(BaseModel):
+    """Result of analyzing a written response"""
+    clarity_score: float
+    structure_score: float
+    conciseness_score: float
+    professionalism_score: float
+    overall_score: float
+    strengths: List[str]
+    areas_for_improvement: List[str]
+    specific_suggestions: List[str]
+    sentence_complexity_avg: float
+    vocabulary_diversity_score: float

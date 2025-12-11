@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formal Cover Letter</title>
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            color: #333;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .date {
+            text-align: left;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+        .greeting {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        .body {
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .closing {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .signature {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .highlight {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p>{{name}}</p>
+            <p>{{address}}</p>
+            <p>{{email}} | {{phone}}</p>
+        </div>
+        <div class="date">
+            <p>{{date}}</p>
+        </div>
+        <div class="greeting">
+            <p>Dear Hiring Manager,</p>
+        </div>
+        <div class="body">
+            <p>
+                I am writing to express my interest in the {{title}} position within the {{industry}} sector. With {{experience_level}} of experience in education, I have developed a strong foundation in fostering student success and implementing effective teaching strategies. My background includes serving as {{latest_title}} at {{latest_company}} in {{latest_location}}, where I honed my ability to create engaging lesson plans and support diverse learning needs.
+            </p>
+            <p>
+                My academic credentials include a {{top_degree}} in {{top_field}} from {{top_institution}}, which has equipped me with a deep understanding of educational theories and practices. Additionally, I hold certifications in {{certifications}}, further enhancing my expertise in curriculum development and instructional design. My skills in {{skills}} have been instrumental in driving positive outcomes in both classroom and administrative settings.
+            </p>
+            <p>
+                I am particularly drawn to this opportunity because of its alignment with my passion for empowering students and contributing to a dynamic educational environment. I am confident that my combination of experience, education, and dedication would make me a valuable asset to your team.
+            </p>
+        </div>
+        <div class="closing">
+            <p>Thank you for considering my application. I look forward to the opportunity to discuss how my background and skills align with the needs of your institution.</p>
+        </div>
+        <div class="signature">
+            <p class="highlight">Sincerely,</p>
+            <p>{{name}}</p>
+        </div>
+    </div>
+</body>
+</html>

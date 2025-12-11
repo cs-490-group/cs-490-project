@@ -1,0 +1,82 @@
+[
+  {
+    "id": "professional-clean",
+    "name": "Professional Clean",
+    "template_type": "professional-clean",
+    "description": "Traditional corporate style with serif fonts and formal design",
+    "category": "professional",
+    "isBuiltIn": true,
+    "colors": {
+      "primary": "#003366",
+      "accent": "#003366"
+    },
+    "fonts": {
+      "heading": "Georgia",
+      "body": "Georgia"
+    }
+  },
+  {
+    "id": "modern-bold",
+    "name": "Modern Bold",
+    "template_type": "modern-bold",
+    "description": "Contemporary design with gradient header and bold accent colors",
+    "category": "modern",
+    "isBuiltIn": true,
+    "colors": {
+      "primary": "#667eea",
+      "accent": "#764ba2"
+    },
+    "fonts": {
+      "heading": "Segoe UI",
+      "body": "Segoe UI"
+    }
+  },
+  {
+    "id": "minimal-zen",
+    "name": "Minimal Zen",
+    "template_type": "minimal-zen",
+    "description": "Ultra-minimalist design with maximum whitespace and clean typography",
+    "category": "minimal",
+    "isBuiltIn": true,
+    "colors": {
+      "primary": "#000000",
+      "accent": "#333333"
+    },
+    "fonts": {
+      "heading": "Helvetica Neue",
+      "body": "Helvetica Neue"
+    }
+  },
+  {
+    "id": "creative-vibrant",
+    "name": "Creative Vibrant",
+    "template_type": "creative-vibrant",
+    "description": "Colorful and visually engaging design with red gradient header",
+    "category": "creative",
+    "isBuiltIn": true,
+    "colors": {
+      "primary": "#ff6b6b",
+      "accent": "#ee5a6f"
+    },
+    "fonts": {
+      "heading": "Trebuchet MS",
+      "body": "Trebuchet MS"
+    }
+  },
+  {
+    "id": "academic-formal",
+    "name": "Academic Formal",
+    "template_type": "academic-formal",
+    "description": "Formal academic style with traditional research paper formatting",
+    "category": "professional",
+    "isBuiltIn": true,
+    "colors": {
+      "primary": "#1a1a1a",
+      "accent": "#333333"
+    },
+    "fonts": {
+      "heading": "Calibri",
+      "body": "Calibri"
+    }
+  }
+]

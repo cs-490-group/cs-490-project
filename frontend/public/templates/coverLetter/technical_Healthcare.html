@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cover Letter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+            background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0), 
+                            linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: right;
+            margin-bottom: 20px;
+            color: #0056b3;
+        }
+
+        .header p {
+            margin: 2px 0;
+        }
+
+        .date {
+            text-align: left;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .greeting {
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .body {
+            margin-bottom: 20px;
+        }
+
+        .body p {
+            margin: 10px 0;
+        }
+
+        .closing {
+            margin-top: 20px;
+        }
+
+        .signature {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #0056b3;
+        }
+
+        a {
+            color: #0056b3;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <p>{{name}}</p>
+        <p>{{address}}</p>
+        <p><a href="mailto:{{email}}">{{email}}</a> | <a href="tel:{{phone}}">{{phone}}</a></p>
+    </div>
+
+    <div class="date">
+        <p>{{date}}</p>
+    </div>
+
+    <div class="greeting">
+        <p>Dear Hiring Manager,</p>
+    </div>
+
+    <div class="body">
+        <p>
+            I am excited to apply for the {{title}} role within the {{industry}} sector, leveraging my {{experience_level}} experience in healthcare technology and systems. With a strong foundation in {{top_field}} from {{top_institution}}, where I earned my {{top_degree}}, I have developed a unique blend of technical and healthcare expertise.
+        </p>
+        <p>
+            In my most recent position as {{latest_title}} at {{latest_company}} in {{latest_location}}, I successfully implemented innovative solutions that improved patient care workflows and data management systems. My skills in {{skills}} have been instrumental in driving efficiency and accuracy in healthcare operations. Additionally, my certifications in {{certifications}} have equipped me with the knowledge to navigate complex healthcare IT environments.
+        </p>
+        <p>
+            I am particularly drawn to this opportunity because of its focus on integrating cutting-edge technology with patient-centric care, which aligns with my career aspirations and values. I am confident that my technical expertise, combined with my passion for healthcare, makes me a strong candidate for this role.
+        </p>
+    </div>
+
+    <div class="closing">
+        <p>I look forward to the opportunity to discuss how my background, skills, and certifications can contribute to your team. Thank you for considering my application.</p>
+    </div>
+
+    <div class="signature">
+        <p>Sincerely,</p>
+        <p>{{name}}</p>
+    </div>
+</body>
+</html>

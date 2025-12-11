@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formal Cover Letter - Healthcare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      color: #2f3e46;
+      background: linear-gradient(135deg, #edf7f2 0%, #f9fdfb 100%);
+      margin: 0;
+      padding: 40px 20px;
+      line-height: 1.7;
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 45px;
+      border-radius: 10px;
+      border: 1px solid #c9e4d7;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* soft top accent */
+    .container::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 8px;
+      width: 100%;
+      background: linear-gradient(90deg, #00a676, #66bb6a);
+    }
+
+    .header {
+      text-align: right;
+      margin-bottom: 25px;
+    }
+
+    .header p {
+      margin: 3px 0;
+      font-size: 15px;
+      color: #4b6354;
+    }
+
+    .date {
+      text-align: left;
+      margin-bottom: 25px;
+      font-size: 15px;
+      color: #3d8b74;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .greeting {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 20px;
+      margin-bottom: 25px;
+      color: #243b32;
+      font-weight: 700;
+    }
+
+    .body {
+      font-size: 16px;
+      margin-bottom: 25px;
+      color: #2f3e46;
+      text-align: justify;
+    }
+
+    .body p {
+      margin-bottom: 18px;
+    }
+
+    .closing {
+      font-size: 16px;
+      color: #2f3e46;
+      margin-top: 25px;
+    }
+
+    .signature {
+      margin-top: 30px;
+      font-size: 16px;
+      color: #00a676;
+      font-weight: 700;
+      font-family: 'Libre Baskerville', serif;
+    }
+
+    .signature p {
+      margin: 5px 0;
+    }
+
+    .accent {
+      color: #00a676;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 25px;
+      }
+      .body, .header, .signature, .closing {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <p>{{name}}</p>
+      <p>{{address}}</p>
+      <p>{{email}} | {{phone}}</p>
+    </div>
+
+    <div class="date">
+      <p>{{date}}</p>
+    </div>
+
+    <div class="greeting">
+      <p>Dear Hiring Manager,</p>
+    </div>
+
+    <div class="body">
+      <p>
+        I am writing to express my interest in the {{title}} position within the {{industry}} sector. With {{experience_level}} of experience in healthcare, I have developed a strong foundation in {{skills}} (among others), which I believe aligns well with the requirements of this role.
+      </p>
+      <p>
+        In my most recent position as {{latest_title}} at {{latest_company}} in {{latest_location}}, I successfully managed patient care initiatives, streamlined administrative processes, and collaborated with interdisciplinary teams to improve overall healthcare delivery. My educational background, including a {{top_degree}} in {{top_field}} from {{top_institution}}, has equipped me with the knowledge and skills necessary to excel in this field.
+      </p>
+      <p>
+        Additionally, I hold certifications in {{certifications}}, which have further enhanced my ability to provide high-quality care and contribute to the success of healthcare organizations. I am confident that my combination of practical experience, education, and certifications makes me a strong candidate for this position.
+      </p>
+    </div>
+
+    <div class="closing">
+      <p>I look forward to the opportunity to discuss how my skills and experiences align with the needs of your team. Thank you for considering my application.</p>
+    </div>
+
+    <div class="signature">
+      <p class="accent">Sincerely,</p>
+      <p>{{name}}</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<script>
+async function loadProfile() {
+    const userId = verifyAuth(); // Returns userId if valid, else None/null
+
+    // If not logged in → redirect
+    if (!userId) {
+        window.location.href = "/login.html";
+        return;
+    }
+
+    // Fetch user data from backend
+    try {
+        const response = await fetch(`/api/profile/${userId}`, {
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("session")}`
+            }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+            alert("Unauthorized. Please log in again.");
+            localStorage.removeItem("session");
+            window.location.href = "/login.html";
+            return;
+        }
+
+        const data = await response.json();
+        document.getElementById("username").innerText = data.username;
+        document.getElementById("email").innerText = data.email;
+        // etc...
+    } catch (err) {
+        console.error("Error loading profile:", err);
+    }
+}
+
+window.onload = loadProfile;
+</script>

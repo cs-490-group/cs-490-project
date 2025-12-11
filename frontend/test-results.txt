@@ -1,0 +1,22 @@
+FAIL src/App.test.js
+  ● Test suite failed to run
+
+    Cannot find module 'react-router-dom' from 'src/App.js'
+
+    Require stack:
+      src/App.js
+      src/App.test.js
+
+      1 | import React from "react";
+    > 2 | import { Routes, Route, useLocation } from 'react-router-dom';
+        | ^
+      3 | import Nav from "./tools/nav";
+      4 | import 'bootstrap/dist/css/bootstrap.min.css';
+      5 | import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+
+      at Resolver.resolveModule (node_modules/jest-resolve/build/resolver.js:324:11)
+      at Object.<anonymous> (src/App.js:2:1)
+      at Object.<anonymous> (src/App.test.js:2:1)
+
+(node:23057) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
