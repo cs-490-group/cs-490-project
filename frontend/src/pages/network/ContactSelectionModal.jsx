@@ -18,6 +18,13 @@ export default function ContactSelectionModal({
     const [searchRelationship, setSearchRelationship] = useState("");
     const [showOnlyOptimal, setShowOnlyOptimal] = useState(false);
 
+    const getCompanyName = (company) => {
+        if (company === null || company === undefined) return "";
+        if (typeof company === 'string') return company;
+        if (typeof company === 'object') return company.name || "";
+        return "";
+    };
+
     // Remove the checkbox for optimal suggestions since we're showing them automatically
 
     const scoredContacts = useMemo(() => {
@@ -32,13 +39,13 @@ export default function ContactSelectionModal({
                 }
             }
             if (jobDetails?.company && contact.employment?.company) {
-                if (contact.employment.company.toLowerCase() === jobDetails.company.toLowerCase()) {
+                if (contact.employment.company.toLowerCase() === getCompanyName(jobDetails.company).toLowerCase()) {
                     score += 25;
                     reasons.push("Current employee");
                 }
             }
             if (jobDetails?.company && contact.employment?.company) {
-                const jobCompanyLower = jobDetails.company.toLowerCase();
+                const jobCompanyLower = getCompanyName(jobDetails.company).toLowerCase();
                 const contactCompanyLower = contact.employment.company.toLowerCase();
                 const relatedPatterns = [
                     /\b(google|alphabet)\b/i,

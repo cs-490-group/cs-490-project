@@ -3,6 +3,13 @@ import JobsAPI from "../../api/jobs";
 import ProfilesAPI from "../../api/profiles";
 import { formatLocalDate, formatLocalDateTime, toLocalDate, isToday, getLocalDay, getLocalMonth, getLocalYear } from "../../utils/dateUtils";
 
+const getCompanyName = (company) => {
+  if (company === null || company === undefined) return "Unknown Company";
+  if (typeof company === 'string') return company;
+  if (typeof company === 'object') return company.name || "Company Info Available";
+  return "Unknown Company";
+};
+
 export function DeadlineWidget({ jobs, onJobClick }) {
   const jobsWithDeadlines = jobs
     .filter(job => job.deadline)
@@ -77,7 +84,7 @@ export function DeadlineWidget({ jobs, onJobClick }) {
                     {job.title}
                   </div>
                   <div style={{ fontSize: "13px", color: "#666", marginBottom: "4px" }}>
-                    {job.company}
+                    {getCompanyName(job.company)}
                   </div>
                   <div style={{ fontSize: "12px", color: "#999" }}>
                     📅 {new Date(job.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -196,9 +203,9 @@ export function DeadlineCalendar({ jobs }) {
                   fontSize: "10px",
                   fontWeight: "600"
                 }}
-                title={`${job.title} - ${job.company} (${job.status})`}
+                title={`${job.title} - ${getCompanyName(job.company)} (${job.status})`}
               >
-                <div style={{ marginBottom: "1px" }}>{job.company}</div>
+                <div style={{ marginBottom: "1px" }}>{getCompanyName(job.company)}</div>
                 <div style={{ fontSize: "9px", opacity: 0.9 }}>{job.status}</div>
               </div>
             ))}
@@ -419,7 +426,7 @@ export function DeadlineReminderModal({ job, onClose, onSave }) {
 
         <div style={{ marginBottom: "20px" }}>
           <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "8px" }}>
-            Job: {job.title} at {job.company}
+            Job: {job.title} at {getCompanyName(job.company)}
           </div>
           <div style={{ fontSize: "13px", color: "#666" }}>
             Deadline: {new Date(job.deadline).toLocaleDateString()}

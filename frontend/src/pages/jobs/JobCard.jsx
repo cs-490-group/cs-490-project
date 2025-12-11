@@ -3,6 +3,13 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useNavigate } from "react-router-dom";
 
+const getCompanyName = (company) => {
+  if (company === null || company === undefined) return "Unknown Company";
+  if (typeof company === 'string') return company;
+  if (typeof company === 'object') return company.name || "Company Info Available";
+  return "Unknown Company";
+};
+
 function MatchPreview({ jobId }) {
   const [data, setData] = React.useState(null);
 
@@ -134,7 +141,7 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
                 {job.archived && <span style={{ marginLeft: "8px", fontSize: "12px", color: "#999" }}>📦 Archived</span>}
               </div>
               <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>
-                {job.company}
+                {getCompanyName(job.company)}
               </div>
               <MatchPreview jobId={job.id} />
             </div>

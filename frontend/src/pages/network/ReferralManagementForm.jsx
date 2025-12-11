@@ -36,6 +36,13 @@ export default function ReferralManagementForm({
         return `${year}-${month}-${day}`;
     };
 
+    const getCompanyName = (company) => {
+        if (company === null || company === undefined) return "Unknown Company";
+        if (typeof company === 'string') return company;
+        if (typeof company === 'object') return company.name || "Company Info Available";
+        return "Unknown Company";
+    };
+
     const getOptimalReferralTiming = (deadline) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -310,7 +317,7 @@ export default function ReferralManagementForm({
                                     <div className="row">
                                         <div className="col-md-6">
                                             <h6 className="fw-bold mb-1">{selectedJob.title}</h6>
-                                            <p className="mb-1 text-muted">{selectedJob.company}</p>
+                                            <p className="mb-1 text-muted">{getCompanyName(selectedJob.company)}</p>
                                         </div>
                                         <div className="col-md-6">
                                             {selectedJob.industry && (

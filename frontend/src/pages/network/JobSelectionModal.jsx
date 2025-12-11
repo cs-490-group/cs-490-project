@@ -41,7 +41,7 @@ export default function JobSelectionModal({ showModal, setShowModal, onJobSelect
         const matchesTitle = !searchTerm || 
             (job.title && job.title.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesCompany = !searchCompany || 
-            (job.company && job.company.toLowerCase().includes(searchCompany.toLowerCase()));
+            (job.company && getCompanyName(job.company).toLowerCase().includes(searchCompany.toLowerCase()));
         const matchesLocation = !searchLocation || 
             (job.location && job.location.toLowerCase().includes(searchLocation.toLowerCase()));
         const matchesIndustry = !searchIndustry || 
@@ -68,6 +68,13 @@ export default function JobSelectionModal({ showModal, setShowModal, onJobSelect
 
     const isSelected = (job) => {
         return selectedJobId && (job.id === selectedJobId || job._id === selectedJobId);
+    };
+
+    const getCompanyName = (company) => {
+        if (company === null || company === undefined) return "Unknown Company";
+        if (typeof company === 'string') return company;
+        if (typeof company === 'object') return company.name || "Company Info Available";
+        return "Unknown Company";
     };
 
     return (
@@ -167,7 +174,7 @@ export default function JobSelectionModal({ showModal, setShowModal, onJobSelect
                                             )}
                                         </div>
                                         <Card.Subtitle as="div" className="mb-2 text-muted">
-                                            <strong>{job.company}</strong>
+                                            <strong>{getCompanyName(job.company)}</strong>
                                         </Card.Subtitle>
                                         
                                         {job.industry && (

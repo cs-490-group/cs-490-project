@@ -50,6 +50,7 @@ from routes.insights import insights_router
 from routes.referral_message_routes import referral_message_router
 from routes.goals import goals_router
 from routes.time_tracking import time_tracking_router
+from routes.performance_analytics import performance_analytics_router
 from services.referral_reminder_scheduler import start_referral_reminder_scheduler, stop_referral_reminder_scheduler
 from services.referral_followup_scheduler import start_referral_followup_scheduler, stop_referral_followup_scheduler
 from services.event_reminder_scheduler import start_event_reminder_scheduler, stop_event_reminder_scheduler
@@ -149,6 +150,7 @@ app.include_router(mentorship_router, prefix = api_prefix)
 app.include_router(network_campaigns_router, prefix = api_prefix)
 app.include_router(professional_references_router, prefix = api_prefix)
 app.include_router(network_analytics_router, prefix = api_prefix)
+app.include_router(performance_analytics_router, prefix = api_prefix)
 app.include_router(api_metrics_router, prefix = f"{api_prefix}/metrics")
 
 

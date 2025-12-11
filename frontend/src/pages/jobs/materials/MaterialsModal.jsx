@@ -2,6 +2,13 @@ import React, { useState, useEffect } from "react";
 import ResumesAPI from "../../../api/resumes";
 import CoverLetterAPI from "../../../api/coverLetters";
 
+const getCompanyName = (company) => {
+    if (company === null || company === undefined) return "Unknown Company";
+    if (typeof company === 'string') return company;
+    if (typeof company === 'object') return company.name || "Company Info Available";
+    return "Unknown Company";
+};
+
 export default function MaterialsModal({ job, onClose, onSave }) {
   const [resumes, setResumes] = useState([]);
   const [coverLetters, setCoverLetters] = useState([]);
@@ -265,7 +272,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
           📄 Application Materials - {job.title}
         </h2>
         <p style={{ fontSize: "14px", color: "#666", marginBottom: "20px" }}>
-          at {job.company}
+          at {getCompanyName(job.company)}
         </p>
 
         <div style={{ marginBottom: "16px", padding: "12px", background: "#f0f0f0", borderRadius: "4px", fontSize: "12px" }}>

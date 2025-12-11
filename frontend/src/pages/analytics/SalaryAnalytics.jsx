@@ -3,6 +3,13 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import salaryAPI from "../../api/salary";
 import SalaryModal from "./SalaryModal";
 
+const getCompanyName = (company) => {
+    if (company === null || company === undefined) return "Unknown Company";
+    if (typeof company === 'string') return company;
+    if (typeof company === 'object') return company.name || "Company Info Available";
+    return "Unknown Company";
+};
+
 const SalaryAnalytics = () => {
   const [salaryData, setSalaryData] = useState(null);
   const [salaryRecords, setSalaryRecords] = useState([]);
@@ -294,7 +301,7 @@ const SalaryAnalytics = () => {
                           <div className="salary-record-role">{record.job_role}</div>
                         )}
                         {record.company && (
-                          <div className="salary-record-company">🏢 {record.company}</div>
+                          <div className="salary-record-company">🏢 {getCompanyName(record.company)}</div>
                         )}
                         {record.location && (
                           <div className="salary-record-location">📍 {record.location}</div>
