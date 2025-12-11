@@ -104,7 +104,7 @@ export default function ReviewImpactWidget({ teamId }) {
           {/* Unreviewed Stats */}
           <div className="col-md-4">
             <div className="p-3 rounded-3 bg-white border border-secondary border-opacity-10 shadow-sm">
-              <div className="text-secondary fw-bold text-uppercase small mb-1">
+              <div className="text-secondary fwa-bold text-uppercase small mb-1">
                 Unreviewed Resumes
               </div>
               <div className="display-6 fw-bold text-secondary">
