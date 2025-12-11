@@ -61,6 +61,19 @@ from services.application_workflow_scheduler import (
 from routes.salary_research_routes import salary_research_router
 from routes.api_metrics import router as api_metrics_router
 
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN"),
+    integrations=[
+        FastApiIntegration(),
+        StarletteIntegration(),
+    ],
+    traces_sample_rate=1.0,  # Capture 100% of transactions
+)
+
 
 app = FastAPI()
 
@@ -112,6 +125,7 @@ app.include_router(salary_router)
 app.include_router(insights_router)
 app.include_router(referral_message_router, prefix=api_prefix)
 app.include_router(salary_research_router, prefix=api_prefix)
+app.include_router(analytics_router)
 
 
 

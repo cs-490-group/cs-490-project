@@ -240,7 +240,15 @@ export default function PackagesTab({
 
                   <td>
                     <strong>
-                      {job.title} @ {job.company}
+                      {job.title} @ {
+                        typeof job.company === "string"
+                        ? job.company
+                        : job.company?.name ||
+                          job.company?.industry ||
+                          job.company?.location ||
+                          "Unknown Company"
+                        }
+
                     </strong>
                     <br />
                     <small className="text-muted">{job.location}</small>

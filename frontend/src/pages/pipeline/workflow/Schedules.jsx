@@ -39,7 +39,14 @@ export default function SchedulesTab({
                 <option value="">Select Job</option>
                 {jobs.map((j, i) => (
                   <option key={i} value={safeId(j)}>
-                    {j.title} @ {j.company}
+                    {j.title} @ {
+                      typeof j.company === "string"
+                        ? j.company
+                        : j.company?.name ||
+                          j.company?.industry ||
+                          j.company?.location ||
+                          "Unknown Company"
+                      }
                   </option>
                 ))}
               </select>

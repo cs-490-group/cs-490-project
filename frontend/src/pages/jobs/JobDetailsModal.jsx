@@ -4,6 +4,8 @@ import JobsAPI from "../../api/jobs";
 import ResumesAPI from "../../api/resumes";
 import CoverLetterAPI from "../../api/coverLetters";
 import api from "../../api/base";
+import { SingleJobLocation } from "./JobLocationMap";
+import ProfilesAPI from "../../api/profiles";
 
 export default function JobDetailsModal({
   selectedJob,
@@ -213,6 +215,7 @@ export default function JobDetailsModal({
           { id: "details", label: "Details" },
           { id: "research", label: "Research" },
           { id: "news", label: "News" },
+          { id: "location", label: "Location" },
           { id: "materials", label: "Materials" },
           { id: "history", label: "History" },
           ].map((tab) => (
@@ -636,7 +639,9 @@ export default function JobDetailsModal({
           </div>
         )}
 
-
+        {activeTab === "location" && (
+          <SingleJobLocation job={selectedJob} ProfilesAPI={ProfilesAPI} />
+        )}
 
         {/* --- BASIC JOB DETAILS --- */}
         {/*selectedJob.location && (

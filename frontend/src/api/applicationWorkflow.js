@@ -10,31 +10,35 @@ class ApplicationWorkflowAPI {
   createPackage(data) {
     return api.post("/application-workflow/packages", data);
   }
+  updatePackage(id, data) {
+  return api.put(`/application-workflow/packages/${id}`, data);
+}
+
 
   deletePackage(id) {
     return api.delete(`/application-workflow/packages/${id}`);
   }
 
   markPackageUsed(packageId) {
-  return api.post(`/application-workflow/packages/${packageId}/use`);
-}
-    bulkApply(data) {
-    return api.post("/application-workflow/bulk-apply", data);
-}
-
-  /* TEMPLATES */
-    getTemplates() {
-        return api.get("/application-workflow/templates");
+    return api.post(`/application-workflow/packages/${packageId}/use`);
   }
 
-    createTemplate(data) {
-        return api.post("/application-workflow/templates", data);
-}
+  bulkApply(data) {
+    return api.post("/application-workflow/bulk-apply", data);
+  }
 
-    deleteTemplate(id) {
-        return api.delete(`/application-workflow/templates/${id}`);
-}
+  /* TEMPLATES */
+  getTemplates() {
+    return api.get("/application-workflow/templates");
+  }
 
+  createTemplate(data) {
+    return api.post("/application-workflow/templates", data);
+  }
+
+  deleteTemplate(id) {
+    return api.delete(`/application-workflow/templates/${id}`);
+  }
 
   /* SCHEDULES */
   getSchedules() {
@@ -62,23 +66,49 @@ class ApplicationWorkflowAPI {
     return api.delete(`/application-workflow/automation-rules/${id}`);
   }
 
-  /** 
-   * FIXED: Backend expects a *raw boolean*, not { enabled: true }
-   */
   toggleAutomationRule(id, enabled) {
-  return api.post(
-    `/application-workflow/automation-rules/${id}/toggle`,
-    JSON.stringify(enabled),
-    {
-      headers: {
-        "Content-Type": "application/json"
-      }
-    }
-  );
-}
+    return api.post(
+      `/application-workflow/automation-rules/${id}/toggle`,
+      JSON.stringify(enabled),
+      { headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  /* ANALYTICS */
+  getApplicationFunnel() {
+    return api.get("/application-workflow/analytics/funnel");
+  }
+
+  getResponseTimes() {
+    return api.get("/application-workflow/analytics/response-times");
+  }
+
+  getSuccessRates() {
+    return api.get("/application-workflow/analytics/success-rates");
+  }
+
+  getApplicationTrends(days) {
+    return api.get("/application-workflow/analytics/trends", {
+      params: { days }
+    });
+  }
+
+  getPerformanceBenchmarks() {
+    return api.get("/application-workflow/analytics/benchmarks");
+  }
+
+  getOptimizationRecommendations() {
+    return api.get("/application-workflow/analytics/recommendations");
+  }
+
+  /* GOALS */
+  getGoals() {
+    return api.get("/application-workflow/goals");
+  }
 }
 
 export default new ApplicationWorkflowAPI();
+
 
 
 
