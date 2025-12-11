@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     libasound2 libxcb1 libx11-6 libglib2.0-0 libgobject-2.0-0 \
     libgio-2.0-0 libexpat1 && rm -rf /var/lib/apt/lists/*
 
-RUN pip install -r requirements.txt && playwright install
+RUN playwright install
 
 COPY . .
 
