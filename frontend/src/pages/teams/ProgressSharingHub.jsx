@@ -484,7 +484,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
 
   return (
     <div style={{ background: "#f5f5f5", minHeight: "100vh" }}>
-      <div style={{ background: "white", borderBottom: "1px solid #e0e0e0", position: "sticky", top: 0, zIndex: 40 }}>
+      <div style={{ background: "white", borderBottom: "1px solid #e0e0e0", position: "sticky", top: "70px", zIndex: 40 }}>
         <div style={{ padding: "0 24px", display: "flex", gap: "24px", maxWidth: "1400px", margin: "0 auto" }}>
           {[
             { id: "overview", label: "📊 Impact" },
