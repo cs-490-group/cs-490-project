@@ -65,18 +65,17 @@ async def get_performance_prediction(
         
         # Get user's historical data
         user_applications = await db_client[JOBS].find({"uuid": user_id}).to_list(None)
-        user_interviews = await db_client[INFORMATIONAL_INTERVIEWS].find({"uuid": user_id}).to_list(None)
         user_salaries = await db_client[SALARY].find({"uuid": user_id}).to_list(None)
         
-        # Generate predictions
+        # Generate predictions (job interview data comes from JOBS collection, not informational interviews)
         predictions = {
-            "interview_success": predict_interview_success(user_interviews, user_applications),
-            "job_search_timeline": predict_job_search_timeline(user_applications, user_interviews),
-            "salary_negotiation": predict_salary_negotiation_outcomes(user_salaries, user_interviews),
-            "optimal_timing": predict_optimal_career_timing(user_applications, user_interviews),
-            "scenario_planning": generate_scenario_planning(user_applications, user_interviews, user_salaries),
-            "improvement_recommendations": generate_improvement_recommendations(user_applications, user_interviews),
-            "prediction_accuracy": calculate_prediction_accuracy(user_applications, user_interviews)
+            "interview_success": predict_interview_success(None, user_applications),
+            "job_search_timeline": predict_job_search_timeline(user_applications, None),
+            "salary_negotiation": predict_salary_negotiation_outcomes(user_salaries, None),
+            "optimal_timing": predict_optimal_career_timing(user_applications, None),
+            "scenario_planning": generate_scenario_planning(user_applications, None, user_salaries),
+            "improvement_recommendations": generate_improvement_recommendations(user_applications, None),
+            "prediction_accuracy": calculate_prediction_accuracy(user_applications, None)
         }
         
         return {
@@ -335,26 +334,39 @@ def generate_differentiation_strategies(user_skills, peer_skills):
 
 def predict_interview_success(user_interviews, user_applications):
     """Predict interview success probability based on preparation and historical performance"""
-    if not user_interviews:
+    if not user_applications:
         return {
             "success_probability": 0.5,  # Default baseline
             "confidence_interval": [0.3, 0.7],
             "factors": ["insufficient_data"],
-            "recommendations": ["Complete more interviews to improve prediction accuracy"]
+            "recommendations": ["Complete more job applications to improve prediction accuracy"]
         }
     
-    # Calculate historical success rate
-    successful_interviews = len([interview for interview in user_interviews if interview.get("outcome") in ["offer", "passed"]])
-    success_rate = successful_interviews / len(user_interviews)
+    # Calculate interview success rate based on jobs that reached Interview or Offer status
+    jobs_with_interviews = len([app for app in user_applications if app.get("status") in ["Interview", "Offer"]])
+    successful_interviews = len([app for app in user_applications if app.get("status") == "Offer"])
+    
+    # Interview success rate = offers / jobs that got interviews
+    success_rate = successful_interviews / jobs_with_interviews if jobs_with_interviews > 0 else 0
     
     # Calculate confidence based on sample size
-    confidence = min(0.95, len(user_interviews) / 20)  # More confidence with more data
+    confidence = min(0.95, jobs_with_interviews / 20)  # More confidence with more data
+    
+    # If no interview data yet, use application-to-interview rate as fallback
+    if jobs_with_interviews == 0:
+        applied_jobs = len([app for app in user_applications if app.get("status") in ["Applied", "Screening", "Interview", "Offer", "Rejected"]])
+        success_rate = 0.5  # Default baseline when no interview data
+        factors = ["no_interview_data"]
+        recommendations = ["Apply to more jobs to get interview experience"]
+    else:
+        factors = analyze_success_factors_from_jobs(user_applications)
+        recommendations = generate_interview_recommendations_from_jobs(user_applications)
     
     return {
         "success_probability": success_rate,
         "confidence_interval": [max(0, success_rate - (1 - confidence)), min(1, success_rate + (1 - confidence))],
-        "factors": analyze_success_factors(user_interviews),
-        "recommendations": generate_interview_recommendations(user_interviews)
+        "factors": factors,
+        "recommendations": recommendations
     }
 
 def predict_job_search_timeline(user_applications, user_interviews):
@@ -366,6 +378,9 @@ def predict_job_search_timeline(user_applications, user_interviews):
             "factors": ["no_historical_data"],
             "recommendations": ["Start applying to jobs to generate timeline predictions"]
         }
+    
+    # Extract job interview data from applications
+    job_interviews = [app for app in user_applications if app.get("status") in ["Interview", "Offer"]]
     
     # Calculate application rate and success patterns
     now = datetime.utcnow()
@@ -409,9 +424,13 @@ def predict_salary_negotiation_outcomes(user_salaries, user_interviews):
             "recommendations": ["Research market rates and prepare negotiation strategy"]
         }
     
+    # Note: user_interviews parameter not used since job interview data comes from applications
+    # This function focuses on salary history for negotiation predictions
+    
     # Analyze historical salary data
     salary_growth = calculate_salary_growth(user_salaries)
-    negotiation_success_rate = calculate_negotiation_success_rate(user_interviews)
+    # Use a default negotiation success rate since we're not using interview data here
+    negotiation_success_rate = 0.7  # Default baseline
     
     predicted_success = negotiation_success_rate * (1 + salary_growth / 100)
     
@@ -428,6 +447,9 @@ def predict_salary_negotiation_outcomes(user_salaries, user_interviews):
 
 def predict_optimal_career_timing(user_applications, user_interviews):
     """Predict optimal timing for career moves and job search activities"""
+    # Extract job interview data from applications
+    job_interviews = [app for app in user_applications if app.get("status") in ["Interview", "Offer"]] if user_applications else []
+    
     # Analyze seasonal patterns
     seasonal_data = analyze_seasonal_patterns(user_applications)
     
@@ -446,6 +468,8 @@ def predict_optimal_career_timing(user_applications, user_interviews):
 
 def generate_scenario_planning(user_applications, user_interviews, user_salaries):
     """Generate scenario planning for different job search strategies"""
+    # Extract job interview data from applications
+    job_interviews = [app for app in user_applications if app.get("status") in ["Interview", "Offer"]] if user_applications else []
     scenarios = {
         "aggressive_strategy": {
             "description": "High volume applications (15+/month)",
@@ -477,6 +501,9 @@ def generate_scenario_planning(user_applications, user_interviews, user_salaries
 
 def generate_improvement_recommendations(user_applications, user_interviews):
     """Provide recommendations for improving predicted outcomes"""
+    # Extract job interview data from applications
+    job_interviews = [app for app in user_applications if app.get("status") in ["Interview", "Offer"]] if user_applications else []
+    
     recommendations = []
     
     # Application improvements
@@ -502,8 +529,11 @@ def generate_improvement_recommendations(user_applications, user_interviews):
 
 def calculate_prediction_accuracy(user_applications, user_interviews):
     """Track prediction accuracy and model improvement over time"""
+    # Extract job interview data from applications
+    job_interviews = [app for app in user_applications if app.get("status") in ["Interview", "Offer"]] if user_applications else []
+    
     # Calculate accuracy based on actual data availability and success patterns
-    total_data_points = len(user_applications) + len(user_interviews)
+    total_data_points = len(user_applications) + len(job_interviews)
     
     # Base accuracy improves with more data points
     if total_data_points == 0:
@@ -669,11 +699,51 @@ def analyze_success_factors(interviews):
     
     return factors
 
+def analyze_success_factors_from_jobs(applications):
+    factors = []
+    
+    # Analyze job success patterns
+    jobs_with_interviews = len([app for app in applications if app.get("status") in ["Interview", "Offer"]])
+    successful_jobs = len([app for app in applications if app.get("status") == "Offer"])
+    
+    if jobs_with_interviews > 0:
+        factors.append("interview_experience")
+        if successful_jobs > 0:
+            factors.append("offer_success_pattern")
+    
+    # Check for consistent application activity
+    recent_applications = len([app for app in applications 
+                             if (datetime.utcnow() - parse_date_created(app)).days <= 30])
+    if recent_applications >= 5:
+        factors.append("consistent_application_activity")
+    
+    return factors
+
 def generate_interview_recommendations(interviews):
     recommendations = []
     
     if len(interviews) < 5:
         recommendations.append("Gain more interview experience to improve success rates")
+    
+    return recommendations
+
+def generate_interview_recommendations_from_jobs(applications):
+    recommendations = []
+    
+    jobs_with_interviews = len([app for app in applications if app.get("status") in ["Interview", "Offer"]])
+    successful_jobs = len([app for app in applications if app.get("status") == "Offer"])
+    
+    if jobs_with_interviews == 0:
+        recommendations.append("Apply to more jobs to get interview experience")
+    elif successful_jobs == 0:
+        recommendations.append("Focus on interview preparation and follow-up to convert interviews to offers")
+    elif jobs_with_interviews > 0:
+        success_rate = successful_jobs / jobs_with_interviews
+        if success_rate < 0.3:  # Less than 30% conversion rate
+            recommendations.append("Practice mock interviews and develop STAR method responses")
+            recommendations.append("Research companies more thoroughly before interviews")
+        elif success_rate < 0.5:  # Less than 50% conversion rate
+            recommendations.append("Improve interview follow-up and thank you notes")
     
     return recommendations
 
