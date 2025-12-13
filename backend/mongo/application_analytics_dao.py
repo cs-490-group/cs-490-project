@@ -430,10 +430,241 @@ class ApplicationAnalyticsDAO:
     async def delete_goal(self, goal_id: str) -> int:
         """Delete a goal"""
         from bson import ObjectId
-        
+
         result = await self.analytics_collection.delete_one(
             {"_id": ObjectId(goal_id)}
         )
         return result.deleted_count
+
+    # ============================================
+    # UC-121: PERSONAL RESPONSE TIME TRACKING
+    # ============================================
+
+    async def get_personal_response_metrics(self, user_uuid: str) -> Dict:
+        """
+        Calculate user's personal response time statistics (UC-121)
+        Returns: {average, median, fastest, slowest, by_company_size, by_industry}
+        """
+        cursor = self.jobs_collection.find({
+            "uuid": user_uuid,
+            "response_tracking.responded_at": {"$ne": None},
+            "archived": {"$ne": True}
+        })
+
+        response_times = []
+        by_industry = defaultdict(list)
+        by_company_size = defaultdict(list)
+        fastest = None
+        slowest = None
+
+        async for job in cursor:
+            tracking = job.get("response_tracking", {})
+            days = tracking.get("response_days")
+
+            if days is not None:
+                response_times.append(days)
+
+                # Track by industry
+                industry = job.get("industry", "Unknown")
+                by_industry[industry].append(days)
+
+                # Track by company size
+                company_data = job.get("company_data", {})
+                if isinstance(company_data, dict):
+                    size = company_data.get("size", "Unknown")
+                else:
+                    size = "Unknown"
+                by_company_size[size].append(days)
+
+                # Track fastest/slowest
+                job_info = {
+                    "job_id": str(job.get("_id")),
+                    "company": job.get("company") if isinstance(job.get("company"), str) else job.get("company", {}).get("name", "Unknown"),
+                    "title": job.get("title", "Unknown"),
+                    "days": days
+                }
+
+                if fastest is None or days < fastest["days"]:
+                    fastest = job_info
+                if slowest is None or days > slowest["days"]:
+                    slowest = job_info
+
+        # Calculate statistics
+        if not response_times:
+            return {
+                "average_response_days": 0,
+                "median_response_days": 0,
+                "fastest_response": None,
+                "slowest_response": None,
+                "by_company_size": {},
+                "by_industry": {},
+                "total_responded": 0,
+                "total_pending": await self.jobs_collection.count_documents({
+                    "uuid": user_uuid,
+                    "response_tracking.responded_at": None,
+                    "archived": {"$ne": True}
+                })
+            }
+
+        # Calculate median
+        sorted_times = sorted(response_times)
+        n = len(sorted_times)
+        if n % 2 == 0:
+            median = (sorted_times[n//2 - 1] + sorted_times[n//2]) / 2
+        else:
+            median = sorted_times[n//2]
+
+        # Calculate averages by group
+        industry_avgs = {
+            k: round(sum(v) / len(v), 1)
+            for k, v in by_industry.items()
+        }
+        size_avgs = {
+            k: round(sum(v) / len(v), 1)
+            for k, v in by_company_size.items()
+        }
+
+        # Count pending
+        pending_count = await self.jobs_collection.count_documents({
+            "uuid": user_uuid,
+            "response_tracking.responded_at": None,
+            "archived": {"$ne": True}
+        })
+
+        return {
+            "average_response_days": round(sum(response_times) / len(response_times), 1),
+            "median_response_days": round(median, 1),
+            "fastest_response": fastest,
+            "slowest_response": slowest,
+            "by_company_size": size_avgs,
+            "by_industry": industry_avgs,
+            "total_responded": len(response_times),
+            "total_pending": pending_count
+        }
+
+    async def get_pending_applications_with_days(self, user_uuid: str) -> List[Dict]:
+        """
+        Get all pending applications with days since submission (UC-121)
+        """
+        cursor = self.jobs_collection.find({
+            "uuid": user_uuid,
+            "response_tracking.responded_at": None,
+            "archived": {"$ne": True}
+        })
+
+        pending_apps = []
+        now = datetime.now(timezone.utc)
+
+        async for job in cursor:
+            tracking = job.get("response_tracking", {})
+            submitted_at = tracking.get("submitted_at")
+
+            if submitted_at:
+                # Ensure timezone-aware
+                if submitted_at.tzinfo is None:
+                    submitted_at = submitted_at.replace(tzinfo=timezone.utc)
+
+                days_since_submission = (now - submitted_at).days
+
+                job["_id"] = str(job["_id"])
+                job["days_since_submission"] = days_since_submission
+                pending_apps.append(job)
+
+        # Sort by days descending (oldest first)
+        pending_apps.sort(key=lambda x: x.get("days_since_submission", 0), reverse=True)
+
+        return pending_apps
+
+    async def get_overdue_applications(self, user_uuid: str) -> List[Dict]:
+        """
+        Get applications exceeding user's average response time (UC-121)
+        """
+        # Get user's average
+        metrics = await self.get_personal_response_metrics(user_uuid)
+        avg_days = metrics.get("average_response_days", 0)
+
+        if avg_days == 0:
+            # No average yet, return empty
+            return []
+
+        # Get pending apps
+        pending = await self.get_pending_applications_with_days(user_uuid)
+
+        # Filter overdue
+        overdue = []
+        for app in pending:
+            days_waiting = app.get("days_since_submission", 0)
+            if days_waiting > avg_days:
+                app["is_overdue"] = True
+                app["user_average_response_days"] = avg_days
+                # Suggest follow-up date (should have been submitted_at + avg_days)
+                tracking = app.get("response_tracking", {})
+                submitted_at = tracking.get("submitted_at")
+                if submitted_at:
+                    if submitted_at.tzinfo is None:
+                        submitted_at = submitted_at.replace(tzinfo=timezone.utc)
+                    suggested_date = submitted_at + timedelta(days=int(avg_days))
+                    app["suggested_followup_date"] = suggested_date.strftime("%Y-%m-%d")
+                overdue.append(app)
+
+        return overdue
+
+    async def get_response_time_trends(self, user_uuid: str, days: int = 90) -> Dict:
+        """
+        Calculate response time trends over time (UC-121)
+        """
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+        cursor = self.jobs_collection.find({
+            "uuid": user_uuid,
+            "response_tracking.responded_at": {"$ne": None, "$gte": cutoff_date},
+            "archived": {"$ne": True}
+        }).sort("response_tracking.responded_at", 1)
+
+        # Group by week
+        weekly_data = defaultdict(list)
+
+        async for job in cursor:
+            tracking = job.get("response_tracking", {})
+            responded_at = tracking.get("responded_at")
+            response_days = tracking.get("response_days")
+
+            if responded_at and response_days is not None:
+                if responded_at.tzinfo is None:
+                    responded_at = responded_at.replace(tzinfo=timezone.utc)
+
+                # Get week start (Monday)
+                week_start = responded_at - timedelta(days=responded_at.weekday())
+                week_key = week_start.strftime("%Y-%m-%d")
+                weekly_data[week_key].append(response_days)
+
+        # Calculate weekly averages
+        weekly_averages = []
+        for week, times in sorted(weekly_data.items()):
+            avg = sum(times) / len(times)
+            weekly_averages.append({
+                "week": week,
+                "average_days": round(avg, 1),
+                "count": len(times)
+            })
+
+        # Calculate trend direction
+        trend_direction = "stable"
+        if len(weekly_averages) >= 2:
+            recent_avg = sum([w["average_days"] for w in weekly_averages[-4:]]) / min(4, len(weekly_averages[-4:]))
+            older_avg = sum([w["average_days"] for w in weekly_averages[:4]]) / min(4, len(weekly_averages[:4]))
+
+            if recent_avg < older_avg * 0.9:
+                trend_direction = "improving"
+            elif recent_avg > older_avg * 1.1:
+                trend_direction = "slowing"
+
+        return {
+            "time_period_days": days,
+            "weekly_data": weekly_averages,
+            "trend_direction": trend_direction,
+            "total_responses": sum([w["count"] for w in weekly_averages])
+        }
+
 # Singleton instance
 application_analytics_dao = ApplicationAnalyticsDAO()
