@@ -20,7 +20,9 @@ from schema.ApplicationWorkflow import (
     BulkPackageCreate, BulkScheduleCreate, BulkScheduleCancel,
     ApplicationChecklist, ChecklistUpdate,
     StatusUpdate, DateRange, ApplicationGoal, GoalUpdate,
-    FollowUpReminder, ReminderUpdate
+    FollowUpReminder, ReminderUpdate,
+    QualityAnalysisRequest, PackageQualityAnalysis,
+    QualityScoreBreakdown, QualitySuggestion
 )
 
 workflow_router = APIRouter(prefix="/application-workflow", tags=["workflow"])
@@ -359,3 +361,284 @@ async def get_goals(uuid: str = Depends(authorize)):
     return await application_analytics_dao.get_user_goals(uuid)
 
 
+@workflow_router.post("/analyze-quality")
+async def analyze_package_quality(
+    request: QualityAnalysisRequest,
+    uuid: str = Depends(authorize)
+):
+    """
+    UC-122: AI-powered quality scoring for application packages
+    Uses Cohere as primary, OpenAI as fallback
+    """
+    import json
+    import os
+    from datetime import datetime
+    from bson import ObjectId
+    
+    try:
+        print(f"🔍 Analyzing package: {request.package_id}, job: {request.job_id}, user: {uuid}")
+        
+        # 1. Fetch package details
+        package = await application_workflow_dao.get_application_package(request.package_id)
+        print(f"📦 Package found: {package is not None}")
+        if package:
+            print(f"   Package name: {package.get('name')}, uuid: {package.get('uuid')}")
+        
+        if not package:
+            raise HTTPException(status_code=404, detail=f"Package not found with ID: {request.package_id}")
+        if package.get("uuid") != uuid:
+            raise HTTPException(status_code=403, detail="Not authorized to access this package")
+        
+        # 2. Fetch job details
+        job = await jobs_dao.get_job(request.job_id)
+        print(f"💼 Job found: {job is not None}")
+        if job:
+            print(f"   Job title: {job.get('title')}, uuid: {job.get('uuid')}")
+        
+        if not job:
+            raise HTTPException(status_code=404, detail=f"Job not found with ID: {request.job_id}")
+        if job.get("uuid") != uuid:
+            raise HTTPException(status_code=403, detail="Not authorized to access this job")
+        
+        # 3. Fetch resume content
+        resume_content = ""
+        if package.get("resume_id"):
+            print(f"📄 Fetching resume: {package.get('resume_id')}")
+            from mongo.resumes_dao import resumes_dao
+            try:
+                # resumes_dao.get_resume expects ObjectId or converts to ObjectId
+                resume = await resumes_dao.get_resume(package["resume_id"])
+                if resume:
+                    resume_content = format_resume_for_analysis(resume)
+                    print(f"   Resume loaded: {len(resume_content)} chars")
+                else:
+                    print(f"   Resume not found")
+            except Exception as e:
+                print(f"   Resume fetch error: {e}")
+        
+        # 4. Fetch cover letter content
+        cover_letter_content = ""
+        if package.get("cover_letter_id"):
+            print(f"✉️ Fetching cover letter: {package.get('cover_letter_id')}")
+            from mongo.cover_letters_dao import cover_letters_dao
+            try:
+                # cover_letters_dao.get_cover_letter expects (letter_id, uuid)
+                cover_letter = await cover_letters_dao.get_cover_letter(
+                    package["cover_letter_id"], 
+                    uuid
+                )
+                if cover_letter:
+                    cover_letter_content = cover_letter.get("content", "")
+                    print(f"   Cover letter loaded: {len(cover_letter_content)} chars")
+                else:
+                    print(f"   Cover letter not found")
+            except Exception as e:
+                print(f"   Cover letter fetch error: {e}")
+        
+        # 5. Build job description
+        company_name = "Unknown Company"
+        
+        # Try to get company from company_data first
+        if job.get("company_data"):
+            company_data = job["company_data"]
+            if isinstance(company_data, dict):
+                company_name = company_data.get("name") or company_data.get("industry") or company_data.get("location") or company_name
+        
+        # If still Unknown, fall back to job.company
+        if company_name == "Unknown Company":
+            company = job.get("company")
+            if company:
+                if isinstance(company, dict):
+                    company_name = company.get("name", "Unknown Company")
+                else:
+                    company_name = str(company)
+        
+        job_description = f"""
+Title: {job.get('title', 'N/A')}
+Company: {company_name}
+Location: {job.get('location', 'N/A')}
+Description: {job.get('description', 'N/A')}
+        """.strip()
+        
+        print(f"✅ All data fetched successfully. Starting AI analysis...")
+        
+        # 6. Create analysis prompt
+        analysis_prompt = f"""Analyze this job application package and provide a detailed quality score.
+
+JOB POSTING:
+{job_description}
+
+RESUME:
+{resume_content if resume_content else "No resume attached"}
+
+COVER LETTER:
+{cover_letter_content if cover_letter_content else "No cover letter attached"}
+
+Please analyze and provide:
+1. Overall quality score (0-100)
+2. Score breakdown for: resume alignment, cover letter quality, keyword match, formatting
+3. Missing keywords from job description (max 5)
+4. Formatting issues (max 3)
+5. Prioritized improvement suggestions (max 4, with high/medium/low priority)
+6. Whether this meets a 70/100 threshold for submission
+
+Respond ONLY with valid JSON matching this exact structure (no markdown, no extra text):
+{{
+  "overallScore": 85,
+  "breakdown": {{
+    "resumeAlignment": 80,
+    "coverLetterQuality": 90,
+    "keywordMatch": 75,
+    "formatting": 95
+  }},
+  "missingKeywords": ["Python", "AWS", "Docker"],
+  "formattingIssues": ["Resume exceeds 2 pages", "Inconsistent date formatting"],
+  "suggestions": [
+    {{
+      "priority": "high",
+      "category": "Keywords",
+      "issue": "Missing critical technical skills from job posting",
+      "action": "Add Python, AWS, and Docker to your skills section with specific project examples"
+    }},
+    {{
+      "priority": "medium",
+      "category": "Experience",
+      "issue": "Limited quantifiable achievements in recent roles",
+      "action": "Add metrics to your last 2-3 positions (e.g., 'improved efficiency by 30%')"
+    }}
+  ],
+  "canSubmit": true,
+  "minimumThreshold": 70
+}}"""
+
+        # 7. Call AI API (Cohere primary, OpenAI fallback)
+        analysis_data = None
+        
+        try:
+            # Try Cohere first
+            import cohere
+            cohere_client = cohere.Client(api_key=os.getenv("COHERE_API_KEY"))
+            
+            print("🤖 Calling Cohere API...")
+            cohere_response = cohere_client.chat(
+                model="command-r-plus-08-2024",  # Updated model name
+                message=analysis_prompt,
+                temperature=0.3,
+                max_tokens=4000
+            )
+            
+            response_text = cohere_response.text
+            response_text = response_text.replace("```json", "").replace("```", "").strip()
+            analysis_data = json.loads(response_text)
+            print("✓ Quality analysis completed with Cohere")
+            
+        except Exception as cohere_error:
+            print(f"⚠️ Cohere failed: {str(cohere_error)}, falling back to OpenAI...")
+            
+            try:
+                # Fallback to OpenAI
+                import openai
+                openai.api_key = os.getenv("OPENAI_API_KEY")
+                
+                print("🤖 Calling OpenAI API...")
+                openai_response = openai.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are an expert resume and job application analyst. Respond only with valid JSON."},
+                        {"role": "user", "content": analysis_prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=4000
+                )
+                
+                response_text = openai_response.choices[0].message.content
+                response_text = response_text.replace("```json", "").replace("```", "").strip()
+                analysis_data = json.loads(response_text)
+                print("✓ Quality analysis completed with OpenAI (fallback)")
+                
+            except Exception as openai_error:
+                print(f"❌ OpenAI also failed: {str(openai_error)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Both Cohere and OpenAI failed. Cohere: {str(cohere_error)}, OpenAI: {str(openai_error)}"
+                )
+        
+        if not analysis_data:
+            raise HTTPException(status_code=500, detail="Failed to get analysis from AI providers")
+        
+        # 8. Get user's average score for comparison
+        user_avg_score = await application_workflow_dao.get_user_average_quality_score(uuid)
+        comparison = analysis_data["overallScore"] - user_avg_score
+        print(f"📊 Score: {analysis_data['overallScore']}, User avg: {user_avg_score}, Diff: {comparison}")
+        
+        # 9. Get score history for this package
+        score_history = await application_workflow_dao.get_package_score_history(request.package_id)
+        
+        # 10. Save this analysis result
+        await application_workflow_dao.save_quality_analysis(
+            package_id=request.package_id,
+            job_id=request.job_id,
+            score=analysis_data["overallScore"],
+            analysis_data=analysis_data,
+            user_id=uuid
+        )
+        
+        # 11. Update package with last score
+        await application_workflow_dao.update_package(
+            request.package_id,
+            {"lastScore": analysis_data["overallScore"]}
+        )
+        
+        print("✅ Analysis complete and saved!")
+        
+        return {
+            **analysis_data,
+            "comparisonToAverage": comparison,
+            "scoreHistory": score_history
+        }
+        
+    except HTTPException:
+        raise
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON Parse Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI analysis: {str(e)}")
+    except Exception as e:
+        print(f"❌ Analysis error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+def format_resume_for_analysis(resume: dict) -> str:
+    """Format resume data into readable text for AI analysis"""
+    parts = []
+    
+    # Contact info
+    if resume.get("contact"):
+        contact = resume["contact"]
+        parts.append(f"Name: {contact.get('name', 'N/A')}")
+        parts.append(f"Email: {contact.get('email', 'N/A')}")
+    
+    # Summary
+    if resume.get("summary"):
+        parts.append(f"\nSUMMARY:\n{resume['summary']}")
+    
+    # Experience
+    if resume.get("experience"):
+        parts.append("\nEXPERIENCE:")
+        for exp in resume["experience"]:
+            parts.append(f"\n{exp.get('title', 'Position')} at {exp.get('company', 'Company')}")
+            if exp.get('description'):
+                parts.append(f"  {exp['description']}")
+    
+    # Skills
+    if resume.get("skills"):
+        skills_list = []
+        for skill in resume["skills"]:
+            if isinstance(skill, dict):
+                skills_list.append(skill.get("name", ""))
+            else:
+                skills_list.append(str(skill))
+        parts.append(f"\nSKILLS: {', '.join(filter(None, skills_list))}")
+    
+    return "\n".join(parts)

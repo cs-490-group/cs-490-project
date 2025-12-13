@@ -264,37 +264,36 @@ export default function WorkflowAutomation() {
 
       {/* Tab Content */}
       {activeTab === "packages" && (
-        <PackagesTab
-          {...{
-            packages,
-            resumes,
-            coverLetters,
-            jobs,
-            checklist,
-            selectedJobIds,
-            pkgName,
-            pkgDescription,
-            pkgResume,
-            pkgCoverLetter,
-            pkgPortfolioIds,
-            bulkPackageId,
-            editingPackageId,
-            setPkgName,
-            setPkgDescription,
-            setPkgResume,
-            setPkgCoverLetter,
-            setPkgPortfolioIds,
-            setBulkPackageId,
-            resetPackageForm,
-            startEditPackage,
-            handleSavePackage,
-            handleDeletePackage,
-            handleUsePackage,
-            bulkApply,
-            toggleJob
-          }}
-        />
-      )}
+  <PackagesTab
+    packages={packages}
+    resumes={resumes}
+    coverLetters={coverLetters}
+    jobs={jobs}
+    checklist={checklist}
+    selectedJobIds={selectedJobIds}
+    pkgName={pkgName}
+    pkgDescription={pkgDescription}
+    pkgResume={pkgResume}
+    pkgCoverLetter={pkgCoverLetter}
+    pkgPortfolioIds={pkgPortfolioIds}
+    bulkPackageId={bulkPackageId}
+    editingPackageId={editingPackageId}
+    setPkgName={setPkgName}
+    setPkgDescription={setPkgDescription}
+    setPkgResume={setPkgResume}
+    setPkgCoverLetter={setPkgCoverLetter}
+    setPkgPortfolioIds={setPkgPortfolioIds}
+    setBulkPackageId={setBulkPackageId}
+    resetPackageForm={resetPackageForm}
+    startEditPackage={startEditPackage}
+    handleSavePackage={handleSavePackage}
+    handleDeletePackage={handleDeletePackage}
+    handleUsePackage={handleUsePackage}
+    bulkApply={bulkApply}
+    toggleJob={toggleJob}
+    applicationWorkflowAPI={ApplicationWorkflowAPI}
+  />
+)}
 
       {activeTab === "schedules" && (
         <SchedulesTab

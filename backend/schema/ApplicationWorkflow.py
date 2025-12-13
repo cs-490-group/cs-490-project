@@ -204,3 +204,48 @@ class ReminderUpdate(BaseModel):
     message_template: Optional[str] = None
     auto_send: Optional[bool] = None
     completed: Optional[bool] = None
+
+# ============================================
+# QUALITY SCORING SCHEMAS (UC-122)
+# ============================================
+
+class QualityScoreBreakdown(BaseModel):
+    """Breakdown of quality scores by category"""
+    resumeAlignment: int  # 0-100
+    coverLetterQuality: int  # 0-100
+    keywordMatch: int  # 0-100
+    formatting: int  # 0-100
+
+
+class QualitySuggestion(BaseModel):
+    """Individual improvement suggestion"""
+    priority: str  # high, medium, low
+    category: str  # Keywords, Experience, Formatting, etc.
+    issue: str
+    action: str
+
+
+class ScoreHistoryEntry(BaseModel):
+    """Historical score entry"""
+    date: str  # ISO datetime
+    score: int
+    job_title: Optional[str] = None
+
+
+class PackageQualityAnalysis(BaseModel):
+    """Complete quality analysis response for UC-122"""
+    overallScore: int  # 0-100
+    breakdown: QualityScoreBreakdown
+    missingKeywords: List[str]
+    formattingIssues: List[str]
+    suggestions: List[QualitySuggestion]
+    comparisonToAverage: int  # Percentage difference from user's average
+    scoreHistory: Optional[List[ScoreHistoryEntry]] = []
+    canSubmit: bool  # Whether score meets minimum threshold
+    minimumThreshold: int = 70
+
+
+class QualityAnalysisRequest(BaseModel):
+    """Request schema for quality analysis"""
+    package_id: str
+    job_id: str

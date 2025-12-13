@@ -105,6 +105,14 @@ class ApplicationWorkflowAPI {
   getGoals() {
     return api.get("/application-workflow/goals");
   }
+
+  /* QUALITY SCORING (UC-122) */
+  analyzePackageQuality(packageId, jobId) {
+    return api.post("/application-workflow/analyze-quality", {
+      package_id: packageId,
+      job_id: jobId
+    });
+  }
 }
 
 export default new ApplicationWorkflowAPI();

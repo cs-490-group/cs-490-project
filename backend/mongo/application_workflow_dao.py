@@ -30,10 +30,30 @@ class ApplicationWorkflowDAO:
         return str(result.inserted_id)
     
     async def get_application_package(self, package_id: str) -> Optional[dict]:
-        """Get a specific application package"""
+        """Get a specific application package - checks _id, uuid, and ObjectId"""
+        from bson import ObjectId
+        
+        # Try multiple ways to find the package
+        doc = None
+        
+        # 1. Try as string _id
         doc = await self.packages_collection.find_one({"_id": package_id})
+        
+        # 2. If not found, try as uuid
+        if not doc:
+            doc = await self.packages_collection.find_one({"uuid": package_id})
+        
+        # 3. If still not found, try as ObjectId
+        if not doc:
+            try:
+                doc = await self.packages_collection.find_one({"_id": ObjectId(package_id)})
+            except:
+                pass
+        
         if doc:
+            # Ensure _id is a string for JSON serialization
             doc["_id"] = str(doc["_id"])
+        
         return doc
     
     async def get_user_packages(self, user_uuid: str) -> List[dict]:
@@ -350,6 +370,91 @@ class ApplicationWorkflowDAO:
             {"$set": update_data}
         )
         return result.modified_count
+
+    # Replace the three quality scoring methods in ApplicationWorkflowDAO class
+
+    # ============================================
+    # QUALITY SCORING (UC-122)
+    # ============================================
+    
+    async def save_quality_analysis(
+        self,
+        package_id: str,
+        job_id: str,
+        score: int,
+        analysis_data: dict,
+        user_id: str
+    ) -> str:
+        """Save a quality analysis result"""
+        from datetime import datetime
+        from bson import ObjectId
+        from mongo.dao_setup import db_client
+        
+        # Access collection directly
+        quality_col = db_client["quality_analyses"]
+        
+        doc = {
+            "_id": str(ObjectId()),
+            "package_id": package_id,
+            "job_id": job_id,
+            "user_id": user_id,
+            "score": score,
+            "analysis_data": analysis_data,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        
+        result = await quality_col.insert_one(doc)
+        return str(result.inserted_id)
+
+    async def get_user_average_quality_score(self, user_id: str) -> float:
+        """Calculate user's average quality score across all analyses"""
+        from mongo.dao_setup import db_client
+        
+        pipeline = [
+            {"$match": {"user_id": user_id}},
+            {"$group": {
+                "_id": None,
+                "avgScore": {"$avg": "$score"}
+            }}
+        ]
+        
+        # Get collection and properly await aggregate
+        quality_col = db_client["quality_analyses"]
+        cursor = await quality_col.aggregate(pipeline)
+        
+        result = []
+        async for doc in cursor:
+            result.append(doc)
+        
+        if result and result[0].get("avgScore"):
+            return round(result[0]["avgScore"], 1)
+        return 75.0  # Default average if no history
+
+    async def get_package_score_history(self, package_id: str) -> list:
+        """Get score history for a specific package"""
+        from mongo.dao_setup import db_client
+        
+        # Access collection directly
+        quality_col = db_client["quality_analyses"]
+        
+        cursor = quality_col.find(
+            {"package_id": package_id}
+        ).sort("created_at", -1).limit(10)
+        
+        # Proper async iteration
+        analyses = []
+        async for doc in cursor:
+            analyses.append(doc)
+        
+        history = []
+        for analysis in analyses:
+            history.append({
+                "date": analysis.get("created_at"),
+                "score": analysis.get("score"),
+                "job_title": analysis.get("analysis_data", {}).get("jobTitle")
+            })
+        
+        return history
 
 # Singleton instance
 application_workflow_dao = ApplicationWorkflowDAO()
