@@ -105,6 +105,27 @@ class ApplicationWorkflowAPI {
   getGoals() {
     return api.get("/application-workflow/goals");
   }
+
+  /* UC-121: PERSONAL RESPONSE TIME TRACKING */
+  getResponseMetrics() {
+    return api.get("/application-workflow/analytics/response-metrics");
+  }
+
+  getPendingApplications() {
+    return api.get("/application-workflow/analytics/pending-applications");
+  }
+
+  getResponseTrends(days = 90) {
+    return api.get("/application-workflow/analytics/response-trends", {
+      params: { days }
+    });
+  }
+
+  setManualResponseDate(jobId, responseDate) {
+    return api.put(`/application-workflow/jobs/${jobId}/response-date`, {
+      response_date: responseDate
+    });
+  }
 }
 
 export default new ApplicationWorkflowAPI();

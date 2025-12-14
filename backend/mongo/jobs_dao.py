@@ -46,7 +46,8 @@ class JobsDAO:
                     "submitted": True,
                     "submitted_at": now,
                     "status": "SUBMITTED",
-                    "date_updated": now
+                    "date_updated": now,
+                    "response_tracking.submitted_at": now  # UC-121: Track submission time
                 }
             }
         )

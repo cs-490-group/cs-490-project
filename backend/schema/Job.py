@@ -28,6 +28,7 @@ class Job(BaseModel):
     salary: Optional[str] = None
     url: Optional[str] = None
     deadline: Optional[str] = None
+    date_applied: Optional[str] = None  # UC-121: When user actually applied
     industry: Optional[str] = None
     job_type: Optional[str] = None
     description: Optional[str] = None
@@ -45,6 +46,13 @@ class Job(BaseModel):
     materials_history: Optional[List[Union[dict, MaterialsHistoryEntry]]] = None
     offers: Optional[List[str]] = []  # Array of offer IDs (UC-083 salary negotiation)
     salary_negotiation: Optional[dict] = None  # Salary research & negotiation prep for this job
+    response_tracking: Optional[dict] = None  # UC-121: Personal response time tracking
+    # Structure: {
+    #   "submitted_at": datetime,
+    #   "responded_at": datetime | null,
+    #   "response_days": int | null,
+    #   "manually_entered": bool
+    # }
 
 class UrlBody(BaseModel):
     url: str
