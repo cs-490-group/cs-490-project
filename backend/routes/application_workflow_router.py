@@ -23,6 +23,9 @@ from schema.ApplicationWorkflow import (
     FollowUpReminder, ReminderUpdate
 )
 
+from services.scheduling_service import scheduling_service
+from datetime import datetime, timezone
+
 workflow_router = APIRouter(prefix="/application-workflow", tags=["workflow"])
 
 # ================================================================
@@ -358,4 +361,486 @@ async def analytics_recommendations(uuid: str = Depends(authorize)):
 async def get_goals(uuid: str = Depends(authorize)):
     return await application_analytics_dao.get_user_goals(uuid)
 
+# ================================================================
+# SCHEDULING EMAIL NOTIFICATIONS (UC-124)
+# ================================================================
 
+@workflow_router.post("/schedules/{schedule_id}/send-reminder")
+async def send_schedule_reminder_email(
+    schedule_id: str,
+    recipient_email: str = Body(..., embed=True),
+    uuid: str = Depends(authorize)
+):
+    """Send reminder email for an upcoming scheduled application"""
+    try:
+        # Get schedule details
+        schedule = await application_workflow_dao.get_schedule_by_id(schedule_id)
+        if not schedule:
+            raise HTTPException(404, "Schedule not found")
+        
+        if schedule.get("uuid") != uuid:
+            raise HTTPException(403, "Not authorized")
+        
+        # Get job details
+        job = await jobs_dao.get_job(schedule["job_id"])
+        if not job:
+            raise HTTPException(404, "Job not found")
+        
+        # Get package details
+        package = await application_workflow_dao.get_application_package(schedule["package_id"])
+        if not package:
+            raise HTTPException(404, "Package not found")
+        
+        # Extract company name
+        company_name = job.get("company")
+        if isinstance(company_name, dict):
+            company_name = company_name.get("name", "Unknown Company")
+        
+        # Calculate hours until scheduled time
+        scheduled_time = schedule.get("scheduled_time") or schedule.get("run_at")
+        try:
+            scheduled_dt = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
+            now = datetime.now(timezone.utc)
+            hours_until = int((scheduled_dt - now).total_seconds() / 3600)
+        except:
+            hours_until = 0
+        
+        # Send reminder email
+        result = scheduling_service.send_scheduled_submission_reminder(
+            recipient_email=recipient_email,
+            job_title=job.get("title", "Position"),
+            company=company_name,
+            scheduled_time=scheduled_time,
+            package_name=package.get("name", "Package"),
+            hours_until=hours_until
+        )
+        
+        return {
+            "detail": "Reminder email sent successfully",
+            "sent_to": recipient_email,
+            "sent_at": result["sent_at"]
+        }
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(500, f"Email configuration error: {str(e)}")
+    except Exception as e:
+        print(f"Error sending schedule reminder: {e}")
+        raise HTTPException(500, f"Failed to send reminder: {str(e)}")
+
+
+@workflow_router.post("/schedules/send-deadline-reminder")
+async def send_job_deadline_reminder(
+    job_id: str = Body(...),
+    recipient_email: str = Body(...),
+    uuid: str = Depends(authorize)
+):
+    """Send deadline reminder email for a job"""
+    try:
+        # Get job details
+        job = await jobs_dao.get_job(job_id)
+        if not job:
+            raise HTTPException(404, "Job not found")
+        
+        if job.get("uuid") != uuid:
+            raise HTTPException(403, "Not authorized")
+        
+        # Check if job has deadline
+        deadline = job.get("deadline")
+        if not deadline:
+            raise HTTPException(400, "Job has no deadline set")
+        
+        # Extract company name
+        company_name = job.get("company")
+        if isinstance(company_name, dict):
+            company_name = company_name.get("name", "Unknown Company")
+        
+        # Calculate days until deadline
+        try:
+            deadline_dt = datetime.fromisoformat(deadline.replace('Z', '+00:00'))
+            now = datetime.now(timezone.utc)
+            days_until = (deadline_dt - now).days
+        except:
+            days_until = 0
+        
+        # Send deadline reminder
+        result = scheduling_service.send_deadline_reminder(
+            recipient_email=recipient_email,
+            job_title=job.get("title", "Position"),
+            company=company_name,
+            deadline=deadline,
+            days_until=days_until
+        )
+        
+        return {
+            "detail": "Deadline reminder sent successfully",
+            "sent_to": recipient_email,
+            "sent_at": result["sent_at"]
+        }
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(500, f"Email configuration error: {str(e)}")
+    except Exception as e:
+        print(f"Error sending deadline reminder: {e}")
+        raise HTTPException(500, f"Failed to send reminder: {str(e)}")
+
+
+@workflow_router.post("/schedules/{schedule_id}/notify-submission")
+async def notify_scheduled_submission(
+    schedule_id: str,
+    recipient_email: str = Body(..., embed=True),
+    uuid: str = Depends(authorize)
+):
+    """Send confirmation that scheduled application was submitted"""
+    try:
+        # Get schedule details
+        schedule = await application_workflow_dao.get_schedule_by_id(schedule_id)
+        if not schedule:
+            raise HTTPException(404, "Schedule not found")
+        
+        if schedule.get("uuid") != uuid:
+            raise HTTPException(403, "Not authorized")
+        
+        # Verify schedule was completed
+        if schedule.get("status") != "completed":
+            raise HTTPException(400, "Schedule has not been completed yet")
+        
+        # Get job details
+        job = await jobs_dao.get_job(schedule["job_id"])
+        if not job:
+            raise HTTPException(404, "Job not found")
+        
+        # Get package details
+        package = await application_workflow_dao.get_application_package(schedule["package_id"])
+        if not package:
+            raise HTTPException(404, "Package not found")
+        
+        # Extract company name
+        company_name = job.get("company")
+        if isinstance(company_name, dict):
+            company_name = company_name.get("name", "Unknown Company")
+        
+        # Send submission success notification
+        result = scheduling_service.send_submission_success_notification(
+            recipient_email=recipient_email,
+            job_title=job.get("title", "Position"),
+            company=company_name,
+            package_name=package.get("name", "Package"),
+            submission_time=schedule.get("completed_at", datetime.now(timezone.utc).isoformat())
+        )
+        
+        return {
+            "detail": "Submission notification sent successfully",
+            "sent_to": recipient_email,
+            "sent_at": result["sent_at"]
+        }
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(500, f"Email configuration error: {str(e)}")
+    except Exception as e:
+        print(f"Error sending submission notification: {e}")
+        raise HTTPException(500, f"Failed to send notification: {str(e)}")
+
+
+# ================================================================
+# SCHEDULING ANALYTICS & BEST PRACTICES (UC-124)
+# ================================================================
+
+@workflow_router.get("/analytics/submission-timing")
+async def get_submission_timing_analytics(uuid: str = Depends(authorize)):
+    """Get analytics about application submission timing"""
+    try:
+        # Get all user's jobs
+        jobs = await jobs_dao.get_all_jobs(uuid)
+        
+        # Analyze submission patterns
+        day_of_week_stats = {}
+        hour_of_day_stats = {}
+        response_rates_by_day = {}
+        response_rates_by_hour = {}
+        
+        for job in jobs:
+            submitted_at = job.get("submitted_at")
+            if not submitted_at:
+                continue
+            
+            try:
+                dt = datetime.fromisoformat(submitted_at.replace('Z', '+00:00'))
+                day_name = dt.strftime("%A")
+                hour = dt.hour
+                
+                # Count submissions by day
+                day_of_week_stats[day_name] = day_of_week_stats.get(day_name, 0) + 1
+                
+                # Count submissions by hour
+                hour_of_day_stats[hour] = hour_of_day_stats.get(hour, 0) + 1
+                
+                # Track response rates
+                has_response = job.get("status") not in [None, "Applied", "Wishlist"]
+                
+                if day_name not in response_rates_by_day:
+                    response_rates_by_day[day_name] = {"total": 0, "responses": 0}
+                response_rates_by_day[day_name]["total"] += 1
+                if has_response:
+                    response_rates_by_day[day_name]["responses"] += 1
+                
+                if hour not in response_rates_by_hour:
+                    response_rates_by_hour[hour] = {"total": 0, "responses": 0}
+                response_rates_by_hour[hour]["total"] += 1
+                if has_response:
+                    response_rates_by_hour[hour]["responses"] += 1
+            except:
+                continue
+        
+        # Calculate response rate percentages
+        day_response_rates = {}
+        for day, stats in response_rates_by_day.items():
+            if stats["total"] > 0:
+                day_response_rates[day] = round((stats["responses"] / stats["total"]) * 100, 1)
+        
+        hour_response_rates = {}
+        for hour, stats in response_rates_by_hour.items():
+            if stats["total"] > 0:
+                hour_response_rates[hour] = round((stats["responses"] / stats["total"]) * 100, 1)
+        
+        # Best practices
+        best_practices = {
+            "optimal_days": [
+                {
+                    "day": "Tuesday",
+                    "reason": "Highest open rates - people are settled into the work week",
+                    "recommendation": "Best day for cold applications"
+                },
+                {
+                    "day": "Wednesday",
+                    "reason": "Second highest engagement, mid-week momentum",
+                    "recommendation": "Good for follow-ups"
+                }
+            ],
+            "optimal_hours": [
+                {
+                    "time": "10:00 AM - 11:00 AM",
+                    "reason": "People have settled in and are checking email",
+                    "recommendation": "Optimal time slot for most applications"
+                }
+            ]
+        }
+        
+        return {
+            "user_patterns": {
+                "submissions_by_day": day_of_week_stats,
+                "submissions_by_hour": hour_of_day_stats,
+                "response_rate_by_day": day_response_rates,
+                "response_rate_by_hour": hour_response_rates,
+                "total_submissions": len([j for j in jobs if j.get("submitted_at")])
+            },
+            "best_practices": best_practices,
+            "insights": generate_timing_insights(
+                day_of_week_stats,
+                day_response_rates,
+                hour_response_rates
+            )
+        }
+        
+    except Exception as e:
+        print(f"Error getting submission timing analytics: {e}")
+        raise HTTPException(500, "Failed to get analytics")
+
+
+def generate_timing_insights(
+    day_stats: dict,
+    day_response_rates: dict,
+    hour_response_rates: dict
+) -> list:
+    """Generate personalized insights based on user's submission patterns"""
+    insights = []
+    
+    # Check if user submits on suboptimal days
+    weekend_submissions = day_stats.get("Saturday", 0) + day_stats.get("Sunday", 0)
+    if weekend_submissions > 0:
+        insights.append({
+            "type": "warning",
+            "message": f"You've submitted {weekend_submissions} applications on weekends. Consider scheduling these for Tuesday or Wednesday instead for better engagement."
+        })
+    
+    # Check if user has a best performing day
+    if day_response_rates:
+        best_day = max(day_response_rates.items(), key=lambda x: x[1])
+        if best_day[1] > 30:
+            insights.append({
+                "type": "success",
+                "message": f"Your {best_day[0]} applications have a {best_day[1]}% response rate! Consider submitting more on this day."
+            })
+    
+    return insights
+
+
+    @workflow_router.get("/calendar-view")
+    async def get_calendar_view(
+        start_date: str = Query(...),
+        end_date: str = Query(...),
+        uuid: str = Depends(authorize)
+    ):
+        """Get calendar view of scheduled and completed applications"""
+        try:
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            
+            # Get scheduled applications
+            schedules = await application_workflow_dao.get_scheduled_applications(uuid)
+            
+            # Get all jobs
+            jobs = await jobs_dao.get_all_jobs(uuid)
+            
+            calendar_events = []
+            
+            # Add scheduled applications
+            for schedule in schedules:
+                scheduled_time = schedule.get("scheduled_time")
+                if not scheduled_time:
+                    continue
+                
+                try:
+                    dt = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
+                    if start_dt <= dt <= end_dt:
+                        job = await jobs_dao.get_job(schedule["job_id"])
+                        if job:
+                            company = job.get("company")
+                            if isinstance(company, dict):
+                                company = company.get("name", "Unknown")
+                            
+                            calendar_events.append({
+                                "id": str(schedule.get("_id")),
+                                "type": "scheduled",
+                                "title": f"📅 {job.get('title', 'Application')}",
+                                "company": company,
+                                "date": scheduled_time,
+                                "status": schedule.get("status", "scheduled"),
+                                "job_id": schedule["job_id"],
+                                "schedule_id": str(schedule.get("_id"))
+                            })
+                except:
+                    continue
+            
+            # Sort by date
+            calendar_events.sort(key=lambda x: x["date"])
+            
+            return {
+                "events": calendar_events,
+                "summary": {
+                    "total_events": len(calendar_events),
+                    "scheduled": len([e for e in calendar_events if e["type"] == "scheduled"]),
+                    "submitted": len([e for e in calendar_events if e["type"] == "submitted"]),
+                    "deadlines": len([e for e in calendar_events if e["type"] == "deadline"])
+                }
+            }
+            
+        except Exception as e:
+            print(f"Error getting calendar view: {e}")
+            raise HTTPException(500, "Failed to get calendar view")
+
+    @workflow_router.get("/scheduler/health")
+    async def scheduler_health_check():
+        """Check scheduler health"""
+        from services.background_scheduler_service import background_scheduler
+        
+        return {
+            "scheduler_running": background_scheduler.is_running,
+            "check_interval_seconds": background_scheduler.check_interval,
+            "current_time": datetime.now(timezone.utc).isoformat()
+        }
+
+    @workflow_router.get("/schedules/upcoming")
+    async def get_upcoming_schedules(
+        hours: int = 24,
+        uuid: str = Depends(authorize)
+    ):
+        """Get schedules due within X hours"""
+        now = datetime.now(timezone.utc)
+        future_time = now + timedelta(hours=hours)
+        
+        schedules = await application_workflow_dao.get_schedules_by_time_range(
+            start_time=now,
+            end_time=future_time
+        )
+        
+        # Filter by user and enrich
+        user_schedules = [s for s in schedules if s.get('uuid') == uuid]
+        
+        enriched = []
+        for schedule in user_schedules:
+            job = await jobs_dao.get_job(schedule['job_id'])
+            package = await application_workflow_dao.get_application_package(schedule['package_id'])
+            
+            enriched.append({
+                **schedule,
+                'job': job,
+                'package': package,
+                'hours_until': (
+                    datetime.fromisoformat(schedule['scheduled_time'].replace('Z', '+00:00')) - now
+                ).total_seconds() / 3600
+            })
+        
+        return {"schedules": enriched, "count": len(enriched)}
+
+@workflow_router.post("/schedules/{schedule_id}/mark-complete")
+async def mark_schedule_complete(
+    schedule_id: str,
+    notes: Optional[str] = Body(None, embed=True),
+    uuid: str = Depends(authorize)
+):
+    """
+    Manually mark a scheduled application as completed
+    (e.g., if user submitted it manually before scheduled time)
+    """
+    try:
+        # Get schedule details
+        schedule = await application_workflow_dao.get_schedule_by_id(schedule_id)
+        if not schedule:
+            raise HTTPException(404, "Schedule not found")
+        
+        if schedule.get("uuid") != uuid:
+            raise HTTPException(403, "Not authorized")
+        
+        # Check if already completed
+        if schedule.get("status") == "completed":
+            raise HTTPException(400, "Schedule already completed")
+        
+        # Mark schedule as completed
+        job_id = schedule["job_id"]
+        package_id = schedule["package_id"]
+        
+        # Update schedule status
+        await application_workflow_dao.update_schedule_status(
+            schedule_id,
+            status='completed',
+            notes=notes or "Marked complete manually by user"
+        )
+        
+        # Update the job status to submitted
+        await jobs_dao.update_job(job_id, {
+            'submitted': True,
+            'submitted_at': datetime.now(timezone.utc).isoformat(),
+            'status': 'SUBMITTED',
+            'application_package_id': package_id
+        })
+        
+        # Increment package usage counter
+        await application_workflow_dao.increment_package_usage(package_id)
+        
+        return {
+            "detail": "Schedule marked as completed",
+            "schedule_id": schedule_id,
+            "completed_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error marking schedule complete: {e}")
+        raise HTTPException(500, f"Failed to mark schedule complete: {str(e)}")
