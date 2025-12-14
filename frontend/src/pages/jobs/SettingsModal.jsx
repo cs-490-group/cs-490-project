@@ -1,4 +1,5 @@
 import React from "react";
+import GmailConnectionSettings from './GmailConnectionSettings';
 
 export default function SettingsModal({
   showSettings,
@@ -76,7 +77,10 @@ export default function SettingsModal({
             </div>
           )}
         </div>
-
+          <div style={{ marginTop: "20px" }}>
+  <h3>Email Integration</h3>
+  <GmailConnectionSettings />
+</div>
         <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
           <button
             onClick={() => setShowSettings(false)}
