@@ -353,6 +353,116 @@ async def analytics_benchmarks(uuid: str = Depends(authorize)):
 async def analytics_recommendations(uuid: str = Depends(authorize)):
     return await application_analytics_dao.generate_recommendations(uuid)
 
+
+# ================================================================
+# UC-121: PERSONAL RESPONSE TIME TRACKING
+# ================================================================
+
+@workflow_router.get("/analytics/response-metrics")
+async def get_personal_response_metrics(uuid: str = Depends(authorize)):
+    """Get personal response time statistics"""
+    return await application_analytics_dao.get_personal_response_metrics(uuid)
+
+
+@workflow_router.get("/analytics/pending-applications")
+async def get_pending_applications(uuid: str = Depends(authorize)):
+    """Get pending applications with overdue detection"""
+    pending = await application_analytics_dao.get_pending_applications_with_days(uuid)
+    overdue = await application_analytics_dao.get_overdue_applications(uuid)
+    return {"pending": pending, "overdue": overdue}
+
+
+@workflow_router.get("/analytics/response-trends")
+async def get_response_trends(
+    uuid: str = Depends(authorize),
+    days: int = Query(90, description="Number of days to look back")
+):
+    """Get response time trends"""
+    return await application_analytics_dao.get_response_time_trends(uuid, days)
+
+
+@workflow_router.put("/jobs/{job_id}/response-date")
+async def set_manual_response_date(
+    job_id: str,
+    response_date: str = Body(..., embed=True),
+    uuid: str = Depends(authorize)
+):
+    """Manually set response date for a job"""
+    from datetime import datetime, timezone
+    from bson import ObjectId
+
+    try:
+        # Get job
+        job = await jobs_dao.get_job(job_id)
+        if not job:
+            raise HTTPException(404, "Job not found")
+
+        # Verify ownership
+        if job.get("uuid") != uuid:
+            raise HTTPException(403, "Unauthorized")
+
+        # Parse response date
+        try:
+            responded_at = datetime.fromisoformat(response_date.replace('Z', '+00:00'))
+            if responded_at.tzinfo is None:
+                responded_at = responded_at.replace(tzinfo=timezone.utc)
+        except ValueError:
+            raise HTTPException(400, "Invalid date format. Use ISO format (YYYY-MM-DD)")
+
+        # Get submitted_at - check date_applied first, then response_tracking
+        submitted_at = None
+
+        # Priority 1: Use date_applied if provided
+        if job.get("date_applied"):
+            try:
+                submitted_at = datetime.fromisoformat(job["date_applied"].replace('Z', '+00:00'))
+                if submitted_at.tzinfo is None:
+                    submitted_at = submitted_at.replace(tzinfo=timezone.utc)
+            except Exception:
+                pass
+
+        # Priority 2: Use response_tracking.submitted_at
+        if not submitted_at:
+            response_tracking = job.get("response_tracking", {})
+            submitted_at = response_tracking.get("submitted_at")
+
+        if not submitted_at:
+            raise HTTPException(400, "No submission date found for this job")
+
+        # Ensure timezone-aware
+        if submitted_at.tzinfo is None:
+            submitted_at = submitted_at.replace(tzinfo=timezone.utc)
+
+        # Calculate response days
+        response_days = (responded_at - submitted_at).days
+
+        if response_days < 0:
+            raise HTTPException(400, f"Response date cannot be before submission date. Submitted: {submitted_at.date()}, Response: {responded_at.date()}")
+
+        # Update job
+        update_data = {
+            "response_tracking": {
+                "submitted_at": submitted_at,
+                "responded_at": responded_at,
+                "response_days": response_days,
+                "manually_entered": True
+            }
+        }
+
+        await jobs_dao.update_job(job_id, update_data)
+
+        return {
+            "success": True,
+            "response_days": response_days,
+            "message": f"Response date set to {response_date} ({response_days} days after submission)"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to set response date: {str(e)}")
+
+
 # ================================================================
 # GOALS
 # ================================================================
