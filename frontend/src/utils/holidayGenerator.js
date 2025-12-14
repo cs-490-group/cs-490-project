@@ -166,11 +166,6 @@ export function generateHolidaysForYear(year) {
     type: 'business'
   });
   
-  // Easter-related (if needed for future features)
-  // const easter = calculateEaster(year);
-  // const goodFriday = new Date(easter);
-  // goodFriday.setDate(easter.getDate() - 2);
-  
   return holidays.sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -231,12 +226,13 @@ export function isNearHoliday(date, daysThreshold = 2) {
 }
 
 /**
- * Check for scheduling warnings
+ * Check for scheduling warnings (day, time, and date-based)
  */
 export function checkSchedulingWarnings(dateTimeString) {
   const warnings = [];
   const date = new Date(dateTimeString);
   const dayOfWeek = date.getDay();
+  const hour = date.getHours();
   
   // Check for exact holiday match
   const holiday = isHoliday(date);
@@ -262,7 +258,62 @@ export function checkSchedulingWarnings(dateTimeString) {
     });
   }
   
-  // Check proximity to holidays
+  // NEW: Check for Monday morning (before 11 AM)
+  if (dayOfWeek === 1 && hour < 11) {
+    warnings.push({
+      type: 'warning',
+      icon: '📧',
+      message: 'Monday morning - inboxes are overloaded.',
+      suggestion: 'People are catching up from the weekend. Consider Tuesday-Thursday 10-11 AM instead.',
+      severity: 'medium'
+    });
+  }
+  
+  // NEW: Check for Friday afternoon (after 2 PM)
+  if (dayOfWeek === 5 && hour >= 14) {
+    warnings.push({
+      type: 'warning',
+      icon: '🏖️',
+      message: 'Friday afternoon - people are winding down for the weekend.',
+      suggestion: 'Low engagement time. Consider Tuesday-Wednesday morning instead.',
+      severity: 'medium'
+    });
+  }
+  
+  // NEW: Check for very early morning (before 6 AM)
+  if (hour < 6) {
+    warnings.push({
+      type: 'warning',
+      icon: '🌙',
+      message: `${hour}:00 AM is very early - most people aren't checking email yet.`,
+      suggestion: 'Schedule for 10-11 AM when people are settled into their workday.',
+      severity: 'medium'
+    });
+  }
+  
+  // NEW: Check for late evening (after 6 PM)
+  if (hour >= 18) {
+    warnings.push({
+      type: 'warning',
+      icon: '🌆',
+      message: `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'} is after business hours.`,
+      suggestion: 'People check work email less after 6 PM. Schedule for next business day 10-11 AM.',
+      severity: 'medium'
+    });
+  }
+  
+  // NEW: Highlight optimal time (Tuesday-Thursday, 10-11 AM)
+  if ((dayOfWeek >= 2 && dayOfWeek <= 4) && (hour >= 10 && hour < 11)) {
+    warnings.push({
+      type: 'success',
+      icon: '✅',
+      message: 'Perfect timing! This is an optimal submission time.',
+      suggestion: 'Tuesday-Thursday 10-11 AM has the highest response rates.',
+      severity: 'low'
+    });
+  }
+  
+  // Check proximity to holidays (within 2 days)
   const nearbyHolidays = isNearHoliday(date);
   nearbyHolidays.forEach(holiday => {
     warnings.push({
