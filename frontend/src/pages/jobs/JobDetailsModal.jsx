@@ -6,7 +6,7 @@ import CoverLetterAPI from "../../api/coverLetters";
 import api from "../../api/base";
 import { SingleJobLocation } from "./JobLocationMap";
 import ProfilesAPI from "../../api/profiles";
-import LinkedEmailsTab from "./email/LinkedEmailsTab";
+import LinkedEmailsTab from "./LinkedEmailsTab";
 
 export default function JobDetailsModal({
   selectedJob,
