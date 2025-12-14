@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useNavigate } from "react-router-dom";
+import ApplicationWorkflowAPI from "../../api/applicationWorkflow";
 
 const getCompanyName = (company) => {
   if (company === null || company === undefined) return "";
@@ -198,6 +199,57 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
           </div>
         )}
 
+        {/* UC-121: Response Time Tracking */}
+        {job.response_tracking?.responded_at && (
+          <div style={{
+            fontSize: "11px",
+            marginTop: "6px",
+            padding: "6px",
+            background: "#e8f5e9",
+            borderRadius: "4px",
+            border: "1px solid #4caf50"
+          }}>
+            <div style={{ color: "#2e7d32", fontWeight: "600" }}>
+              ✓ Company responded in {job.response_tracking.response_days} days
+            </div>
+            {job.response_tracking.manually_entered && (
+              <div style={{ color: "#666", fontSize: "10px", marginTop: "2px" }}>
+                (manually entered)
+              </div>
+            )}
+          </div>
+        )}
+
+        {job.response_tracking && !job.response_tracking.responded_at && (
+          <div style={{
+            fontSize: "11px",
+            marginTop: "6px",
+            padding: "6px",
+            background: job.is_overdue ? "#fff3cd" : "#f5f5f5",
+            borderRadius: "4px",
+            border: job.is_overdue ? "1px solid #ff9800" : "1px solid #ddd"
+          }}>
+            <div style={{ color: "#666" }}>
+              📅 Waiting {job.days_since_submission || 0} days for response
+            </div>
+            {job.user_average_response_days && (
+              <div style={{ color: "#999", fontSize: "10px", marginTop: "2px" }}>
+                Your average: {job.user_average_response_days} days
+              </div>
+            )}
+            {job.is_overdue && (
+              <div style={{ color: "#f57c00", fontWeight: "bold", marginTop: "4px" }}>
+                ⚠️ Exceeds your average
+              </div>
+            )}
+            {job.suggested_followup_date && (
+              <div style={{ color: "#ff9800", marginTop: "2px" }}>
+                🗓 Suggested follow-up: {formatDate(job.suggested_followup_date)}
+              </div>
+            )}
+          </div>
+        )}
+
         {expanded && (
           <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #eee", color: "#000" }}>
             {job.salary && <p style={{ margin: "4px 0", fontSize: "13px" }}><strong>Salary:</strong> {job.salary}</p>}
@@ -337,12 +389,12 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
                 🗑 Delete
               </button>
             </div>
-            <button 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
+            <button
+                onClick={(e) => {
+                  e.stopPropagation();
                   // Navigate to referral page with job information
-                  navigate('/network/referrals', { 
-                    state: { 
+                  navigate('/network/referrals', {
+                    state: {
                       prefillJob: {
                         job_id: job.id || job._id,
                         company: job.company,
@@ -350,22 +402,64 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
                         industry: job.industry,
                         location: job.location
                       }
-                    } 
+                    }
                   });
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
-                style={{ 
+                style={{
                   ...buttonStyle,
                   padding: "6px 12px",
                   fontSize: "12px",
-                  background: "#9c27b0", 
+                  background: "#9c27b0",
                   color: "white",
                   marginTop:"0.5rem"
                 }}
               >
                 🤝 Request Referral
               </button>
+
+              {/* UC-121: Manual Response Date Entry */}
+              {job.response_tracking && !job.response_tracking.responded_at && (
+                <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #eee" }}>
+                  <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "6px", fontWeight: "600" }}>
+                    📅 Set company response date:
+                  </label>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <input
+                      type="date"
+                      max={new Date().toISOString().split('T')[0]}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={async (e) => {
+                        e.stopPropagation();
+                        const date = e.target.value;
+                        if (date) {
+                          try {
+                            await ApplicationWorkflowAPI.setManualResponseDate(job.id, date);
+                            alert(`Response date set to ${date}. Page will refresh.`);
+                            window.location.reload();
+                          } catch (error) {
+                            alert(`Error setting response date: ${error.response?.data?.detail || error.message}`);
+                          }
+                        }
+                      }}
+                      style={{
+                        padding: "6px 8px",
+                        fontSize: "12px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        flexGrow: 1,
+                        cursor: "pointer"
+                      }}
+                    />
+                    <span style={{ fontSize: "10px", color: "#999" }}>
+                      (when they responded)
+                    </span>
+                  </div>
+                </div>
+              )}
           </div>
         )}
       </div>

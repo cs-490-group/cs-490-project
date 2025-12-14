@@ -371,8 +371,6 @@ class ApplicationWorkflowDAO:
         )
         return result.modified_count
 
-    # Replace the three quality scoring methods in ApplicationWorkflowDAO class
-
     # ============================================
     # QUALITY SCORING (UC-122)
     # ============================================
@@ -456,5 +454,129 @@ class ApplicationWorkflowDAO:
         
         return history
 
+    # ============================================
+    # BULK OPERATIONS (UC-124)
+    # ============================================
+    async def get_schedule_by_id(self, schedule_id: str) -> Optional[dict]:
+        """Get a single schedule by ID"""
+        try:
+            doc = await self.schedules_collection.find_one({"_id": schedule_id})
+            if doc:
+                doc["_id"] = str(doc["_id"])
+            return doc
+        except Exception as e:
+            print(f"Error getting schedule by ID: {e}")
+            return None
+    
+    async def get_all_schedules_for_user(self, user_uuid: str, include_completed: bool = False) -> List[dict]:
+        """Get all schedules for a user, optionally including completed/cancelled"""
+        query = {"uuid": user_uuid}
+        
+        if not include_completed:
+            query["status"] = {"$in": ["scheduled", "pending"]}
+        
+        cursor = self.schedules_collection.find(query).sort("scheduled_time", 1)
+        results = []
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            results.append(doc)
+        return results
+    
+    async def update_schedule(self, schedule_id: str, data: dict) -> int:
+        """Update schedule data"""
+        data["date_updated"] = datetime.now(timezone.utc)
+        result = await self.schedules_collection.update_one(
+            {"_id": schedule_id},
+            {"$set": data}
+        )
+        return result.matched_count
+    
+    async def mark_schedule_completed(self, schedule_id: str, job_id: str) -> int:
+        """Mark a schedule as completed after successful submission"""
+        update_data = {
+            "status": "completed",
+            "completed_at": datetime.now(timezone.utc),
+            "date_updated": datetime.now(timezone.utc),
+            "job_id": job_id
+        }
+        
+        result = await self.schedules_collection.update_one(
+            {"_id": schedule_id},
+            {"$set": update_data}
+        )
+        return result.matched_count
+    
+    async def increment_schedule_retry(self, schedule_id: str, error_message: str = None) -> int:
+        """Increment retry count for failed schedule"""
+        result = await self.schedules_collection.update_one(
+            {"_id": schedule_id},
+            {
+                "$inc": {"retry_count": 1},
+                "$set": {
+                    "last_error": error_message,
+                    "last_retry_at": datetime.now(timezone.utc),
+                    "date_updated": datetime.now(timezone.utc)
+                }
+            }
+        )
+        return result.matched_count
+    
+    async def get_upcoming_deadlines(self, user_uuid: str, days_ahead: int = 7) -> List[dict]:
+        """Get jobs with upcoming deadlines for reminder scheduling"""
+        from mongo.jobs_dao import jobs_dao
+        
+        now = datetime.now(timezone.utc)
+        deadline_threshold = now + timedelta(days=days_ahead)
+        
+        # Get all jobs with deadlines in the next N days that haven't been submitted
+        jobs = await jobs_dao.get_all_jobs(user_uuid)
+        
+        upcoming = []
+        for job in jobs:
+            if job.get("deadline") and not job.get("submitted"):
+                try:
+                    deadline_dt = datetime.fromisoformat(job["deadline"].replace('Z', '+00:00'))
+                    if now <= deadline_dt <= deadline_threshold:
+                        days_until = (deadline_dt - now).days
+                        job["days_until_deadline"] = days_until
+                        upcoming.append(job)
+                except:
+                    continue
+        
+        # Sort by deadline (soonest first)
+        upcoming.sort(key=lambda x: x.get("deadline", ""))
+        return upcoming
+
+    async def get_due_schedules(self, before_time: datetime):
+        """Get schedules due before specified time"""
+        schedules = await self.application_schedules.find({
+            'status': 'scheduled',
+            'scheduled_time': {'$lte': before_time.isoformat()}
+        }).to_list(length=None)
+        return schedules
+
+    async def get_schedules_by_time_range(self, start_time: datetime, end_time: datetime):
+        """Get schedules within time range"""
+        schedules = await self.application_schedules.find({
+            'status': 'scheduled',
+            'scheduled_time': {
+                '$gte': start_time.isoformat(),
+                '$lte': end_time.isoformat()
+            }
+        }).to_list(length=None)
+        return schedules
+
+    async def mark_reminder_sent(self, schedule_id: str):
+        """Mark that reminder email was sent"""
+        result = await self.application_schedules.update_one(
+            {'_id': ObjectId(schedule_id)},
+            {
+                '$set': {
+                    'reminder_sent': True,
+                    'reminder_sent_at': datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        return result.modified_count
 # Singleton instance
 application_workflow_dao = ApplicationWorkflowDAO()

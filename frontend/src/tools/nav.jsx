@@ -31,11 +31,11 @@ const Nav = () => {
     const shouldSkip = excludedPaths.some(prefix =>
       location.pathname.startsWith(prefix)
     );
-    
+
     if (hasValidated.current) {
       return;
     }
-    
+
     const validateSession = async () => {
       if (!token) {
         setIsAuthenticated(false);
