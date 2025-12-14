@@ -526,6 +526,8 @@ class ApplicationWorkflowDAO:
 
     async def get_user_average_quality_score(self, user_id: str) -> float:
         """Calculate user's average quality score across all analyses"""
+        quality_col = db_client["quality_analyses"]
+        
         pipeline = [
             {"$match": {"user_id": user_id}},
             {"$group": {
@@ -534,14 +536,12 @@ class ApplicationWorkflowDAO:
             }}
         ]
         
-        quality_col = db_client["quality_analyses"]
-        cursor = quality_col.aggregate(pipeline)
-        
+        # Correctly await the aggregate() call
         result = []
-        async for doc in cursor:
+        async for doc in await quality_col.aggregate(pipeline):
             result.append(doc)
         
-        if result and result[0].get("avgScore"):
+        if result and len(result) > 0 and result[0].get("avgScore"):
             return round(result[0]["avgScore"], 1)
         return 75.0
 
