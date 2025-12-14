@@ -55,6 +55,7 @@ from services.referral_reminder_scheduler import start_referral_reminder_schedul
 from services.referral_followup_scheduler import start_referral_followup_scheduler, stop_referral_followup_scheduler
 from services.event_reminder_scheduler import start_event_reminder_scheduler, stop_event_reminder_scheduler
 from services.interview_reminder_scheduler import start_interview_reminder_scheduler, stop_interview_reminder_scheduler
+from services.background_scheduler_service import start_scheduler, stop_scheduler
 from services.application_workflow_scheduler import (
     start_workflow_scheduler,
     stop_workflow_scheduler
@@ -183,6 +184,10 @@ async def startup_event():
         start_workflow_scheduler()
     except Exception as e:
         print(f"[Startup] Warning: Could not start workflow automation scheduler: {e}")
+    try:
+        start_scheduler()
+    except Exception as e:
+        print(f"[Startup] Warning: Could not start sheduele reminder scheduler: {e}")
 
 
 
@@ -215,6 +220,10 @@ async def shutdown_event():
         stop_workflow_scheduler()
     except Exception as e:
         print(f"[Shutdown] Warning: Could not stop workflow automation scheduler: {e}")
+    try:
+        stop_scheduler()
+    except Exception as e:
+        print(f"[Shutdown] Warning: Could not stop schedueler scheduler: {e}")
 
 
 
