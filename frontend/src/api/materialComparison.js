@@ -18,6 +18,11 @@ class MaterialComparisonAPI {
         return api.get(`${BASE_URL}/combined`);
     }
 
+    // Get success trends over time - UC-119
+    getSuccessTrends(weeks = 12) {
+        return api.get(`${BASE_URL}/success-trends?weeks=${weeks}`);
+    }
+
     // Archive resume version
     archiveResumeVersion(resumeId, versionId) {
         return api.post(`${BASE_URL}/resumes/${resumeId}/versions/${versionId}/archive`);

@@ -125,3 +125,25 @@ async def archive_cover_letter(
     except Exception as e:
         print(f"Error archiving cover letter: {e}")
         raise HTTPException(500, str(e))
+
+
+@material_comparison_router.get("/success-trends", tags=["material-comparison"])
+async def get_success_trends(
+    weeks: int = 12,
+    uuid: str = Depends(authorize)
+):
+    """
+    Get success rate trends over time - UC-119
+
+    Returns weekly aggregated metrics showing application success trends
+    """
+    try:
+        trends = await material_comparison_service.get_success_trends(uuid, weeks)
+        return {
+            "detail": "Success trends retrieved",
+            **trends
+        }
+
+    except Exception as e:
+        print(f"Error getting success trends: {e}")
+        raise HTTPException(500, str(e))

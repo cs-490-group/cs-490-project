@@ -248,14 +248,248 @@ class MaterialComparisonService:
         resume_comparison = await self.get_resume_version_comparison(user_uuid)
         cover_letter_comparison = await self.get_cover_letter_version_comparison(user_uuid)
 
+        # Calculate A/B test statistics
+        ab_tests = self._calculate_ab_test_statistics(resume_comparison, cover_letter_comparison)
+
+        # Generate recommendations based on performance
+        recommendations = self._generate_optimization_recommendations(resume_comparison, cover_letter_comparison)
+
         return {
             "resumes": resume_comparison,
             "cover_letters": cover_letter_comparison,
+            "ab_tests": ab_tests,
+            "recommendations": recommendations,
             "summary": {
                 "total_resume_versions": len(resume_comparison),
                 "total_cover_letter_versions": len(cover_letter_comparison),
                 "note": "Meaningful comparisons require 10+ applications per version"
             }
+        }
+
+    def _calculate_ab_test_statistics(self, resumes: List[Dict], cover_letters: List[Dict]) -> Dict:
+        """
+        Calculate A/B test statistics for material versions
+        Returns statistical significance tests comparing versions
+        """
+        import math
+
+        ab_tests = {
+            "resume_tests": [],
+            "cover_letter_tests": []
+        }
+
+        # Resume version A/B tests
+        if len(resumes) >= 2:
+            sorted_resumes = sorted(resumes, key=lambda x: x["applications_count"], reverse=True)
+
+            for i in range(min(3, len(sorted_resumes))):
+                for j in range(i + 1, min(3, len(sorted_resumes))):
+                    variant_a = sorted_resumes[i]
+                    variant_b = sorted_resumes[j]
+
+                    if variant_a["applications_count"] >= 5 and variant_b["applications_count"] >= 5:
+                        p_a = variant_a["response_rate"] / 100.0
+                        p_b = variant_b["response_rate"] / 100.0
+                        n_a = variant_a["applications_count"]
+                        n_b = variant_b["applications_count"]
+
+                        p_pool = (p_a * n_a + p_b * n_b) / (n_a + n_b)
+                        se = math.sqrt(p_pool * (1 - p_pool) * (1/n_a + 1/n_b)) if p_pool > 0 and p_pool < 1 else 0
+                        z_score = (p_a - p_b) / se if se > 0 else 0
+                        is_significant = abs(z_score) > 1.96
+                        confidence = "high" if abs(z_score) > 2.58 else "medium" if abs(z_score) > 1.96 else "low"
+
+                        ab_tests["resume_tests"].append({
+                            "variant_a": variant_a["version_name"],
+                            "variant_b": variant_b["version_name"],
+                            "variant_a_rate": variant_a["response_rate"],
+                            "variant_b_rate": variant_b["response_rate"],
+                            "difference": round(variant_a["response_rate"] - variant_b["response_rate"], 1),
+                            "is_significant": is_significant,
+                            "confidence": confidence,
+                            "z_score": round(z_score, 2),
+                            "winner": variant_a["version_name"] if p_a > p_b else variant_b["version_name"],
+                            "sample_sizes": {"variant_a": n_a, "variant_b": n_b}
+                        })
+
+        # Cover letter A/B tests
+        if len(cover_letters) >= 2:
+            sorted_letters = sorted(cover_letters, key=lambda x: x["applications_count"], reverse=True)
+
+            for i in range(min(3, len(sorted_letters))):
+                for j in range(i + 1, min(3, len(sorted_letters))):
+                    variant_a = sorted_letters[i]
+                    variant_b = sorted_letters[j]
+
+                    if variant_a["applications_count"] >= 5 and variant_b["applications_count"] >= 5:
+                        p_a = variant_a["response_rate"] / 100.0
+                        p_b = variant_b["response_rate"] / 100.0
+                        n_a = variant_a["applications_count"]
+                        n_b = variant_b["applications_count"]
+
+                        p_pool = (p_a * n_a + p_b * n_b) / (n_a + n_b)
+                        se = math.sqrt(p_pool * (1 - p_pool) * (1/n_a + 1/n_b)) if p_pool > 0 and p_pool < 1 else 0
+                        z_score = (p_a - p_b) / se if se > 0 else 0
+                        is_significant = abs(z_score) > 1.96
+                        confidence = "high" if abs(z_score) > 2.58 else "medium" if abs(z_score) > 1.96 else "low"
+
+                        ab_tests["cover_letter_tests"].append({
+                            "variant_a": variant_a["letter_name"],
+                            "variant_b": variant_b["letter_name"],
+                            "variant_a_rate": variant_a["response_rate"],
+                            "variant_b_rate": variant_b["response_rate"],
+                            "difference": round(variant_a["response_rate"] - variant_b["response_rate"], 1),
+                            "is_significant": is_significant,
+                            "confidence": confidence,
+                            "z_score": round(z_score, 2),
+                            "winner": variant_a["letter_name"] if p_a > p_b else variant_b["letter_name"],
+                            "sample_sizes": {"variant_a": n_a, "variant_b": n_b}
+                        })
+
+        return ab_tests
+
+    def _generate_optimization_recommendations(self, resumes: List[Dict], cover_letters: List[Dict]) -> List[Dict]:
+        """Generate actionable recommendations based on material performance"""
+        recommendations = []
+
+        if resumes:
+            best_resume = max(resumes, key=lambda x: (x["response_rate"], x["applications_count"]))
+            if best_resume["applications_count"] >= 10 and best_resume["response_rate"] >= 20:
+                recommendations.append({
+                    "priority": "high",
+                    "category": "resume",
+                    "title": f"Use '{best_resume['version_name']}' resume version",
+                    "description": f"This version has a {best_resume['response_rate']}% response rate across {best_resume['applications_count']} applications.",
+                    "action": f"Continue using this resume version for new applications",
+                    "impact": "high",
+                    "confidence": "high" if best_resume["applications_count"] >= 20 else "medium"
+                })
+
+        if cover_letters:
+            best_letter = max(cover_letters, key=lambda x: (x["response_rate"], x["applications_count"]))
+            if best_letter["applications_count"] >= 10 and best_letter["response_rate"] >= 20:
+                recommendations.append({
+                    "priority": "high",
+                    "category": "cover_letter",
+                    "title": f"Use '{best_letter['letter_name']}' cover letter",
+                    "description": f"This cover letter has a {best_letter['response_rate']}% response rate.",
+                    "action": f"Use this as your primary cover letter template",
+                    "impact": "high",
+                    "confidence": "high" if best_letter["applications_count"] >= 20 else "medium"
+                })
+
+        total_applications = sum(r["applications_count"] for r in resumes)
+        if total_applications < 20:
+            recommendations.append({
+                "priority": "low",
+                "category": "data",
+                "title": "Increase sample size for better insights",
+                "description": f"You have {total_applications} total applications tracked.",
+                "action": "Continue applying and tracking your applications",
+                "impact": "low",
+                "confidence": "high"
+            })
+
+        priority_order = {"high": 0, "medium": 1, "low": 2}
+        recommendations.sort(key=lambda x: priority_order.get(x["priority"], 3))
+        return recommendations
+
+    async def get_success_trends(self, user_uuid: str, weeks: int = 12) -> Dict:
+        """
+        Get success rate trends over time
+
+        Returns weekly aggregated success metrics
+        """
+        from datetime import datetime, timedelta, timezone
+
+        # Get all jobs
+        jobs = await self.jobs_dao.get_all_jobs(user_uuid)
+        if not jobs:
+            jobs = []
+
+        # Calculate start date
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(weeks=weeks)
+
+        # Group jobs by week
+        weekly_data = {}
+
+        for job in jobs:
+            if not job:
+                continue
+
+            # Get job creation date
+            date_applied = job.get("date_applied") or job.get("date_created")
+            if not date_applied:
+                continue
+
+            try:
+                if isinstance(date_applied, str):
+                    job_date = datetime.fromisoformat(date_applied.replace('Z', '+00:00'))
+                else:
+                    job_date = date_applied
+
+                if job_date < start_date:
+                    continue
+
+                # Calculate week number
+                week_diff = (job_date - start_date).days // 7
+                week_key = f"Week {week_diff + 1}"
+
+                if week_key not in weekly_data:
+                    weekly_data[week_key] = {
+                        "week": week_key,
+                        "applications": 0,
+                        "responses": 0,
+                        "interviews": 0,
+                        "offers": 0,
+                        "response_rate": 0,
+                        "interview_rate": 0,
+                        "offer_rate": 0
+                    }
+
+                weekly_data[week_key]["applications"] += 1
+
+                status = (job.get("status") or "").lower()
+
+                # Count responses
+                if status not in ["applied", "saved", "watching"]:
+                    weekly_data[week_key]["responses"] += 1
+
+                # Count interviews
+                if "interview" in status or status in ["phone_screen", "technical", "onsite"]:
+                    weekly_data[week_key]["interviews"] += 1
+
+                # Count offers
+                if status == "offer" or len(job.get("offers") or []) > 0:
+                    weekly_data[week_key]["offers"] += 1
+
+            except Exception as e:
+                continue
+
+        # Calculate rates for each week
+        for week_data in weekly_data.values():
+            if week_data["applications"] > 0:
+                week_data["response_rate"] = round((week_data["responses"] / week_data["applications"]) * 100, 1)
+                week_data["interview_rate"] = round((week_data["interviews"] / week_data["applications"]) * 100, 1)
+                week_data["offer_rate"] = round((week_data["offers"] / week_data["applications"]) * 100, 1)
+
+        # Sort by week
+        trends = sorted(weekly_data.values(), key=lambda x: x["week"])
+
+        # Calculate overall trend direction
+        if len(trends) >= 2:
+            first_half_avg = sum(t["response_rate"] for t in trends[:len(trends)//2]) / (len(trends)//2) if len(trends) >= 2 else 0
+            second_half_avg = sum(t["response_rate"] for t in trends[len(trends)//2:]) / (len(trends) - len(trends)//2) if len(trends) >= 2 else 0
+            trend_direction = "improving" if second_half_avg > first_half_avg else "declining" if second_half_avg < first_half_avg else "stable"
+        else:
+            trend_direction = "insufficient_data"
+
+        return {
+            "trends": trends,
+            "trend_direction": trend_direction,
+            "weeks_analyzed": weeks,
+            "total_applications": sum(t["applications"] for t in trends)
         }
 
     async def archive_resume_version(self, resume_id: str, version_id: str) -> bool:
