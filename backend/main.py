@@ -154,7 +154,7 @@ app.include_router(professional_references_router, prefix = api_prefix)
 app.include_router(network_analytics_router, prefix = api_prefix)
 app.include_router(performance_analytics_router, prefix = api_prefix)
 app.include_router(api_metrics_router, prefix = f"{api_prefix}/metrics")
-app.include_router(emails_router)
+app.include_router(emails_router, prefix=api_prefix)
 
 
 @app.on_event("startup")
