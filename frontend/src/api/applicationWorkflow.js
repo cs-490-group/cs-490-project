@@ -155,9 +155,6 @@ class ApplicationWorkflowAPI {
       response_date: responseDate
     });
   }
-}
-
-export default new ApplicationWorkflowAPI();
 
 
 
