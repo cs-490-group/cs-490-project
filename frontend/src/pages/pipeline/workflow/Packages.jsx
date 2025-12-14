@@ -375,11 +375,27 @@ export default function PackagesTab({
             <div className="row g-3">
               {packages.map((pkg, i) => {
                 const id = safeId(pkg, `pkg-${i}`);
+                const minimumThreshold = 70;
+                const isLocked = pkg.lastScore !== undefined && pkg.lastScore !== null && pkg.lastScore < minimumThreshold;
+                const needsAnalysis = !pkg.lastScore && pkg.lastScore !== 0;
+
                 return (
                   <div key={id} className="col-md-6">
-                    <div className="card shadow-sm h-100">
+                    <div className={`card shadow-sm h-100 ${isLocked ? 'border-danger' : ''}`}>
                       <div className="card-body d-flex flex-column">
-                        <h6 className="card-title">{pkg.name || "(Unnamed)"}</h6>
+                        <div className="d-flex justify-content-between align-items-start">
+                          <h6 className="card-title">{pkg.name || "(Unnamed)"}</h6>
+                          {isLocked && (
+                            <span className="badge bg-danger" title="Quality score below threshold">
+                              🔒 Locked
+                            </span>
+                          )}
+                          {needsAnalysis && (
+                            <span className="badge bg-warning text-dark" title="Not analyzed yet">
+                              ⚠️ Not Analyzed
+                            </span>
+                          )}
+                        </div>
                         <small className="text-muted">{pkg.description}</small>
 
                         <ul className="small ps-3 mt-2 mb-3">
@@ -388,16 +404,23 @@ export default function PackagesTab({
                           <li>Portfolio Links: {pkg.portfolio_links?.length || 0}</li>
                         </ul>
 
+                        {isLocked && (
+                          <div className="alert alert-danger py-1 px-2 mb-2 small">
+                            <strong>⚠️ Below Threshold</strong><br/>
+                            Score: {pkg.lastScore}/100. Minimum: {minimumThreshold}
+                          </div>
+                        )}
+
                         <div className="mt-auto">
                           <div className="d-flex justify-content-between align-items-center mb-2">
                             <small className="text-muted">
                               Used {pkg.usage_count || 0}×
                             </small>
-                            {pkg.lastScore && (
+                            {pkg.lastScore !== undefined && pkg.lastScore !== null && (
                               <ScoreBadge score={pkg.lastScore} />
                             )}
                           </div>
-                          
+
                           <div className="btn-group btn-group-sm w-100">
                             <button
                               className="btn btn-outline-secondary"
@@ -414,11 +437,12 @@ export default function PackagesTab({
                               Analyze
                             </button>
                             <button
-                              className="btn btn-outline-primary"
+                              className={`btn ${isLocked ? 'btn-outline-secondary' : 'btn-outline-primary'}`}
                               onClick={() => handleUsePackage(id)}
-                              title="Use package"
+                              title={isLocked ? "Package locked due to low quality score" : "Use package"}
+                              disabled={isLocked}
                             >
-                              Use
+                              {isLocked ? '🔒 Locked' : 'Use'}
                             </button>
                             <button
                               className="btn btn-outline-danger"

@@ -171,6 +171,43 @@ export default function WorkflowAutomation() {
   }
 
   async function handleUsePackage(id) {
+    // Find the package to check its quality score
+    const pkg = packages.find(p => p._id === id || p.uuid === id);
+
+    if (!pkg) {
+      alert("Package not found");
+      return;
+    }
+
+    // Check if package has been analyzed
+    if (!pkg.lastScore && pkg.lastScore !== 0) {
+      const shouldContinue = window.confirm(
+        "⚠️ This package hasn't been analyzed yet.\n\n" +
+        "It's recommended to analyze the package quality before using it.\n\n" +
+        "Do you want to use it anyway?"
+      );
+
+      if (!shouldContinue) {
+        return;
+      }
+    }
+
+    // Check if score meets minimum threshold (70)
+    const minimumThreshold = 70;
+    if (pkg.lastScore !== undefined && pkg.lastScore !== null && pkg.lastScore < minimumThreshold) {
+      alert(
+        `❌ Quality Score Below Threshold\n\n` +
+        `This package scored ${pkg.lastScore}/100, which is below the minimum required score of ${minimumThreshold}.\n\n` +
+        `Please improve your application materials and re-analyze before using this package.\n\n` +
+        `Suggestions:\n` +
+        `• Review the analysis feedback\n` +
+        `• Address high-priority improvements\n` +
+        `• Re-analyze after making changes`
+      );
+      return;
+    }
+
+    // If score is acceptable or user confirmed despite no analysis, proceed
     await ApplicationWorkflowAPI.markPackageUsed(id);
     loadAll();
   }
@@ -178,6 +215,39 @@ export default function WorkflowAutomation() {
   async function bulkApply() {
     if (!bulkPackageId || selectedJobIds.length === 0) {
       return alert("Select package + jobs");
+    }
+
+    // Validate package quality score before bulk apply
+    const pkg = packages.find(p => p._id === bulkPackageId || p.uuid === bulkPackageId);
+
+    if (!pkg) {
+      alert("Selected package not found");
+      return;
+    }
+
+    // Check if package has been analyzed
+    if (!pkg.lastScore && pkg.lastScore !== 0) {
+      const shouldContinue = window.confirm(
+        "⚠️ This package hasn't been analyzed yet.\n\n" +
+        "It's strongly recommended to analyze the package quality before bulk applying to multiple jobs.\n\n" +
+        "Do you want to continue anyway?"
+      );
+
+      if (!shouldContinue) {
+        return;
+      }
+    }
+
+    // Check if score meets minimum threshold (70)
+    const minimumThreshold = 70;
+    if (pkg.lastScore !== undefined && pkg.lastScore !== null && pkg.lastScore < minimumThreshold) {
+      alert(
+        `❌ Quality Score Below Threshold\n\n` +
+        `This package scored ${pkg.lastScore}/100, which is below the minimum required score of ${minimumThreshold}.\n\n` +
+        `Cannot bulk apply with a low-quality package. Please improve your application materials and re-analyze.\n\n` +
+        `You're about to apply to ${selectedJobIds.length} job(s). Using a low-quality package could harm your chances.`
+      );
+      return;
     }
 
     await ApplicationWorkflowAPI.bulkApply({
@@ -196,6 +266,38 @@ export default function WorkflowAutomation() {
   /* -------------------------- SCHEDULE ACTIONS --------------------------- */
   async function createSchedule(e) {
     e.preventDefault();
+
+    // Validate package quality score before scheduling
+    const pkg = packages.find(p => p._id === schedulePackageId || p.uuid === schedulePackageId);
+
+    if (!pkg) {
+      alert("Selected package not found");
+      return;
+    }
+
+    // Check if package has been analyzed
+    if (!pkg.lastScore && pkg.lastScore !== 0) {
+      const shouldContinue = window.confirm(
+        "⚠️ This package hasn't been analyzed yet.\n\n" +
+        "It's recommended to analyze the package quality before scheduling.\n\n" +
+        "Do you want to schedule it anyway?"
+      );
+
+      if (!shouldContinue) {
+        return;
+      }
+    }
+
+    // Check if score meets minimum threshold (70)
+    const minimumThreshold = 70;
+    if (pkg.lastScore !== undefined && pkg.lastScore !== null && pkg.lastScore < minimumThreshold) {
+      alert(
+        `❌ Quality Score Below Threshold\n\n` +
+        `This package scored ${pkg.lastScore}/100, which is below the minimum required score of ${minimumThreshold}.\n\n` +
+        `Cannot schedule with a low-quality package. Please improve your application materials and re-analyze before scheduling.`
+      );
+      return;
+    }
 
     const payload = {
       job_id: scheduleJobId,

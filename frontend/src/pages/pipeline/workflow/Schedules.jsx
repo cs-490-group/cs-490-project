@@ -312,11 +312,21 @@ export default function EnhancedSchedulesTab() {
                       required
                     >
                       <option value="">Choose a package...</option>
-                      {packages.map(pkg => (
-                        <option key={pkg._id} value={pkg._id}>
-                          📦 {pkg.name}
-                        </option>
-                      ))}
+                      {packages.map(pkg => {
+                        const minimumThreshold = 70;
+                        const isLocked = pkg.lastScore !== undefined && pkg.lastScore !== null && pkg.lastScore < minimumThreshold;
+                        const needsAnalysis = !pkg.lastScore && pkg.lastScore !== 0;
+
+                        return (
+                          <option
+                            key={pkg._id}
+                            value={pkg._id}
+                            disabled={isLocked}
+                          >
+                            {isLocked ? '🔒' : needsAnalysis ? '⚠️' : '📦'} {pkg.name} {pkg.lastScore ? `(${pkg.lastScore}/100)` : ''}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                   
