@@ -118,6 +118,154 @@ class OffersDAO:
         await self.offers_collection.create_index([("offer_status", ASCENDING)])
         await self.offers_collection.create_index([("date_created", ASCENDING)])
 
+    # ============================================
+    # UC-127: Offer Evaluation & Comparison
+    # ============================================
+
+    async def update_compensation_calculation(self, offer_id: str, total_comp: dict) -> dict:
+        """Update total compensation calculation for an offer"""
+        update_data = {
+            "offered_salary_details.total_compensation": total_comp,
+            "date_updated": datetime.utcnow().isoformat(),
+        }
+
+        result = await self.offers_collection.find_one_and_update(
+            {"_id": ObjectId(offer_id)},
+            {"$set": update_data},
+            return_document=True
+        )
+        return result
+
+    async def update_equity_details(self, offer_id: str, equity_details: dict) -> dict:
+        """Update equity valuation details"""
+        update_data = {
+            "offered_salary_details.equity_details": equity_details,
+            "date_updated": datetime.utcnow().isoformat(),
+        }
+
+        result = await self.offers_collection.find_one_and_update(
+            {"_id": ObjectId(offer_id)},
+            {"$set": update_data},
+            return_document=True
+        )
+        return result
+
+    async def update_benefits_valuation(self, offer_id: str, benefits_val: dict) -> dict:
+        """Update benefits monetary valuation"""
+        update_data = {
+            "offered_salary_details.benefits_valuation": benefits_val,
+            "date_updated": datetime.utcnow().isoformat(),
+        }
+
+        result = await self.offers_collection.find_one_and_update(
+            {"_id": ObjectId(offer_id)},
+            {"$set": update_data},
+            return_document=True
+        )
+        return result
+
+    async def update_cost_of_living(self, offer_id: str, col_data: dict) -> dict:
+        """Update cost of living adjustment data"""
+        update_data = {
+            "offered_salary_details.cost_of_living": col_data,
+            "date_updated": datetime.utcnow().isoformat(),
+        }
+
+        result = await self.offers_collection.find_one_and_update(
+            {"_id": ObjectId(offer_id)},
+            {"$set": update_data},
+            return_document=True
+        )
+        return result
+
+    async def update_non_financial_factors(self, offer_id: str, factors: dict) -> dict:
+        """Update non-financial scoring factors"""
+        update_data = {
+            "non_financial_factors": factors,
+            "date_updated": datetime.utcnow().isoformat(),
+        }
+
+        result = await self.offers_collection.find_one_and_update(
+            {"_id": ObjectId(offer_id)},
+            {"$set": update_data},
+            return_document=True
+        )
+        return result
+
+    async def update_offer_score(self, offer_id: str, score: dict) -> dict:
+        """Update comprehensive offer scoring"""
+        update_data = {
+            "offer_score": score,
+            "date_updated": datetime.utcnow().isoformat(),
+        }
+
+        result = await self.offers_collection.find_one_and_update(
+            {"_id": ObjectId(offer_id)},
+            {"$set": update_data},
+            return_document=True
+        )
+        return result
+
+    async def update_comparison_weights(self, offer_id: str, weights: dict) -> dict:
+        """Update user-defined comparison weights"""
+        update_data = {
+            "comparison_weights": weights,
+            "date_updated": datetime.utcnow().isoformat(),
+        }
+
+        result = await self.offers_collection.find_one_and_update(
+            {"_id": ObjectId(offer_id)},
+            {"$set": update_data},
+            return_document=True
+        )
+        return result
+
+    async def archive_offer(self, offer_id: str, decline_reason: str = None) -> dict:
+        """Archive a declined offer"""
+        update_data = {
+            "archived": True,
+            "archived_date": datetime.utcnow().isoformat(),
+            "offer_status": "archived",
+            "date_updated": datetime.utcnow().isoformat(),
+        }
+
+        if decline_reason:
+            update_data["decline_reason"] = decline_reason
+
+        result = await self.offers_collection.find_one_and_update(
+            {"_id": ObjectId(offer_id)},
+            {"$set": update_data},
+            return_document=True
+        )
+        return result
+
+    async def get_active_offers(self, user_uuid: str) -> list:
+        """Get all non-archived offers for a user"""
+        offers = await self.offers_collection.find({
+            "user_uuid": user_uuid,
+            "$or": [
+                {"archived": {"$exists": False}},
+                {"archived": False}
+            ]
+        }).to_list(None)
+        return offers
+
+    async def get_archived_offers(self, user_uuid: str) -> list:
+        """Get all archived offers for a user"""
+        offers = await self.offers_collection.find({
+            "user_uuid": user_uuid,
+            "archived": True
+        }).to_list(None)
+        return offers
+
+    async def get_offers_for_comparison(self, offer_ids: list) -> list:
+        """Get multiple offers for side-by-side comparison"""
+        object_ids = [ObjectId(oid) for oid in offer_ids if ObjectId.is_valid(oid)]
+        offers = await self.offers_collection.find({
+            "_id": {"$in": object_ids}
+        }).to_list(None)
+        return offers
+
 
 # Singleton instance for use throughout the application
 offers_dao = OffersDAO()
