@@ -1,20 +1,13 @@
-"""
-Tracked AI Clients
-Drop-in replacements for Cohere and OpenAI clients that automatically log all API calls
-"""
 import time
-import asyncio
+import os
+import certifi
 from datetime import datetime, timezone
 from typing import Any
-import threading
 import cohere
 from openai import OpenAI
+from pymongo import MongoClient
 
 from services.api_key_manager import api_key_manager
-
-# Thread-local storage for event loops and DAOs
-_thread_local = threading.local()
-
 
 class TrackedCohereClient:
     """
@@ -23,7 +16,6 @@ class TrackedCohereClient:
     """
 
     def __init__(self, api_key: str = None, key_owner: str = None):
-        # If no key provided, select one from the manager
         if not api_key:
             key_owner, api_key = api_key_manager.select_cohere_key()
 
@@ -40,41 +32,22 @@ class TrackedCohereClient:
         return self.openai_fallback
 
     def _log_call_sync(self, provider, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
-        """Synchronous wrapper to log API call"""
+        """
+        Synchronous wrapper to log API call.
+        Uses standard pymongo (Sync) to avoid complex asyncio event loop conflicts.
+        This is safe to run in threads AND on the main loop.
+        """
+        client = None
         try:
-            # Get or create thread-local event loop
-            if not hasattr(_thread_local, 'loop') or _thread_local.loop.is_closed():
-                _thread_local.loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(_thread_local.loop)
-
-            # Run the async log call in the thread-local event loop
-            _thread_local.loop.run_until_complete(
-                self._async_log_call_local(
-                    provider, endpoint, key_owner, duration_ms, success, error_message, tokens_used
-                )
-            )
-        except Exception as e:
-            print(f"[TrackedClient] Error logging API call: {e}")
-
-    async def _async_log_call_local(self, provider, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
-        """Async method to log API call using thread-local MongoDB connection"""
-        try:
-            import os
-            import certifi
-            from pymongo import AsyncMongoClient
-            from datetime import datetime, timezone
-
-            # Create a fresh MongoDB connection for this thread
-            mongo_connection_string = os.getenv("MONGO_CONNECTION_STRING")
-            database_name = os.getenv("MONGO_APPLICATION_DATABASE")
-
-            client = AsyncMongoClient(mongo_connection_string, tls=True, tlsCAFile=certifi.where())
-            db = client.get_database(database_name)
-            call_logs = db.get_collection("api_call_logs")
-            usage_quotas = db.get_collection("api_usage_quotas")
-
-            # Log the API call
-            log_entry = {
+            mongo_url = os.getenv("MONGO_CONNECTION_STRING")
+            db_name = os.getenv("MONGO_APPLICATION_DATABASE")
+            
+            # Connect Synchronously (with 2s timeout to prevent hanging)
+            client = MongoClient(mongo_url, tls=True, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=2000)
+            db = client.get_database(db_name)
+            
+            # 1. Log the API Call
+            db.api_call_logs.insert_one({
                 "timestamp": datetime.now(timezone.utc),
                 "provider": provider,
                 "endpoint": endpoint,
@@ -83,60 +56,29 @@ class TrackedCohereClient:
                 "success": success,
                 "error_message": error_message,
                 "tokens_used": tokens_used
-            }
-            await call_logs.insert_one(log_entry)
+            })
 
-            # Update usage quotas
+            # 2. Update Usage Quotas
             current_month = datetime.now(timezone.utc).strftime("%Y-%m")
-            await usage_quotas.update_one(
-                {
-                    "provider": provider,
-                    "key_owner": key_owner,
-                    "period": current_month
-                },
+            db.api_usage_quotas.update_one(
+                {"provider": provider, "key_owner": key_owner, "period": current_month},
                 {
                     "$inc": {
                         "calls": 1,
                         "tokens": tokens_used,
                         "errors": 0 if success else 1
                     },
-                    "$set": {
-                        "updated_at": datetime.now(timezone.utc)
-                    }
+                    "$set": {"updated_at": datetime.now(timezone.utc)}
                 },
                 upsert=True
             )
 
-            # Properly close the async connection
-            await client.close()
-
         except Exception as e:
-            print(f"[TrackedClient] Error in _async_log_call_local: {e}")
-
-    async def _async_log_call(self, provider, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
-        """Async method to log API call and update quotas"""
-        try:
-            await api_metrics_dao.log_api_call(
-                provider=provider,
-                endpoint=endpoint,
-                key_owner=key_owner,
-                duration_ms=duration_ms,
-                success=success,
-                error_message=error_message,
-                tokens_used=tokens_used
-            )
-
-            current_month = datetime.now(timezone.utc).strftime("%Y-%m")
-            await api_metrics_dao.increment_usage(
-                provider=provider,
-                key_owner=key_owner,
-                period=current_month,
-                calls=1,
-                tokens=tokens_used,
-                errors=0 if success else 1
-            )
-        except Exception as e:
-            print(f"[TrackedClient] Error in _async_log_call: {e}")
+            # We silently catch logging errors so they don't crash the actual AI feature
+            print(f"[TrackedClient] Logging Error: {e}")
+        finally:
+            if client:
+                client.close()
 
     def chat(self, **kwargs):
         """Tracked version of Cohere chat() with OpenAI fallback"""
@@ -149,85 +91,65 @@ class TrackedCohereClient:
         key_owner = self.key_owner
 
         try:
-            # Try Cohere API
+            # --- 1. Attempt Cohere ---
             result = self.client.chat(**kwargs)
             success = True
 
-            # Extract token usage
-            if hasattr(result, 'usage'):
+            # --- 2. Robust Token Extraction (Fixes UsageTokens Crash) ---
+            if hasattr(result, 'usage') and result.usage:
                 usage = result.usage
-                tokens_used = getattr(usage, 'total_tokens', 0) or \
-                             (getattr(usage, 'tokens', {}).get('input_tokens', 0) +
-                              getattr(usage, 'tokens', {}).get('output_tokens', 0))
+                # Check for V2 'total_tokens' attribute
+                if getattr(usage, 'total_tokens', None):
+                    tokens_used = usage.total_tokens
+                # Check for 'tokens' (Dict or Object)
+                elif hasattr(usage, 'tokens') and usage.tokens:
+                    t = usage.tokens
+                    if isinstance(t, dict):
+                        tokens_used = t.get('input_tokens', 0) + t.get('output_tokens', 0)
+                    else:
+                        tokens_used = (getattr(t, 'input_tokens', 0) or 0) + (getattr(t, 'output_tokens', 0) or 0)
 
         except Exception as e:
             error_message = str(e)
-            print(f"[TrackedCohereClient] Cohere API call failed: {error_message}")
+            print(f"[TrackedCohereClient] Primary API Failed: {error_message}")
 
-            # Try OpenAI fallback
+            # --- 3. Attempt OpenAI Fallback ---
             try:
-                print(f"[TrackedCohereClient] Attempting OpenAI fallback...")
+                print(f"[TrackedCohereClient] Initiating Fallback...")
                 openai_client = self._get_openai_fallback()
-
-                # Convert Cohere parameters to OpenAI format
-                messages = kwargs.get('messages', [])
+                
+                # Map params
                 model = kwargs.get('model', 'gpt-4o-mini')
-
-                openai_response = openai_client.chat.completions.create(
-                    model='gpt-4o-mini' if not model.startswith('gpt') else model,
-                    messages=messages,
+                fallback_model = 'gpt-4o-mini' if not model.startswith('gpt') else model
+                
+                response = openai_client.chat.completions.create(
+                    model=fallback_model,
+                    messages=kwargs.get('messages', []),
                     temperature=kwargs.get('temperature', 0.7),
                     max_tokens=kwargs.get('max_tokens', 1500)
                 )
 
-                # Convert OpenAI response to match Cohere structure
+                # Mock a Cohere-like response object
                 class FallbackResponse:
-                    def __init__(self, openai_resp):
-                        self.message = type('obj', (object,), {
-                            'content': [type('obj', (object,), {'text': openai_resp.choices[0].message.content})()]
-                        })()
-                        self.usage = openai_resp.usage
+                    def __init__(self, oa_resp):
+                        self.message = type('obj', (), {'content': [type('obj', (), {'text': oa_resp.choices[0].message.content})()]})()
+                        self.usage = oa_resp.usage
 
-                result = FallbackResponse(openai_response)
+                result = FallbackResponse(response)
                 success = True
                 provider = "openai"
                 key_owner = "openai_fallback"
-                tokens_used = openai_response.usage.total_tokens
+                tokens_used = response.usage.total_tokens
+                print(f"[TrackedCohereClient] Fallback Successful")
 
-                # Log fallback event (async)
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        asyncio.create_task(api_metrics_dao.log_fallback_event(
-                            primary_provider="cohere",
-                            fallback_provider="openai",
-                            success=True,
-                            original_error=error_message
-                        ))
-                except:
-                    pass
-
-                print(f"[TrackedCohereClient] OpenAI fallback successful")
-
-            except Exception as fallback_error:
-                error_message = f"Cohere failed: {error_message}. OpenAI fallback failed: {str(fallback_error)}"
-                print(f"[TrackedCohereClient] OpenAI fallback also failed: {fallback_error}")
-                # Log failed fallback
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        asyncio.create_task(api_metrics_dao.log_fallback_event(
-                            primary_provider="cohere",
-                            fallback_provider="openai",
-                            success=False,
-                            original_error=str(e)
-                        ))
-                except:
-                    pass
+            except Exception as fb_error:
+                error_message = f"Primary: {error_message} | Fallback: {str(fb_error)}"
+                print(f"[TrackedCohereClient] Fallback Failed: {fb_error}")
 
         finally:
-            duration_ms = (time.time() - start_time) * 1000
-            self._log_call_sync(provider, "chat", key_owner, duration_ms, success, error_message, tokens_used)
+            # --- 4. Log Everything ---
+            duration = (time.time() - start_time) * 1000
+            self._log_call_sync(provider, "chat", key_owner, duration, success, error_message, tokens_used)
 
         if not success:
             raise Exception(error_message)
@@ -249,40 +171,15 @@ class TrackedOpenAIClient:
 
     def _log_call_sync(self, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
         """Synchronous wrapper to log API call"""
+        client = None
         try:
-            # Get or create thread-local event loop
-            if not hasattr(_thread_local, 'loop') or _thread_local.loop.is_closed():
-                _thread_local.loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(_thread_local.loop)
-
-            # Run the async log call in the thread-local event loop
-            _thread_local.loop.run_until_complete(
-                self._async_log_call_local(
-                    endpoint, key_owner, duration_ms, success, error_message, tokens_used
-                )
-            )
-        except Exception as e:
-            print(f"[TrackedOpenAIClient] Error logging API call: {e}")
-
-    async def _async_log_call_local(self, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
-        """Async method to log API call using thread-local MongoDB connection"""
-        try:
-            import os
-            import certifi
-            from pymongo import AsyncMongoClient
-            from datetime import datetime, timezone
-
-            # Create a fresh MongoDB connection for this thread
-            mongo_connection_string = os.getenv("MONGO_CONNECTION_STRING")
-            database_name = os.getenv("MONGO_APPLICATION_DATABASE")
-
-            client = AsyncMongoClient(mongo_connection_string, tls=True, tlsCAFile=certifi.where())
-            db = client.get_database(database_name)
-            call_logs = db.get_collection("api_call_logs")
-            usage_quotas = db.get_collection("api_usage_quotas")
-
-            # Log the API call
-            log_entry = {
+            mongo_url = os.getenv("MONGO_CONNECTION_STRING")
+            db_name = os.getenv("MONGO_APPLICATION_DATABASE")
+            
+            client = MongoClient(mongo_url, tls=True, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=2000)
+            db = client.get_database(db_name)
+            
+            db.api_call_logs.insert_one({
                 "timestamp": datetime.now(timezone.utc),
                 "provider": "openai",
                 "endpoint": endpoint,
@@ -291,89 +188,48 @@ class TrackedOpenAIClient:
                 "success": success,
                 "error_message": error_message,
                 "tokens_used": tokens_used
-            }
-            await call_logs.insert_one(log_entry)
+            })
 
-            # Update usage quotas
             current_month = datetime.now(timezone.utc).strftime("%Y-%m")
-            await usage_quotas.update_one(
-                {
-                    "provider": "openai",
-                    "key_owner": key_owner,
-                    "period": current_month
-                },
+            db.api_usage_quotas.update_one(
+                {"provider": "openai", "key_owner": key_owner, "period": current_month},
                 {
                     "$inc": {
-                        "calls": 1,
-                        "tokens": tokens_used,
+                        "calls": 1, 
+                        "tokens": tokens_used, 
                         "errors": 0 if success else 1
                     },
-                    "$set": {
-                        "updated_at": datetime.now(timezone.utc)
-                    }
+                    "$set": {"updated_at": datetime.now(timezone.utc)}
                 },
                 upsert=True
             )
-
-            # Properly close the async connection
-            await client.close()
-
         except Exception as e:
-            print(f"[TrackedOpenAIClient] Error in _async_log_call_local: {e}")
-
-    async def _async_log_call(self, endpoint, key_owner, duration_ms, success, error_message, tokens_used):
-        """Async method to log API call and update quotas"""
-        try:
-            await api_metrics_dao.log_api_call(
-                provider="openai",
-                endpoint=endpoint,
-                key_owner=key_owner,
-                duration_ms=duration_ms,
-                success=success,
-                error_message=error_message,
-                tokens_used=tokens_used
-            )
-
-            current_month = datetime.now(timezone.utc).strftime("%Y-%m")
-            await api_metrics_dao.increment_usage(
-                provider="openai",
-                key_owner=key_owner,
-                period=current_month,
-                calls=1,
-                tokens=tokens_used,
-                errors=0 if success else 1
-            )
-        except Exception as e:
-            print(f"[TrackedOpenAIClient] Error in _async_log_call: {e}")
+            print(f"[TrackedOpenAIClient] Logging failed: {e}")
+        finally:
+            if client:
+                client.close()
 
     @property
     def chat(self):
-        """Return tracked chat interface"""
         return TrackedChatInterface(self)
 
 
 class TrackedChatInterface:
-    """Tracked wrapper for OpenAI chat interface"""
-
     def __init__(self, tracked_client):
         self.tracked_client = tracked_client
         self.client = tracked_client.client
 
     @property
     def completions(self):
-        """Return tracked completions interface"""
         return TrackedCompletionsInterface(self.tracked_client)
 
 
 class TrackedCompletionsInterface:
-    """Tracked wrapper for OpenAI chat completions"""
-
     def __init__(self, tracked_client):
         self.tracked_client = tracked_client
         self.client = tracked_client.client
 
     def create(self, **kwargs):
-        """Tracked version of OpenAI chat.completions.create()"""
         start_time = time.time()
         success = False
         error_message = None
@@ -387,12 +243,12 @@ class TrackedCompletionsInterface:
 
         except Exception as e:
             error_message = str(e)
-            print(f"[TrackedOpenAIClient] OpenAI API call failed: {error_message}")
+            print(f"[TrackedOpenAIClient] Request Failed: {error_message}")
 
         finally:
-            duration_ms = (time.time() - start_time) * 1000
+            duration = (time.time() - start_time) * 1000
             self.tracked_client._log_call_sync(
-                "chat.completions", self.tracked_client.key_owner, duration_ms, success, error_message, tokens_used
+                "chat.completions", self.tracked_client.key_owner, duration, success, error_message, tokens_used
             )
 
         if not success:
