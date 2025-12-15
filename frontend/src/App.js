@@ -37,6 +37,7 @@ import SharingAndFeedbackPage from "./pages/resumes/SharingAndFeedbackPage";
 import PublicSharePage from "./pages/resumes/PublicSharePage";
 import ExportResumePage from "./pages/resumes/ExportResumePage";
 import TemplateLibraryPage from "./pages/resumes/TemplateLibraryPage";
+import MaterialComparisonDashboard from "./pages/materials/MaterialComparisonDashboard";
 import QuestionLibrary from "./pages/interview/QuestionLibrary";
 import IndustryRoles from "./pages/interview/IndustryRoles";
 import RoleQuestions from "./pages/interview/RoleQuestions";
@@ -142,6 +143,7 @@ export function App() {
               <Route path="/resumes/feedback/:id" element={<SharingAndFeedbackPage />} />
               <Route path="/resumes/public/:token" element={<PublicSharePage />} />
               <Route path="/resumes/export/:id" element={<ExportResumePage />} />
+              <Route path="/materials/comparison" element={<MaterialComparisonDashboard />} />
 
               {/* Interview Question Bank Routes */}
               <Route path="/interview/question-library" element={<QuestionLibrary />} />

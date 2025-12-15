@@ -90,6 +90,63 @@ class OffersAPI {
             throw error;
         }
     }
+
+    // ============================================
+    // UC-127: Offer Evaluation & Comparison
+    // ============================================
+
+    // Total Compensation Calculation
+    calculateTotalComp(offerId) {
+        return api.post(`${BASE_URL}/${offerId}/calculate-total-comp`);
+    }
+
+    // Equity Valuation
+    calculateEquity(offerId, equityData) {
+        return api.post(`${BASE_URL}/${offerId}/calculate-equity`, equityData);
+    }
+
+    // Benefits Monetary Valuation
+    calculateBenefits(offerId, benefitsData) {
+        return api.post(`${BASE_URL}/${offerId}/calculate-benefits`, benefitsData);
+    }
+
+    // Cost of Living Adjustment
+    calculateCostOfLiving(offerId) {
+        return api.post(`${BASE_URL}/${offerId}/calculate-col`);
+    }
+
+    // Offer Scoring
+    calculateOfferScore(offerId, nonFinancialFactors, marketMedian = null, weights = null) {
+        return api.post(`${BASE_URL}/${offerId}/calculate-score`, {
+            non_financial_factors: nonFinancialFactors,
+            market_median: marketMedian,
+            weights: weights
+        });
+    }
+
+    // Scenario Analysis
+    runScenarioAnalysis(offerId, scenarios) {
+        return api.post(`${BASE_URL}/${offerId}/scenario-analysis`, scenarios);
+    }
+
+    // Side-by-Side Comparison
+    compareOffers(offerIds, weights = null) {
+        return api.post(`${BASE_URL}/compare`, { offer_ids: offerIds, weights });
+    }
+
+    // Archive Offer
+    archiveOffer(offerId, declineReason = null) {
+        return api.post(`${BASE_URL}/${offerId}/archive`, { decline_reason: declineReason });
+    }
+
+    // Get Active/Archived Offers
+    getActiveOffers() {
+        return api.get(`${BASE_URL}/active`);
+    }
+
+    getArchivedOffers() {
+        return api.get(`${BASE_URL}/archived`);
+    }
 }
 
 export default new OffersAPI();

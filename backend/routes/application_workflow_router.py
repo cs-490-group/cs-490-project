@@ -2,11 +2,12 @@
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from typing import Optional
+from datetime import datetime, timezone, timedelta
 
 # DAOs
 from mongo.application_workflow_dao import application_workflow_dao
 from mongo.application_analytics_dao import application_analytics_dao
-from mongo.jobs_dao import jobs_dao  # Needed for bulk apply
+from mongo.jobs_dao import jobs_dao
 
 # AUTH
 from sessions.session_authorizer import authorize
@@ -20,11 +21,12 @@ from schema.ApplicationWorkflow import (
     BulkPackageCreate, BulkScheduleCreate, BulkScheduleCancel,
     ApplicationChecklist, ChecklistUpdate,
     StatusUpdate, DateRange, ApplicationGoal, GoalUpdate,
-    FollowUpReminder, ReminderUpdate
+    FollowUpReminder, ReminderUpdate,
+    QualityAnalysisRequest, PackageQualityAnalysis,
+    QualityScoreBreakdown, QualitySuggestion
 )
 
 from services.scheduling_service import scheduling_service
-from datetime import datetime, timezone
 
 workflow_router = APIRouter(prefix="/application-workflow", tags=["workflow"])
 
@@ -105,8 +107,6 @@ async def delete_application_package(
     return {"detail": "Package deleted"}
 
 
-
-
 @workflow_router.post("/packages/{package_id}/use")
 async def mark_package_used(
     package_id: str,
@@ -122,9 +122,8 @@ async def mark_package_used(
     return {"detail": "Package marked as used"}
 
 
-
 # ================================================================
-# ⭐ BULK APPLY
+# BULK APPLY
 # ================================================================
 
 @workflow_router.post("/bulk-apply")
@@ -201,6 +200,91 @@ async def cancel_scheduled_application(
     if updated == 0:
         raise HTTPException(400, "Schedule not found")
     return {"detail": "Schedule cancelled"}
+
+
+@workflow_router.post("/schedules/{schedule_id}/mark-complete")
+async def mark_schedule_complete(
+    schedule_id: str,
+    notes: Optional[str] = Body(None, embed=True),
+    uuid: str = Depends(authorize)
+):
+    """
+    Manually mark a scheduled application as completed
+    (e.g., if user submitted it manually before scheduled time)
+    """
+    try:
+        schedule = await application_workflow_dao.get_schedule_by_id(schedule_id)
+        if not schedule:
+            raise HTTPException(404, "Schedule not found")
+        
+        if schedule.get("uuid") != uuid:
+            raise HTTPException(403, "Not authorized")
+        
+        if schedule.get("status") == "completed":
+            raise HTTPException(400, "Schedule already completed")
+        
+        job_id = schedule["job_id"]
+        package_id = schedule["package_id"]
+        
+        await application_workflow_dao.update_schedule_status(
+            schedule_id,
+            status='completed',
+            notes=notes or "Marked complete manually by user"
+        )
+        
+        await jobs_dao.update_job(job_id, {
+            'submitted': True,
+            'submitted_at': datetime.now(timezone.utc).isoformat(),
+            'status': 'SUBMITTED',
+            'application_package_id': package_id
+        })
+        
+        await application_workflow_dao.increment_package_usage(package_id)
+        
+        return {
+            "detail": "Schedule marked as completed",
+            "schedule_id": schedule_id,
+            "completed_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error marking schedule complete: {e}")
+        raise HTTPException(500, f"Failed to mark schedule complete: {str(e)}")
+
+
+@workflow_router.get("/schedules/upcoming")
+async def get_upcoming_schedules(
+    hours: int = 24,
+    uuid: str = Depends(authorize)
+):
+    """Get schedules due within X hours"""
+    now = datetime.now(timezone.utc)
+    future_time = now + timedelta(hours=hours)
+    
+    schedules = await application_workflow_dao.get_schedules_by_time_range(
+        start_time=now,
+        end_time=future_time
+    )
+    
+    user_schedules = [s for s in schedules if s.get('uuid') == uuid]
+    
+    enriched = []
+    for schedule in user_schedules:
+        job = await jobs_dao.get_job(schedule['job_id'])
+        package = await application_workflow_dao.get_application_package(schedule['package_id'])
+        
+        enriched.append({
+            **schedule,
+            'job': job,
+            'package': package,
+            'hours_until': (
+                datetime.fromisoformat(schedule['scheduled_time'].replace('Z', '+00:00')) - now
+            ).total_seconds() / 3600
+        })
+    
+    return {"schedules": enriched, "count": len(enriched)}
 
 
 # ================================================================
@@ -388,20 +472,14 @@ async def set_manual_response_date(
     uuid: str = Depends(authorize)
 ):
     """Manually set response date for a job"""
-    from datetime import datetime, timezone
-    from bson import ObjectId
-
     try:
-        # Get job
         job = await jobs_dao.get_job(job_id)
         if not job:
             raise HTTPException(404, "Job not found")
 
-        # Verify ownership
         if job.get("uuid") != uuid:
             raise HTTPException(403, "Unauthorized")
 
-        # Parse response date
         try:
             responded_at = datetime.fromisoformat(response_date.replace('Z', '+00:00'))
             if responded_at.tzinfo is None:
@@ -409,10 +487,8 @@ async def set_manual_response_date(
         except ValueError:
             raise HTTPException(400, "Invalid date format. Use ISO format (YYYY-MM-DD)")
 
-        # Get submitted_at - check date_applied first, then response_tracking
         submitted_at = None
 
-        # Priority 1: Use date_applied if provided
         if job.get("date_applied"):
             try:
                 submitted_at = datetime.fromisoformat(job["date_applied"].replace('Z', '+00:00'))
@@ -421,7 +497,6 @@ async def set_manual_response_date(
             except Exception:
                 pass
 
-        # Priority 2: Use response_tracking.submitted_at
         if not submitted_at:
             response_tracking = job.get("response_tracking", {})
             submitted_at = response_tracking.get("submitted_at")
@@ -429,17 +504,14 @@ async def set_manual_response_date(
         if not submitted_at:
             raise HTTPException(400, "No submission date found for this job")
 
-        # Ensure timezone-aware
         if submitted_at.tzinfo is None:
             submitted_at = submitted_at.replace(tzinfo=timezone.utc)
 
-        # Calculate response days
         response_days = (responded_at - submitted_at).days
 
         if response_days < 0:
             raise HTTPException(400, f"Response date cannot be before submission date. Submitted: {submitted_at.date()}, Response: {responded_at.date()}")
 
-        # Update job
         update_data = {
             "response_tracking": {
                 "submitted_at": submitted_at,
@@ -471,6 +543,7 @@ async def set_manual_response_date(
 async def get_goals(uuid: str = Depends(authorize)):
     return await application_analytics_dao.get_user_goals(uuid)
 
+
 # ================================================================
 # SCHEDULING EMAIL NOTIFICATIONS (UC-124)
 # ================================================================
@@ -483,7 +556,6 @@ async def send_schedule_reminder_email(
 ):
     """Send reminder email for an upcoming scheduled application"""
     try:
-        # Get schedule details
         schedule = await application_workflow_dao.get_schedule_by_id(schedule_id)
         if not schedule:
             raise HTTPException(404, "Schedule not found")
@@ -491,22 +563,18 @@ async def send_schedule_reminder_email(
         if schedule.get("uuid") != uuid:
             raise HTTPException(403, "Not authorized")
         
-        # Get job details
         job = await jobs_dao.get_job(schedule["job_id"])
         if not job:
             raise HTTPException(404, "Job not found")
         
-        # Get package details
         package = await application_workflow_dao.get_application_package(schedule["package_id"])
         if not package:
             raise HTTPException(404, "Package not found")
         
-        # Extract company name
         company_name = job.get("company")
         if isinstance(company_name, dict):
             company_name = company_name.get("name", "Unknown Company")
         
-        # Calculate hours until scheduled time
         scheduled_time = schedule.get("scheduled_time") or schedule.get("run_at")
         try:
             scheduled_dt = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
@@ -515,7 +583,6 @@ async def send_schedule_reminder_email(
         except:
             hours_until = 0
         
-        # Send reminder email
         result = scheduling_service.send_scheduled_submission_reminder(
             recipient_email=recipient_email,
             job_title=job.get("title", "Position"),
@@ -548,7 +615,6 @@ async def send_job_deadline_reminder(
 ):
     """Send deadline reminder email for a job"""
     try:
-        # Get job details
         job = await jobs_dao.get_job(job_id)
         if not job:
             raise HTTPException(404, "Job not found")
@@ -556,17 +622,14 @@ async def send_job_deadline_reminder(
         if job.get("uuid") != uuid:
             raise HTTPException(403, "Not authorized")
         
-        # Check if job has deadline
         deadline = job.get("deadline")
         if not deadline:
             raise HTTPException(400, "Job has no deadline set")
         
-        # Extract company name
         company_name = job.get("company")
         if isinstance(company_name, dict):
             company_name = company_name.get("name", "Unknown Company")
         
-        # Calculate days until deadline
         try:
             deadline_dt = datetime.fromisoformat(deadline.replace('Z', '+00:00'))
             now = datetime.now(timezone.utc)
@@ -574,7 +637,6 @@ async def send_job_deadline_reminder(
         except:
             days_until = 0
         
-        # Send deadline reminder
         result = scheduling_service.send_deadline_reminder(
             recipient_email=recipient_email,
             job_title=job.get("title", "Position"),
@@ -606,7 +668,6 @@ async def notify_scheduled_submission(
 ):
     """Send confirmation that scheduled application was submitted"""
     try:
-        # Get schedule details
         schedule = await application_workflow_dao.get_schedule_by_id(schedule_id)
         if not schedule:
             raise HTTPException(404, "Schedule not found")
@@ -614,26 +675,21 @@ async def notify_scheduled_submission(
         if schedule.get("uuid") != uuid:
             raise HTTPException(403, "Not authorized")
         
-        # Verify schedule was completed
         if schedule.get("status") != "completed":
             raise HTTPException(400, "Schedule has not been completed yet")
         
-        # Get job details
         job = await jobs_dao.get_job(schedule["job_id"])
         if not job:
             raise HTTPException(404, "Job not found")
         
-        # Get package details
         package = await application_workflow_dao.get_application_package(schedule["package_id"])
         if not package:
             raise HTTPException(404, "Package not found")
         
-        # Extract company name
         company_name = job.get("company")
         if isinstance(company_name, dict):
             company_name = company_name.get("name", "Unknown Company")
         
-        # Send submission success notification
         result = scheduling_service.send_submission_success_notification(
             recipient_email=recipient_email,
             job_title=job.get("title", "Position"),
@@ -665,10 +721,8 @@ async def notify_scheduled_submission(
 async def get_submission_timing_analytics(uuid: str = Depends(authorize)):
     """Get analytics about application submission timing"""
     try:
-        # Get all user's jobs
         jobs = await jobs_dao.get_all_jobs(uuid)
         
-        # Analyze submission patterns
         day_of_week_stats = {}
         hour_of_day_stats = {}
         response_rates_by_day = {}
@@ -684,13 +738,9 @@ async def get_submission_timing_analytics(uuid: str = Depends(authorize)):
                 day_name = dt.strftime("%A")
                 hour = dt.hour
                 
-                # Count submissions by day
                 day_of_week_stats[day_name] = day_of_week_stats.get(day_name, 0) + 1
-                
-                # Count submissions by hour
                 hour_of_day_stats[hour] = hour_of_day_stats.get(hour, 0) + 1
                 
-                # Track response rates
                 has_response = job.get("status") not in [None, "Applied", "Wishlist"]
                 
                 if day_name not in response_rates_by_day:
@@ -707,7 +757,6 @@ async def get_submission_timing_analytics(uuid: str = Depends(authorize)):
             except:
                 continue
         
-        # Calculate response rate percentages
         day_response_rates = {}
         for day, stats in response_rates_by_day.items():
             if stats["total"] > 0:
@@ -718,7 +767,6 @@ async def get_submission_timing_analytics(uuid: str = Depends(authorize)):
             if stats["total"] > 0:
                 hour_response_rates[hour] = round((stats["responses"] / stats["total"]) * 100, 1)
         
-        # Best practices
         best_practices = {
             "optimal_days": [
                 {
@@ -770,7 +818,6 @@ def generate_timing_insights(
     """Generate personalized insights based on user's submission patterns"""
     insights = []
     
-    # Check if user submits on suboptimal days
     weekend_submissions = day_stats.get("Saturday", 0) + day_stats.get("Sunday", 0)
     if weekend_submissions > 0:
         insights.append({
@@ -778,7 +825,6 @@ def generate_timing_insights(
             "message": f"You've submitted {weekend_submissions} applications on weekends. Consider scheduling these for Tuesday or Wednesday instead for better engagement."
         })
     
-    # Check if user has a best performing day
     if day_response_rates:
         best_day = max(day_response_rates.items(), key=lambda x: x[1])
         if best_day[1] > 30:
@@ -790,167 +836,337 @@ def generate_timing_insights(
     return insights
 
 
-    @workflow_router.get("/calendar-view")
-    async def get_calendar_view(
-        start_date: str = Query(...),
-        end_date: str = Query(...),
-        uuid: str = Depends(authorize)
-    ):
-        """Get calendar view of scheduled and completed applications"""
-        try:
-            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+@workflow_router.get("/calendar-view")
+async def get_calendar_view(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    uuid: str = Depends(authorize)
+):
+    """Get calendar view of scheduled and completed applications"""
+    try:
+        start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        
+        schedules = await application_workflow_dao.get_scheduled_applications(uuid)
+        jobs = await jobs_dao.get_all_jobs(uuid)
+        
+        calendar_events = []
+        
+        for schedule in schedules:
+            scheduled_time = schedule.get("scheduled_time")
+            if not scheduled_time:
+                continue
             
-            # Get scheduled applications
-            schedules = await application_workflow_dao.get_scheduled_applications(uuid)
-            
-            # Get all jobs
-            jobs = await jobs_dao.get_all_jobs(uuid)
-            
-            calendar_events = []
-            
-            # Add scheduled applications
-            for schedule in schedules:
-                scheduled_time = schedule.get("scheduled_time")
-                if not scheduled_time:
-                    continue
-                
-                try:
-                    dt = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
-                    if start_dt <= dt <= end_dt:
-                        job = await jobs_dao.get_job(schedule["job_id"])
-                        if job:
-                            company = job.get("company")
-                            if isinstance(company, dict):
-                                company = company.get("name", "Unknown")
-                            
-                            calendar_events.append({
-                                "id": str(schedule.get("_id")),
-                                "type": "scheduled",
-                                "title": f"📅 {job.get('title', 'Application')}",
-                                "company": company,
-                                "date": scheduled_time,
-                                "status": schedule.get("status", "scheduled"),
-                                "job_id": schedule["job_id"],
-                                "schedule_id": str(schedule.get("_id"))
-                            })
-                except:
-                    continue
-            
-            # Sort by date
-            calendar_events.sort(key=lambda x: x["date"])
-            
-            return {
-                "events": calendar_events,
-                "summary": {
-                    "total_events": len(calendar_events),
-                    "scheduled": len([e for e in calendar_events if e["type"] == "scheduled"]),
-                    "submitted": len([e for e in calendar_events if e["type"] == "submitted"]),
-                    "deadlines": len([e for e in calendar_events if e["type"] == "deadline"])
-                }
-            }
-            
-        except Exception as e:
-            print(f"Error getting calendar view: {e}")
-            raise HTTPException(500, "Failed to get calendar view")
-
-    @workflow_router.get("/scheduler/health")
-    async def scheduler_health_check():
-        """Check scheduler health"""
-        from services.background_scheduler_service import background_scheduler
+            try:
+                dt = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
+                if start_dt <= dt <= end_dt:
+                    job = await jobs_dao.get_job(schedule["job_id"])
+                    if job:
+                        company = job.get("company")
+                        if isinstance(company, dict):
+                            company = company.get("name", "Unknown")
+                        
+                        calendar_events.append({
+                            "id": str(schedule.get("_id")),
+                            "type": "scheduled",
+                            "title": f"📅 {job.get('title', 'Application')}",
+                            "company": company,
+                            "date": scheduled_time,
+                            "status": schedule.get("status", "scheduled"),
+                            "job_id": schedule["job_id"],
+                            "schedule_id": str(schedule.get("_id"))
+                        })
+            except:
+                continue
+        
+        calendar_events.sort(key=lambda x: x["date"])
         
         return {
-            "scheduler_running": background_scheduler.is_running,
-            "check_interval_seconds": background_scheduler.check_interval,
-            "current_time": datetime.now(timezone.utc).isoformat()
+            "events": calendar_events,
+            "summary": {
+                "total_events": len(calendar_events),
+                "scheduled": len([e for e in calendar_events if e["type"] == "scheduled"]),
+                "submitted": len([e for e in calendar_events if e["type"] == "submitted"]),
+                "deadlines": len([e for e in calendar_events if e["type"] == "deadline"])
+            }
         }
+        
+    except Exception as e:
+        print(f"Error getting calendar view: {e}")
+        raise HTTPException(500, "Failed to get calendar view")
 
-    @workflow_router.get("/schedules/upcoming")
-    async def get_upcoming_schedules(
-        hours: int = 24,
-        uuid: str = Depends(authorize)
-    ):
-        """Get schedules due within X hours"""
-        now = datetime.now(timezone.utc)
-        future_time = now + timedelta(hours=hours)
-        
-        schedules = await application_workflow_dao.get_schedules_by_time_range(
-            start_time=now,
-            end_time=future_time
-        )
-        
-        # Filter by user and enrich
-        user_schedules = [s for s in schedules if s.get('uuid') == uuid]
-        
-        enriched = []
-        for schedule in user_schedules:
-            job = await jobs_dao.get_job(schedule['job_id'])
-            package = await application_workflow_dao.get_application_package(schedule['package_id'])
-            
-            enriched.append({
-                **schedule,
-                'job': job,
-                'package': package,
-                'hours_until': (
-                    datetime.fromisoformat(schedule['scheduled_time'].replace('Z', '+00:00')) - now
-                ).total_seconds() / 3600
-            })
-        
-        return {"schedules": enriched, "count": len(enriched)}
 
-@workflow_router.post("/schedules/{schedule_id}/mark-complete")
-async def mark_schedule_complete(
-    schedule_id: str,
-    notes: Optional[str] = Body(None, embed=True),
+@workflow_router.get("/scheduler/health")
+async def scheduler_health_check():
+    """Check scheduler health"""
+    from services.background_scheduler_service import background_scheduler
+    
+    return {
+        "scheduler_running": background_scheduler.is_running,
+        "check_interval_seconds": background_scheduler.check_interval,
+        "current_time": datetime.now(timezone.utc).isoformat()
+    }
+
+
+# ================================================================
+# UC-122: QUALITY ANALYSIS
+# ================================================================
+
+@workflow_router.post("/analyze-quality")
+async def analyze_package_quality(
+    request: QualityAnalysisRequest,
     uuid: str = Depends(authorize)
 ):
     """
-    Manually mark a scheduled application as completed
-    (e.g., if user submitted it manually before scheduled time)
+    UC-122: AI-powered quality scoring for application packages
+    Uses Cohere as primary, OpenAI as fallback
     """
+    import json
+    import os
+    
     try:
-        # Get schedule details
-        schedule = await application_workflow_dao.get_schedule_by_id(schedule_id)
-        if not schedule:
-            raise HTTPException(404, "Schedule not found")
+        print(f"🔍 Analyzing package: {request.package_id}, job: {request.job_id}, user: {uuid}")
         
-        if schedule.get("uuid") != uuid:
-            raise HTTPException(403, "Not authorized")
+        package = await application_workflow_dao.get_application_package(request.package_id)
+        print(f"📦 Package found: {package is not None}")
+        if package:
+            print(f"   Package name: {package.get('name')}, uuid: {package.get('uuid')}")
         
-        # Check if already completed
-        if schedule.get("status") == "completed":
-            raise HTTPException(400, "Schedule already completed")
+        if not package:
+            raise HTTPException(status_code=404, detail=f"Package not found with ID: {request.package_id}")
+        if package.get("uuid") != uuid:
+            raise HTTPException(status_code=403, detail="Not authorized to access this package")
         
-        # Mark schedule as completed
-        job_id = schedule["job_id"]
-        package_id = schedule["package_id"]
+        job = await jobs_dao.get_job(request.job_id)
+        print(f"💼 Job found: {job is not None}")
+        if job:
+            print(f"   Job title: {job.get('title')}, uuid: {job.get('uuid')}")
         
-        # Update schedule status
-        await application_workflow_dao.update_schedule_status(
-            schedule_id,
-            status='completed',
-            notes=notes or "Marked complete manually by user"
+        if not job:
+            raise HTTPException(status_code=404, detail=f"Job not found with ID: {request.job_id}")
+        if job.get("uuid") != uuid:
+            raise HTTPException(status_code=403, detail="Not authorized to access this job")
+        
+        resume_content = ""
+        if package.get("resume_id"):
+            print(f"📄 Fetching resume: {package.get('resume_id')}")
+            from mongo.resumes_dao import resumes_dao
+            try:
+                resume = await resumes_dao.get_resume(package["resume_id"])
+                if resume:
+                    resume_content = format_resume_for_analysis(resume)
+                    print(f"   Resume loaded: {len(resume_content)} chars")
+                else:
+                    print(f"   Resume not found")
+            except Exception as e:
+                print(f"   Resume fetch error: {e}")
+        
+        cover_letter_content = ""
+        if package.get("cover_letter_id"):
+            print(f"✉️ Fetching cover letter: {package.get('cover_letter_id')}")
+            from mongo.cover_letters_dao import cover_letters_dao
+            try:
+                cover_letter = await cover_letters_dao.get_cover_letter(
+                    package["cover_letter_id"], 
+                    uuid
+                )
+                if cover_letter:
+                    cover_letter_content = cover_letter.get("content", "")
+                    print(f"   Cover letter loaded: {len(cover_letter_content)} chars")
+                else:
+                    print(f"   Cover letter not found")
+            except Exception as e:
+                print(f"   Cover letter fetch error: {e}")
+        
+        company_name = "Unknown Company"
+        
+        if job.get("company_data"):
+            company_data = job["company_data"]
+            if isinstance(company_data, dict):
+                company_name = company_data.get("name") or company_data.get("industry") or company_data.get("location") or company_name
+        
+        if company_name == "Unknown Company":
+            company = job.get("company")
+            if company:
+                if isinstance(company, dict):
+                    company_name = company.get("name", "Unknown Company")
+                else:
+                    company_name = str(company)
+        
+        job_description = f"""
+Title: {job.get('title', 'N/A')}
+Company: {company_name}
+Location: {job.get('location', 'N/A')}
+Description: {job.get('description', 'N/A')}
+        """.strip()
+        
+        print(f"✅ All data fetched successfully. Starting AI analysis...")
+        
+        analysis_prompt = f"""Analyze this job application package and provide a detailed quality score.
+
+JOB POSTING:
+{job_description}
+
+RESUME:
+{resume_content if resume_content else "No resume attached"}
+
+COVER LETTER:
+{cover_letter_content if cover_letter_content else "No cover letter attached"}
+
+Please analyze and provide:
+1. Overall quality score (0-100)
+2. Score breakdown for: resume alignment, cover letter quality, keyword match, formatting
+3. Missing keywords from job description (max 5)
+4. Formatting issues (max 3)
+5. Prioritized improvement suggestions (max 4, with high/medium/low priority)
+6. Whether this meets a 70/100 threshold for submission
+
+Respond ONLY with valid JSON matching this exact structure (no markdown, no extra text):
+{{
+  "overallScore": 85,
+  "breakdown": {{
+    "resumeAlignment": 80,
+    "coverLetterQuality": 90,
+    "keywordMatch": 75,
+    "formatting": 95
+  }},
+  "missingKeywords": ["Python", "AWS", "Docker"],
+  "formattingIssues": ["Resume exceeds 2 pages", "Inconsistent date formatting"],
+  "suggestions": [
+    {{
+      "priority": "high",
+      "category": "Keywords",
+      "issue": "Missing critical technical skills from job posting",
+      "action": "Add Python, AWS, and Docker to your skills section with specific project examples"
+    }},
+    {{
+      "priority": "medium",
+      "category": "Experience",
+      "issue": "Limited quantifiable achievements in recent roles",
+      "action": "Add metrics to your last 2-3 positions (e.g., 'improved efficiency by 30%')"
+    }}
+  ],
+  "canSubmit": true,
+  "minimumThreshold": 70
+}}"""
+
+        analysis_data = None
+        
+        try:
+            import cohere
+            cohere_client = cohere.Client(api_key=os.getenv("COHERE_API_KEY"))
+            
+            print("🤖 Calling Cohere API...")
+            cohere_response = cohere_client.chat(
+                model="command-r-plus-08-2024",
+                message=analysis_prompt,
+                temperature=0.3,
+                max_tokens=4000
+            )
+            
+            response_text = cohere_response.text
+            response_text = response_text.replace("```json", "").replace("```", "").strip()
+            analysis_data = json.loads(response_text)
+            print("✓ Quality analysis completed with Cohere")
+            
+        except Exception as cohere_error:
+            print(f"⚠️ Cohere failed: {str(cohere_error)}, falling back to OpenAI...")
+            
+            try:
+                import openai
+                openai.api_key = os.getenv("OPENAI_API_KEY")
+                
+                print("🤖 Calling OpenAI API...")
+                openai_response = openai.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are an expert resume and job application analyst. Respond only with valid JSON."},
+                        {"role": "user", "content": analysis_prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=4000
+                )
+                
+                response_text = openai_response.choices[0].message.content
+                response_text = response_text.replace("```json", "").replace("```", "").strip()
+                analysis_data = json.loads(response_text)
+                print("✓ Quality analysis completed with OpenAI (fallback)")
+                
+            except Exception as openai_error:
+                print(f"❌ OpenAI also failed: {str(openai_error)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Both Cohere and OpenAI failed. Cohere: {str(cohere_error)}, OpenAI: {str(openai_error)}"
+                )
+        
+        if not analysis_data:
+            raise HTTPException(status_code=500, detail="Failed to get analysis from AI providers")
+        
+        user_avg_score = await application_workflow_dao.get_user_average_quality_score(uuid)
+        comparison = analysis_data["overallScore"] - user_avg_score
+        print(f"📊 Score: {analysis_data['overallScore']}, User avg: {user_avg_score}, Diff: {comparison}")
+        
+        score_history = await application_workflow_dao.get_package_score_history(request.package_id)
+        
+        await application_workflow_dao.save_quality_analysis(
+            package_id=request.package_id,
+            job_id=request.job_id,
+            score=analysis_data["overallScore"],
+            analysis_data=analysis_data,
+            user_id=uuid
         )
         
-        # Update the job status to submitted
-        await jobs_dao.update_job(job_id, {
-            'submitted': True,
-            'submitted_at': datetime.now(timezone.utc).isoformat(),
-            'status': 'SUBMITTED',
-            'application_package_id': package_id
-        })
+        await application_workflow_dao.update_package(
+            request.package_id,
+            {"lastScore": analysis_data["overallScore"]}
+        )
         
-        # Increment package usage counter
-        await application_workflow_dao.increment_package_usage(package_id)
+        print("✅ Analysis complete and saved!")
         
         return {
-            "detail": "Schedule marked as completed",
-            "schedule_id": schedule_id,
-            "completed_at": datetime.now(timezone.utc).isoformat()
+            **analysis_data,
+            "comparisonToAverage": comparison,
+            "scoreHistory": score_history
         }
         
     except HTTPException:
         raise
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON Parse Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI analysis: {str(e)}")
     except Exception as e:
-        print(f"Error marking schedule complete: {e}")
-        raise HTTPException(500, f"Failed to mark schedule complete: {str(e)}")
+        print(f"❌ Analysis error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+def format_resume_for_analysis(resume: dict) -> str:
+    """Format resume data into readable text for AI analysis"""
+    parts = []
+    
+    if resume.get("contact"):
+        contact = resume["contact"]
+        parts.append(f"Name: {contact.get('name', 'N/A')}")
+        parts.append(f"Email: {contact.get('email', 'N/A')}")
+    
+    if resume.get("summary"):
+        parts.append(f"\nSUMMARY:\n{resume['summary']}")
+    
+    if resume.get("experience"):
+        parts.append("\nEXPERIENCE:")
+        for exp in resume["experience"]:
+            parts.append(f"\n{exp.get('title', 'Position')} at {exp.get('company', 'Company')}")
+            if exp.get('description'):
+                parts.append(f"  {exp['description']}")
+    
+    if resume.get("skills"):
+        skills_list = []
+        for skill in resume["skills"]:
+            if isinstance(skill, dict):
+                skills_list.append(skill.get("name", ""))
+            else:
+                skills_list.append(str(skill))
+        parts.append(f"\nSKILLS: {', '.join(filter(None, skills_list))}")
+    
+    return "\n".join(parts)

@@ -63,6 +63,7 @@ from services.application_workflow_scheduler import (
 from routes.salary_research_routes import salary_research_router
 from routes.api_metrics import router as api_metrics_router
 from routes.emails_router import emails_router
+from routes.material_comparison_router import material_comparison_router
 
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -155,6 +156,7 @@ app.include_router(network_analytics_router, prefix = api_prefix)
 app.include_router(performance_analytics_router, prefix = api_prefix)
 app.include_router(api_metrics_router, prefix = f"{api_prefix}/metrics")
 app.include_router(emails_router, prefix=api_prefix)
+app.include_router(material_comparison_router, prefix = api_prefix)
 
 
 @app.on_event("startup")
