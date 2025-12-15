@@ -6,6 +6,7 @@ import CoverLetterAPI from "../../api/coverLetters";
 import api from "../../api/base";
 import { SingleJobLocation } from "./JobLocationMap";
 import ProfilesAPI from "../../api/profiles";
+import LinkedEmailsTab from "./LinkedEmailsTab";
 
 export default function JobDetailsModal({
   selectedJob,
@@ -47,7 +48,6 @@ export default function JobDetailsModal({
 
         console.log('📥 Downloading resume PDF for resume ID:', resumeId);
         
-        // Call the resume export API endpoint
         const response = await api.post(
           `/resumes/${resumeId}/export-pdf`,
           {},
@@ -60,7 +60,6 @@ export default function JobDetailsModal({
           throw new Error('Failed to generate resume PDF');
         }
 
-        // Download the file
         const fileName = selectedJob.materials?.resume_name || 'resume';
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -74,7 +73,6 @@ export default function JobDetailsModal({
         alert('✅ Resume PDF downloaded successfully!');
         
       } else {
-        // Cover letter logic
         const coverLetterId = selectedJob.materials?.cover_letter_id;
         
         if (!coverLetterId) {
@@ -92,7 +90,6 @@ export default function JobDetailsModal({
           throw new Error('Cover letter content not found');
         }
 
-        // Generate PDF from HTML content using html2canvas + jsPDF
         const html2canvas = (await import('html2canvas')).default;
         const jsPDF = (await import('jspdf')).default;
         
@@ -217,6 +214,7 @@ export default function JobDetailsModal({
           { id: "news", label: "News" },
           { id: "location", label: "Location" },
           { id: "materials", label: "Materials" },
+          { id: "emails", label: "Emails" },
           { id: "history", label: "History" },
           ].map((tab) => (
           <button
@@ -642,102 +640,7 @@ export default function JobDetailsModal({
           <SingleJobLocation job={selectedJob} ProfilesAPI={ProfilesAPI} />
         )}
 
-        {/* --- BASIC JOB DETAILS --- */}
-        {/*selectedJob.location && (
-          <div style={{ marginBottom: "16px", color: "#000" }}>
-            <strong>Location:</strong> {selectedJob.location}
-          </div>
-        )}
-
-        {selectedJob.salary && (
-          <div style={{ marginBottom: "16px", color: "#000" }}>
-            <strong>Salary:</strong> {selectedJob.salary}
-          </div>
-        )}
-
-        {selectedJob.deadline && (
-          <div style={{ marginBottom: "16px", color: "#000" }}>
-            <strong>Deadline:</strong> {new Date(selectedJob.deadline).toLocaleDateString()}
-
-            <button
-              onClick={() => setReminderJob(selectedJob)}
-              style={{
-                marginLeft: "12px",
-                padding: "6px 12px",
-                background: "#ff9800",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: "600"
-              }}
-            >
-              ⏰ Set Reminder
-            </button>
-
-            <button
-              onClick={() => {
-                const newDeadline = prompt("Enter new deadline (YYYY-MM-DD):", selectedJob.deadline);
-                if (newDeadline) {
-                  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-                  if (dateRegex.test(newDeadline)) {
-                    updateJob({ ...selectedJob, deadline: newDeadline });
-                  } else {
-                    alert("Invalid date format. Please use YYYY-MM-DD");
-                  }
-                }
-              }}
-              style={{
-                marginLeft: "8px",
-                padding: "6px 12px",
-                background: "#2196f3",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: "600"
-              }}
-            >
-              📅 Extend Deadline
-            </button>
-          </div>
-        )}
-
-        {selectedJob.url && (
-          <div style={{ marginBottom: "16px", color: "#000" }}>
-            <strong>Link:</strong>{" "}
-            <a
-              href={selectedJob.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "#4f8ef7", textDecoration: "underline" }}
-            >
-              View Job Posting →
-            </a>
-          </div>
-        )}
-
-        {selectedJob.description && (
-          <div style={{ marginBottom: "16px", color: "#000" }}>
-            <strong>Description:</strong>
-            <div style={{ background: "#f9f9f9", padding: "12px", borderRadius: "4px", marginTop: "8px", whiteSpace: "pre-wrap" }}>
-              {selectedJob.description}
-            </div>
-          </div>
-        )}
-
-        {selectedJob.notes && (
-          <div style={{ marginBottom: "16px", background: "#fffbea", padding: "12px", borderRadius: "4px", color: "#000" }}>
-            <strong>Notes:</strong>
-            <div style={{ marginTop: "8px", whiteSpace: "pre-wrap" }}>{selectedJob.notes}</div>
-          </div>
-        )*/}
-
-          
-
-        {/* --- APPLICATION MATERIALS SECTION --- */}
+        {/* ---------------- MATERIALS TAB ---------------- */}
         {activeTab === "materials" && selectedJob.materials && (
           <div style={{ marginBottom: "16px", background: "#f3e5f5", padding: "16px", borderRadius: "6px", border: "1px solid #e1bee7" }}>
             <h3 style={{ margin: "0 0 12px 0", color: "#7b1fa2", fontSize: "16px" }}>📄 Application Materials</h3>
@@ -870,7 +773,12 @@ export default function JobDetailsModal({
           </div>
         )}
 
-        {/* --- STATUS HISTORY SECTION --- */}
+        {/* ---------------- EMAILS TAB ---------------- */}
+        {activeTab === "emails" && (
+          <LinkedEmailsTab job={selectedJob} />
+        )}
+
+        {/* ---------------- STATUS HISTORY SECTION ---------------- */}
         {activeTab === "history" && selectedJob.status_history && selectedJob.status_history.length > 0 && (
           <div style={{ marginBottom: "16px", background: "#e8f5e9", padding: "16px", borderRadius: "6px", border: "1px solid #c8e6c9" }}>
             <h3 style={{ margin: "0 0 12px 0", color: "#2e7d32", fontSize: "16px" }}>📋 Status History</h3>
@@ -946,16 +854,12 @@ export default function JobDetailsModal({
           
           {/* If ReadOnly, maybe just a Close button or nothing (X is at top) */}
           {readOnly && (
-                    <>
-             
-
-              <button
-                onClick={() => setSelectedJob(null)}
-                style={{ padding: "10px 20px", background: "#666", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }}
-              >
-                Close
-              </button>
-            </>
+            <button
+              onClick={() => setSelectedJob(null)}
+              style={{ padding: "10px 20px", background: "#666", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }}
+            >
+              Close
+            </button>
           )}
 
         </div>
@@ -968,17 +872,14 @@ export default function JobDetailsModal({
             onSave={async (updatedJob) => {
               console.log('📦 Saving materials from modal:', updatedJob.materials);
               
-              // Update the job with the new materials
               await updateJob(updatedJob);
               
-              // Update selectedJob state to show changes immediately
               setSelectedJob(prev => ({
                 ...prev,
                 materials: updatedJob.materials,
                 materials_history: updatedJob.materials_history
               }));
               
-              // Close the modal
               setMaterialsOpen(false);
               
               console.log('✅ Materials modal closed, job updated');
