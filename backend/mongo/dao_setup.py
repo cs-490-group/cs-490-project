@@ -37,6 +37,7 @@ NETWORK_CAMPAIGNS = os.getenv("NETWORK_CAMPAIGNS_COLLECTION")
 PROFESSIONAL_REFERENCES = os.getenv("PROFESSIONAL_REFERENCES_COLLECTION")
 NETWORK_ANALYTICS = os.getenv("NETWORK_ANALYTICS_COLLECTION")
 ORGANIZATIONS = os.getenv("ORGANIZATIONS_COLLECTION")
+BADGES = os.getenv("BADGES_COLLECTION", "badges")
 
 RESET_LINKS = os.getenv("RESET_LINKS_COLLECTION")
 GOOGLE_OAUTH = os.getenv("GOOGLE_OAUTH_CREDENTIALS")
@@ -44,6 +45,7 @@ COHERE_API = os.getenv("COHERE_API_KEY")
 JOB_REQUIREMENTS = os.getenv("JOB_REQUIREMENTS_COLLECTION", "job_requirements")
 MATCH_HISTORY = os.getenv("MATCH_HISTORY_COLLECTION", "match_history")
 OFFERS = "offers"  # UC-083: Salary negotiation collection
+CAREER_SIMULATIONS = "career_simulations"  # Career path simulations collection
 TECHNICAL_CHALLENGES = os.getenv("TECHNICAL_CHALLENGES_COLLECTION", "technical_challenges")  # UC-078: Technical Interview Prep
 CHALLENGE_ATTEMPTS = os.getenv("CHALLENGE_ATTEMPTS_COLLECTION", "challenge_attempts")  # UC-078: Challenge performance tracking
 

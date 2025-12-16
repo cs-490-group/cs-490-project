@@ -82,6 +82,9 @@ import DiscoveryPage from "./pages/network/DiscoveryPage";
 import NetworkingAnalytics from "./pages/network/NetworkingAnalytics";
 import APIMetricsPage from "./pages/APIMetrics";
 import LinkedInCallback from "./pages/callback/linkedin";
+import LeetCodeDetails from "./pages/LeetCodeDetails";
+import HackerRankDetails from "./pages/HackerRankDetails";
+import CodecademyDetails from "./pages/CodecademyDetails";
 
 // inside your router
 
@@ -190,6 +193,9 @@ export function App() {
               <Route path="/network/analytics" element={<NetworkingAnalytics />} />
               <Route path="/api-metrics" element={<APIMetricsPage />} />
               <Route path="/callback/linkedin" element={<LinkedInCallback />} />
+              <Route path="/leetcode/:username" element={<LeetCodeDetails />} />
+              <Route path="/hackerrank/:username" element={<HackerRankDetails />} />
+              <Route path="/codecademy/:username" element={<CodecademyDetails />} />
               </Routes>
             </JobProvider>
             </FlashProvider>

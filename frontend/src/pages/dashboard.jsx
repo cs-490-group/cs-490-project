@@ -876,7 +876,7 @@ const Dashboard = () => {
                         </section>
                     </Col>
                 </Row>
-                <Row classname="mt-4">
+                <Row className="mt-4">
                     <Col>
                         <ExternalSkillsPlatforms></ExternalSkillsPlatforms>
                     </Col>

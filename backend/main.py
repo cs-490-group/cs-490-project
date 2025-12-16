@@ -51,6 +51,7 @@ from routes.referral_message_routes import referral_message_router
 from routes.goals import goals_router
 from routes.time_tracking import time_tracking_router
 from routes.performance_analytics import performance_analytics_router
+from routes.career_simulation import career_simulation_router
 from services.referral_reminder_scheduler import start_referral_reminder_scheduler, stop_referral_reminder_scheduler
 from services.referral_followup_scheduler import start_referral_followup_scheduler, stop_referral_followup_scheduler
 from services.event_reminder_scheduler import start_event_reminder_scheduler, stop_event_reminder_scheduler
@@ -64,6 +65,7 @@ from routes.salary_research_routes import salary_research_router
 from routes.api_metrics import router as api_metrics_router
 from routes.emails_router import emails_router
 from routes.material_comparison_router import material_comparison_router
+from routes.badges import badges_router
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -165,6 +167,8 @@ app.include_router(performance_analytics_router, prefix = api_prefix)
 app.include_router(api_metrics_router, prefix = f"{api_prefix}/metrics")
 app.include_router(emails_router, prefix=api_prefix)
 app.include_router(material_comparison_router, prefix = api_prefix)
+app.include_router(badges_router, prefix = api_prefix)
+app.include_router(career_simulation_router, prefix = api_prefix)
 
 
 @app.on_event("startup")

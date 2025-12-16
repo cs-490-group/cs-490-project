@@ -1,14 +1,18 @@
-import api from "./base";
+import axios from "axios";
 
 const BASE_URL = "https://alfa-leetcode-api.onrender.com";
 
+// Create a separate axios instance for external API calls without auth headers
+const externalApi = axios.create();
+
 class LeetCodeAPI {
     getFullProfile(username) {
-        return api.get(`${BASE_URL}/${username}/profile`);
+        return externalApi.get(`${BASE_URL}/${username}/profile`);
     }
 
     getBadges(username) {
-        return api.get(`${BASE_URL}/${username}/badges`);
+        return externalApi.get(`${BASE_URL}/${username}/badges`);
     }
 }
 // https://leetcode.com/u/:username/
+export default new LeetCodeAPI();

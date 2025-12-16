@@ -13,6 +13,7 @@ import OfferCard from "./OfferCard";
 import NegotiationPrepView from "./NegotiationPrepView";
 import OfferDetailsModal from "./OfferDetailsModal";
 import OfferComparisonView from "./OfferComparisonView";
+import CareerSimulation from "../../components/CareerSimulation";
 
 export default function OffersPage() {
     const [offers, setOffers] = useState([]);
@@ -26,6 +27,8 @@ export default function OffersPage() {
     const [generatingPrep, setGeneratingPrep] = useState(null);
     const [showComparison, setShowComparison] = useState(false);
     const [showArchived, setShowArchived] = useState(false);
+    const [showCareerSimulation, setShowCareerSimulation] = useState(false);
+    const [selectedOfferForSimulation, setSelectedOfferForSimulation] = useState(null);
 
     useEffect(() => {
         loadOffers();
@@ -112,6 +115,33 @@ export default function OffersPage() {
             setGeneratingPrep(null);
         }
     };
+
+    const handleViewCareerSimulation = (offer) => {
+        setSelectedOfferForSimulation(offer);
+        setShowCareerSimulation(true);
+    };
+
+    if (showCareerSimulation && selectedOfferForSimulation) {
+        return (
+            <Container className="py-4">
+                <CareerSimulation 
+                    offerId={selectedOfferForSimulation._id} 
+                    offerDetails={selectedOfferForSimulation}
+                />
+                <div className="mt-3">
+                    <Button 
+                        variant="secondary" 
+                        onClick={() => {
+                            setShowCareerSimulation(false);
+                            setSelectedOfferForSimulation(null);
+                        }}
+                    >
+                        Back to Offers
+                    </Button>
+                </div>
+            </Container>
+        );
+    }
 
     if (showDetails && selectedOffer) {
         return (
@@ -281,6 +311,7 @@ export default function OffersPage() {
                                 }}
                                 onDelete={handleDeleteOffer}
                                 onGenNegotiationPrep={handleGenerateNegotiationPrep}
+                                onViewCareerSimulation={handleViewCareerSimulation}
                             />
                         </Col>
                     ))}
