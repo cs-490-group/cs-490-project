@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Body, Depends, HTTPException,Request
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from pymongo.errors import DuplicateKeyError
 
@@ -28,8 +30,11 @@ from bson import ObjectId
 
 auth_router = APIRouter(prefix = "/auth")
 
+limiter = Limiter(key_func=get_remote_address)
+
 @auth_router.post("/register", tags = ["profiles"])
-async def register(info: RegistInfo):
+@limiter.limit("5/minute")
+async def register(request: Request,info: RegistInfo):
     # Authentication
     try:
         uuid = str(uuid4())
@@ -75,7 +80,8 @@ async def register(info: RegistInfo):
     return {"detail": "Sucessfully registered user", "uuid": uuid, "session_token": session_token}
 
 @auth_router.post("/login", tags = ["profiles"])
-async def login(credentials: LoginCred):
+@limiter.limit("5/minute")
+async def login(request: Request,credentials: LoginCred):
     # Authentication (for real this time)
     try:
         pass_hash = await auth_dao.get_password(credentials.email.lower())

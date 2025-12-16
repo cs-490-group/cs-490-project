@@ -65,6 +65,10 @@ from routes.api_metrics import router as api_metrics_router
 from routes.emails_router import emails_router
 from routes.material_comparison_router import material_comparison_router
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
@@ -78,8 +82,12 @@ sentry_sdk.init(
     traces_sample_rate=1.0,  # Capture 100% of transactions
 )
 
+limiter = Limiter(key_func=get_remote_address)
+
 
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 api_prefix = "/api"
 
