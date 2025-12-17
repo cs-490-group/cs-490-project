@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Job Application Importer",
+  "version": "0.1.0",
+  "description": "Detects job applications on LinkedIn/Indeed/Glassdoor and sends them to the backend.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://www.indeed.com/*",
+    "https://www.glassdoor.com/*",
+    "http://localhost:3000/*",
+    "https://metamorphosis1.vercel.app/*",
+    "https://metamorphosis-lmnlwz5wp-antwas257s-projects.vercel.app/*",
+    "https://metamorphosis-38kknkfpb-antwas257s-projects.vercel.app/*",
+    "http://localhost:8000/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:3000/*",
+        "https://metamorphosis1.vercel.app/*",
+        "https://metamorphosis-lmnlwz5wp-antwas257s-projects.vercel.app/*",
+        "https://metamorphosis-38kknkfpb-antwas257s-projects.vercel.app/*"
+      ],
+      "js": ["content/auth_sync.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.linkedin.com/*"],
+      "js": ["content/linkedin.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.indeed.com/*"],
+      "js": ["content/indeed.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.glassdoor.com/*"],
+      "js": ["content/glassdoor.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Job Application Importer"
+  }
+}

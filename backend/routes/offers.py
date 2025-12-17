@@ -586,9 +586,12 @@ async def calculate_total_compensation(offer_id: str, uuid: str = Depends(author
 
     except HTTPException:
         raise
+    except (TypeError, ValueError) as e:
+        print(f"Error calculating total comp: {e}")
+        raise HTTPException(422, f"Invalid offer data for total comp: {str(e)}")
     except Exception as e:
         print(f"Error calculating total comp: {e}")
-        raise HTTPException(500, str(e))
+        raise HTTPException(500, "Failed to calculate total comp")
 
 
 @offers_router.post("/{offer_id}/calculate-equity", tags=["offers", "evaluation"])
@@ -675,9 +678,12 @@ async def calculate_benefits_valuation(
 
     except HTTPException:
         raise
+    except (TypeError, ValueError) as e:
+        print(f"Error calculating benefits: {e}")
+        raise HTTPException(422, f"Invalid benefits data: {str(e)}")
     except Exception as e:
         print(f"Error calculating benefits: {e}")
-        raise HTTPException(500, str(e))
+        raise HTTPException(500, "Failed to calculate benefits")
 
 
 @offers_router.post("/{offer_id}/calculate-col", tags=["offers", "evaluation"])
@@ -797,6 +803,9 @@ async def run_scenario_analysis(
     Returns recalculated total comp for each scenario
     """
     try:
+        if not isinstance(scenarios, list):
+            raise HTTPException(422, "Invalid scenarios payload: expected a list")
+
         offer = await offers_dao.get_offer(offer_id)
 
         if not offer:
@@ -814,9 +823,12 @@ async def run_scenario_analysis(
 
     except HTTPException:
         raise
+    except (TypeError, ValueError) as e:
+        print(f"Error running scenario analysis: {e}")
+        raise HTTPException(422, f"Invalid scenario analysis input: {str(e)}")
     except Exception as e:
         print(f"Error running scenario analysis: {e}")
-        raise HTTPException(500, str(e))
+        raise HTTPException(500, "Failed to run scenario analysis")
 
 
 @offers_router.post("/compare", tags=["offers", "evaluation"])

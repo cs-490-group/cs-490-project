@@ -87,6 +87,12 @@ const DiscoveryPage = lazy(() => import("./pages/network/DiscoveryPage"));
 const NetworkingAnalytics = lazy(() => import("./pages/network/NetworkingAnalytics"));
 const APIMetricsPage = lazy(() => import("./pages/APIMetrics"));
 const LinkedInCallback = lazy(() => import("./pages/callback/linkedin"));
+const LeetCodeDetails = lazy(() => import("./pages/LeetCodeDetails"));
+const HackerRankDetails = lazy(() => import("./pages/HackerRankDetails"));
+const CodecademyDetails = lazy(() => import("./pages/CodecademyDetails"));
+
+// inside your router
+
 
 export function App() {
   const location = useLocation();
@@ -210,6 +216,9 @@ export function App() {
                 <Route path="/network/analytics" element={<NetworkingAnalytics />} />
                 <Route path="/api-metrics" element={<APIMetricsPage />} />
                 <Route path="/callback/linkedin" element={<LinkedInCallback />} />
+              <Route path="/leetcode/:username" element={<LeetCodeDetails />} />
+              <Route path="/hackerrank/:username" element={<HackerRankDetails />} />
+              <Route path="/codecademy/:username" element={<CodecademyDetails />} />
               </Routes>
             </Suspense>
           </main>
