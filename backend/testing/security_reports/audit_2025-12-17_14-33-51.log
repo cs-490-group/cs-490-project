@@ -1,0 +1,14 @@
+2025-12-17 14:33:51,297 - [INFO] - [INFO] Generated unique test accounts: attacker_1766000031@test.com, victim_1766000031@test.com
+2025-12-17 14:33:51,297 - [INFO] - [INFO] Setting up Attacker and Victim accounts...
+2025-12-17 14:33:52,627 - [INFO] - [INFO] Logged in as attacker_1766000031
+2025-12-17 14:33:53,887 - [INFO] - [INFO] Logged in as victim_1766000031
+2025-12-17 14:33:53,892 - [INFO] - [INFO] Spamming register endpoint 50 times...
+2025-12-17 14:34:04,328 - [INFO] - [PASS] Rate limiting active. Blocked after 17 requests.
+2025-12-17 14:34:04,329 - [INFO] - [INFO] Spamming login endpoint 50 times...
+2025-12-17 14:34:19,047 - [INFO] - [PASS] Rate limiting active. Blocked after 24 requests.
+2025-12-17 14:34:19,364 - [INFO] - [PASS] Pydantic blocked the injection (Type Validation).
+2025-12-17 14:35:13,300 - [INFO] - [PASS] Safe: XSS Payload sanitized or encoded.
+2025-12-17 14:36:37,495 - [INFO] - [INFO] Victim created Job ID
+2025-12-17 14:36:38,564 - [INFO] - [PASS] Secure: Access Denied.
+2025-12-17 14:36:39,258 - [INFO] - [PASS] Safe: Server rejected request without explicit Authorization header.
+2025-12-17 14:36:39,938 - [INFO] - [PASS] Server headers are hidden.
