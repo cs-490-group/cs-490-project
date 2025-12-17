@@ -6,7 +6,7 @@ import AuthAPI from "../api/authentication";
 import ProfilesAPI from "../api/profiles";
 
 // Your actual Metamorphosis logo - now loads instantly!
-const Logo = () => (
+const Logo = React.memo(() => (
   <svg 
     width="40" 
     height="40" 
@@ -48,7 +48,7 @@ const Logo = () => (
     <polygon points="256,10 290,60 222,60" fill="#6ee7b7" transform="rotate(45 256 256)" />
     <polygon points="256,10 290,60 222,60" fill="#047857" transform="rotate(225 256 256)" />
   </svg>
-);
+));
 
 const Nav = () => {
   const navigate = useNavigate();
