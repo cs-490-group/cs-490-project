@@ -5,37 +5,23 @@ import { useFlash } from "../context/flashContext";
 import AuthAPI from "../api/authentication";
 import ProfilesAPI from "../api/profiles";
 
-
 const Nav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { showFlash } = useFlash();
   const token = localStorage.getItem("session");
-  const teamId = localStorage.getItem("teamId");
   
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
-  const [showInterviewDropdown, setShowInterviewDropdown] = React.useState(false);
-  const [showNetworkDropdown, setShowNetworkDropdown] = React.useState(false);
-  const [showSocialDropdown, setShowSocialDropdown] = React.useState(false);
-  const [showAdminDropdown, setShowAdminDropdown] = React.useState(false);
-  const [showResumesDropdown, setShowResumesDropdown] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState(null);
   const [username, setUsername] = React.useState(localStorage.getItem("username") || "");
-  const [accountTier, setAccountTier] = React.useState(null);
   const hasValidated = React.useRef(false);
+
   React.useEffect(() => {
     const excludedPaths = ["/login", "/register", "/forgotPassword", "/resetPassword","/shared-progress","/advisor-portal","/resumes/public","/cover-letter/public"];
+    const shouldSkip = excludedPaths.some(prefix => location.pathname.startsWith(prefix));
 
-    const shouldSkip = excludedPaths.some(prefix =>
-      location.pathname.startsWith(prefix)
-    );
-
-    if (hasValidated.current) {
-      return;
-    }
+    if (hasValidated.current) return;
 
     const validateSession = async () => {
       if (!token) {
@@ -45,12 +31,8 @@ const Nav = () => {
         localStorage.removeItem("session");
         localStorage.removeItem("teamId");
         localStorage.removeItem("username");
-        setIsAuthenticated(false);
         hasValidated.current = true;
-        
-        if (shouldSkip) {
-          return;
-        }
+        if (shouldSkip) return;
         navigate("/");
         window.scrollTo({ top: 0, behavior: "smooth" }); 
         return;
@@ -58,69 +40,36 @@ const Nav = () => {
 
       try {
         const response = await AuthAPI.validateSession();
-        
         if (response.status === 200) {
           setIsAuthenticated(true);
-          
           const cachedUsername = localStorage.getItem("username");
+          if (cachedUsername) setUsername(cachedUsername);
           
-          if (cachedUsername) {
-            setUsername(cachedUsername);
-          }
-          
-          // Always fetch fresh profile data including avatar
           try {
-            // Set default avatar immediately
             setAvatarUrl("/default.png");
-
-            // Fetch profile data first (critical for header)
             const profileRes = await ProfilesAPI.get();
             const newUsername = profileRes.data.username || "User";
-            const tier = profileRes.data.account_tier || "";
             setUsername(newUsername);
-            setAccountTier(tier.toLowerCase());
             localStorage.setItem("username", newUsername);
 
-            // Fetch avatar in background to update when ready
-            ProfilesAPI.getAvatar()
-              .then(avatarRes => {
+            ProfilesAPI.getAvatar().then(avatarRes => {
                 const blob = avatarRes.data;
                 const url = URL.createObjectURL(blob);
                 setAvatarUrl(url);
-              })
+              });
           } catch (error) {
             console.error("Failed to load profile data:", error);
             setAvatarUrl("/default.png");
-            if (!cachedUsername) {
-              const defaultUsername = "User";
-              setUsername(defaultUsername);
-              localStorage.setItem("username", defaultUsername);
-            }
           }
         } else {
-          localStorage.removeItem("uuid");
-          localStorage.removeItem("teamId");
-          localStorage.removeItem("session");
-          localStorage.removeItem("username");
-          setIsAuthenticated(false);
-          if (shouldSkip) {
-            return;
-          }
-          navigate("/");
-          window.scrollTo({ top: 0, behavior: "smooth" }); 
+            localStorage.clear();
+            setIsAuthenticated(false);
+            if (!shouldSkip) navigate("/");
         }
       } catch (error) {
-        console.error("Session validation failed:", error);
-        localStorage.removeItem("uuid");
-        localStorage.removeItem("teamId");
-        localStorage.removeItem("session");
-        localStorage.removeItem("username");
+        localStorage.clear();
         setIsAuthenticated(false);
-        if (shouldSkip) {
-          return;
-        }
-        navigate("/");
-        window.scrollTo({ top: 0, behavior: "smooth" }); 
+        if (!shouldSkip) navigate("/");
       } finally {
         setIsLoading(false);
         hasValidated.current = true;
@@ -134,82 +83,39 @@ const Nav = () => {
         URL.revokeObjectURL(avatarUrl);
       }
     };
-  }, [token, navigate]);
+  }, [token, navigate, location.pathname]);
 
   React.useEffect(() => {
     const handleProfileUpdate = async () => {
       const newUsername = localStorage.getItem("username");
-      
       if (newUsername) setUsername(newUsername);
-      
-      // Only fetch new avatar if it's different from cached
       try {
         const avatarRes = await ProfilesAPI.getAvatar();
         const blob = avatarRes.data;
         const url = URL.createObjectURL(blob);
         if (url) {
           const oldUrl = avatarUrl;
-          if (oldUrl?.startsWith("blob:")) {
-            URL.revokeObjectURL(oldUrl);
-          }
+          if (oldUrl?.startsWith("blob:")) URL.revokeObjectURL(oldUrl);
           setAvatarUrl(url);
           localStorage.setItem("avatarUrl", url);
-        } else {
-          setAvatarUrl("/default.png");
-          localStorage.setItem("avatarUrl", "/default.png");
         }
       } catch (error) {
         console.log("No avatar found, using default");
-        setAvatarUrl("/default.png");
-        localStorage.setItem("avatarUrl", "/default.png");
       }
     };
-
     window.addEventListener("profileUpdated", handleProfileUpdate);
-    
-    return () => {
-      window.removeEventListener("profileUpdated", handleProfileUpdate);
-    };
-  }, []);
+    return () => window.removeEventListener("profileUpdated", handleProfileUpdate);
+  }, [avatarUrl]);
 
   const logout = async () => {
-    const uuid = localStorage.getItem("uuid");
-
-    const handleLogout = async () => {
-      try {
-        await AuthAPI.logout();
-      } catch (error) {
-        showFlash(error.detail, "error");
-        console.error("Logout failed:", error);
-      }
-
-      // Clean up blob URL if exists
-      if (avatarUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(avatarUrl);
-      }
-
-      localStorage.removeItem("uuid");
-      localStorage.removeItem("session");
-      localStorage.removeItem("username");
-      localStorage.removeItem("teamId");
-      setIsAuthenticated(false);
-      setAvatarUrl(null);
-      setUsername("");
-      hasValidated.current = false;
-      navigate("/");
-      window.scrollTo({ top: 0, behavior: "smooth" }); 
-    };
-
     try {
       await AuthAPI.logout();
       showFlash("Successfully Logged out", "success");
     } catch (error) {
-      showFlash(error.detail, "error");
       console.error("Logout failed:", error);
     }
-
-    handleLogout();
-    localStorage.removeItem("teamId");
+    if (avatarUrl?.startsWith("blob:")) URL.revokeObjectURL(avatarUrl);
+    localStorage.clear();
     setIsAuthenticated(false);
     setAvatarUrl(null);
     setUsername("");
@@ -222,12 +128,8 @@ const Nav = () => {
     return (
       <Navbar bg="dark" variant="dark" expand="lg" sticky="top">
         <Container fluid>
-          <Navbar.Brand as={NavLink} to="/" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="d-flex align-items-center">
-            <img 
-              src="/image.png" 
-              alt="Metamorphosis logo"
-              style={{ height: "50px", marginRight: "10px" }}
-            />
+          <Navbar.Brand as={NavLink} to="/" className="d-flex align-items-center">
+            <img src="/logo.svg.webp" alt="Metamorphosis logo" style={{ height: "50px", marginRight: "10px" }} />
             Metamorphosis
           </Navbar.Brand>
         </Container>
@@ -239,11 +141,7 @@ const Nav = () => {
     <Navbar bg="dark" variant="dark" expand="lg" sticky="top">
       <Container fluid>
         <Navbar.Brand as={NavLink} to="/" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="d-flex align-items-center">
-          <img 
-            src="/image.png" 
-            alt="Metamorphosis logo"
-            style={{ height: "50px", marginRight: "10px" }}
-          />
+          <img src="/logo.svg.webp" alt="Metamorphosis logo" style={{ height: "50px", marginRight: "10px" }} />
           Metamorphosis
         </Navbar.Brand>
 
@@ -252,40 +150,18 @@ const Nav = () => {
           <BootstrapNav className={`${isAuthenticated ? "ms-auto authenticated-nav" : "ms-auto unauthenticated-nav"} gap-3 align-items-center`}>
             {isAuthenticated ? (
               <>
-                <NavDropdown
-                  title={
-                    <span
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        navigate("/dashboard");
-                      }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      Dashboard
-                    </span>
-                  }
-                  id="dashboard-dropdown"
-                  className="mx-3"
-                  show={showDropdown}
-                  onMouseEnter={() => setShowDropdown(true)}
-                  onMouseLeave={() => setShowDropdown(false)}
-                >
-                  <NavDropdown.Item as={NavLink} to="/employment-history">
-                    Employment
+                {/* --- DASHBOARD DROPDOWN --- */}
+                <NavDropdown title="Dashboard" id="dashboard-dropdown" className="mx-3">
+                  {/* Keyboard users can now Tab here and press Enter to go to Dashboard */}
+                  <NavDropdown.Item as={NavLink} to="/dashboard">
+                    <strong>Dashboard Overview</strong>
                   </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/skills">
-                    Skills
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/education">
-                    Education
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/certifications">
-                    Certifications
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/projects">
-                    Projects
-                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item as={NavLink} to="/employment-history">Employment</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/skills">Skills</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/education">Education</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/certifications">Certifications</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/projects">Projects</NavDropdown.Item>
                 </NavDropdown>
                 
                 <BootstrapNav.Link as={NavLink} to="/pipeline-management" className="mx-3">
@@ -296,182 +172,76 @@ const Nav = () => {
                   Jobs
                 </BootstrapNav.Link>
 
-                <NavDropdown
-                  title={
-                    <span
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        navigate("/resumes");
-                      }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      Resumes
-                    </span>
-                  }
-                  id="resumes-dropdown"
-                  className="mx-3"
-                  show={showResumesDropdown}
-                  onMouseEnter={() => setShowResumesDropdown(true)}
-                  onMouseLeave={() => setShowResumesDropdown(false)}
-                >
+                {/* --- RESUMES DROPDOWN --- */}
+                <NavDropdown title="Resumes" id="resumes-dropdown" className="mx-3">
                   <NavDropdown.Item as={NavLink} to="/resumes">
-                    My Resumes
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/resumes/templates">
-                    Resume Templates
+                    <strong>My Resumes</strong>
                   </NavDropdown.Item>
                   <NavDropdown.Divider />
-                  <NavDropdown.Item as={NavLink} to="/materials/comparison">
-                    Compare Materials
-                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/resumes/templates">Resume Templates</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/materials/comparison">Compare Materials</NavDropdown.Item>
                 </NavDropdown>
 
                 <BootstrapNav.Link as={NavLink} to="/cover-letter" className="mx-3">
                   Cover Letters
                 </BootstrapNav.Link>
 
-                <NavDropdown
-                  title={
-                    <span
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        navigate("/network");
-                      }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      Network
-                    </span>
-                  }
-                  id="network-dropdown"
-                  className="mx-3"
-                  show={showNetworkDropdown}
-                  onMouseEnter={() => setShowNetworkDropdown(true)}
-                  onMouseLeave={() => setShowNetworkDropdown(false)}
-                >
-                  <NavDropdown.Item as={NavLink} to="/network/referrals">
-                    Referrals
+                {/* --- NETWORK DROPDOWN --- */}
+                <NavDropdown title="Network" id="network-dropdown" className="mx-3">
+                  <NavDropdown.Item as={NavLink} to="/network">
+                    <strong>Network Overview</strong>
                   </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/network/events">
-                    Events
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/network/interviews">
-                    Interviews
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/network/mentorship">
-                    Mentorship
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/network/discovery">
-                    Discovery
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/network/analytics">
-                    Performance & Analytics
-                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item as={NavLink} to="/network/referrals">Referrals</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/network/events">Events</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/network/interviews">Interviews</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/network/mentorship">Mentorship</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/network/discovery">Discovery</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/network/analytics">Performance & Analytics</NavDropdown.Item>
                 </NavDropdown>
 
-                <NavDropdown
-                  title={
-                    <span
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        navigate("/interview/question-library");
-                      }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      Interview Prep
-                    </span>
-                  }
-                  id="interview-dropdown"
-                  className="mx-3"
-                  show={showInterviewDropdown}
-                  onMouseEnter={() => setShowInterviewDropdown(true)}
-                  onMouseLeave={() => setShowInterviewDropdown(false)}
-                >
-                  <NavDropdown.Item as={NavLink} to="/interview/my-practice">
-                    My Practice
-                  </NavDropdown.Item>
+                {/* --- INTERVIEW DROPDOWN --- */}
+                <NavDropdown title="Interview Prep" id="interview-dropdown" className="mx-3">
                   <NavDropdown.Item as={NavLink} to="/interview/question-library">
-                    Question Library
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/interview/progress">
-                    Progress
+                    <strong>Question Library</strong>
                   </NavDropdown.Item>
                   <NavDropdown.Divider />
-                  <NavDropdown.Item as={NavLink} to="/interview/calendar">
-                    My Interviews
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/interview/follow-up">
-                    Follow Up
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/interview/success-probability">
-                    Success Predictor
-                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/my-practice">My Practice</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/progress">Progress</NavDropdown.Item>
                   <NavDropdown.Divider />
-                  <NavDropdown.Item as={NavLink} to="/technical-prep">
-                    Technical Interview Prep
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/interview/performance">
-                    Performance Analytics
-                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/calendar">My Interviews</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/follow-up">Follow Up</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/success-probability">Success Predictor</NavDropdown.Item>
                   <NavDropdown.Divider />
-                  <NavDropdown.Item as={NavLink} to="/offers">
-                    Offers
-                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/technical-prep">Technical Interview Prep</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/interview/performance">Performance Analytics</NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item as={NavLink} to="/offers">Offers</NavDropdown.Item>
                 </NavDropdown>
 
-                <NavDropdown
-                  title="Social"
-                  id="social-dropdown"
-                  className="mx-3"
-                  show={showSocialDropdown}
-                  onMouseEnter={() => setShowSocialDropdown(true)}
-                  onMouseLeave={() => setShowSocialDropdown(false)}
-                >
-                  {/* Updated Link: Always goes to setup-team */}
-                  <NavDropdown.Item as={NavLink} to="/setup-team">
-                    Teams
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/newGroup">
-                    Groups
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/enterprise">
-                    Enterprise Portal
-                  </NavDropdown.Item>
+                {/* --- SOCIAL DROPDOWN --- */}
+                <NavDropdown title="Social" id="social-dropdown" className="mx-3">
+                  <NavDropdown.Item as={NavLink} to="/setup-team">Teams</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/newGroup">Groups</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/enterprise">Enterprise Portal</NavDropdown.Item>
                 </NavDropdown>
 
-                <NavDropdown
-                  title="Admin"
-                  id="admin-dropdown"
-                  className="mx-3"
-                  show={showAdminDropdown}
-                  onMouseEnter={() => setShowAdminDropdown(true)}
-                  onMouseLeave={() => setShowAdminDropdown(false)}
-                >
+                {/* --- ADMIN DROPDOWN --- */}
+                <NavDropdown title="Admin" id="admin-dropdown" className="mx-3">
                   <NavDropdown.Item as={NavLink} to="/api-metrics">
                     <i className="fas fa-chart-bar" style={{ marginRight: "8px" }}></i>
                     API Metrics
                   </NavDropdown.Item>
                 </NavDropdown>
 
+                {/* --- PROFILE DROPDOWN --- */}
                 <NavDropdown
                   title={
-                    <span
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        navigate("/profile");
-                      }}
-                      style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-                    >
+                    <span style={{ display: "flex", alignItems: "center" }}>
                       <img
-                        src={avatarUrl}
+                        src={avatarUrl || "/default.png"}
                         alt="Profile"
-                        onError={(e) => {
-                          console.log("Avatar failed to load, falling back to default");
-                          e.target.src = "/default.png";
-                        }}
+                        onError={(e) => { e.target.src = "/default.png"; }}
                         style={{
                           width: "24px",
                           height: "24px",
@@ -487,9 +257,6 @@ const Nav = () => {
                   id="profile-dropdown"
                   className="mx-3"
                   align="end"
-                  show={showProfileDropdown}
-                  onMouseEnter={() => setShowProfileDropdown(true)}
-                  onMouseLeave={() => setShowProfileDropdown(false)}
                 >
                   <NavDropdown.Item as={NavLink} to="/profile">
                     <i className="fas fa-user" style={{ marginRight: "8px" }}></i>
@@ -507,12 +274,8 @@ const Nav = () => {
               </>
             ) : (
               <>
-                <BootstrapNav.Link as={NavLink} to="/login" className="mx-3">
-                  Login
-                </BootstrapNav.Link>
-                <BootstrapNav.Link as={NavLink} to="/register" className="mx-3">
-                  Register
-                </BootstrapNav.Link>
+                <BootstrapNav.Link as={NavLink} to="/login" className="mx-3">Login</BootstrapNav.Link>
+                <BootstrapNav.Link as={NavLink} to="/register" className="mx-3">Register</BootstrapNav.Link>
               </>
             )}
           </BootstrapNav>
