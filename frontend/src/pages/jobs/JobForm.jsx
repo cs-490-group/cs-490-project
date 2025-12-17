@@ -11,6 +11,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
   const [url, setUrl] = useState("");
   const [importUrl, setImportUrl] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [dateApplied, setDateApplied] = useState(""); // UC-121: When actually applied
   const [industry, setIndustry] = useState("");
   const [jobType, setJobType] = useState("");
   const [description, setDescription] = useState("");
@@ -42,6 +43,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       setSalary(editJob.salary || "");
       setUrl(editJob.url || "");
       setDeadline(editJob.deadline || "");
+      setDateApplied(editJob.date_applied || editJob.dateApplied || ""); // UC-121
       setIndustry(editJob.industry || "");
       setJobType(editJob.job_type || editJob.jobType || "");
       setDescription(editJob.description || "");
@@ -73,6 +75,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
     setUrl("");
     setImportUrl("");
     setDeadline("");
+    setDateApplied(""); // UC-121
     setIndustry("");
     setJobType("");
     setDescription("");
@@ -465,6 +468,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
       salary: salary.trim() || undefined,
       url: url.trim() || undefined,
       deadline: deadline,
+      date_applied: dateApplied ? dateApplied : undefined, // UC-121: When actually applied (only send if not empty)
       industry: industry,
       job_type: jobType,
       description: description.trim() || undefined,
@@ -984,6 +988,19 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
           onChange={(e) => setDeadline(e.target.value)}
           required
         />
+
+        <label style={labelStyle}>Date Applied (optional - for tracking response time)</label>
+        <input
+          style={inputStyle}
+          type="date"
+          value={dateApplied}
+          onChange={(e) => setDateApplied(e.target.value)}
+          max={new Date().toISOString().split('T')[0]}
+          placeholder="When did you actually apply?"
+        />
+        <div style={{ fontSize: "12px", color: "#666", marginTop: "4px", marginBottom: "12px" }}>
+          If left blank, we'll use today's date to track response time.
+        </div>
 
         <label style={labelStyle}>Job Description (2000 char limit)</label>
         <textarea

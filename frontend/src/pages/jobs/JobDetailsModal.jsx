@@ -6,6 +6,7 @@ import CoverLetterAPI from "../../api/coverLetters";
 import api from "../../api/base";
 import { SingleJobLocation } from "./JobLocationMap";
 import ProfilesAPI from "../../api/profiles";
+import LinkedEmailsTab from "./LinkedEmailsTab";
 
 export default function JobDetailsModal({
   selectedJob,
@@ -47,7 +48,6 @@ export default function JobDetailsModal({
 
         console.log('📥 Downloading resume PDF for resume ID:', resumeId);
         
-        // Call the resume export API endpoint
         const response = await api.post(
           `/resumes/${resumeId}/export-pdf`,
           {},
@@ -60,7 +60,6 @@ export default function JobDetailsModal({
           throw new Error('Failed to generate resume PDF');
         }
 
-        // Download the file
         const fileName = selectedJob.materials?.resume_name || 'resume';
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -74,7 +73,6 @@ export default function JobDetailsModal({
         alert('✅ Resume PDF downloaded successfully!');
         
       } else {
-        // Cover letter logic
         const coverLetterId = selectedJob.materials?.cover_letter_id;
         
         if (!coverLetterId) {
@@ -92,7 +90,6 @@ export default function JobDetailsModal({
           throw new Error('Cover letter content not found');
         }
 
-        // Generate PDF from HTML content using html2canvas + jsPDF
         const html2canvas = (await import('html2canvas')).default;
         const jsPDF = (await import('jspdf')).default;
         
@@ -217,6 +214,7 @@ export default function JobDetailsModal({
           { id: "news", label: "News" },
           { id: "location", label: "Location" },
           { id: "materials", label: "Materials" },
+          { id: "emails", label: "Emails" },
           { id: "history", label: "History" },
           ].map((tab) => (
           <button
@@ -253,7 +251,7 @@ export default function JobDetailsModal({
               <div style={{ marginBottom: "16px", background: "#f0f7ff", padding: "16px", borderRadius: "6px", border: "1px solid #d0e4ff" }}>
                 <h3 style={{ margin: "0 0 12px 0", color: "#1976d2", fontSize: "16px" }}>🏢 Company Information</h3>
                 
-                {selectedJob.companyData.image && (
+                {selectedJob.companyData.image && typeof selectedJob.companyData.image === 'string' && (
                   <div style={{ marginBottom: "12px", textAlign: "center" }}>
                     <img
                       src={selectedJob.companyData.image.startsWith("http") ? selectedJob.companyData.image : `data:image/png;base64,${selectedJob.companyData.image}`}
@@ -262,32 +260,31 @@ export default function JobDetailsModal({
                         typeof selectedJob.company === 'object' 
                           ? (selectedJob.company.name || "Company") 
                           : selectedJob.company
-                      } logo`}
-                      
-                      style={{ maxWidth: "150px", maxHeight: "80px", objectFit: "contain", borderRadius: "4px" }}
+                      }`}
+                      style={{ maxWidth: "100%", height: "auto", maxHeight: "150px", borderRadius: "8px", objectFit: "contain" }}
                     />
                   </div>
                 )}
 
-        {selectedJob.companyData.size && (
+        {selectedJob.companyData.size && typeof selectedJob.companyData.size === 'string' && (
           <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
             <strong>👥 Company Size:</strong> {selectedJob.companyData.size}
           </div>
         )}
 
-        {selectedJob.companyData.industry && (
+        {selectedJob.companyData.industry && typeof selectedJob.companyData.industry === 'string' && (
           <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
             <strong>🏭 Industry:</strong> {selectedJob.companyData.industry}
           </div>
         )}
 
-        {selectedJob.companyData.location && (
+        {selectedJob.companyData.location && typeof selectedJob.companyData.location === 'string' && (
           <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
             <strong>📍 Headquarters:</strong> {selectedJob.companyData.location}
           </div>
         )}
 
-        {selectedJob.companyData.website && (
+        {selectedJob.companyData.website && typeof selectedJob.companyData.website === 'string' && (
           <div style={{ marginBottom: "8px", color: "#000", fontSize: "14px" }}>
             <strong>🌐 Website:</strong>{" "}
             <a
@@ -301,7 +298,7 @@ export default function JobDetailsModal({
           </div>
         )}
 
-        {selectedJob.companyData.description && (
+        {selectedJob.companyData.description && typeof selectedJob.companyData.description === 'string' && (
           <div style={{ marginTop: "12px", color: "#000", fontSize: "14px" }}>
             <strong>About:</strong>
             <div style={{ marginTop: "6px", color: "#555", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
@@ -853,7 +850,12 @@ export default function JobDetailsModal({
           </div>
         )}
 
-        {/* --- STATUS HISTORY SECTION --- */}
+        {/* ---------------- EMAILS TAB ---------------- */}
+        {activeTab === "emails" && (
+          <LinkedEmailsTab job={selectedJob} />
+        )}
+
+        {/* ---------------- STATUS HISTORY SECTION ---------------- */}
         {activeTab === "history" && selectedJob.status_history && selectedJob.status_history.length > 0 && (
           <div style={{ marginBottom: "16px", background: "#e8f5e9", padding: "16px", borderRadius: "6px", border: "1px solid #c8e6c9" }}>
             <h3 style={{ margin: "0 0 12px 0", color: "#2e7d32", fontSize: "16px" }}>📋 Status History</h3>
@@ -929,16 +931,12 @@ export default function JobDetailsModal({
           
           {/* If ReadOnly, maybe just a Close button or nothing (X is at top) */}
           {readOnly && (
-                    <>
-             
-
-              <button
-                onClick={() => setSelectedJob(null)}
-                style={{ padding: "10px 20px", background: "#666", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }}
-              >
-                Close
-              </button>
-            </>
+            <button
+              onClick={() => setSelectedJob(null)}
+              style={{ padding: "10px 20px", background: "#666", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }}
+            >
+              Close
+            </button>
           )}
 
         </div>
@@ -951,17 +949,14 @@ export default function JobDetailsModal({
             onSave={async (updatedJob) => {
               console.log('📦 Saving materials from modal:', updatedJob.materials);
               
-              // Update the job with the new materials
               await updateJob(updatedJob);
               
-              // Update selectedJob state to show changes immediately
               setSelectedJob(prev => ({
                 ...prev,
                 materials: updatedJob.materials,
                 materials_history: updatedJob.materials_history
               }));
               
-              // Close the modal
               setMaterialsOpen(false);
               
               console.log('✅ Materials modal closed, job updated');

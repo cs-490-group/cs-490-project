@@ -36,6 +36,13 @@ export default function ReferralManagementForm({
         return `${year}-${month}-${day}`;
     };
 
+    const getCompanyName = (company) => {
+        if (company === null || company === undefined) return "";
+        if (typeof company === 'string') return company;
+        if (typeof company === 'object') return company.name || "";
+        return "";
+    };
+
     const getOptimalReferralTiming = (deadline) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -143,7 +150,7 @@ export default function ReferralManagementForm({
 
         let updatedFields = {
             job_id: job.id || job._id,
-            company: job.company,
+            company: getCompanyName(job.company),
             position: job.title
         };
 
@@ -310,7 +317,7 @@ export default function ReferralManagementForm({
                                     <div className="row">
                                         <div className="col-md-6">
                                             <h6 className="fw-bold mb-1">{selectedJob.title}</h6>
-                                            <p className="mb-1 text-muted">{selectedJob.company}</p>
+                                            <p className="mb-1 text-muted">{getCompanyName(selectedJob.company)}</p>
                                         </div>
                                         <div className="col-md-6">
                                             {selectedJob.industry && (
@@ -415,7 +422,7 @@ export default function ReferralManagementForm({
                                 <Form.Label>Company</Form.Label>
                                 <Form.Control
                                     type="text"
-                                    value={formData.company}
+                                    value={getCompanyName(formData.company)}
                                     onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                                     required
                                     disabled={!!selectedJob}

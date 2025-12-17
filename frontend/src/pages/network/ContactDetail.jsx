@@ -35,9 +35,14 @@ export default function ContactDetail() {
             // Fetch avatar
             try {
                 const avatarResponse = await NetworksAPI.getAvatar(contactId);
-                const url = URL.createObjectURL(avatarResponse.data);
-                setAvatarUrl(url);
+                if (avatarResponse.data && typeof avatarResponse.data === 'object') {
+                    const url = URL.createObjectURL(avatarResponse.data);
+                    setAvatarUrl(url);
+                } else {
+                    setAvatarUrl("./default.png");
+                }
             } catch (avatarError) {
+                console.error("Avatar fetch error:", avatarError);
                 setAvatarUrl("./default.png");
             }
         } catch (error) {

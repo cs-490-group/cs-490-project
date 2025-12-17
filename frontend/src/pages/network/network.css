@@ -3,6 +3,18 @@
     margin:auto;
 }
 
+/* Clickable referral cards */
+.referral-card-clickable {
+    transition: all 0.2s ease-in-out;
+    border: 2px solid transparent;
+}
+
+.referral-card-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: #007bff;
+}
+
 /* Modal centering fix */
 .modal-centered-content {
     margin: 0 auto !important;

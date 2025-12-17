@@ -1,8 +1,16 @@
 import React, { useState } from "react";
 
-export default function FloatingDeadlineWidget({ jobs, onJobClick }) {
+export default function FloatingDeadlineWidget({ jobs, onJobClick, className, style }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [hoveredJob, setHoveredJob] = useState(null);
+
+  const getCompanyName = (company) => {
+    if (company === null || company === undefined) return "";
+    if (typeof company === 'string') return company;
+    if (typeof company === 'object') return company.name || "";
+    return "";
+  };
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -265,7 +273,7 @@ export default function FloatingDeadlineWidget({ jobs, onJobClick }) {
                       {job.title}
                     </div>
                     <div style={{ fontSize: "13px", color: "#666" }}>
-                      {job.company}
+                      {getCompanyName(job.company)}
                     </div>
                   </div>
                   <div style={{

@@ -26,7 +26,8 @@ export default function DiscoveryPage() {
 		location: "",
 		institution: "",
 		degree: "",
-		connectionDegree: ""
+		connectionDegree: "",
+		industry_professional: ""
 	});
 
 	useEffect(() => {
@@ -101,6 +102,9 @@ export default function DiscoveryPage() {
 			if (filterText.connectionDegree && !contact.connection_degree?.toString().includes(filterText.connectionDegree)) {
 				return false;
 			}
+			if (filterText.industry_professional && ((contact.industry_professional && filterText.industry_professional === "false") || (!contact.industry_professional && filterText.industry_professional === "true"))) {
+				return false;
+			}
 			return true;
 		});
 	};
@@ -123,7 +127,8 @@ export default function DiscoveryPage() {
 			location: "",
 			institution: "",
 			degree: "",
-			connectionDegree: ""
+			connectionDegree: "",
+			industry_professional: ""
 		});
 	};
 
@@ -368,6 +373,20 @@ export default function DiscoveryPage() {
 									<option value="0">New</option>
 									<option value="2">2nd Degree</option>
 									<option value="3">3rd Degree</option>
+								</select>
+							</div>
+							<div className="filter-group">
+								<select
+									placeholder="Filter by industry professional..."
+									name="industry_professional"
+									value={filterText.industry_professional}
+									onChange={handleFilterChange}
+									className="filter-input"
+									style={{color:"black"}}
+								>
+									<option value="">All Contacts</option>
+									<option value="true">Industry Professionals</option>
+									<option value="false">Non-Professionals</option>
 								</select>
 							</div>
 							{Object.values(filterText).some(val => val !== "") && (

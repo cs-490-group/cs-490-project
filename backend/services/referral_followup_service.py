@@ -96,179 +96,185 @@ class ReferralFollowUpService:
         followup_message = followup_data.get('message', '')
         referral_notes = referral_data.get('notes', '')
         
+        # Calculate conditional values before the f-string
+        action_required_text = 'Action Required Today!' if hours_until == 0 else 'Prepare Tomorrow'
+        urgency_detail_text = "It's time to send your follow-up message." if hours_until == 0 else 'You have one day to prepare before sending your follow-up message.'
+        emoji = '⚡' if hours_until == 0 else '📅'
+        time_text = 'today' if hours_until == 0 else 'tomorrow'
+
         html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', 'Arial', sans-serif; background-color: #f5f5f5;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
-        <tr>
-            <td align="center">
-                <table width="650" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
-                    <!-- Header -->
-                    <tr>
-                        <td style="background: linear-gradient(135deg, {urgency_color} 0%, rgba({self._hex_to_rgb(urgency_color)}, 0.8) 100%); padding: 40px 40px; text-align: center; color: white;">
-                            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">
-                                {config['icon']} {config['title']} Reminder
-                            </h1>
-                            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.95;">
-                                {urgency_text}
-                            </p>
-                        </td>
-                    </tr>
-                    
-                    <!-- Urgency Alert -->
-                    <tr>
-                        <td style="padding: 30px 40px; background-color: #fff9e6; border-bottom: 2px solid {urgency_color};">
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <span style="font-size: 32px;">{'⚡' if hours_until == 0 else '📅'}</span>
-                                <div>
-                                    <strong style="color: {urgency_color}; font-size: 14px;">
-                                        {'Action Required Today!' if hours_until == 0 else 'Prepare Tomorrow'}
-                                    </strong>
-                                    <p style="margin: 5px 0 0 0; color: #666; font-size: 13px;">
-                                        {'It\'s time to send your follow-up message.' if hours_until == 0 else 'You have one day to prepare before sending your follow-up message.'}
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', 'Arial', sans-serif; background-color: #f5f5f5;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
+                <tr>
+                    <td align="center">
+                        <table width="650" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                            <!-- Header -->
+                            <tr>
+                                <td style="background: linear-gradient(135deg, {urgency_color} 0%, rgba({self._hex_to_rgb(urgency_color)}, 0.8) 100%); padding: 40px 40px; text-align: center; color: white;">
+                                    <h1 style="margin: 0; font-size: 28px; font-weight: bold;">
+                                        {config['icon']} {config['title']} Reminder
+                                    </h1>
+                                    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.95;">
+                                        {urgency_text}
                                     </p>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    
-                    <!-- Main Content -->
-                    <tr>
-                        <td style="padding: 40px;">
-                            <h2 style="margin: 0 0 25px 0; color: #333; font-size: 20px;">
-                                📋 Follow-Up Details
-                            </h2>
+                                </td>
+                            </tr>
                             
-                            <!-- Follow-Up Type Section -->
-                            <div style="background-color: #f9f9f9; border-left: 4px solid {config['color']}; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
-                                <h3 style="margin: 0 0 15px 0; color: {config['color']}; font-size: 16px;">
-                                    {config['icon']} Follow-Up Type
-                                </h3>
-                                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; line-height: 1.8; color: #333;">
-                                    <tr>
-                                        <td style="padding: 8px 0; font-weight: 600; width: 150px;">Type:</td>
-                                        <td style="padding: 8px 0;">{config['title']}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0; font-weight: 600;">Purpose:</td>
-                                        <td style="padding: 8px 0;">Help {config['action_purpose']} with {contact_name}</td>
-                                    </tr>
-                                </table>
-                            </div>
+                            <!-- Urgency Alert -->
+                            <tr>
+                                <td style="padding: 30px 40px; background-color: #fff9e6; border-bottom: 2px solid {urgency_color};">
+                                    <div style="display: flex; align-items: center; gap: 15px;">
+                                        <span style="font-size: 32px;">{emoji}</span>
+                                        <div>
+                                            <strong style="color: {urgency_color}; font-size: 14px;">
+                                                {action_required_text}
+                                            </strong>
+                                            <p style="margin: 5px 0 0 0; color: #666; font-size: 13px;">
+                                                {urgency_detail_text}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
                             
-                            <!-- Contact Information Section -->
-                            <div style="background-color: #f9f9f9; border-left: 4px solid #004d7a; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
-                                <h3 style="margin: 0 0 15px 0; color: #004d7a; font-size: 16px;">
-                                    👤 Contact Information
-                                </h3>
-                                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; line-height: 1.8; color: #333;">
-                                    <tr>
-                                        <td style="padding: 8px 0; font-weight: 600; width: 150px;">Name:</td>
-                                        <td style="padding: 8px 0;">{contact_name}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0; font-weight: 600;">Email:</td>
-                                        <td style="padding: 8px 0;">
-                                            <code style="background-color: #fff3cd; padding: 2px 6px; border-radius: 3px; font-family: monospace;">{contact_email}</code>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0; font-weight: 600;">Title:</td>
-                                        <td style="padding: 8px 0;">{contact_title}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0; font-weight: 600;">Company:</td>
-                                        <td style="padding: 8px 0;">{contact_company}</td>
-                                    </tr>
-                                </table>
-                            </div>
+                            <!-- Main Content -->
+                            <tr>
+                                <td style="padding: 40px;">
+                                    <h2 style="margin: 0 0 25px 0; color: #333; font-size: 20px;">
+                                        📋 Follow-Up Details
+                                    </h2>
+                                    
+                                    <!-- Follow-Up Type Section -->
+                                    <div style="background-color: #f9f9f9; border-left: 4px solid {config['color']}; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
+                                        <h3 style="margin: 0 0 15px 0; color: {config['color']}; font-size: 16px;">
+                                            {config['icon']} Follow-Up Type
+                                        </h3>
+                                        <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; line-height: 1.8; color: #333;">
+                                            <tr>
+                                                <td style="padding: 8px 0; font-weight: 600; width: 150px;">Type:</td>
+                                                <td style="padding: 8px 0;">{config['title']}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; font-weight: 600;">Purpose:</td>
+                                                <td style="padding: 8px 0;">Help {config['action_purpose']} with {contact_name}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    
+                                    <!-- Contact Information Section -->
+                                    <div style="background-color: #f9f9f9; border-left: 4px solid #004d7a; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
+                                        <h3 style="margin: 0 0 15px 0; color: #004d7a; font-size: 16px;">
+                                            👤 Contact Information
+                                        </h3>
+                                        <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; line-height: 1.8; color: #333;">
+                                            <tr>
+                                                <td style="padding: 8px 0; font-weight: 600; width: 150px;">Name:</td>
+                                                <td style="padding: 8px 0;">{contact_name}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; font-weight: 600;">Email:</td>
+                                                <td style="padding: 8px 0;">
+                                                    <code style="background-color: #fff3cd; padding: 2px 6px; border-radius: 3px; font-family: monospace;">{contact_email}</code>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; font-weight: 600;">Title:</td>
+                                                <td style="padding: 8px 0;">{contact_title}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; font-weight: 600;">Company:</td>
+                                                <td style="padding: 8px 0;">{contact_company}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    
+                                    <!-- Job Information Section -->
+                                    <div style="background-color: #f9f9f9; border-left: 4px solid #00bf72; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
+                                        <h3 style="margin: 0 0 15px 0; color: #00bf72; font-size: 16px;">
+                                            💼 Position Context
+                                        </h3>
+                                        <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; line-height: 1.8; color: #333;">
+                                            <tr>
+                                                <td style="padding: 8px 0; font-weight: 600; width: 150px;">Position:</td>
+                                                <td style="padding: 8px 0;">{referral_position}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; font-weight: 600;">Company:</td>
+                                                <td style="padding: 8px 0;">{referral_company}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    
+                                    <!-- Follow-Up Message Section -->
+                                    <div style="background-color: #f9f9f9; border-left: 4px solid {config['color']}; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
+                                        <h3 style="margin: 0 0 15px 0; color: {config['color']}; font-size: 16px;">
+                                            ✍️ Your Follow-Up Message
+                                        </h3>
+                                        <div style="background-color: white; padding: 15px; border-radius: 4px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #333;">
+                                            {followup_message if followup_message else '(No message added)'}
+                                        </div>
+                                    </div>
+                                    
+                                    {f'''
+                                    <!-- Additional Context Section -->
+                                    <div style="background-color: #f9f9f9; border-left: 4px solid #6f42c1; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
+                                        <h3 style="margin: 0 0 15px 0; color: #6f42c1; font-size: 16px;">
+                                            📝 Context from Original Referral
+                                        </h3>
+                                        <div style="font-size: 14px; line-height: 1.6; color: #333;">
+                                            {referral_notes}
+                                        </div>
+                                    </div>
+                                    ''' if referral_notes else ''}
+                                    
+                                    <!-- Action Items -->
+                                    <div style="background-color: #e7f3ff; border: 1px solid #b3d9ff; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
+                                        <h3 style="margin: 0 0 15px 0; color: #004d7a; font-size: 16px;">
+                                            ✓ Quick Checklist
+                                        </h3>
+                                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.8; color: #333;">
+                                            <li>Review the follow-up message and context</li>
+                                            <li>Personalize if needed for the moment</li>
+                                            <li>Check contact information is current</li>
+                                            <li>Send the follow-up email to {contact_name}</li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
                             
-                            <!-- Job Information Section -->
-                            <div style="background-color: #f9f9f9; border-left: 4px solid #00bf72; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
-                                <h3 style="margin: 0 0 15px 0; color: #00bf72; font-size: 16px;">
-                                    💼 Position Context
-                                </h3>
-                                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; line-height: 1.8; color: #333;">
-                                    <tr>
-                                        <td style="padding: 8px 0; font-weight: 600; width: 150px;">Position:</td>
-                                        <td style="padding: 8px 0;">{referral_position}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0; font-weight: 600;">Company:</td>
-                                        <td style="padding: 8px 0;">{referral_company}</td>
-                                    </tr>
-                                </table>
-                            </div>
+                            <!-- Action Button -->
+                            <tr>
+                                <td style="padding: 0 40px 40px 40px; text-align: center;">
+                                    <a href="{action_link}" style="display: inline-block; padding: 14px 32px; background-color: {urgency_color}; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; transition: background-color 0.3s;">
+                                        {action_button_text}
+                                    </a>
+                                </td>
+                            </tr>
                             
-                            <!-- Follow-Up Message Section -->
-                            <div style="background-color: #f9f9f9; border-left: 4px solid {config['color']}; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
-                                <h3 style="margin: 0 0 15px 0; color: {config['color']}; font-size: 16px;">
-                                    ✍️ Your Follow-Up Message
-                                </h3>
-                                <div style="background-color: white; padding: 15px; border-radius: 4px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #333;">
-                                    {followup_message if followup_message else '(No message added)'}
-                                </div>
-                            </div>
-                            
-                            {f'''
-                            <!-- Additional Context Section -->
-                            <div style="background-color: #f9f9f9; border-left: 4px solid #6f42c1; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
-                                <h3 style="margin: 0 0 15px 0; color: #6f42c1; font-size: 16px;">
-                                    📝 Context from Original Referral
-                                </h3>
-                                <div style="font-size: 14px; line-height: 1.6; color: #333;">
-                                    {referral_notes}
-                                </div>
-                            </div>
-                            ''' if referral_notes else ''}
-                            
-                            <!-- Action Items -->
-                            <div style="background-color: #e7f3ff; border: 1px solid #b3d9ff; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
-                                <h3 style="margin: 0 0 15px 0; color: #004d7a; font-size: 16px;">
-                                    ✓ Quick Checklist
-                                </h3>
-                                <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.8; color: #333;">
-                                    <li>Review the follow-up message and context</li>
-                                    <li>Personalize if needed for the moment</li>
-                                    <li>Check contact information is current</li>
-                                    <li>Send the follow-up email to {contact_name}</li>
-                                </ul>
-                            </div>
-                        </td>
-                    </tr>
-                    
-                    <!-- Action Button -->
-                    <tr>
-                        <td style="padding: 0 40px 40px 40px; text-align: center;">
-                            <a href="{action_link}" style="display: inline-block; padding: 14px 32px; background-color: {urgency_color}; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; transition: background-color 0.3s;">
-                                {action_button_text}
-                            </a>
-                        </td>
-                    </tr>
-                    
-                    <!-- Footer -->
-                    <tr>
-                        <td style="background-color: #f9f9f9; padding: 20px 40px; text-align: center; border-top: 1px solid #e0e0e0;">
-                            <p style="margin: 0; color: #999; font-size: 12px; line-height: 1.6;">
-                                {config['icon']} This is a reminder from <strong style="color: #004d7a;">Metamorphosis</strong> - your follow-up is scheduled for {('today' if hours_until == 0 else 'tomorrow')}.
-                            </p>
-                            <p style="margin: 10px 0 0 0; color: #999; font-size: 11px;">
-                                Reminder sent to: {user_email}
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-"""
+                            <!-- Footer -->
+                            <tr>
+                                <td style="background-color: #f9f9f9; padding: 20px 40px; text-align: center; border-top: 1px solid #e0e0e0;">
+                                    <p style="margin: 0; color: #999; font-size: 12px; line-height: 1.6;">
+                                        {config['icon']} This is a reminder from <strong style="color: #004d7a;">Metamorphosis</strong> - your follow-up is scheduled for {time_text}.
+                                    </p>
+                                    <p style="margin: 10px 0 0 0; color: #999; font-size: 11px;">
+                                        Reminder sent to: {user_email}
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
         return html
     
     def _build_followup_text(

@@ -28,6 +28,7 @@ from schema.Offer import (
 from services.salary_negotiation_service import generate_full_negotiation_prep
 from services.pdf_export import export_negotiation_to_pdf, export_negotiation_to_docx
 from services.market_data_cache import get_cache_stats
+from services.offer_comparison_service import offer_comparison_service
 
 offers_router = APIRouter(prefix="/offers")
 
@@ -98,6 +99,38 @@ async def create_offer(offer: Offer, uuid: str = Depends(authorize)):
 
     except Exception as e:
         print(f"Error creating offer: {e}")
+        raise HTTPException(500, str(e))
+
+
+@offers_router.get("/active", tags=["offers"])
+async def get_active_offers(uuid: str = Depends(authorize)):
+    """Get all non-archived offers - UC-127"""
+    try:
+        offers = await offers_dao.get_active_offers(uuid)
+
+        for offer in offers:
+            offer["_id"] = str(offer["_id"])
+
+        return offers
+
+    except Exception as e:
+        print(f"Error fetching active offers: {e}")
+        raise HTTPException(500, str(e))
+
+
+@offers_router.get("/archived", tags=["offers"])
+async def get_archived_offers(uuid: str = Depends(authorize)):
+    """Get all archived offers - UC-127"""
+    try:
+        offers = await offers_dao.get_archived_offers(uuid)
+
+        for offer in offers:
+            offer["_id"] = str(offer["_id"])
+
+        return offers
+
+    except Exception as e:
+        print(f"Error fetching archived offers: {e}")
         raise HTTPException(500, str(e))
 
 
@@ -519,3 +552,350 @@ async def get_market_cache_statistics(uuid: str = Depends(authorize)):
         dict: Cache statistics including hit rate and entry count
     """
     return get_cache_stats()
+
+
+# =============================================================================
+# UC-127: OFFER EVALUATION & COMPARISON
+# =============================================================================
+
+@offers_router.post("/{offer_id}/calculate-total-comp", tags=["offers", "evaluation"])
+async def calculate_total_compensation(offer_id: str, uuid: str = Depends(authorize)):
+    """
+    Calculate comprehensive total compensation breakdown - UC-127
+
+    Calculates:
+    - Year 1 total comp (base + signing + bonus + equity + benefits)
+    - Annual total comp (year 2+)
+    - 4-year total comp
+    """
+    try:
+        offer = await offers_dao.get_offer(offer_id)
+
+        if not offer:
+            raise HTTPException(404, "Offer not found")
+
+        if offer["user_uuid"] != uuid:
+            raise HTTPException(403, "Not authorized to access this offer")
+
+        total_comp = await offer_comparison_service.calculate_total_compensation(offer_id, offer)
+
+        return {
+            "detail": "Total compensation calculated",
+            "total_compensation": total_comp
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error calculating total comp: {e}")
+        raise HTTPException(500, str(e))
+
+
+@offers_router.post("/{offer_id}/calculate-equity", tags=["offers", "evaluation"])
+async def calculate_equity_valuation(
+    offer_id: str,
+    equity_data: dict = Body(...),
+    uuid: str = Depends(authorize)
+):
+    """
+    Calculate equity valuation (RSUs or Stock Options) - UC-127
+
+    Body should contain:
+    - equity_type: "RSUs" or "Stock Options"
+    - number_of_shares: int
+    - current_stock_price: float
+    - strike_price: float (for options only)
+    - vesting_years: int
+    - cliff_months: int
+    """
+    try:
+        offer = await offers_dao.get_offer(offer_id)
+
+        if not offer:
+            raise HTTPException(404, "Offer not found")
+
+        if offer["user_uuid"] != uuid:
+            raise HTTPException(403, "Not authorized to access this offer")
+
+        equity_details = await offer_comparison_service.calculate_equity_value(offer_id, equity_data)
+
+        return {
+            "detail": "Equity valuation calculated",
+            "equity_details": equity_details
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error calculating equity: {e}")
+        raise HTTPException(500, str(e))
+
+
+@offers_router.post("/{offer_id}/calculate-benefits", tags=["offers", "evaluation"])
+async def calculate_benefits_valuation(
+    offer_id: str,
+    benefits_data: dict = Body(...),
+    uuid: str = Depends(authorize)
+):
+    """
+    Calculate monetary value of benefits - UC-127
+
+    Body can include:
+    - health_insurance_value: float
+    - dental_vision_value: float
+    - retirement_401k_match: string (e.g., "6%") or float
+    - life_insurance_value: float
+    - disability_insurance_value: float
+    - hsa_contribution: float
+    - commuter_benefits: float
+    - education_stipend: float
+    - wellness_stipend: float
+    - home_office_stipend: float
+    """
+    try:
+        offer = await offers_dao.get_offer(offer_id)
+
+        if not offer:
+            raise HTTPException(404, "Offer not found")
+
+        if offer["user_uuid"] != uuid:
+            raise HTTPException(403, "Not authorized to access this offer")
+
+        base_salary = offer.get("offered_salary_details", {}).get("base_salary", 0)
+        pto_days = offer.get("offered_salary_details", {}).get("pto_days", 0)
+
+        benefits_val = await offer_comparison_service.calculate_benefits_value(
+            offer_id, benefits_data, base_salary, pto_days
+        )
+
+        return {
+            "detail": "Benefits valuation calculated",
+            "benefits_valuation": benefits_val
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error calculating benefits: {e}")
+        raise HTTPException(500, str(e))
+
+
+@offers_router.post("/{offer_id}/calculate-col", tags=["offers", "evaluation"])
+async def calculate_cost_of_living(offer_id: str, uuid: str = Depends(authorize)):
+    """
+    Calculate cost-of-living adjusted salary - UC-127
+
+    Uses offer's location and base salary to calculate COL adjustment
+    """
+    try:
+        offer = await offers_dao.get_offer(offer_id)
+
+        if not offer:
+            raise HTTPException(404, "Offer not found")
+
+        if offer["user_uuid"] != uuid:
+            raise HTTPException(403, "Not authorized to access this offer")
+
+        location = offer.get("location", "Other")
+        base_salary = offer.get("offered_salary_details", {}).get("base_salary", 0)
+
+        col_data = await offer_comparison_service.calculate_cost_of_living_adjustment(
+            offer_id, location, base_salary
+        )
+
+        return {
+            "detail": "Cost of living calculated",
+            "cost_of_living": col_data
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error calculating COL: {e}")
+        raise HTTPException(500, str(e))
+
+
+@offers_router.post("/{offer_id}/calculate-score", tags=["offers", "evaluation"])
+async def calculate_offer_score(
+    offer_id: str,
+    non_financial_factors: dict = Body(...),
+    market_median: float = Body(None),
+    weights: dict = Body(None),
+    uuid: str = Depends(authorize)
+):
+    """
+    Calculate comprehensive offer score - UC-127
+
+    Body should contain:
+    - non_financial_factors: dict with 1-10 ratings for:
+      - culture_fit
+      - growth_opportunities
+      - work_life_balance
+      - team_quality
+      - mission_alignment
+      - commute_quality
+      - job_security
+      - learning_opportunities
+    - market_median: optional float (market median salary for comparison)
+    - weights: optional dict with financial_weight (default 0.6)
+    """
+    try:
+        offer = await offers_dao.get_offer(offer_id)
+
+        if not offer:
+            raise HTTPException(404, "Offer not found")
+
+        if offer["user_uuid"] != uuid:
+            raise HTTPException(403, "Not authorized to access this offer")
+
+        # Save non-financial factors
+        await offers_dao.update_non_financial_factors(offer_id, non_financial_factors)
+
+        # Get total comp
+        total_comp = offer.get("offered_salary_details", {}).get("total_compensation", {})
+
+        if not total_comp:
+            raise HTTPException(400, "Total compensation not calculated yet. Call /calculate-total-comp first.")
+
+        score = await offer_comparison_service.calculate_offer_score(
+            offer_id, total_comp, non_financial_factors, market_median, weights
+        )
+
+        return {
+            "detail": "Offer score calculated",
+            "offer_score": score
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error calculating score: {e}")
+        raise HTTPException(500, str(e))
+
+
+@offers_router.post("/{offer_id}/scenario-analysis", tags=["offers", "evaluation"])
+async def run_scenario_analysis(
+    offer_id: str,
+    scenarios: list = Body(...),
+    uuid: str = Depends(authorize)
+):
+    """
+    Run "what-if" scenario analysis - UC-127
+
+    Body should be a list of scenarios:
+    [
+        {
+            "name": "Negotiate 10% higher salary",
+            "changes": {"base_salary": 165000}
+        },
+        {
+            "name": "More equity",
+            "changes": {"equity_number_of_shares": 5000}
+        }
+    ]
+
+    Returns recalculated total comp for each scenario
+    """
+    try:
+        offer = await offers_dao.get_offer(offer_id)
+
+        if not offer:
+            raise HTTPException(404, "Offer not found")
+
+        if offer["user_uuid"] != uuid:
+            raise HTTPException(403, "Not authorized to access this offer")
+
+        results = await offer_comparison_service.run_scenario_analysis(offer_id, scenarios)
+
+        return {
+            "detail": "Scenario analysis complete",
+            "scenarios": results
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error running scenario analysis: {e}")
+        raise HTTPException(500, str(e))
+
+
+@offers_router.post("/compare", tags=["offers", "evaluation"])
+async def compare_offers(
+    offer_ids: list = Body(...),
+    weights: dict = Body(None),
+    uuid: str = Depends(authorize)
+):
+    """
+    Get side-by-side comparison of multiple offers - UC-127
+
+    Body should contain:
+    - offer_ids: list of offer IDs to compare
+    - weights: optional dict with comparison weights
+
+    Returns:
+    - offers: List of offer summaries
+    - winner: Offer with highest weighted score
+    - comparison_matrix: Side-by-side breakdown
+    """
+    try:
+        if not offer_ids or len(offer_ids) < 2:
+            raise HTTPException(400, "At least 2 offers required for comparison")
+
+        # Verify all offers belong to user
+        for oid in offer_ids:
+            offer = await offers_dao.get_offer(oid)
+            if not offer:
+                raise HTTPException(404, f"Offer {oid} not found")
+            if offer["user_uuid"] != uuid:
+                raise HTTPException(403, f"Not authorized to access offer {oid}")
+
+        comparison = await offer_comparison_service.compare_offers(offer_ids, weights)
+
+        return {
+            "detail": "Comparison complete",
+            **comparison
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error comparing offers: {e}")
+        raise HTTPException(500, str(e))
+
+
+@offers_router.post("/{offer_id}/archive", tags=["offers"])
+async def archive_offer(
+    offer_id: str,
+    decline_reason: str = Body(None),
+    uuid: str = Depends(authorize)
+):
+    """
+    Archive a declined offer - UC-127
+
+    Body can include decline_reason (optional string)
+    """
+    try:
+        offer = await offers_dao.get_offer(offer_id)
+
+        if not offer:
+            raise HTTPException(404, "Offer not found")
+
+        if offer["user_uuid"] != uuid:
+            raise HTTPException(403, "Not authorized to access this offer")
+
+        archived = await offers_dao.archive_offer(offer_id, decline_reason)
+
+        if archived:
+            archived["_id"] = str(archived["_id"])
+            return {
+                "detail": "Offer archived",
+                "offer": archived
+            }
+        else:
+            raise HTTPException(500, "Failed to archive offer")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error archiving offer: {e}")
+        raise HTTPException(500, str(e))
