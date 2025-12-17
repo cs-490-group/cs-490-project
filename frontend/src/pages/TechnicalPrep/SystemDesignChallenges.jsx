@@ -77,7 +77,7 @@ const SystemDesignChallenges = () => {
         <h3>Generate New Challenge</h3>
         <div className="generate-form">
           <label>Seniority Level:</label>
-          <select value={seniority} onChange={(e) => setSeniority(e.target.value)}>
+          <select value={seniority} aria-label="Seniority Level" onChange={(e) => setSeniority(e.target.value)}>
             <option value="junior">Junior (2-5 years)</option>
             <option value="senior">Senior (5+ years)</option>
             <option value="architect">Architect (10+ years)</option>

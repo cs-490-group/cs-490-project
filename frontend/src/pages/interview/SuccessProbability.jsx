@@ -188,15 +188,7 @@ function SuccessProbability() {
         </div>
         <button 
           onClick={loadInterviews}
-          style={{
-            marginTop: '1rem',
-            padding: '0.75rem 1.5rem',
-            background: '#667eea',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
+          className="btn btn-primary"
         >
           Retry
         </button>
@@ -334,7 +326,7 @@ function SuccessProbability() {
       </div>
       
       <div style={{ marginBottom: '2rem' }}>
-        <h3 style={{ marginBottom: '1rem' }}>Contributing Factors</h3>
+        <h2 style={{ marginBottom: '1rem' }}>Contributing Factors</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
           <FactorCard 
             title="Preparation" 
@@ -372,7 +364,7 @@ function SuccessProbability() {
       </div>
       
       <div style={{ marginBottom: '2rem' }}>
-        <h3 style={{ marginBottom: '1rem' }}>Category-Specific Predictions</h3>
+        <h2 style={{ marginBottom: '1rem' }}>Category-Specific Predictions</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
           <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
             <ResponsiveContainer width="100%" height={300}>
@@ -416,7 +408,7 @@ function SuccessProbability() {
       
       {currentPrediction.prioritized_actions?.length > 0 && (
         <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Prioritized Action Items</h3>
+          <h2 style={{ marginBottom: '1rem' }}>Prioritized Action Items</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {currentPrediction.prioritized_actions.map((action, idx) => (
               <div key={idx} style={{
@@ -460,7 +452,7 @@ function SuccessProbability() {
           borderRadius: '12px',
           border: '1px solid #e0e0e0'
         }}>
-          <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Compare Interviews</h3>
+          <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Compare Interviews</h2>
           <p style={{ color: '#666', marginBottom: '1.5rem' }}>
             View side-by-side comparison of success probabilities across all upcoming interviews
           </p>

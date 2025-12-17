@@ -541,6 +541,7 @@ export default function InformationalInterviewManagement() {
                                     value={filterText.industry}
                                     onChange={handleFilterChange}
                                     className="filter-input"
+                                    aria-label="Industry Filter"
                                 >
                                     <option value="">All Industries</option>
                                     <option value="Technology">Technology</option>
@@ -561,6 +562,7 @@ export default function InformationalInterviewManagement() {
                                     value={filterText.status}
                                     onChange={handleFilterChange}
                                     className="filter-input"
+                                    aria-label="Status Filter"
                                 >
                                     <option value="">All Statuses</option>
                                     <option value="requested">Requested</option>

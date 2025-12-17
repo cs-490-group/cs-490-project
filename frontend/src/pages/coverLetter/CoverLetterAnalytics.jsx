@@ -74,7 +74,7 @@ export default function CoverLetterAnalytics() {
                         <span>Interview Rate</span>
                         <span className="fw-bold text-primary">{style.interview_rate}%</span>
                     </div>
-                    <ProgressBar now={style.interview_rate} variant="primary" style={{height: '8px'}} />
+                    <ProgressBar now={style.interview_rate} variant="primary" style={{height: '8px'}} aria-label={`Interview rate for ${style.style}`} />
                   </div>
 
                   {/* Response Rate Bar (Faded) */}
@@ -83,7 +83,7 @@ export default function CoverLetterAnalytics() {
                         <span className="text-muted">Any Response</span>
                         <span className="text-muted">{style.response_rate}%</span>
                     </div>
-                    <ProgressBar now={style.response_rate} variant="info" style={{height: '4px', opacity: 0.5}} />
+                    <ProgressBar now={style.response_rate} variant="info" style={{height: '4px', opacity: 0.5}} aria-label={`Response rate for ${style.style}`} />
                   </div>
                 </div>
               ))}

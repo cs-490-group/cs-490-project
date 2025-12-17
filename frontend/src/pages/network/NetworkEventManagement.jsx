@@ -631,6 +631,7 @@ export default function NetworkEventManagement() {
                             <div className="filter-group">
                                 <Form.Select
                                     name="event_type"
+                                    aria-label="Filter by Event Type"
                                     value={filterText.event_type}
                                     onChange={handleFilterChange}
                                     className="filter-input"
@@ -650,6 +651,7 @@ export default function NetworkEventManagement() {
                                     value={filterText.industry}
                                     onChange={handleFilterChange}
                                     className="filter-input"
+                                    aria-label="Filter by Industry"
                                 >
                                     <option value="">All Industries</option>
                                     <option value="Technology">Technology</option>

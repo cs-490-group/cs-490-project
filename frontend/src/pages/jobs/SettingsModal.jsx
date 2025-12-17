@@ -148,20 +148,8 @@ export default function SettingsModal({
             Cancel
           </button>
           <button
-            onClick={() => {
-              saveAutoArchiveSettings();
-              setShowSettings(false);
-            }}
-            style={{
-              padding: "10px 20px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "600"
-            }}
+            onClick={saveAutoArchiveSettings}
+            className="btn btn-primary"
           >
             💾 Save Settings
           </button>

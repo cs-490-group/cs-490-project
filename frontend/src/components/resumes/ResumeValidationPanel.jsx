@@ -121,6 +121,7 @@ export default function ResumeValidationPanel({ resumeId, autoValidate = true })
               <ProgressBar
                 now={validation.score}
                 variant={getScoreVariant(validation.score)}
+                aria-label="Overall Resume Score"
               />
             </div>
 
@@ -135,6 +136,7 @@ export default function ResumeValidationPanel({ resumeId, autoValidate = true })
                 <ProgressBar
                   now={validation.ats_score}
                   variant={getScoreVariant(validation.ats_score)}
+                  aria-label="ATS Compatibility Score"
                 />
                 <small className="text-muted d-block mt-2">
                   How well your resume will be parsed by Applicant Tracking Systems

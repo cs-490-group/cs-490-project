@@ -94,6 +94,7 @@ export default function TemplateCustomizer({ colors, fonts, onUpdate }) {
               value={selectedFonts.heading}
               onChange={(e) => handleFontChange('heading', e.target.value)}
               className="form-select"
+              aria-label="Select heading font"
             >
               {fontOptions.map((font) => (
                 <option key={font} value={font}>
@@ -115,6 +116,7 @@ export default function TemplateCustomizer({ colors, fonts, onUpdate }) {
               value={selectedFonts.body}
               onChange={(e) => handleFontChange('body', e.target.value)}
               className="form-select"
+              aria-label="Select body font"
             >
               {fontOptions.map((font) => (
                 <option key={font} value={font}>

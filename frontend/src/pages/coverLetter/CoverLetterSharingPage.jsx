@@ -257,7 +257,7 @@ export default function CoverLetterSharingPage() {
                 onChange={e => setNewComment(e.target.value)}
                 style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }}
               />
-              <button onClick={handleAddComment} style={{ background: "#2196f3", color: "white", border: "none", borderRadius: "4px", padding: "0 15px", cursor: "pointer" }}>Add</button>
+              <button onClick={handleAddComment} className="btn btn-primary">Add</button>
             </div>
 
             <div style={{ maxHeight: "400px", overflowY: "auto" }}>

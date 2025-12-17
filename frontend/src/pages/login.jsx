@@ -8,7 +8,6 @@ import { useMsal } from "@azure/msal-react";
 import AuthAPI from "../api/authentication";
 import teamsAPI from "../api/teams";
 import "../styles/login.css"; 
-import logo from "../logo.svg.png"; 
 
 function Login() {
   const {
@@ -352,7 +351,14 @@ function Login() {
     <div className="login-page">
       <div className="login-card shadow">
         <div className="login-logo mb-3">
-          <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+          <img
+                src="/logo.svg.png" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                />
         </div>
 
         <h2 className="fw-bold mb-3">Welcome Back</h2>

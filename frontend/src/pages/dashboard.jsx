@@ -809,7 +809,10 @@ const Dashboard = () => {
 
                         {/* Card content - scrollable */}
                         <div className="flex-grow-1 overflow-auto card-content">
-                          <CategoryCard data={category.data} />
+                          <CategoryCard 
+                              data={category.data} 
+                              title={category.title} 
+                            />
                         </div>
                       </Card.Body>
                     </Card>

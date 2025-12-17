@@ -203,16 +203,7 @@ export default function EducationList() {
             setShowForm(!showForm);
             setEditEntry(null);
           }}
-          style={{
-            padding: "12px 24px",
-            background: "#4f8ef7",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "14px"
-          }}
+          className="btn btn-primary"
         >
           {showForm ? "← Cancel" : "+ Add Education"}
         </button>
@@ -475,16 +466,7 @@ export default function EducationList() {
                         </button>
                         <button
                           onClick={() => deleteEntry(entry.id)}
-                          style={{
-                            padding: "8px 16px",
-                            background: "#ff3b30",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "13px",
-                            fontWeight: "600"
-                          }}
+                          className="btn btn-danger"
                         >
                           🗑️ Delete
                         </button>

@@ -43,6 +43,7 @@ export default function TemplatesTab({
                 className="form-select form-select-sm"
                 value={templateCategory}
                 onChange={(e) => setTemplateCategory(e.target.value)}
+                aria-label="Select template category"
               >
                 <option value="screening_questions">Screening Questions</option>
                 <option value="why_company">Why Company</option>

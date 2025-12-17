@@ -190,15 +190,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
                 e.stopPropagation();
                 handleView(material, type);
               }}
-              style={{
-                padding: "4px 8px",
-                background: "#2196f3",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "11px"
-              }}
+              className="btn btn-primary"
             >
               👁 View
             </button>
@@ -449,16 +441,7 @@ export default function MaterialsModal({ job, onClose, onSave }) {
           </button>
           <button
             onClick={handleSave}
-            style={{
-              padding: "10px 20px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "600"
-            }}
+            className="btn btn-primary"
           >
             💾 Save Materials
           </button>

@@ -100,13 +100,7 @@ export default function CoverLetterForm({ editEntry, onAdded, cancelEdit }) {
       </button>
       <button
         onClick={cancelEdit}
-        style={{
-          padding: "8px 16px",
-          background: "#ff3b30",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-        }}
+        className="btn btn-danger"
       >
         Cancel
       </button>

@@ -136,15 +136,7 @@ function InterviewAnalytics() {
         </div>
         <button 
           onClick={loadAnalytics}
-          style={{
-            marginTop: '1rem',
-            padding: '0.75rem 1.5rem',
-            background: '#667eea',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
+          className="btn btn-primary"
         >
           Retry
         </button>
@@ -264,7 +256,7 @@ function InterviewAnalytics() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
           {trendData.length > 0 && (
             <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
-              <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Conversion Rate Trend</h3>
+              <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Conversion Rate Trend</h2>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -279,7 +271,7 @@ function InterviewAnalytics() {
           
           {categoryPerformance.length > 0 && (
             <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
-              <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Performance by Category</h3>
+              <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Performance by Category</h2>
               <ResponsiveContainer width="100%" height={250}>
                 <RadarChart data={categoryPerformance}>
                   <PolarGrid stroke="#e0e0e0" />
@@ -294,7 +286,7 @@ function InterviewAnalytics() {
           
           {formatData.length > 0 && (
             <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
-              <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Success Rate by Format</h3>
+              <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Success Rate by Format</h2>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={formatData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -308,7 +300,7 @@ function InterviewAnalytics() {
           )}
           
           <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Interview Outcomes</h3>
+            <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Interview Outcomes</h2>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
@@ -332,9 +324,9 @@ function InterviewAnalytics() {
         </div>
         
         <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0', marginBottom: '2rem' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>💡</span> AI-Powered Insights
-          </h3>
+          </h2>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
             <div>
@@ -382,7 +374,7 @@ function InterviewAnalytics() {
         
         {comparisonData && (
           <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Industry Benchmark Comparison</h3>
+            <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Industry Benchmark Comparison</h2>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
               <div style={{ textAlign: 'center', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>

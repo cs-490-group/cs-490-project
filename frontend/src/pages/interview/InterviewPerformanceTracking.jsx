@@ -339,16 +339,7 @@ function InterviewPerformanceTracking() {
             <p style={{ color: '#666' }}>{error}</p>
             <button
               onClick={fetchAllData}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                fontWeight: '600'
-              }}
+              className="btn btn-primary"
             >
               Retry
             </button>
@@ -455,7 +446,7 @@ function InterviewPerformanceTracking() {
 
         {/* Conversion Funnel */}
         <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0', marginBottom: '2rem' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Interview Stage Conversion</h3>
+          <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Interview Stage Conversion</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={performanceData.conversion_by_stage} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -471,7 +462,7 @@ function InterviewPerformanceTracking() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
           {/* Success Rate Over Time */}
           <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Success Rate Trends</h3>
+            <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Success Rate Trends</h2>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={performanceData.performance_over_time}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -487,7 +478,7 @@ function InterviewPerformanceTracking() {
 
           {/* Confidence Progress */}
           <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Confidence Growth</h3>
+            <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Confidence Growth</h2>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={performanceData.performance_over_time}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -504,7 +495,7 @@ function InterviewPerformanceTracking() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
           {/* Format Performance */}
           <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Performance by Interview Format</h3>
+            <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Performance by Interview Format</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {performanceData.format_performance.map(format => (
                 <div key={format.format} style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
@@ -530,7 +521,7 @@ function InterviewPerformanceTracking() {
 
           {/* Category Performance Radar */}
           <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Skills by Category</h3>
+            <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Skills by Category</h2>
             <ResponsiveContainer width="100%" height={300}>
               <RadarChart data={performanceData.category_performance}>
                 <PolarGrid stroke="#e0e0e0" />
@@ -547,7 +538,7 @@ function InterviewPerformanceTracking() {
 
         {/* Industry Breakdown */}
         <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0', marginBottom: '2rem' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Performance Across Industries</h3>
+          <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Performance Across Industries</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
             {performanceData.industry_performance.map(industry => (
               <div key={industry.industry} style={{
@@ -570,7 +561,7 @@ function InterviewPerformanceTracking() {
 
         {/* Feedback Themes */}
         <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0', marginBottom: '2rem' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Common Feedback Themes</h3>
+          <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Common Feedback Themes</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {performanceData.feedback_themes.map((feedback, idx) => (
               <div key={idx} style={{
@@ -607,7 +598,7 @@ function InterviewPerformanceTracking() {
 
         {/* Confidence & Anxiety Tracking */}
         <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0', marginBottom: '2rem' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Confidence & Anxiety Management</h3>
+          <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Confidence & Anxiety Management</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
             <div style={{ textAlign: 'center', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
               <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>Confidence Before</div>
@@ -637,9 +628,9 @@ function InterviewPerformanceTracking() {
 </div>
     {/* Coaching Recommendations */}
     <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0', marginBottom: '2rem' }}>
-      <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <h2 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <span>🎯</span> Personalized Coaching Recommendations
-      </h3>
+      </h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {performanceData.coaching_recommendations.map((rec, idx) => (
           <div key={idx} style={{
@@ -688,7 +679,7 @@ function InterviewPerformanceTracking() {
 
     {/* Benchmarking */}
     <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
-      <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Benchmarking Against Industry Standards</h3>
+      <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Benchmarking Against Industry Standards</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
         <div style={{ textAlign: 'center', padding: '1.5rem', background: '#f0f4ff', borderRadius: '8px' }}>
           <div style={{ fontSize: '0.9rem', color: '#667eea', marginBottom: '0.5rem' }}>Your Rate</div>

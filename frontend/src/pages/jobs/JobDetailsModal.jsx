@@ -355,15 +355,7 @@ export default function JobDetailsModal({
                 alert("Invalid date format. Please use YYYY-MM-DD");
               }
             }}}
-          style={{marginLeft: "8px",
-            padding: "6px 12px",
-            background: "#2196f3",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: "600"}}
+          className="btn btn-primary"
         >
           📅 Extend
         </button>
@@ -640,7 +632,92 @@ export default function JobDetailsModal({
           <SingleJobLocation job={selectedJob} ProfilesAPI={ProfilesAPI} />
         )}
 
-        {/* ---------------- MATERIALS TAB ---------------- */}
+        {/* --- BASIC JOB DETAILS --- */}
+        {/*selectedJob.location && (
+          <div style={{ marginBottom: "16px", color: "#000" }}>
+            <strong>Location:</strong> {selectedJob.location}
+          </div>
+        )}
+
+        {selectedJob.salary && (
+          <div style={{ marginBottom: "16px", color: "#000" }}>
+            <strong>Salary:</strong> {selectedJob.salary}
+          </div>
+        )}
+
+        {selectedJob.deadline && (
+          <div style={{ marginBottom: "16px", color: "#000" }}>
+            <strong>Deadline:</strong> {new Date(selectedJob.deadline).toLocaleDateString()}
+
+            <button
+              onClick={() => setReminderJob(selectedJob)}
+              style={{
+                marginLeft: "12px",
+                padding: "6px 12px",
+                background: "#ff9800",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: "600"
+              }}
+            >
+              ⏰ Set Reminder
+            </button>
+
+            <button
+              onClick={() => {
+                const newDeadline = prompt("Enter new deadline (YYYY-MM-DD):", selectedJob.deadline);
+                if (newDeadline) {
+                  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                  if (dateRegex.test(newDeadline)) {
+                    updateJob({ ...selectedJob, deadline: newDeadline });
+                  } else {
+                    alert("Invalid date format. Please use YYYY-MM-DD");
+                  }
+                }
+              }}
+              className="btn btn-primary"
+            >
+              📅 Extend Deadline
+            </button>
+          </div>
+        )}
+
+        {selectedJob.url && (
+          <div style={{ marginBottom: "16px", color: "#000" }}>
+            <strong>Link:</strong>{" "}
+            <a
+              href={selectedJob.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#4f8ef7", textDecoration: "underline" }}
+            >
+              View Job Posting →
+            </a>
+          </div>
+        )}
+
+        {selectedJob.description && (
+          <div style={{ marginBottom: "16px", color: "#000" }}>
+            <strong>Description:</strong>
+            <div style={{ background: "#f9f9f9", padding: "12px", borderRadius: "4px", marginTop: "8px", whiteSpace: "pre-wrap" }}>
+              {selectedJob.description}
+            </div>
+          </div>
+        )}
+
+        {selectedJob.notes && (
+          <div style={{ marginBottom: "16px", background: "#fffbea", padding: "12px", borderRadius: "4px", color: "#000" }}>
+            <strong>Notes:</strong>
+            <div style={{ marginTop: "8px", whiteSpace: "pre-wrap" }}>{selectedJob.notes}</div>
+          </div>
+        )*/}
+
+          
+
+        {/* --- APPLICATION MATERIALS SECTION --- */}
         {activeTab === "materials" && selectedJob.materials && (
           <div style={{ marginBottom: "16px", background: "#f3e5f5", padding: "16px", borderRadius: "6px", border: "1px solid #e1bee7" }}>
             <h3 style={{ margin: "0 0 12px 0", color: "#7b1fa2", fontSize: "16px" }}>📄 Application Materials</h3>
@@ -845,7 +922,7 @@ export default function JobDetailsModal({
 
               <button
                 onClick={() => { deleteJob(selectedJob.id); }}
-                style={{ padding: "10px 20px", background: "#ff3b30", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px", fontWeight: "600" }}
+                className="btn btn-danger"
               >
                 🗑️ Delete Job
               </button>

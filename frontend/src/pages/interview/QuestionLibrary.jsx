@@ -140,18 +140,14 @@ function QuestionLibrary() {
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowJobSelector(true)}
-                style={{
-                  background: '#2196f3',
-                  color: 'white',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                }}
+                className="btn btn-primary"
               >
                 Change Job
               </button>
               <button
                 onClick={handleClearJob}
+                aria-label="Clear selected job"
+                className="btn btn-secondary"
                 style={{
                   background: '#f44336',
                   color: 'white',
@@ -171,14 +167,7 @@ function QuestionLibrary() {
             </p>
             <button
               onClick={() => setShowJobSelector(true)}
-              style={{
-                background: '#2196f3',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '14px',
-                padding: '10px 24px',
-              }}
+              className="btn btn-primary"
             >
               Select Job
             </button>
@@ -195,8 +184,9 @@ function QuestionLibrary() {
             className="search-input"
             value={searchQuery}
             onChange={handleSearchChange}
+            aria-label="Search industries"
           />
-          <span className="search-icon">🔍</span>
+          <span className="search-icon" aria-hidden="true">🔍</span>
         </div>
       </div>
 
@@ -204,58 +194,49 @@ function QuestionLibrary() {
       <div className="question-library-content">
         {/* Left Sidebar - Categories */}
         <aside className="question-library-sidebar">
-          <h3>Browse by Category</h3>
+          <h2>Browse by Category</h2>
           <ul className="category-list">
             {categories.map((cat) => (
-              <li
-                key={cat.id}
-                className={`category-item ${
-                  selectedCategory === cat.id ? "active" : ""
-                }`}
-                onClick={() => handleCategoryClick(cat.id)}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    handleCategoryClick(cat.id);
-                  }
-                }}
-                role="button"
-                tabIndex="0"
-              >
-                <span>{cat.name}</span>
-                <span className="count">{cat.count}</span>
+              <li key={cat.id} className={`category-item ${selectedCategory === cat.id ? "active" : ""}`}>
+                <button
+                  onClick={() => handleCategoryClick(cat.id)}
+                  className="category-button"
+                  aria-pressed={selectedCategory === cat.id}
+                >
+                  <span>{cat.name}</span>
+                  <span className="count">{cat.count}</span>
+                </button>
               </li>
             ))}
           </ul>
         </aside>
 
         {/* Main Grid */}
-        <main className="question-library-grid">
+        <section className="question-library-grid">
           <div className="industries-grid">
             {filteredIndustries.map((industry) => (
               <div
-                key={industry.uuid}
-                className="industry-card"
-                onClick={() => handleIndustryClick(industry.uuid)}
-                role="button"
-                tabIndex="0"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    handleIndustryClick(industry.uuid);
-                  }
-                }}
-              >
-                <div className="industry-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <IndustryIcon industryId={industry.uuid} className="w-8 h-8" />
+                  key={industry.uuid}
+                  className="industry-card"
+                >
+                  <button
+                    onClick={() => handleIndustryClick(industry.uuid)}
+                    className="industry-card-button"
+                    aria-label={`View ${industry.name} interview questions`}
+                  >
+                    <div className="industry-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <IndustryIcon industryId={industry.uuid} className="w-8 h-8" />
+                    </div>
+                    <h3 className="industry-name">{industry.name}</h3>
+                    <p className="industry-description">{industry.description}</p>
+                    <div className="industry-footer">
+                      <span className="role-count">
+                        {industry.roles?.length || 0} roles
+                      </span>
+                      <span className="explore-arrow">→</span>
+                    </div>
+                  </button>
                 </div>
-                <h3 className="industry-name">{industry.name}</h3>
-                <p className="industry-description">{industry.description}</p>
-                <div className="industry-footer">
-                  <span className="role-count">
-                    {industry.roles?.length || 0} roles
-                  </span>
-                  <span className="explore-arrow">→</span>
-                </div>
-              </div>
             ))}
           </div>
 
@@ -270,7 +251,7 @@ function QuestionLibrary() {
               </button>
             </div>
           )}
-        </main>
+        </section>
       </div>
 
       {/* Job Posting Selector Modal */}

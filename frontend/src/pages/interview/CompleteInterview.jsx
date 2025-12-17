@@ -129,15 +129,7 @@ function CompleteInterview() {
           <p>Interview not found</p>
           <button 
             onClick={() => navigate('/interview/calendar')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
+            className="btn btn-primary"
           >
             Back to Calendar
           </button>
@@ -460,17 +452,7 @@ function CompleteInterview() {
             
             <button
               onClick={() => navigate(`/interview/follow-up`)}
-              style={{
-                padding: '0.75rem 2rem',
-                background: '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '1rem',
-                marginTop: '1rem'
-              }}
+              className="btn btn-primary"
             >
               Generate Follow-Up Email
             </button>

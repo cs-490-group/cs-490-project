@@ -1,7 +1,6 @@
 import { useForm } from "react-hook-form";
 import { useFlash } from "../context/flashContext";
 import "../styles/forgot.css";
-import logo from "../logo.svg.png";
 
 import AuthAPI from "../api/authentication";
 
@@ -42,13 +41,16 @@ const ForgotPassword = () => {
         <div className="forgot-card shadow">
             <div className="login-logo mb-3">
             <img
-                src={logo}
+                src="/logo.svg.png" 
                 alt="Metamorphosis logo"
-                className="login-logo-img"
-            />
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                />
             </div>
 
-            <h2 className="fw-bold mb-2">Forgot Password?</h2>
+            <h1 className="fw-bold mb-2">Forgot Password?</h1>
             <p className="text-muted mb-4">
             Enter the email address associated with your account and we’ll send
             you a password reset link.

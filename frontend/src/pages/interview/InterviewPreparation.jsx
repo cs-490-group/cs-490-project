@@ -444,15 +444,7 @@ function InterviewPreparation() {
               setEditingTask(null);
               setTaskFormData({ title: '', description: '', category: 'practice', priority: 'medium' });
             }}
-            style={{
-              padding: '0.5rem 1rem',
-              background: '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
+            className="btn btn-primary"
           >
             + Add Task
           </button>
@@ -481,6 +473,7 @@ function InterviewPreparation() {
                 value={taskFormData.category}
                 onChange={(e) => setTaskFormData({ ...taskFormData, category: e.target.value })}
                 style={{ padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                aria-label="Select task category"
               >
                 <option value="research">Research</option>
                 <option value="practice">Practice</option>
@@ -492,6 +485,7 @@ function InterviewPreparation() {
                 value={taskFormData.priority}
                 onChange={(e) => setTaskFormData({ ...taskFormData, priority: e.target.value })}
                 style={{ padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                aria-label="Select task priority"
               >
                 <option value="high">High Priority</option>
                 <option value="medium">Medium Priority</option>
@@ -720,15 +714,7 @@ function InterviewPreparation() {
             <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                style={{
-                  padding: '10px 24px',
-                  background: '#667eea',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: '500'
-                }}
+                className="btn btn-primary"
               >
                 Close
               </button>
