@@ -72,7 +72,7 @@ export default function SetPassword() {
       <div className="register-card shadow">
         <div className="login-logo mb-3">
           <img
-                src="/logo.svg.png" 
+                src="/logo.svg.webp" 
                 alt="Metamorphosis logo"
                 className="hero-logo mb-3"
                 fetchPriority="high"

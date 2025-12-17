@@ -15,7 +15,7 @@ const Home = ({ user, session }) => {
           <div className="d-flex flex-column align-items-center justify-content-center">
             <div className="mb-4">
               <img
-                src="/logo.svg.png" /* Direct path to public folder */
+                src="/logo.svg.webp" /* Direct path to public folder */
                 alt="Metamorphosis logo"
                 className="hero-logo mb-3"
                 fetchPriority="high" 
