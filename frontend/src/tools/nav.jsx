@@ -5,6 +5,51 @@ import { useFlash } from "../context/flashContext";
 import AuthAPI from "../api/authentication";
 import ProfilesAPI from "../api/profiles";
 
+// Your actual Metamorphosis logo - now loads instantly!
+const Logo = () => (
+  <svg 
+    width="40" 
+    height="40" 
+    viewBox="0 0 512 512" 
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ marginRight: "10px", display: "block" }}
+  >
+    {/* Background Circle */}
+    <circle cx="256" cy="256" r="240" fill="#064e3b" />
+    
+    {/* Inner Black Circle */}
+    <circle cx="256" cy="256" r="180" fill="#000000" />
+    
+    {/* Circular Arrow Track (Green) */}
+    <path 
+      d="M256,40c119.3,0,216,96.7,216,216s-96.7,216-216,216S40,375.3,40,256S136.7,40,256,40z" 
+      fill="none" 
+      stroke="#10b981" 
+      strokeWidth="40" 
+      strokeDasharray="340 100"
+    />
+
+    {/* The "M" */}
+    <text 
+      x="50%" 
+      y="55%" 
+      dominantBaseline="middle" 
+      textAnchor="middle" 
+      fill="#3b82f6" 
+      fontSize="220" 
+      fontWeight="bold"
+      fontFamily="Georgia, serif"
+      style={{ filter: 'drop-shadow(2px 2px 2px rgba(255,255,255,0.5))' }}
+    >
+      M
+    </text>
+
+    {/* Arrowhead Details */}
+    <polygon points="256,10 290,60 222,60" fill="#6ee7b7" transform="rotate(45 256 256)" />
+    <polygon points="256,10 290,60 222,60" fill="#047857" transform="rotate(225 256 256)" />
+  </svg>
+);
+
 const Nav = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -129,7 +174,7 @@ const Nav = () => {
       <Navbar bg="dark" variant="dark" expand="lg" sticky="top">
         <Container fluid>
           <Navbar.Brand as={NavLink} to="/" className="d-flex align-items-center">
-            <img src="/logo.svg.webp" alt="Metamorphosis logo" style={{ height: "50px", marginRight: "10px" }} />
+            <Logo />
             Metamorphosis
           </Navbar.Brand>
         </Container>
@@ -141,7 +186,7 @@ const Nav = () => {
     <Navbar bg="dark" variant="dark" expand="lg" sticky="top">
       <Container fluid>
         <Navbar.Brand as={NavLink} to="/" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="d-flex align-items-center">
-          <img src="/logo.svg.webp" alt="Metamorphosis logo" style={{ height: "50px", marginRight: "10px" }} />
+          <Logo />
           Metamorphosis
         </Navbar.Brand>
 
@@ -152,7 +197,6 @@ const Nav = () => {
               <>
                 {/* --- DASHBOARD DROPDOWN --- */}
                 <NavDropdown title="Dashboard" id="dashboard-dropdown" className="mx-3">
-                  {/* Keyboard users can now Tab here and press Enter to go to Dashboard */}
                   <NavDropdown.Item as={NavLink} to="/dashboard">
                     <strong>Dashboard Overview</strong>
                   </NavDropdown.Item>
