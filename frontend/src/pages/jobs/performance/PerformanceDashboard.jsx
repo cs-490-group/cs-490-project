@@ -115,6 +115,7 @@ export default function PerformanceDashboard({ jobs }) {
               fontSize: "14px",
               cursor: "pointer"
             }}
+            aria-label="Select date range"
           >
             <option value="all">All Time</option>
             <option value="30days">Last 30 Days</option>
@@ -133,6 +134,7 @@ export default function PerformanceDashboard({ jobs }) {
               fontSize: "14px",
               cursor: "pointer"
             }}
+            aria-label="Filter by status"
           >
             <option value="all">All Statuses</option>
             <option value="Interested">Interested</option>

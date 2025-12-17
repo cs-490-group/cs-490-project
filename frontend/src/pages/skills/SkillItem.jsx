@@ -66,72 +66,67 @@
       flexShrink: 0,
     };
 
-    const buttonStyle = {
-      padding: "4px 8px",
-      border: "none",
-      borderRadius: "4px",
-      backgroundColor: "#ff3b30",
-      color: "white",
-      cursor: "pointer",
-      fontSize: "12px",
-      transition: "background-color 0.2s",
-      flexShrink: 0,
-      fontWeight: "600"
-    };
+
 
     return (
-      <li ref={setNodeRef} style={style} {...attributes} {...listeners}>
-        <div style={itemStyle}>
-          <span style={{ 
-            fontSize: "18px", 
-            flexShrink: 0,
-            userSelect: "none"
-          }}>
-            {meta.emoji}
-          </span>
-          
-          <span style={{ 
-            flexGrow: 1, 
-            fontSize: "14px", 
-            fontWeight: "600",
-            color: "#333",
-            userSelect: "none",
-            minWidth: 0,
-            wordBreak: "break-word"
-          }}>
-            {skill.name}
-          </span>
-          
-          <select
-            value={skill.proficiency}
-            onChange={(e) => {
-              e.stopPropagation();
-              updateSkill(skill.id, { proficiency: e.target.value });
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={selectStyle}
-          >
-            <option>Beginner</option>
-            <option>Intermediate</option>
-            <option>Advanced</option>
-            <option>Expert</option>
-          </select>
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              removeSkill(skill.id);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={buttonStyle}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#ff1f1f"}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#ff3b30"}
-          >
-            🗑
-          </button>
-        </div>
-      </li>
+      <li ref={setNodeRef} style={style}>
+    <div 
+      style={itemStyle}
+      {...attributes} 
+      {...listeners}
+    >
+      <span style={{ 
+        fontSize: "18px", 
+        flexShrink: 0,
+        userSelect: "none"
+      }}>
+        {meta.emoji}
+      </span>
+      
+      <span style={{ 
+        flexGrow: 1, 
+        fontSize: "14px", 
+        fontWeight: "600",
+        color: "#333",
+        userSelect: "none",
+        minWidth: 0,
+        wordBreak: "break-word"
+      }}>
+        {skill.name}
+      </span>
+      
+      <select
+        value={skill.proficiency}
+        onChange={(e) => {
+          e.stopPropagation();
+          updateSkill(skill.id, { proficiency: e.target.value });
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={selectStyle}
+        aria-label={`Proficiency level for ${skill.name}`}
+      >
+        <option>Beginner</option>
+        <option>Intermediate</option>
+        <option>Advanced</option>
+        <option>Expert</option>
+      </select>
+      
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          removeSkill(skill.id);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="btn btn-danger"
+        aria-label={`Delete ${skill.name}`}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#ff1f1f"}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#ff3b30"}
+      >
+        🗑
+      </button>
+    </div>
+  </li>
     );
   }

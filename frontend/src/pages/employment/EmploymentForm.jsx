@@ -264,17 +264,7 @@ export default function EmploymentForm({ onAdded, editEntry, cancelEdit }) {
           <button
             type="submit"
             disabled={saving}
-            style={{
-              padding: "12px 24px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "600",
-              opacity: saving ? 0.6 : 1
-            }}
+            className="btn btn-primary"
           >
             {saving ? "Saving..." : editEntry ? "💾 Save Changes" : "➕ Add Employment"}
           </button>

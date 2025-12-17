@@ -77,16 +77,7 @@ export default function UserProfile({ userId, onClose }) {
           </div>
           <button
             onClick={onClose}
-            style={{
-              padding: "10px 20px",
-              background: "#2196f3",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "bold"
-            }}
+            className="btn btn-primary"
           >
             Close
           </button>

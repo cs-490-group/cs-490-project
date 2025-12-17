@@ -330,15 +330,7 @@ const ChallengeWorkspace = () => {
                     <button
                       onClick={handleGenerateSolution}
                       disabled={generatingSolution}
-                      style={{
-                        padding: "10px 20px",
-                        background: "#3b82f6",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        fontWeight: "600"
-                      }}
+                      className="btn btn-primary"
                     >
                       {generatingSolution ? "Generating..." : "Generate Solution with AI"}
                     </button>
@@ -539,7 +531,7 @@ const ChallengeWorkspace = () => {
         <div className="editor-panel">
           <div className="editor-header">
             <label>Language:</label>
-            <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+            <select aria-label="Select language" value={language} onChange={(e) => setLanguage(e.target.value)}>
               <option value="python">Python</option>
               <option value="javascript">JavaScript</option>
               <option value="java">Java</option>

@@ -129,7 +129,7 @@ function CreateGroup() {
               <Row className="g-4">
                 {myGroups.length === 0 ? (
                   <div className="text-center py-5">
-                    <h4 className="text-muted mb-3">You haven't joined any groups yet.</h4>
+                    <h2 className="text-muted mb-3">You haven't joined any groups yet.</h2>
                     <Button variant="outline-primary" onClick={() => setActiveTab('join')}>Browse Groups</Button>
                   </div>
                 ) : (
@@ -141,7 +141,7 @@ function CreateGroup() {
                             <Badge bg="info" className="text-uppercase">{group.category}</Badge>
                             <small className="text-muted">{group.memberCount} members</small>
                           </div>
-                          <h4 className="fw-bold mb-3 text-dark text-truncate">{group.name}</h4>
+                          <h2 className="fw-bold mb-3 text-dark text-truncate">{group.name}</h2>
                           <div className="d-flex gap-2">
                             <Button 
                                 variant="primary" 
@@ -150,8 +150,12 @@ function CreateGroup() {
                             >
                                 Enter Group <ArrowRight size={16}/>
                             </Button>
-                            <Button variant="outline-danger" onClick={() => handleLeaveGroup(group.id)}>
-                                <LogOut size={16}/>
+                            <Button 
+                              variant="outline-danger" 
+                              onClick={() => handleLeaveGroup(group.id)}
+                              aria-label="Leave group"
+                            >
+                              <LogOut size={16}/>
                             </Button>
                           </div>
                         </Card.Body>

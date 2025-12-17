@@ -146,6 +146,7 @@ const TimeTrackingModal = ({ entry = null, onSave, onCancel }) => {
               onChange={handleChange}
               className="time-form-select"
               disabled={isSubmitting}
+              aria-label="Select activity type"
             >
               {activityTypes.map(type => (
                 <option key={type} value={type}>{type}</option>

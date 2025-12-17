@@ -170,10 +170,7 @@ export default function CertificationCard({ cert, onDelete, onEdit, onMediaDelet
         }}>
           <div style={{ fontSize: "13px", width: "100%" }}>
             <strong style={{ color: "#333" }}>Verified:</strong>{" "}
-            <span style={{
-              color: cert.verified ? "#34c759" : "#ff3b30",
-              fontWeight: "600"
-            }}>
+            <span className="fw-bold text-success">
               {cert.verified ? "✅ Yes" : "❌ No"}
             </span>
           </div>
@@ -182,18 +179,7 @@ export default function CertificationCard({ cert, onDelete, onEdit, onMediaDelet
             <div style={{ display: "flex", gap: "8px", width: "100%" }}>
               <button
                 onClick={handleDownload}
-                style={{
-                  padding: "6px 12px",
-                  background: "#2196f3",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  whiteSpace: "nowrap",
-                  flex: 1
-                }}
+                className="btn btn-primary"
               >
                 📄 Download
               </button>
@@ -241,16 +227,7 @@ export default function CertificationCard({ cert, onDelete, onEdit, onMediaDelet
           </button>
           <button
             onClick={() => onDelete(cert.id)}
-            style={{
-              padding: "8px 16px",
-              background: "#ff3b30",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: "600"
-            }}
+            className="btn btn-danger"
           >
             🗑️ Delete
           </button>

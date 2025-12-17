@@ -804,6 +804,7 @@ export default function JobLocationMap({ jobs = [], ProfilesAPI }) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
+              aria-label="Select status filter"
               style={{
                 width: '100%',
                 padding: '8px',
@@ -829,6 +830,7 @@ export default function JobLocationMap({ jobs = [], ProfilesAPI }) {
             <select
               value={workLocationFilter}
               onChange={(e) => setWorkLocationFilter(e.target.value)}
+              aria-label="Select job type filter"
               style={{
                 width: '100%',
                 padding: '8px',
@@ -1108,15 +1110,7 @@ export default function JobLocationMap({ jobs = [], ProfilesAPI }) {
                       <td style={{ padding: '12px', textAlign: 'center' }}>
                         <button
                           onClick={() => toggleComparison(job)}
-                          style={{
-                            padding: '6px 12px',
-                            background: '#ff3b30',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
+                          className="btn btn-danger"
                         >
                           Remove
                         </button>

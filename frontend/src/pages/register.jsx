@@ -7,7 +7,6 @@ import { useMsal } from "@azure/msal-react";
 import AuthAPI from "../api/authentication"; 
 import OrganizationsAPI from "../api/organizations"; // Import this
 import "../styles/register.css"; 
-import logo from "../logo.svg.png"; 
 import { Building, GraduationCap } from "lucide-react"; // Added Icons
 
 function Register() {
@@ -243,7 +242,15 @@ function Register() {
     <div className="register-page">
       <div className="register-card shadow" style={{ maxWidth: "500px" }}>
         <div className="login-logo mb-3">
-          <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+          <img
+                src="/logo.svg.webp" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                crossOrigin="anonymous"
+                />
         </div>
 
         <h2 className="fw-bold mb-2 text-center">Create Account</h2>

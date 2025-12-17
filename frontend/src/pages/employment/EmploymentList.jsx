@@ -197,16 +197,7 @@ export default function EmploymentList() {
             setShowForm(!showForm);
             setEditEntry(null);
           }}
-          style={{
-            padding: "12px 24px",
-            background: "#4f8ef7",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "14px"
-          }}
+          className="btn btn-primary"
         >
           {showForm ? "← Cancel" : "+ Add Employment"}
         </button>
@@ -316,14 +307,14 @@ export default function EmploymentList() {
                             marginBottom: "8px"
                           }}>
                             <div style={{ flex: 1 }}>
-                              <h3 style={{
+                              <h2 style={{
                                 margin: 0,
                                 fontSize: "18px",
                                 color: "#333",
                                 marginBottom: "4px"
                               }}>
                                 {it.title}
-                              </h3>
+                              </h2>
                               {it.company && (
                                 <p style={{
                                   margin: "4px 0",
@@ -408,16 +399,7 @@ export default function EmploymentList() {
                             </button>
                             <button
                               onClick={() => onDelete(it.id)}
-                              style={{
-                                padding: "8px 16px",
-                                background: "#ff3b30",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "13px",
-                                fontWeight: "600"
-                              }}
+                              className="btn btn-danger"
                             >
                               🗑️ Delete
                             </button>

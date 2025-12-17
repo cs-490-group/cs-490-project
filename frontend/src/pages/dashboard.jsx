@@ -810,17 +810,20 @@ const Dashboard = () => {
                                                     </Link>
                                                 </div>
 
-                                                {/* Card content - scrollable */}
-                                                <div className="flex-grow-1 overflow-auto card-content">
-                                                    <CategoryCard data={category.data} />
-                                                </div>
-                                            </Card.Body>
-                                        </Card>
-                                    </Col>
-                                );
-                            })}
-                        </Row>
-                    </Col>
+                        {/* Card content - scrollable */}
+                        <div className="flex-grow-1 overflow-auto card-content">
+                          <CategoryCard 
+                              data={category.data} 
+                              title={category.title} 
+                            />
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                );
+              })}
+            </Row>
+          </Col>
 
                     {/* Right side: Sticky sidebar with full height */}
                     <Col lg={3}>

@@ -243,6 +243,7 @@ export default function SkillList() {
             borderRadius: "6px",
             boxSizing: "border-box"
           }}
+          aria-label="Search Skills"
         />
       </div>
 

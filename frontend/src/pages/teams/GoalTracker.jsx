@@ -126,16 +126,7 @@ function GoalTracker({ teamId, member, currentUserRole, onGoalsUpdate }) {
         {canEditGoals && !isEditing && (
           <button
             onClick={() => setIsEditing(true)}
-            style={{
-              padding: "8px 16px",
-              background: "#2196f3",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: "bold"
-            }}
+            className="btn btn-primary"
           >
             Edit Goals
           </button>

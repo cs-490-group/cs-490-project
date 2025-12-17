@@ -303,13 +303,7 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
-                style={{ 
-                  ...buttonStyle, 
-                  padding: "6px 12px",
-                  fontSize: "12px",
-                  background: "#4f8ef7", 
-                  color: "white" 
-                }}
+                className="btn btn-primary"
               >
                 👁 View Full
               </button>
@@ -378,13 +372,7 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
-                style={{ 
-                  ...buttonStyle,
-                  padding: "6px 12px",
-                  fontSize: "12px",
-                  background: "#ff3b30", 
-                  color: "white" 
-                }}
+                className="btn btn-danger"
               >
                 🗑 Delete
               </button>

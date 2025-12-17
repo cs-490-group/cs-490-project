@@ -154,6 +154,7 @@ export default function SkillForm({ addSkill, existingSkills }) {
             value={category} 
             onChange={(e) => setCategory(e.target.value)} 
             style={inputStyle}
+            aria-label="Skill Category"
             required
           >
             <option value="" disabled>Category</option>
@@ -167,6 +168,7 @@ export default function SkillForm({ addSkill, existingSkills }) {
             value={proficiency} 
             onChange={(e) => setProficiency(e.target.value)} 
             style={inputStyle}
+            aria-label="Proficiency Level"
             required
           >
             <option value="" disabled>Proficiency</option>
@@ -178,17 +180,7 @@ export default function SkillForm({ addSkill, existingSkills }) {
 
           <button 
             type="submit"
-            style={{
-              padding: "10px 20px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "600",
-              whiteSpace: "nowrap"
-            }}
+            className="btn btn-primary"
           >
             Add Skill
           </button>

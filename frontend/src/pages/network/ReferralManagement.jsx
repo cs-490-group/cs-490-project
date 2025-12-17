@@ -531,6 +531,7 @@ export default function ReferralManagement() {
                             <div className="filter-group">
                                 <Form.Select
                                     name="status"
+                                    aria-label="Filter by status"
                                     value={filterText.status}
                                     onChange={handleFilterChange}
                                     className="filter-input"

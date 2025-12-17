@@ -13,10 +13,12 @@ import { MsalProvider } from "@azure/msal-react";
 
  // Sentry monitoring going up.
 
+
+ 
 Sentry.init({
   dsn: process.env.REACT_APP_SENTRY_DSN,
   environment: process.env.NODE_ENV,
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 0.1,
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
 });
@@ -48,4 +50,13 @@ root.render(
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+
+
+requestAnimationFrame(() => {
+  const loader = document.getElementById('initial-loader');
+  if (loader) {
+    loader.style.display = 'none'; 
+  }
+});
+
 reportWebVitals();

@@ -286,7 +286,7 @@ export default function OffersPage() {
                 </div>
             ) : offers.length === 0 ? (
                 <Alert variant="info">
-                    <h6>📝 No offers yet</h6>
+                    <h2>📝 No offers yet</h2>
                     <p>Create your first offer to get started with salary negotiation preparation.</p>
                     <Button
                         variant="primary"

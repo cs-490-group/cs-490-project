@@ -233,11 +233,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
         </h2>
         <button
           onClick={() => setShowShareModal(true)}
-          style={{
-            display: "flex", alignItems: "center", gap: "8px", padding: "10px 16px",
-            background: "#2196f3", color: "white", border: "none", borderRadius: "6px",
-            cursor: "pointer", fontSize: "14px", fontWeight: "bold"
-          }}
+          className="btn btn-primary"
         >
           <Plus size={18} /> Invite Someone
         </button>
@@ -458,19 +454,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
         <button
           onClick={handleSaveSettings}
           disabled={loading}
-          style={{
-            marginTop: "24px",
-            padding: "12px 24px",
-            background: "#2196f3",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: loading ? "wait" : "pointer",
-            fontSize: "14px",
-            fontWeight: "bold",
-            width: "100%",
-            opacity: loading ? 0.7 : 1
-          }}
+          className="btn btn-primary"
         >
           {loading ? "Saving..." : "Save Privacy Settings"}
         </button>
@@ -598,6 +582,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
                   fontSize: "14px",
                   boxSizing: "border-box"
                 }}
+                aria-label="Select Relationship"
               >
                 <option value="mentor">🎓 Mentor</option>
                 <option value="accountability_partner">👥 Accountability Partner</option>
@@ -624,16 +609,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
               <button
                 onClick={handleShare}
                 disabled={loading}
-                style={{
-                  padding: "10px 20px",
-                  background: "#2196f3",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  fontWeight: "bold",
-                  opacity: loading ? 0.6 : 1
-                }}
+                className="btn btn-primary"
               >
                 {loading ? "Sharing..." : "Share"}
               </button>

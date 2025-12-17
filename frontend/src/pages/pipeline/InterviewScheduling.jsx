@@ -182,6 +182,7 @@ const InterviewScheduling = () => {
               fontSize: '14px',
               cursor: 'pointer'
             }}
+            aria-label="Select view mode"
           >
             <option value="list">List View</option>
             <option value="calendar">Calendar View</option>
@@ -271,16 +272,7 @@ const InterviewScheduling = () => {
                 </div>
                 <button
                   onClick={() => handleScheduleFromApplication(app)}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '14px'
-                  }}
+                  className="btn btn-primary"
                 >
                   Schedule Interview
                 </button>
@@ -452,17 +444,7 @@ const InterviewScheduling = () => {
                             e.stopPropagation();
                             navigate(`/interview/prepare/${interview.id}`);
                           }}
-                          style={{
-                            flex: 1,
-                            padding: '10px',
-                            background: '#667eea',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontWeight: '600',
-                            fontSize: '13px'
-                          }}
+                          className="btn btn-primary"
                         >
                           Prepare
                         </button>
@@ -634,14 +616,14 @@ const InterviewCalendar = ({ interviews }) => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <button
           onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-          style={{ padding: "8px 16px", background: "#667eea", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
+          className="btn btn-primary"
         >
           ← Previous
         </button>
         <h2 style={{ margin: 0, color: "#333" }}>{monthNames[month]} {year}</h2>
         <button
           onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-          style={{ padding: "8px 16px", background: "#667eea", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
+          className="btn btn-primary"
         >
           Next →
         </button>
@@ -869,6 +851,7 @@ const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
             <select
               value={formData.platform}
               onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
+              aria-label="Select Video Platform"
               style={{
                 width: '100%',
                 padding: '12px',

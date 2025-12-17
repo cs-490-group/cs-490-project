@@ -181,6 +181,7 @@ const GoalModal = ({ goal = null, onSave, onCancel }) => {
                 onChange={handleChange}
                 className="goal-form-select"
                 disabled={isSubmitting}
+                aria-label="Select goal type"
               >
                 <option value="short-term">Short-term</option>
                 <option value="long-term">Long-term</option>

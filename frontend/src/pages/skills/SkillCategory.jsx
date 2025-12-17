@@ -4,10 +4,10 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import SkillItem from "./SkillItem";
 
 const categoryMeta = {
-  Technical: { color: "#4f8ef7", emoji: "💻" },
-  "Soft Skills": { color: "#34c759", emoji: "🗣️" },
-  Languages: { color: "#ff9500", emoji: "🌐" },
-  "Industry-Specific": { color: "#af52de", emoji: "🏭" }
+  Technical: { color: "#005e9e", emoji: "💻" }, 
+  "Soft Skills": { color: "#15803d", emoji: "🗣️" }, 
+  Languages: { color: "#c2410c", emoji: "🌐" }, 
+  "Industry-Specific": { color: "#7e22ce", emoji: "🏭" }
 };
 
 export default function SkillCategory({ category, skills, updateSkill, removeSkill, activeId }) {
@@ -85,6 +85,7 @@ export default function SkillCategory({ category, skills, updateSkill, removeSki
           </span>
           <button 
             onClick={exportCategory}
+            aria-label={`Export ${category} skills`}
             style={{
               padding: "4px 8px",
               fontSize: "11px",
@@ -104,7 +105,8 @@ export default function SkillCategory({ category, skills, updateSkill, removeSki
       <input
         placeholder={`Filter ${category}...`}
         value={filterTerm}
-        onChange={(e) => setFilterTerm(e.target.value)}
+        onChange={(e) => setFilterTerm(e.target.value)}        
+        aria-label="Filter skills"
         style={{ 
           marginBottom: "12px", 
           padding: "8px",
@@ -159,26 +161,24 @@ export default function SkillCategory({ category, skills, updateSkill, removeSki
           }}
         >
           {filteredSkills.length > 0 ? (
-            filteredSkills.map((skill) => (
-              <SkillItem
-                key={skill.id}
-                skill={skill}
-                updateSkill={updateSkill}
-                removeSkill={removeSkill}
-              />
-            ))
-          ) : (
-            <li style={{ 
-              padding: "40px 20px", 
-              color: "#999", 
-              textAlign: "center",
-              pointerEvents: "none",
-              listStyle: "none",
-              fontSize: "14px"
-            }}>
-              {isOver ? "Drop skill here" : "No skills - drag items here or add new ones"}
-            </li>
-          )}
+              filteredSkills.map((skill) => (
+                <SkillItem
+                  key={skill.id}
+                  skill={skill}
+                  updateSkill={updateSkill}
+                  removeSkill={removeSkill}
+                />
+              ))
+            ) : (
+              <li style={{ 
+                padding: "40px 20px", 
+                color: "#999", 
+                textAlign: "center",
+                fontSize: "14px"
+              }}>
+                {isOver ? "Drop skill here" : "No skills - drag items here or add new ones"}
+              </li>
+            )}
         </ul>
       </SortableContext>
     </div>
