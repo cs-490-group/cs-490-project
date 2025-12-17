@@ -1,5 +1,14 @@
 import React, { useState } from "react";
 import axios from "axios";
+import {
+  FaBrain,
+  FaBuilding,
+  FaListAlt,
+  FaQuestionCircle,
+  FaClock,
+  FaCheckCircle,
+  FaLightbulb
+} from "react-icons/fa";
 
 export default function InterviewInsights() {
   const [company, setCompany] = useState("");
@@ -18,14 +27,16 @@ export default function InterviewInsights() {
 
     setLoading(true);
     setError("");
+    setInsights(null);
 
     try {
-      const response = await axios.get(`${API}/api/insights/company`, {
+      const res = await axios.get(`${API}/api/insights/company`, {
         params: { company, role }
       });
 
-      setInsights(response.data);
+      setInsights(res.data || {});
     } catch (err) {
+      console.error(err);
       setError("Failed to fetch interview insights.");
     }
 
@@ -33,191 +44,237 @@ export default function InterviewInsights() {
   }
 
   return (
-    <div style={pageContainer}>
-      <h1 style={title}>🧠 Interview Insights & Preparation</h1>
-      <p style={subtitle}>
-        Learn interview stages, common questions, timelines, and preparation tips.
-      </p>
+    <div style={page}>
+      <div style={container}>
+        {/* HEADER */}
+        <h1 style={title}>
+          <FaBrain /> Interview Insights & Preparation
+        </h1>
+        <p style={subtitle}>
+          Learn interview stages, timelines, common questions, and preparation
+          strategies.
+        </p>
 
-      {/* Input Section */}
-      <div style={card}>
-        <div style={inputGroup}>
-          <label style={label}>Company</label>
-          <input
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            style={input}
-            placeholder="e.g. Google"
-          />
+        {/* SEARCH */}
+        <div style={card}>
+          <div style={grid2}>
+            <input
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              style={input}
+              placeholder="Company (e.g. Google)"
+            />
+            <input
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              style={input}
+              placeholder="Role (optional)"
+            />
+          </div>
+
+          <button onClick={fetchInsights} style={button}>
+            {loading ? "Loading…" : "Get Insights"}
+          </button>
+
+          {error && <p style={errorText}>{error}</p>}
         </div>
 
-        <div style={inputGroup}>
-          <label style={label}>Role (optional)</label>
-          <input
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            style={input}
-            placeholder="e.g. Software Engineer"
-          />
-        </div>
+        {/* RESULTS */}
+        {insights && (
+          <>
+            <InsightCard
+              title="Company Overview"
+              icon={<FaBuilding />}
+              color={sectionColors.overview}
+            >
+              <p>{insights.overview || "No overview available."}</p>
+            </InsightCard>
 
-        <button onClick={fetchInsights} style={button}>
-          {loading ? "Loading..." : "Get Insights"}
-        </button>
+            <InsightCard
+              title="Interview Stages"
+              icon={<FaListAlt />}
+              color={sectionColors.stages}
+            >
+              <List items={insights.stages} />
+            </InsightCard>
 
-        {error && <p style={errorText}>{error}</p>}
+            <InsightCard
+              title="Common Interview Questions"
+              icon={<FaQuestionCircle />}
+              color={sectionColors.questions}
+            >
+              <List items={insights.common_questions} />
+            </InsightCard>
+
+            <InsightCard
+              title="Company-Specific Interview Format"
+              icon={<FaBuilding />}
+              color={sectionColors.format}
+            >
+              <List items={insights.company_specific_format} />
+            </InsightCard>
+
+            <InsightCard
+              title="Timeline Expectations"
+              icon={<FaClock />}
+              color={sectionColors.timeline}
+            >
+              <p>
+                {insights.timeline_expectations ||
+                  "Timeline information is not available."}
+              </p>
+            </InsightCard>
+
+            <InsightCard
+              title="Candidate Tips & Recommendations"
+              icon={<FaLightbulb />}
+              color={sectionColors.tips}
+            >
+              <List items={insights.candidate_tips || insights.recommendations} />
+            </InsightCard>
+
+            <InsightCard
+              title="Preparation Checklist"
+              icon={<FaCheckCircle />}
+              color={sectionColors.checklist}
+            >
+              <List items={insights.checklist} />
+            </InsightCard>
+          </>
+        )}
       </div>
-
-      {/* RESULTS */}
-      {insights && (
-        <div>
-          <InsightSection title="📘 Overview">
-            <p>{insights.overview}</p>
-          </InsightSection>
-
-          <InsightSection title="📝 Interview Stages">
-            <ul style={list}>
-              {insights.stages?.map((s, i) => (
-                <li key={i}>{s}</li>
-              ))}
-            </ul>
-          </InsightSection>
-
-          <InsightSection title="❓ Common Questions">
-            <ul style={list}>
-              {insights.common_questions?.map((q, i) => (
-                <li key={i}>{q}</li>
-              ))}
-            </ul>
-          </InsightSection>
-
-          <InsightSection title="🏢 Company-Specific Format">
-            <ul style={list}>
-              {insights.company_specific_format?.map((f, i) => (
-                <li key={i}>{f}</li>
-              ))}
-            </ul>
-          </InsightSection>
-
-          <InsightSection title="🎯 Recommendations">
-            <ul style={list}>
-              {insights.recommendations?.map((r, i) => (
-                <li key={i}>{r}</li>
-              ))}
-            </ul>
-          </InsightSection>
-
-          <InsightSection title="⏳ Timeline Expectations">
-            <p>{insights.timeline_expectations}</p>
-          </InsightSection>
-
-          <InsightSection title="💡 Candidate Tips">
-            <ul style={list}>
-              {insights.candidate_tips?.map((t, i) => (
-                <li key={i}>{t}</li>
-              ))}
-            </ul>
-          </InsightSection>
-
-          <InsightSection title="📋 Preparation Checklist">
-            <ul style={list}>
-              {insights.checklist?.map((c, i) => (
-                <li key={i}>{c}</li>
-              ))}
-            </ul>
-          </InsightSection>
-        </div>
-      )}
     </div>
   );
 }
 
-/* ---------------- REUSABLE SECTION COMPONENT ---------------- */
-function InsightSection({ title, children }) {
+/* ---------------- REUSABLE COMPONENTS ---------------- */
+
+function InsightCard({ title, icon, color, children }) {
   return (
-    <div style={card}>
-      <h2 style={sectionTitle}>{title}</h2>
+    <div
+      style={{
+        ...card,
+        borderLeft: `6px solid ${color}`,
+        background: "linear-gradient(180deg, #ffffff, #fafafa)"
+      }}
+    >
+      <h2 style={{ ...sectionTitle, color }}>
+        {icon} {title}
+      </h2>
       {children}
     </div>
   );
 }
 
-/* ---------------- LIGHT UI STYLES ---------------- */
+function List({ items }) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return <p style={{ color: "#666" }}>No data available.</p>;
+  }
 
-const pageContainer = {
-  padding: "20px",
-  maxWidth: "900px",
-  margin: "0 auto",
-  color: "#1a1a1a"
+  return (
+    <ul style={list}>
+      {items.map((item, i) => (
+        <li key={i} style={{ marginBottom: 6 }}>
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ---------------- COLORS ---------------- */
+
+const sectionColors = {
+  overview: "#2563eb",   // blue
+  stages: "#16a34a",     // green
+  questions: "#9333ea",  // purple
+  format: "#0ea5e9",     // cyan
+  timeline: "#f59e0b",   // amber
+  tips: "#ec4899",       // pink
+  checklist: "#22c55e"   // emerald
+};
+
+/* ---------------- STYLES (MATCH Salary Research) ---------------- */
+
+const page = {
+  background: "#f6f8fb",
+  minHeight: "100vh",
+  padding: 40
+};
+
+const container = {
+  maxWidth: 1000,
+  margin: "0 auto"
 };
 
 const title = {
-  fontSize: "2.1rem",
+  fontSize: "2.4rem",
   fontWeight: 700,
-  marginBottom: "5px"
+  marginBottom: 6
 };
 
 const subtitle = {
-  fontSize: "1.1rem",
   color: "#555",
-  marginBottom: "20px"
+  marginBottom: 24
 };
 
 const card = {
   background: "white",
-  padding: "20px",
-  borderRadius: "10px",
-  boxShadow: "0px 3px 12px rgba(0,0,0,0.08)",
-  marginBottom: "25px",
+  padding: 20,
+  borderRadius: 12,
+  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+  marginBottom: 24,
   border: "1px solid #eee"
 };
 
 const sectionTitle = {
-  fontSize: "1.4rem",
+  fontSize: "1.35rem",
   fontWeight: 700,
-  marginBottom: "12px",
-  color: "#1a1a1a"
+  marginBottom: 10,
+  display: "flex",
+  alignItems: "center",
+  gap: 8
 };
 
-const inputGroup = { marginBottom: "15px" };
-
-const label = {
-  display: "block",
-  marginBottom: "5px",
-  fontWeight: 600,
-  color: "#333"
+const grid2 = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 12
 };
 
 const input = {
   width: "100%",
-  padding: "10px",
-  borderRadius: "8px",
+  padding: 10,
+  borderRadius: 8,
   border: "1px solid #ccc",
-  background: "white",
-  color: "#1a1a1a"
+  fontSize: "0.95rem"
 };
 
 const button = {
   width: "100%",
-  padding: "12px",
-  background: "#2a7dd2",
+  padding: 12,
+  background: "#2563eb",
   color: "white",
   border: "none",
-  borderRadius: "8px",
-  fontSize: "16px",
+  borderRadius: 8,
+  fontSize: 16,
   cursor: "pointer",
-  marginTop: "10px",
+  marginTop: 12,
   fontWeight: 600
 };
 
 const errorText = {
-  color: "red",
-  marginTop: "10px"
+  color: "#dc2626",
+  marginTop: 10,
+  fontWeight: 500
 };
 
 const list = {
-  marginLeft: "20px",
-  lineHeight: "1.6",
-  color: "#222"
+  marginLeft: 20,
+  lineHeight: 1.7,
+  color: "#222",
+  listStyleType: "disc"
 };
+
+
 

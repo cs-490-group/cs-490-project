@@ -41,7 +41,7 @@ export default function JobSelectionModal({ showModal, setShowModal, onJobSelect
         const matchesTitle = !searchTerm || 
             (job.title && job.title.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesCompany = !searchCompany || 
-            (job.company && job.company.toLowerCase().includes(searchCompany.toLowerCase()));
+            (job.company && getCompanyName(job.company).toLowerCase().includes(searchCompany.toLowerCase()));
         const matchesLocation = !searchLocation || 
             (job.location && job.location.toLowerCase().includes(searchLocation.toLowerCase()));
         const matchesIndustry = !searchIndustry || 
@@ -68,6 +68,13 @@ export default function JobSelectionModal({ showModal, setShowModal, onJobSelect
 
     const isSelected = (job) => {
         return selectedJobId && (job.id === selectedJobId || job._id === selectedJobId);
+    };
+
+    const getCompanyName = (company) => {
+        if (company === null || company === undefined) return "";
+        if (typeof company === 'string') return company;
+        if (typeof company === 'object') return company.name || "";
+        return "";
     };
 
     return (
@@ -150,13 +157,14 @@ export default function JobSelectionModal({ showModal, setShowModal, onJobSelect
                     </div>
                 ) : (
                     <div className="job-selection-grid">
-                        <div style={{ display: "flex", flexDirection: "row", overflow: "auto", gap: "1rem", paddingBottom: "1rem" }}>
+                        <Row className="g-3">
                             {filteredJobs.map((job) => (
-                                <Card key={job.id || job._id}
-                                    className={`job-card h-100 cursor-pointer ${isSelected(job) ? 'border-primary bg-light' : ''}`}
-                                    onClick={() => handleJobSelect(job)}
-                                    style={{ cursor: 'pointer', minWidth: '400px', maxWidth: '500px' }}
-                                >
+                                <Col key={job.id || job._id} md={6} lg={4}>
+                                    <Card
+                                        className={`job-card h-100 cursor-pointer ${isSelected(job) ? 'border-primary bg-light' : ''}`}
+                                        onClick={() => handleJobSelect(job)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
                                     <Card.Body>
                                         <div className="d-flex justify-content-between align-items-start mb-2">
                                             <Card.Title as="h6" className="mb-1">
@@ -167,7 +175,7 @@ export default function JobSelectionModal({ showModal, setShowModal, onJobSelect
                                             )}
                                         </div>
                                         <Card.Subtitle as="div" className="mb-2 text-muted">
-                                            <strong>{job.company}</strong>
+                                            <strong>{getCompanyName(job.company)}</strong>
                                         </Card.Subtitle>
                                         
                                         {job.industry && (
@@ -202,9 +210,10 @@ export default function JobSelectionModal({ showModal, setShowModal, onJobSelect
                                             </div>
                                         )}
                                     </Card.Body>
-                                </Card>
+                                    </Card>
+                                </Col>
                             ))}
-                        </div>
+                        </Row>
                     </div>
                 )}
             </Modal.Body>

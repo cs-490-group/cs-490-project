@@ -280,7 +280,7 @@ async def check_and_log_milestones(uuid: str, job_data: dict, old_job_data: dict
 @jobs_router.post("", tags=["jobs"])
 async def add_job(job: Job, uuid: str = Depends(authorize)):
     try:
-        model = job.model_dump()
+        model = job.model_dump(exclude_none=False)
         model["uuid"] = uuid
         
         # Extract Company Name
@@ -309,6 +309,30 @@ async def add_job(job: Job, uuid: str = Depends(authorize)):
         print("   Skills:", required_skills)
         print("   Min experience:", min_years)
         print("   Education:", edu_level)
+
+        # UC-121: Initialize response tracking
+        from datetime import datetime, timezone
+        current_time = datetime.now(timezone.utc)
+
+        # Use date_applied if provided, otherwise use current time
+        submitted_at = current_time
+        if model.get("date_applied"):
+            try:
+                # Parse the date_applied string (format: YYYY-MM-DD)
+                date_applied_str = model["date_applied"]
+                submitted_at = datetime.fromisoformat(date_applied_str.replace('Z', '+00:00'))
+                if submitted_at.tzinfo is None:
+                    submitted_at = submitted_at.replace(tzinfo=timezone.utc)
+            except Exception as e:
+                print(f"⚠️ Could not parse date_applied: {e}, using current time")
+                submitted_at = current_time
+
+        model["response_tracking"] = {
+            "submitted_at": submitted_at,
+            "responded_at": None,
+            "response_days": None,
+            "manually_entered": False
+        }
 
         # PHASE 1: Create the job immediately WITHOUT research data
         job_id = await jobs_dao.add_job(model)
@@ -592,7 +616,31 @@ async def update_job(job_id: str, job: Job, uuid: str = Depends(authorize)):
                     print(f"Error fetching cover letter details: {e}")
             
             model["materials"] = materials
-        
+
+        # UC-121: Auto-track response time on status change
+        if "status" in model:
+            new_status = model["status"].lower() if model["status"] else ""
+            # Response = first company contact (screening, interview, or rejection)
+            if new_status in ["screening", "interview", "rejected"]:
+                response_tracking = old_job.get("response_tracking", {})
+                # Only set if not already responded
+                if not response_tracking.get("responded_at"):
+                    submitted_at = response_tracking.get("submitted_at")
+                    if submitted_at:
+                        from datetime import datetime, timezone
+                        responded_at = datetime.now(timezone.utc)
+                        # Ensure submitted_at is timezone-aware
+                        if submitted_at.tzinfo is None:
+                            submitted_at = submitted_at.replace(tzinfo=timezone.utc)
+                        response_days = (responded_at - submitted_at).days
+                        model["response_tracking"] = {
+                            "submitted_at": submitted_at,
+                            "responded_at": responded_at,
+                            "response_days": response_days,
+                            "manually_entered": False
+                        }
+                        print(f"📊 UC-121: Auto-tracked response time: {response_days} days")
+
         updated = await jobs_dao.update_job(job_id, model)
 
         # TRIGGER MILESTONE CHECK

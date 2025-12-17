@@ -45,8 +45,12 @@ class JobsDAO:
                     "application_package_id": package_id,
                     "submitted": True,
                     "submitted_at": now,
-                    "status": "SUBMITTED",
-                    "date_updated": now
+                    "status": "Applied",
+                    "date_updated": now,
+                    "response_tracking.submitted_at": now  # UC-121: Track submission time
+                },
+                "$push": {
+                    "status_history": ["Applied", now]
                 }
             }
         )

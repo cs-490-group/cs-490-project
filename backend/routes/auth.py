@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Body, Depends, HTTPException,Request
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from pymongo.errors import DuplicateKeyError
 
@@ -28,8 +30,11 @@ from bson import ObjectId
 
 auth_router = APIRouter(prefix = "/auth")
 
+limiter = Limiter(key_func=get_remote_address)
+
 @auth_router.post("/register", tags = ["profiles"])
-async def register(info: RegistInfo):
+@limiter.limit("5/minute")
+async def register(request: Request,info: RegistInfo):
     # Authentication
     try:
         uuid = str(uuid4())
@@ -75,7 +80,8 @@ async def register(info: RegistInfo):
     return {"detail": "Sucessfully registered user", "uuid": uuid, "session_token": session_token}
 
 @auth_router.post("/login", tags = ["profiles"])
-async def login(credentials: LoginCred):
+@limiter.limit("5/minute")
+async def login(request: Request,credentials: LoginCred):
     # Authentication (for real this time)
     try:
         pass_hash = await auth_dao.get_password(credentials.email.lower())
@@ -529,7 +535,10 @@ async def verify_linkedin_token(request: Request):
     async with httpx.AsyncClient() as client:
         token_response = await client.post(token_url, data=token_data)
         if token_response.status_code != 200:
-            raise HTTPException(status_code=400, detail="Failed to exchange code for token")
+            print(f"LinkedIn OAuth Error - Status: {token_response.status_code}")
+            print(f"LinkedIn OAuth Error - Response: {token_response.text}")
+            print(f"LinkedIn OAuth Error - Data sent: {token_data}")
+            raise HTTPException(status_code=400, detail=f"Failed to exchange code for token: {token_response.text}")
         
         token_data = token_response.json()
         access_token = token_data.get("access_token")

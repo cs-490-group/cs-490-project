@@ -46,6 +46,14 @@ def _normalize_edu(level: str) -> int:
         return 0
     return EDU_RANK.get(level.lower().strip(), 0)
 
+def _experience_level_label(years: float) -> str:
+    if years < 2:
+        return "Entry"
+    if years < 5:
+        return "Mid"
+    return "Senior"
+
+
 def _infer_job_education(job_title: str | None) -> str | None:
     if not job_title:
         return None
@@ -342,6 +350,8 @@ def _compute_experience_match(
     user_years = float(user_years or 0.0)
     min_years = float(min_years or 0.0)
     preferred_years = float(preferred_years or min_years or 0.0)
+    user_level = _experience_level_label(user_years)
+    required_level = _experience_level_label(min_years)
 
     if min_years <= 0:
         return {
@@ -349,6 +359,11 @@ def _compute_experience_match(
             "userYears": user_years,
             "requiredMin": min_years,
             "requiredPreferred": preferred_years,
+            
+            "level": {
+                "user": user_level,
+                "required": required_level,
+            },
         }
 
     if user_years < min_years:
@@ -365,6 +380,11 @@ def _compute_experience_match(
         "userYears": user_years,
         "requiredMin": min_years,
         "requiredPreferred": preferred_years,
+        
+        "level": {
+            "user": user_level,
+            "required": required_level,
+        },
     }
 
 

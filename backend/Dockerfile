@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     libappindicator3-1 \
     fonts-liberation \
     xdg-utils \
+    libasound2t64 \
     wget \
     && rm -rf /var/lib/apt/lists/*
 

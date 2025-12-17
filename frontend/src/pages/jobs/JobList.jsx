@@ -320,7 +320,7 @@ export default function JobList() {
           {showCalendar && <DeadlineCalendar jobs={jobs.filter(j => !j.archived)} />}
           {showStatistics && <JobStatistics jobs={jobs} />}
           {showMaterials && <MaterialsAnalytics />}
-          {showJobMatching && <JobMatchingPage jobs={jobs} />}
+          
           {showSkillsGap && <SkillsGapPage jobs={jobs} />}
         </>
       )}
@@ -335,6 +335,8 @@ export default function JobList() {
         clearSelection={clearSelection}
       />
       )}
+
+      {view === "matching" && <JobMatchingPage />}
 
       {view === "pipeline" && !showCalendar && !showStatistics && !showMaterials && (
         <FilterBar

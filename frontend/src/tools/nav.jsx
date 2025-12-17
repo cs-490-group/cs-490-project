@@ -21,6 +21,7 @@ const Nav = () => {
   const [showNetworkDropdown, setShowNetworkDropdown] = React.useState(false);
   const [showSocialDropdown, setShowSocialDropdown] = React.useState(false);
   const [showAdminDropdown, setShowAdminDropdown] = React.useState(false);
+  const [showResumesDropdown, setShowResumesDropdown] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState(null);
   const [username, setUsername] = React.useState(localStorage.getItem("username") || "");
   const [accountTier, setAccountTier] = React.useState(null);
@@ -31,11 +32,11 @@ const Nav = () => {
     const shouldSkip = excludedPaths.some(prefix =>
       location.pathname.startsWith(prefix)
     );
-    
+
     if (hasValidated.current) {
       return;
     }
-    
+
     const validateSession = async () => {
       if (!token) {
         setIsAuthenticated(false);
@@ -295,9 +296,36 @@ const Nav = () => {
                   Jobs
                 </BootstrapNav.Link>
 
-                <BootstrapNav.Link as={NavLink} to="/resumes" className="mx-3">
-                  Resumes
-                </BootstrapNav.Link>
+                <NavDropdown
+                  title={
+                    <span
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigate("/resumes");
+                      }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Resumes
+                    </span>
+                  }
+                  id="resumes-dropdown"
+                  className="mx-3"
+                  show={showResumesDropdown}
+                  onMouseEnter={() => setShowResumesDropdown(true)}
+                  onMouseLeave={() => setShowResumesDropdown(false)}
+                >
+                  <NavDropdown.Item as={NavLink} to="/resumes">
+                    My Resumes
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/resumes/templates">
+                    Resume Templates
+                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item as={NavLink} to="/materials/comparison">
+                    Compare Materials
+                  </NavDropdown.Item>
+                </NavDropdown>
 
                 <BootstrapNav.Link as={NavLink} to="/cover-letter" className="mx-3">
                   Cover Letters

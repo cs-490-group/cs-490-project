@@ -2,7 +2,6 @@ from mongo.dao_setup import db_client
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 from typing import List, Optional, Dict
-import secrets
 
 class ApplicationWorkflowDAO:
     """Data Access Object for application workflow automation (UC-069)"""
@@ -23,17 +22,33 @@ class ApplicationWorkflowDAO:
         data["_id"] = str(ObjectId())
         data["date_created"] = time
         data["date_updated"] = time
-        data["status"] = data.get("status", "draft")  # draft, ready, sent
+        data["status"] = data.get("status", "draft")
         data["usage_count"] = 0
         
         result = await self.packages_collection.insert_one(data)
         return str(result.inserted_id)
     
     async def get_application_package(self, package_id: str) -> Optional[dict]:
-        """Get a specific application package"""
+        """Get a specific application package - checks _id, uuid, and ObjectId"""
+        doc = None
+        
+        # Try as string _id
         doc = await self.packages_collection.find_one({"_id": package_id})
+        
+        # Try as uuid
+        if not doc:
+            doc = await self.packages_collection.find_one({"uuid": package_id})
+        
+        # Try as ObjectId
+        if not doc:
+            try:
+                doc = await self.packages_collection.find_one({"_id": ObjectId(package_id)})
+            except:
+                pass
+        
         if doc:
             doc["_id"] = str(doc["_id"])
+        
         return doc
     
     async def get_user_packages(self, user_uuid: str) -> List[dict]:
@@ -69,11 +84,11 @@ class ApplicationWorkflowDAO:
         return result.matched_count
     
     async def mark_package_used(self, package_id: str, uuid: str):
+        """Mark package as used"""
         return await self.packages_collection.update_one(
             {"_id": ObjectId(package_id), "uuid": uuid},
             {"$inc": {"usage_count": 1}}
         )
-
     
     async def delete_package(self, package_id: str) -> int:
         """Delete an application package"""
@@ -89,7 +104,7 @@ class ApplicationWorkflowDAO:
         time = datetime.now(timezone.utc)
         data["_id"] = str(ObjectId())
         data["date_created"] = time
-        data["status"] = data.get("status", "scheduled")  # scheduled, sent, cancelled, failed
+        data["status"] = data.get("status", "scheduled")
         data["retry_count"] = 0
         
         result = await self.schedules_collection.insert_one(data)
@@ -102,6 +117,31 @@ class ApplicationWorkflowDAO:
             "status": {"$in": ["scheduled", "pending"]}
         }).sort("scheduled_time", 1)
         
+        results = []
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            results.append(doc)
+        return results
+    
+    async def get_schedule_by_id(self, schedule_id: str) -> Optional[dict]:
+        """Get a single schedule by ID"""
+        try:
+            doc = await self.schedules_collection.find_one({"_id": schedule_id})
+            if doc:
+                doc["_id"] = str(doc["_id"])
+            return doc
+        except Exception as e:
+            print(f"Error getting schedule by ID: {e}")
+            return None
+    
+    async def get_all_schedules_for_user(self, user_uuid: str, include_completed: bool = False) -> List[dict]:
+        """Get all schedules for a user, optionally including completed/cancelled"""
+        query = {"uuid": user_uuid}
+        
+        if not include_completed:
+            query["status"] = {"$in": ["scheduled", "pending"]}
+        
+        cursor = self.schedules_collection.find(query).sort("scheduled_time", 1)
         results = []
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])
@@ -127,6 +167,33 @@ class ApplicationWorkflowDAO:
             results.append(doc)
         return results
     
+    async def get_due_schedules(self, before_time: datetime) -> List[dict]:
+        """Get schedules due before specified time"""
+        cursor = self.schedules_collection.find({
+            'status': 'scheduled',
+            'scheduled_time': {'$lte': before_time.isoformat()}
+        })
+        results = []
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            results.append(doc)
+        return results
+    
+    async def get_schedules_by_time_range(self, start_time: datetime, end_time: datetime) -> List[dict]:
+        """Get schedules within time range"""
+        cursor = self.schedules_collection.find({
+            'status': 'scheduled',
+            'scheduled_time': {
+                '$gte': start_time.isoformat(),
+                '$lte': end_time.isoformat()
+            }
+        })
+        results = []
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            results.append(doc)
+        return results
+    
     async def update_schedule_status(self, schedule_id: str, status: str, notes: str = None) -> int:
         """Update the status of a scheduled application"""
         update_data = {
@@ -135,9 +202,35 @@ class ApplicationWorkflowDAO:
         }
         if status == "sent":
             update_data["sent_time"] = datetime.now(timezone.utc)
+        if status == "completed":
+            update_data["completed_at"] = datetime.now(timezone.utc)
         if notes:
             update_data["notes"] = notes
             
+        result = await self.schedules_collection.update_one(
+            {"_id": schedule_id},
+            {"$set": update_data}
+        )
+        return result.matched_count
+    
+    async def update_schedule(self, schedule_id: str, data: dict) -> int:
+        """Update schedule data"""
+        data["date_updated"] = datetime.now(timezone.utc)
+        result = await self.schedules_collection.update_one(
+            {"_id": schedule_id},
+            {"$set": data}
+        )
+        return result.matched_count
+    
+    async def mark_schedule_completed(self, schedule_id: str, job_id: str) -> int:
+        """Mark a schedule as completed after successful submission"""
+        update_data = {
+            "status": "completed",
+            "completed_at": datetime.now(timezone.utc),
+            "date_updated": datetime.now(timezone.utc),
+            "job_id": job_id
+        }
+        
         result = await self.schedules_collection.update_one(
             {"_id": schedule_id},
             {"$set": update_data}
@@ -159,6 +252,58 @@ class ApplicationWorkflowDAO:
             {"$set": update_data}
         )
         return result.matched_count
+    
+    async def increment_schedule_retry(self, schedule_id: str, error_message: str = None) -> int:
+        """Increment retry count for failed schedule"""
+        result = await self.schedules_collection.update_one(
+            {"_id": schedule_id},
+            {
+                "$inc": {"retry_count": 1},
+                "$set": {
+                    "last_error": error_message,
+                    "last_retry_at": datetime.now(timezone.utc),
+                    "date_updated": datetime.now(timezone.utc)
+                }
+            }
+        )
+        return result.matched_count
+    
+    async def mark_reminder_sent(self, schedule_id: str) -> int:
+        """Mark that reminder email was sent"""
+        result = await self.schedules_collection.update_one(
+            {'_id': ObjectId(schedule_id)},
+            {
+                '$set': {
+                    'reminder_sent': True,
+                    'reminder_sent_at': datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        return result.modified_count
+    
+    async def get_upcoming_deadlines(self, user_uuid: str, days_ahead: int = 7) -> List[dict]:
+        """Get jobs with upcoming deadlines for reminder scheduling"""
+        from mongo.jobs_dao import jobs_dao
+        
+        now = datetime.now(timezone.utc)
+        deadline_threshold = now + timedelta(days=days_ahead)
+        
+        jobs = await jobs_dao.get_all_jobs(user_uuid)
+        
+        upcoming = []
+        for job in jobs:
+            if job.get("deadline") and not job.get("submitted"):
+                try:
+                    deadline_dt = datetime.fromisoformat(job["deadline"].replace('Z', '+00:00'))
+                    if now <= deadline_dt <= deadline_threshold:
+                        days_until = (deadline_dt - now).days
+                        job["days_until_deadline"] = days_until
+                        upcoming.append(job)
+                except:
+                    continue
+        
+        upcoming.sort(key=lambda x: x.get("deadline", ""))
+        return upcoming
     
     # ============================================
     # RESPONSE TEMPLATES (UC-069)
@@ -350,6 +495,78 @@ class ApplicationWorkflowDAO:
             {"$set": update_data}
         )
         return result.modified_count
+    
+    # ============================================
+    # QUALITY SCORING (UC-122)
+    # ============================================
+    
+    async def save_quality_analysis(
+        self,
+        package_id: str,
+        job_id: str,
+        score: int,
+        analysis_data: dict,
+        user_id: str
+    ) -> str:
+        """Save a quality analysis result"""
+        quality_col = db_client["quality_analyses"]
+        
+        doc = {
+            "_id": str(ObjectId()),
+            "package_id": package_id,
+            "job_id": job_id,
+            "user_id": user_id,
+            "score": score,
+            "analysis_data": analysis_data,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        
+        result = await quality_col.insert_one(doc)
+        return str(result.inserted_id)
+
+    async def get_user_average_quality_score(self, user_id: str) -> float:
+        """Calculate user's average quality score across all analyses"""
+        quality_col = db_client["quality_analyses"]
+        
+        pipeline = [
+            {"$match": {"user_id": user_id}},
+            {"$group": {
+                "_id": None,
+                "avgScore": {"$avg": "$score"}
+            }}
+        ]
+        
+        # Correctly await the aggregate() call
+        result = []
+        async for doc in await quality_col.aggregate(pipeline):
+            result.append(doc)
+        
+        if result and len(result) > 0 and result[0].get("avgScore"):
+            return round(result[0]["avgScore"], 1)
+        return 75.0
+
+    async def get_package_score_history(self, package_id: str) -> list:
+        """Get score history for a specific package"""
+        quality_col = db_client["quality_analyses"]
+        
+        cursor = quality_col.find(
+            {"package_id": package_id}
+        ).sort("created_at", -1).limit(10)
+        
+        analyses = []
+        async for doc in cursor:
+            analyses.append(doc)
+        
+        history = []
+        for analysis in analyses:
+            history.append({
+                "date": analysis.get("created_at"),
+                "score": analysis.get("score"),
+                "job_title": analysis.get("analysis_data", {}).get("jobTitle")
+            })
+        
+        return history
+
 
 # Singleton instance
 application_workflow_dao = ApplicationWorkflowDAO()

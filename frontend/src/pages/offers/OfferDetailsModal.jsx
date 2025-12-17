@@ -11,6 +11,7 @@ import {
     Form,
 } from "react-bootstrap";
 import OffersAPI from "../../api/offers";
+import OfferEvaluationTab from "./OfferEvaluationTab";
 
 export default function OfferDetailsModal({
     offer,
@@ -23,6 +24,14 @@ export default function OfferDetailsModal({
     const [activeTab, setActiveTab] = useState("details");
     const [newStatus, setNewStatus] = useState(offer.offer_status);
     const [updating, setUpdating] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    const handleRefresh = async () => {
+        setRefreshKey(prev => prev + 1);
+        // Reload offer data
+        const response = await OffersAPI.get(offer._id);
+        Object.assign(offer, response.data);
+    };
 
     const formatCurrency = (value) => {
         if (!value) return "N/A";
@@ -190,6 +199,7 @@ export default function OfferDetailsModal({
                     { id: "details", label: "📋 Details" },
                     { id: "compensation", label: "💰 Compensation" },
                     { id: "benefits", label: "🎁 Benefits" },
+                    { id: "evaluation", label: "📊 Evaluation" },
                     { id: "notes", label: "📝 Notes" },
                 ].map((tab) => (
                     <button
@@ -369,6 +379,10 @@ export default function OfferDetailsModal({
                                 )}
                         </Card.Body>
                     </Card>
+                )}
+
+                {activeTab === "evaluation" && (
+                    <OfferEvaluationTab offer={offer} onRefresh={handleRefresh} />
                 )}
 
                 {activeTab === "notes" && (

@@ -1,7 +1,8 @@
 import JobsAPI from "../../../api/jobs";
+import ApplicationWorkflowAPI from "../../../api/applicationWorkflow";
 
 export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, setUndoStack, jobs, autoArchiveDays, autoArchiveEnabled, setView) {
-  
+
   const loadJobs = async (setLoading, preserveView = false) => {
     try {
       if (setLoading) setLoading(true);
@@ -34,13 +35,58 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
           status_history: job.status_history || [],
           materials: job.materials || null,
           materials_history: job.materials_history || [],
+          response_tracking: job.response_tracking || null, // UC-121
         };
 
         console.log("TRANSFORMED JOB:", t);
         return t;
       });
 
-      setJobs(transformedJobs);
+      // UC-121: Enrich jobs with response tracking metrics
+      try {
+        const [metricsRes, pendingRes] = await Promise.all([
+          ApplicationWorkflowAPI.getResponseMetrics(),
+          ApplicationWorkflowAPI.getPendingApplications()
+        ]);
+
+        const userAvgDays = metricsRes.data?.average_response_days || 0;
+        const overdueMap = {};
+        const pendingMap = {};
+
+        // Map overdue applications
+        (pendingRes.data?.overdue || []).forEach(app => {
+          overdueMap[app._id] = {
+            is_overdue: true,
+            days_since_submission: app.days_since_submission,
+            suggested_followup_date: app.suggested_followup_date,
+            user_average_response_days: userAvgDays
+          };
+        });
+
+        // Map pending applications
+        (pendingRes.data?.pending || []).forEach(app => {
+          if (!overdueMap[app._id]) {
+            pendingMap[app._id] = {
+              days_since_submission: app.days_since_submission,
+              user_average_response_days: userAvgDays
+            };
+          }
+        });
+
+        // Enrich transformed jobs with response data
+        const enrichedJobs = transformedJobs.map(job => ({
+          ...job,
+          ...(overdueMap[job.id] || pendingMap[job.id] || {
+            user_average_response_days: userAvgDays
+          })
+        }));
+
+        setJobs(enrichedJobs);
+      } catch (responseError) {
+        console.error("Failed to load response tracking data:", responseError);
+        // Fall back to jobs without response enrichment
+        setJobs(transformedJobs);
+      }
       
       // Only switch to pipeline view if preserveView is true
       if (preserveView && setView) {
@@ -89,6 +135,7 @@ export function useJobOperations(setJobs, setSelectedJob, setSelectedJobIds, set
         salary: jobData.salary,
         url: jobData.url,
         deadline: jobData.deadline,
+        date_applied: jobData.date_applied, // UC-121: When user actually applied
         industry: jobData.industry,
         job_type: jobData.job_type,
         work_location: jobData.work_location,
