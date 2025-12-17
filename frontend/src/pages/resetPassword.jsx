@@ -89,7 +89,7 @@ const ResetPassword = () => {
         <div className="login-card shadow">
           <div className="login-logo mb-3">
             <img
-                src="/logo.svg.png" 
+                src="/logo.svg.webp" 
                 alt="Metamorphosis logo"
                 className="hero-logo mb-3"
                 fetchPriority="high"
@@ -111,7 +111,7 @@ const ResetPassword = () => {
       <div className="login-card shadow">
         <div className="login-logo mb-3">
           <img
-                src="/logo.svg.png" 
+                src="/logo.svg.webp" 
                 alt="Metamorphosis logo"
                 className="hero-logo mb-3"
                 fetchPriority="high"
