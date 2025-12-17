@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -101,12 +102,19 @@ origins = [ # domains to provide access to
     "https://metamorphosis1.vercel.app"
 ]
 
+
+app.add_middleware(
+    TrustedHostMiddleware, 
+    allowed_hosts=["*"]
+)
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,      
     allow_credentials=True,
     allow_methods=["*"],         
-    allow_headers=["*"],         
+    allow_headers=["*"]     
 )
 
 app.include_router(auth_router, prefix = api_prefix)

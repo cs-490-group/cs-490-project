@@ -1,0 +1,12 @@
+2025-12-17 13:17:51,407 - [INFO] - [INFO] Setting up Attacker and Victim accounts...
+2025-12-17 13:17:52,556 - [ERROR] - [VULNERABLE] Login failed for attacker: 400
+2025-12-17 13:17:53,349 - [ERROR] - [VULNERABLE] Login failed for victim: 400
+2025-12-17 13:17:53,353 - [INFO] - [INFO] Spamming register endpoint 20 times...
+2025-12-17 13:18:00,533 - [ERROR] - [VULNERABLE] No rate limiting detected. Sent 20 reqs without 429.
+2025-12-17 13:18:00,535 - [INFO] - [INFO] Spamming login endpoint 20 times...
+2025-12-17 13:18:08,653 - [ERROR] - [VULNERABLE] No rate limiting detected. Sent 20 reqs without 429.
+2025-12-17 13:18:08,953 - [INFO] - [PASS] Injection failed with status 400
+2025-12-17 13:18:08,956 - [ERROR] - [VULNERABLE] Skipping XSS: No Attacker Token
+2025-12-17 13:18:08,957 - [ERROR] - [VULNERABLE] Skipping IDOR: Missing tokens
+2025-12-17 13:18:08,957 - [ERROR] - [VULNERABLE] Skipping CSRF: No Victim Session
+2025-12-17 13:18:09,269 - [WARNING] - [WARNING] Sensitive Header Found: railway-edge 
