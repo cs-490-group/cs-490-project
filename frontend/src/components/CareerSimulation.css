@@ -1,0 +1,18 @@
+/* Career Simulation Component Styles */
+.career-simulation-btn {
+    width: auto !important;
+    min-width: 150px !important;
+    max-width: fit-content !important;
+    flex-shrink: 0 !important;
+}
+
+/* Ensure career simulation buttons don't inherit full-width behavior */
+.career-simulation-container .btn {
+    width: auto !important;
+}
+
+/* Modal footer buttons should also be properly sized */
+.modal-footer .career-simulation-btn {
+    width: auto !important;
+    min-width: 150px !important;
+}
