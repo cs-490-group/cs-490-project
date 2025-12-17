@@ -122,7 +122,7 @@ app.add_middleware(
         "127.0.0.1",
         "metamorphosis1.vercel.app",
         "*.vercel.app",
-        ".railway.app"
+        "*.railway.app"
     ]
 )
 
