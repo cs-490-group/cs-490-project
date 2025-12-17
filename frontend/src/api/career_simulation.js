@@ -31,6 +31,11 @@ class CareerSimulationAPI {
         return response.data;
     }
 
+    async compareOffers(payload) {
+        const response = await api.post('/career-simulation/compare', payload);
+        return response.data;
+    }
+
     // Get simulation statistics
     async getSimulationStatistics() {
         const response = await api.get('/career-simulation/statistics/me');
@@ -42,7 +47,7 @@ class CareerSimulationAPI {
         return {
             offer_id: offerId,
             simulation_years: options.simulationYears || 5,
-            success_criteria: options.successCriteria || [
+            success_criteria: options.successCriteria || options.success_criteria || [
                 {
                     criteria_type: 'salary',
                     weight: 0.4,
@@ -79,7 +84,14 @@ class CareerSimulationAPI {
             industry_switch_willingness: options.industrySwitchWillingness || false,
             inflation_rate: options.inflationRate || 0.025,
             market_growth_rate: options.marketGrowthRate || 0.05,
-            industry_trend_override: options.industryTrendOverride
+            industry_trend_override: options.industryTrendOverride,
+            starting_salary: options.startingSalary ?? options.starting_salary,
+            annual_raise_percent: options.annualRaisePercent ?? options.annual_raise_percent,
+            raise_scenarios: options.raiseScenarios ?? options.raise_scenarios,
+            milestones: options.milestones,
+            annual_bonus: options.annualBonus ?? options.annual_bonus,
+            annual_equity: options.annualEquity ?? options.annual_equity,
+            notes: options.notes
         };
     }
 

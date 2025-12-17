@@ -64,6 +64,7 @@ from services.application_workflow_scheduler import (
 from routes.salary_research_routes import salary_research_router
 from routes.api_metrics import router as api_metrics_router
 from routes.emails_router import emails_router
+from routes.extension_import import extension_import_router
 from routes.material_comparison_router import material_comparison_router
 from routes.badges import badges_router
 
@@ -166,6 +167,7 @@ app.include_router(network_analytics_router, prefix = api_prefix)
 app.include_router(performance_analytics_router, prefix = api_prefix)
 app.include_router(api_metrics_router, prefix = f"{api_prefix}/metrics")
 app.include_router(emails_router, prefix=api_prefix)
+app.include_router(extension_import_router, prefix=api_prefix)
 app.include_router(material_comparison_router, prefix = api_prefix)
 app.include_router(badges_router, prefix = api_prefix)
 app.include_router(career_simulation_router, prefix = api_prefix)

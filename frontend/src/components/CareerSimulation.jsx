@@ -1,16 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Alert, Spinner, Modal, Form, ProgressBar, Badge } from "react-bootstrap";
 import { FaChartLine, FaPlay, FaTrash, FaEye, FaDollarSign, FaTrophy, FaChartBar, FaBrain, FaBalanceScale, FaLightbulb, FaInfoCircle, FaBriefcase, FaUsers, FaGraduationCap, FaRocket } from "react-icons/fa";
+import { Line } from "react-chartjs-2";
+import {
+    Chart as ChartJS,
+    LineElement,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    Tooltip,
+    Legend
+} from "chart.js";
 import CareerSimulationAPI from "../api/career_simulation";
+import SimulationComparison from "./SimulationComparison";
 import "./CareerSimulation.css";
 
-const CareerSimulation = ({ offerId, offerDetails }) => {
+ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
+
+const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
     const [simulations, setSimulations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [showSimulationModal, setShowSimulationModal] = useState(false);
     const [selectedSimulation, setSelectedSimulation] = useState(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showCompareModal, setShowCompareModal] = useState(false);
     
     // Simulation form state
     const [simulationForm, setSimulationForm] = useState({
@@ -20,6 +34,17 @@ const CareerSimulation = ({ offerId, offerDetails }) => {
         jobChangeFrequency: 2.5,
         geographicFlexibility: true,
         industrySwitchWillingness: false,
+        startingSalary: offerDetails?.offered_salary_details?.base_salary || "",
+        annualRaisePercent: 3,
+        raiseScenarios: {
+            conservative: 1.5,
+            expected: 3,
+            optimistic: 4.5,
+        },
+        annualBonus: offerDetails?.offered_salary_details?.annual_bonus || "",
+        annualEquity: "",
+        notes: "",
+        milestones: [],
         success_criteria: [
             { criteria_type: 'salary', weight: 0.4, target_value: 150000, importance: 'high', description: 'Competitive salary growth' },
             { criteria_type: 'work_life_balance', weight: 0.3, target_value: 8, importance: 'high', description: 'Good work-life balance' },
@@ -64,11 +89,37 @@ const CareerSimulation = ({ offerId, offerDetails }) => {
                 setShowDetailsModal(true);
             }
         } catch (err) {
-            setError('Failed to create career simulation');
+            setError(err.response?.data?.detail || 'Failed to create career simulation');
             console.error('Error creating simulation:', err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const addMilestone = () => {
+        setSimulationForm((prev) => ({
+            ...prev,
+            milestones: [
+                ...(prev.milestones || []),
+                { year: 1, title: "", raise_percent: "", new_base_salary: "", bonus_expected: "", equity_value: "" }
+            ]
+        }));
+    };
+
+    const updateMilestone = (index, patch) => {
+        setSimulationForm((prev) => {
+            const next = [...(prev.milestones || [])];
+            next[index] = { ...next[index], ...patch };
+            return { ...prev, milestones: next };
+        });
+    };
+
+    const removeMilestone = (index) => {
+        setSimulationForm((prev) => {
+            const next = [...(prev.milestones || [])];
+            next.splice(index, 1);
+            return { ...prev, milestones: next };
+        });
     };
 
     const handleViewSimulation = async (simulationId) => {
@@ -188,6 +239,23 @@ const CareerSimulation = ({ offerId, offerDetails }) => {
         const formatted = CareerSimulationAPI.formatSimulationForDisplay(selectedSimulation);
         const metrics = CareerSimulationAPI.extractKeyMetrics(selectedSimulation);
 
+        const projection = selectedSimulation?.response?.projections;
+        const scenarioKey = metrics?.careerGrowthRate >= 0.04 ? 'optimistic' : metrics?.careerGrowthRate <= 0.02 ? 'conservative' : 'expected';
+        const series = projection?.scenarios?.[scenarioKey]?.total_comp_by_year || null;
+        const labels = series ? Array.from({ length: series.length }, (_, i) => `Year ${i}`) : [];
+        const chartData = series ? {
+            labels,
+            datasets: [
+                {
+                    label: `Total Comp (${scenarioKey})`,
+                    data: series,
+                    borderColor: '#2563eb',
+                    backgroundColor: '#2563eb',
+                    tension: 0.25,
+                }
+            ]
+        } : null;
+
         return (
             <Modal size="xl" show={showDetailsModal} onHide={() => setShowDetailsModal(false)}>
                 <Modal.Header closeButton>
@@ -240,6 +308,26 @@ const CareerSimulation = ({ offerId, offerDetails }) => {
                             </Row>
 
                             {/* Component Scores */}
+                            {chartData && (
+                                <Card className="mb-4">
+                                    <Card.Header>
+                                        <h5 className="mb-0">
+                                            <FaChartLine className="me-2" />
+                                            Salary Growth Trajectory
+                                        </h5>
+                                    </Card.Header>
+                                    <Card.Body style={{ height: 320 }}>
+                                        <Line
+                                            data={chartData}
+                                            options={{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: { legend: { position: 'bottom' } },
+                                            }}
+                                        />
+                                    </Card.Body>
+                                </Card>
+                            )}
                             <Card className="mb-4">
                                 <Card.Header>
                                     <h5 className="mb-0">
@@ -370,15 +458,25 @@ const CareerSimulation = ({ offerId, offerDetails }) => {
                                 <FaChartLine className="me-2" />
                                 Career Path Simulation
                             </h4>
-                            <Button 
-                                variant="primary"
-                                onClick={() => setShowSimulationModal(true)}
-                                className="career-simulation-btn"
-                                style={{ width: 'auto', minWidth: '150px' }}        
-                            >
-                                <FaPlay className="me-2" />
-                                Run Simulation
-                            </Button>
+                            <div className="d-flex gap-2">
+                                <Button 
+                                    variant="outline-primary"
+                                    onClick={() => setShowCompareModal(true)}
+                                    style={{ width: 'auto', minWidth: '150px' }}
+                                    disabled={offers.length < 2}
+                                >
+                                    Compare Offers
+                                </Button>
+                                <Button 
+                                    variant="primary"
+                                    onClick={() => setShowSimulationModal(true)}
+                                    className="career-simulation-btn"
+                                    style={{ width: 'auto', minWidth: '150px' }}        
+                                >
+                                    <FaPlay className="me-2" />
+                                    Run Simulation
+                                </Button>
+                            </div>
                         </Card.Header>
                         <Card.Body>
                             <Alert variant="info">
@@ -423,6 +521,114 @@ const CareerSimulation = ({ offerId, offerDetails }) => {
                 </Modal.Header>
                 <Modal.Body>
                     <Form>
+                        <Row className="mb-3">
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label>Starting Salary</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        value={simulationForm.startingSalary}
+                                        onChange={(e) => setSimulationForm({ ...simulationForm, startingSalary: e.target.value })}
+                                        min="0"
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label>Expected Annual Raise %</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        value={simulationForm.annualRaisePercent}
+                                        onChange={(e) => {
+                                            const v = parseFloat(e.target.value);
+                                            setSimulationForm({
+                                                ...simulationForm,
+                                                annualRaisePercent: v,
+                                                raiseScenarios: {
+                                                    conservative: Math.max(0, v * 0.5),
+                                                    expected: Math.max(0, v),
+                                                    optimistic: Math.max(0, v * 1.5),
+                                                }
+                                            });
+                                        }}
+                                        step="0.1"
+                                        min="0"
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
+
+                        <Row className="mb-3">
+                            <Col md={4}>
+                                <Form.Group>
+                                    <Form.Label>Conservative %</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        value={simulationForm.raiseScenarios?.conservative ?? 0}
+                                        onChange={(e) => setSimulationForm({
+                                            ...simulationForm,
+                                            raiseScenarios: { ...simulationForm.raiseScenarios, conservative: parseFloat(e.target.value) }
+                                        })}
+                                        step="0.1"
+                                        min="0"
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={4}>
+                                <Form.Group>
+                                    <Form.Label>Expected %</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        value={simulationForm.raiseScenarios?.expected ?? 0}
+                                        onChange={(e) => setSimulationForm({
+                                            ...simulationForm,
+                                            raiseScenarios: { ...simulationForm.raiseScenarios, expected: parseFloat(e.target.value) }
+                                        })}
+                                        step="0.1"
+                                        min="0"
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={4}>
+                                <Form.Group>
+                                    <Form.Label>Optimistic %</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        value={simulationForm.raiseScenarios?.optimistic ?? 0}
+                                        onChange={(e) => setSimulationForm({
+                                            ...simulationForm,
+                                            raiseScenarios: { ...simulationForm.raiseScenarios, optimistic: parseFloat(e.target.value) }
+                                        })}
+                                        step="0.1"
+                                        min="0"
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
+
+                        <Row className="mb-3">
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label>Annual Bonus (e.g. 10% or 15000)</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        value={simulationForm.annualBonus}
+                                        onChange={(e) => setSimulationForm({ ...simulationForm, annualBonus: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label>Annual Equity Value</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        value={simulationForm.annualEquity}
+                                        onChange={(e) => setSimulationForm({ ...simulationForm, annualEquity: e.target.value })}
+                                        min="0"
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
                         <Row className="mb-3">
                             <Col md={6}>
                                 <Form.Group>
@@ -506,6 +712,74 @@ const CareerSimulation = ({ offerId, offerDetails }) => {
                                 />
                             </Col>
                         </Row>
+
+                        <Row className="mb-3">
+                            <Col>
+                                <Form.Group>
+                                    <Form.Label>Notes</Form.Label>
+                                    <Form.Control
+                                        as="textarea"
+                                        rows={2}
+                                        value={simulationForm.notes}
+                                        onChange={(e) => setSimulationForm({ ...simulationForm, notes: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
+
+                        <Card className="mb-3">
+                            <Card.Header className="d-flex justify-content-between align-items-center">
+                                <span>Milestones</span>
+                                <Button size="sm" variant="outline-primary" onClick={addMilestone}>Add</Button>
+                            </Card.Header>
+                            <Card.Body>
+                                {(simulationForm.milestones || []).length === 0 ? (
+                                    <div className="text-muted small">No milestones added.</div>
+                                ) : (
+                                    (simulationForm.milestones || []).map((m, idx) => (
+                                        <Row key={idx} className="align-items-end mb-2">
+                                            <Col md={2}>
+                                                <Form.Label className="small">Year</Form.Label>
+                                                <Form.Control
+                                                    type="number"
+                                                    value={m.year}
+                                                    min="1"
+                                                    onChange={(e) => updateMilestone(idx, { year: parseInt(e.target.value, 10) })}
+                                                />
+                                            </Col>
+                                            <Col md={3}>
+                                                <Form.Label className="small">Title</Form.Label>
+                                                <Form.Control
+                                                    type="text"
+                                                    value={m.title}
+                                                    onChange={(e) => updateMilestone(idx, { title: e.target.value })}
+                                                />
+                                            </Col>
+                                            <Col md={2}>
+                                                <Form.Label className="small">Raise %</Form.Label>
+                                                <Form.Control
+                                                    type="number"
+                                                    value={m.raise_percent}
+                                                    onChange={(e) => updateMilestone(idx, { raise_percent: e.target.value })}
+                                                    step="0.1"
+                                                />
+                                            </Col>
+                                            <Col md={3}>
+                                                <Form.Label className="small">New Base Salary</Form.Label>
+                                                <Form.Control
+                                                    type="number"
+                                                    value={m.new_base_salary}
+                                                    onChange={(e) => updateMilestone(idx, { new_base_salary: e.target.value })}
+                                                />
+                                            </Col>
+                                            <Col md={2} className="text-end">
+                                                <Button size="sm" variant="outline-danger" onClick={() => removeMilestone(idx)}>Remove</Button>
+                                            </Col>
+                                        </Row>
+                                    ))
+                                )}
+                            </Card.Body>
+                        </Card>
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
@@ -521,6 +795,12 @@ const CareerSimulation = ({ offerId, offerDetails }) => {
 
             {/* Simulation Details Modal */}
             {renderSimulationDetails()}
+
+            <SimulationComparison
+                offers={offers}
+                show={showCompareModal}
+                onHide={() => setShowCompareModal(false)}
+            />
         </Container>
     );
 };

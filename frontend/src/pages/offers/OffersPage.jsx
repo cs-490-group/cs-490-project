@@ -127,6 +127,7 @@ export default function OffersPage() {
                 <CareerSimulation 
                     offerId={selectedOfferForSimulation._id} 
                     offerDetails={selectedOfferForSimulation}
+                    offers={offers}
                 />
                 <div className="mt-3">
                     <Button 

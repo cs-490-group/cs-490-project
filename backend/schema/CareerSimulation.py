@@ -117,6 +117,15 @@ class SuccessCriteria(BaseModel):
     importance: str  # critical, high, medium, low
     description: str
 
+
+class UserMilestone(BaseModel):
+    year: int
+    title: Optional[str] = None
+    raise_percent: Optional[float] = None
+    new_base_salary: Optional[float] = None
+    bonus_expected: Optional[float] = None
+    equity_value: Optional[float] = None
+
 class CareerSimulationRequest(BaseModel):
     """Request to run career simulation"""
     offer_id: str
@@ -134,6 +143,14 @@ class CareerSimulationRequest(BaseModel):
     inflation_rate: float = 0.025  # 2.5% annual
     market_growth_rate: float = 0.05  # 5% annual
     industry_trend_override: Optional[IndustryTrend] = None
+
+    starting_salary: Optional[float] = None
+    annual_raise_percent: float = 3.0
+    raise_scenarios: Optional[Dict[str, float]] = None
+    milestones: Optional[List[UserMilestone]] = None
+    annual_bonus: Optional[float] = None
+    annual_equity: Optional[float] = None
+    notes: Optional[str] = None
 
 class CareerSimulationResponse(BaseModel):
     """Response containing career simulation results"""

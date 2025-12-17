@@ -86,16 +86,11 @@ const DiscoveryPage = lazy(() => import("./pages/network/DiscoveryPage"));
 const NetworkingAnalytics = lazy(() => import("./pages/network/NetworkingAnalytics"));
 const APIMetricsPage = lazy(() => import("./pages/APIMetrics"));
 const LinkedInCallback = lazy(() => import("./pages/callback/linkedin"));
-import LeetCodeDetails from "./pages/LeetCodeDetails";
-import HackerRankDetails from "./pages/HackerRankDetails";
-import CodecademyDetails from "./pages/CodecademyDetails";
+const LeetCodeDetails = lazy(() => import("./pages/LeetCodeDetails"));
+const HackerRankDetails = lazy(() => import("./pages/HackerRankDetails"));
+const CodecademyDetails = lazy(() => import("./pages/CodecademyDetails"));
 
 // inside your router
-
-
-// import Dashboard from "./pages/dashboard";
-import Dashboard from "./pages/dashboard";
-import TeamsDashboard from "./pages/teamsDashboard";
 
 
 export function App() {
