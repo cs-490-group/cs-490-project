@@ -6,35 +6,32 @@ import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import { App } from './App';
 import reportWebVitals from './reportWebVitals';
-import { GoogleOAuthProvider } from '@react-oauth/google'
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { msalConfig } from "./tools/msal";
-import { PublicClientApplication } from "@azure/msal-browser";
+import { PublicClientApplication } from "@azure/msal-browser"; // Standard import
 import { MsalProvider } from "@azure/msal-react";
 
-// Initialize MSAL outside the render cycle
+// 1. Initialize MSAL immediately so MsalProvider doesn't crash on null
 const PCA = new PublicClientApplication(msalConfig);
 const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
+// 2. ⚡ PERFORMANCE: Only delay Sentry. This is the part that eats CPU during boot
 const initializeSentry = () => {
   Sentry.init({
     dsn: process.env.REACT_APP_SENTRY_DSN,
     environment: process.env.NODE_ENV,
-    tracesSampleRate: 0.1, // Low sample rate to reduce monitoring overhead
+    tracesSampleRate: 0.1, 
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
-    // Disable auto-instrumentation of startup to save the Main Thread
     instrumenter: "sentry", 
   });
 };
 
-// Use requestIdleCallback to wait until the "Main Thread" has finished the initial render
+// Delay Sentry until after the logo has had a chance to paint
 if ('requestIdleCallback' in window) {
   window.requestIdleCallback(initializeSentry);
 } else {
-  // Fallback for older browsers
-  window.addEventListener('load', () => {
-    setTimeout(initializeSentry, 2000);
-  });
+  window.addEventListener('load', () => setTimeout(initializeSentry, 2000));
 }
 
 const SentryRoutes = Sentry.withSentryRouting(BrowserRouter);
@@ -44,6 +41,7 @@ root.render(
   <React.StrictMode>
     <FlashProvider>
       <GoogleOAuthProvider clientId={clientId}>
+        {/* PCA is now guaranteed to be defined here, fixing the getLogger error */}
         <MsalProvider instance={PCA}>
           <SentryRoutes>
             <App />

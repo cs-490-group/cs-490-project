@@ -249,6 +249,7 @@ function Register() {
                 fetchPriority="high"
                 width="200" 
                 height="200"
+                crossOrigin="anonymous"
                 />
         </div>
 

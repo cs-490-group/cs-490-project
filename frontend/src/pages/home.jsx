@@ -21,6 +21,7 @@ const Home = ({ user, session }) => {
                 fetchPriority="high" 
                 width="200" 
                 height="200"
+                crossOrigin="anonymous"
               />
               <h1
                 style={{
