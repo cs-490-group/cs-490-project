@@ -3,7 +3,7 @@ import MetricCard from "./MetricCard";
 import FunnelChart from "./FunnelChart";
 import GoalSettingsModal from "./GoalSettingsModal";
 import SuccessAnalysisSection from "./SuccessAnalysisSection";
-import { useMetricsCalculator } from "./useMetricsCalculator";
+import { useEnhancedMetrics } from "./useEnhancedMetrics";
 
 export default function PerformanceDashboard({ jobs }) {
   const [dateRange, setDateRange] = useState("all");
@@ -91,7 +91,7 @@ export default function PerformanceDashboard({ jobs }) {
   }, [jobs, dateRange, filterStatus]);
 
   // Calculate comprehensive metrics
-  const metrics = useMetricsCalculator(filteredJobs);
+  const metrics = useEnhancedMetrics(filteredJobs);
 
   const saveGoals = (savedGoals) => {
     setGoals(savedGoals);

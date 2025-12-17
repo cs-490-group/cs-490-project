@@ -3,12 +3,14 @@ import jobsAPI from "../../api/jobs";
 import MetricCard from "./MetricCard";
 import FunnelChart from "./FunnelChart";
 import { useMetricsCalculator } from "./useMetricsCalculator";
+import PersonalResponseAnalytics from "./PersonalResponseAnalytics";
 
 const JobAnalytics = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateRange, setDateRange] = useState("all");
+  const [activeTab, setActiveTab] = useState("overview"); // UC-121: Tab state
 
   useEffect(() => {
     loadJobs();
@@ -125,6 +127,12 @@ const JobAnalytics = () => {
         </select>
       </div>
 
+      {/* Tab Content */}
+      {activeTab === "response-times" ? (
+        <PersonalResponseAnalytics />
+      ) : (
+        <div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "24px" }}>
         <MetricCard title="Applications Sent" value={metrics.totalApplications} subtitle={`${metrics.totalActive} total tracked`} color="#2196f3" icon="📤" />
         <MetricCard title="Response Rate" value={`${metrics.responseRate}%`} subtitle="Got a response" color="#ff9800" icon="📧" benchmark={metrics.benchmarks.responseRate} />
@@ -195,6 +203,8 @@ const JobAnalytics = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
         </div>
       )}
     </div>

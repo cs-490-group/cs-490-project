@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
 import JobsAPI from '../../api/jobs';
+import FloatingFollowUpWidget from './FloatingFollowUpWidget.jsx';
 
 const InterviewScheduling = () => {
   const navigate = useNavigate();
@@ -489,6 +490,19 @@ const InterviewScheduling = () => {
           onSchedule={handleScheduleInterview}
         />
       )}
+
+        <FloatingFollowUpWidget 
+  interviews={interviews}
+  onFollowUpClick={(interview, templateType) => {
+    // Navigate to follow-up manager with pre-selected interview
+    navigate('/interview/follow-up', { 
+      state: { 
+        selectedInterview: interview,
+        templateType: templateType 
+      }
+    });
+  }}
+/>
     </div>
   );
 };

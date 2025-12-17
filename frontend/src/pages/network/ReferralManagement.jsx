@@ -22,6 +22,10 @@ export default function ReferralManagement() {
     const [followUpKind, setFollowUpKind] = useState("standard");
     const [savingFollowUp, setSavingFollowUp] = useState(false);
     const [followUpError, setFollowUpError] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedReferral, setSelectedReferral] = useState(null);
+    const [editingFollowUp, setEditingFollowUp] = useState(null);
+    const [editFollowUpMessage, setEditFollowUpMessage] = useState("");
     const [filterText, setFilterText] = useState({
         company: "",
         position: "",
@@ -300,6 +304,15 @@ export default function ReferralManagement() {
             const contactIdForInteraction = formData.contact_id;
             const statusIsTerminal = ["requested", "accepted", "declined", "completed"].includes(newStatus);
 
+            // Log interaction for new referral creation
+            if (!isEditingExisting && contactIdForInteraction) {
+                await logContactInteraction(
+                    contactIdForInteraction,
+                    `Referral requested for ${formData.position} at ${formData.company}.`
+                );
+            }
+
+            // Log interaction for status changes
             if (contactIdForInteraction && statusIsTerminal) {
                 if (!isEditingExisting || previousStatus !== newStatus) {
                     await logContactInteraction(
@@ -367,6 +380,74 @@ export default function ReferralManagement() {
         });
         setEditing(false);
         setEditingReferralId(null);
+    };
+
+    const handleReferralClick = (referral) => {
+        console.log("Card click triggered", referral);
+        setSelectedReferral(referral);
+        setShowDetailModal(true);
+    };
+
+    const handleEditFollowUp = (followUp, index) => {
+        console.log("Edit follow-up triggered", followUp, index);
+        setEditingFollowUp(index);
+        setEditFollowUpMessage(followUp.message);
+    };
+
+    const handleSaveFollowUpEdit = async () => {
+        if (!selectedReferral || editingFollowUp === null || !editFollowUpMessage.trim()) {
+            return;
+        }
+        
+        try {
+            const updatedFollowUps = [...selectedReferral.follow_ups];
+            updatedFollowUps[editingFollowUp] = {
+                ...updatedFollowUps[editingFollowUp],
+                message: editFollowUpMessage.trim()
+            };
+            
+            await ReferralsAPI.update(selectedReferral._id, {
+                contact_id: selectedReferral.contact_id,
+                job_id: selectedReferral.job_id || null,
+                job_application_id: selectedReferral.job_application_id || null,
+                company: selectedReferral.company,
+                position: selectedReferral.position,
+                request_date: selectedReferral.request_date,
+                status: selectedReferral.status,
+                message: selectedReferral.message,
+                follow_up_date: selectedReferral.follow_up_date,
+                response_date: selectedReferral.response_date || null,
+                referral_success: selectedReferral.referral_success || null,
+                notes: selectedReferral.notes || "",
+                relationship_impact: selectedReferral.relationship_impact || null,
+                gratitude_sent: selectedReferral.gratitude_sent || false,
+                gratitude_date: selectedReferral.gratitude_date || null,
+                follow_ups: updatedFollowUps
+            });
+            
+            // Update local state
+            setSelectedReferral(prev => ({
+                ...prev,
+                follow_ups: updatedFollowUps
+            }));
+            
+            // Update referrals list
+            setReferrals(prev => prev.map(r => 
+                r._id === selectedReferral._id 
+                    ? { ...r, follow_ups: updatedFollowUps }
+                    : r
+            ));
+            
+            setEditingFollowUp(null);
+            setEditFollowUpMessage("");
+        } catch (error) {
+            console.error("Failed to update follow-up:", error);
+        }
+    };
+
+    const handleCancelFollowUpEdit = () => {
+        setEditingFollowUp(null);
+        setEditFollowUpMessage("");
     };
 
     const getStatusColor = (status) => {
@@ -492,7 +573,7 @@ export default function ReferralManagement() {
                     ) : (
                         <div className="contact-display">
                             {filterReferrals(referrals).map(referral => (
-                                <Card key={referral._id} className="contact-card">
+                                <Card key={referral._id} className="contact-card referral-card-clickable" onClick={() => !showDetailModal && handleReferralClick(referral)} style={{ cursor: showDetailModal ? 'default' : 'pointer' }}>
                                     <Card.Body>
                                         {shouldShowRequestAlert(referral) && (
                                             <Alert variant="warning" className="mb-3">
@@ -504,7 +585,7 @@ export default function ReferralManagement() {
                                                     <Button
                                                         size="sm"
                                                         variant="outline-dark"
-                                                        onClick={() => handleEdit(referral)}
+                                                        onClick={(e) => { e.stopPropagation(); handleEdit(referral); }}
                                                     >
                                                         Open request form
                                                     </Button>
@@ -522,7 +603,7 @@ export default function ReferralManagement() {
                                                     <Button
                                                         size="sm"
                                                         variant="outline-dark"
-                                                        onClick={() => openFollowUpModal(referral, "standard")}
+                                                        onClick={(e) => { e.stopPropagation(); openFollowUpModal(referral, "standard"); }}
                                                     >
                                                         Compose follow-up
                                                     </Button>
@@ -539,7 +620,7 @@ export default function ReferralManagement() {
                                                     <Button
                                                         size="sm"
                                                         variant="outline-dark"
-                                                        onClick={() => openFollowUpModal(referral, "thank_you")}
+                                                        onClick={(e) => { e.stopPropagation(); openFollowUpModal(referral, "thank_you"); }}
                                                     >
                                                         Compose thank-you
                                                     </Button>
@@ -660,6 +741,167 @@ export default function ReferralManagement() {
                     </Button>
                     <Button variant="primary" onClick={handleSendFollowUp} disabled={savingFollowUp}>
                         {savingFollowUp ? "Saving..." : "Save Follow-Up"}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
+            {/* Detailed Referral Modal */}
+            <Modal
+                show={showDetailModal}
+                onHide={() => setShowDetailModal(false)}
+                size="lg"
+                centered
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>Referral Details</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {selectedReferral && (
+                        <div>
+                            {/* Basic Information */}
+                            <Row className="mb-4">
+                                <Col md={6}>
+                                    <h5 className="text-primary mb-3">Basic Information</h5>
+                                    <p><strong>Company:</strong> {selectedReferral.company}</p>
+                                    <p><strong>Position:</strong> {selectedReferral.position}</p>
+                                    <p><strong>Contact:</strong> {getContactName(selectedReferral.contact_id)}</p>
+                                    <p><strong>Status:</strong> <Badge bg={getStatusColor(selectedReferral.status)}>{selectedReferral.status?.charAt(0).toUpperCase() + selectedReferral.status?.slice(1)}</Badge></p>
+                                </Col>
+                                <Col md={6}>
+                                    <h5 className="text-primary mb-3">Timeline</h5>
+                                    <p><strong>Request Date:</strong> {formatLocalDate(selectedReferral.request_date)}</p>
+                                    {selectedReferral.follow_up_date && (
+                                        <p><strong>Follow-up Date:</strong> {formatLocalDate(selectedReferral.follow_up_date)}</p>
+                                    )}
+                                    {selectedReferral.response_date && (
+                                        <p><strong>Response Date:</strong> {formatLocalDate(selectedReferral.response_date)}</p>
+                                    )}
+                                    {selectedReferral.gratitude_date && (
+                                        <p><strong>Thank You Sent:</strong> {formatLocalDate(selectedReferral.gratitude_date)}</p>
+                                    )}
+                                </Col>
+                            </Row>
+
+                            {/* Message */}
+                            {selectedReferral.message && (
+                                <div className="mb-4">
+                                    <h5 className="text-primary mb-3">Referral Message</h5>
+                                    <Card className="bg-light">
+                                        <Card.Body>
+                                            <p className="mb-0">{selectedReferral.message}</p>
+                                        </Card.Body>
+                                    </Card>
+                                </div>
+                            )}
+
+                            {/* Notes */}
+                            {selectedReferral.notes && (
+                                <div className="mb-4">
+                                    <h5 className="text-primary mb-3">Notes</h5>
+                                    <Card className="bg-light">
+                                        <Card.Body>
+                                            <p className="mb-0">{selectedReferral.notes}</p>
+                                        </Card.Body>
+                                    </Card>
+                                </div>
+                            )}
+
+                            {/* Follow-ups */}
+                            {Array.isArray(selectedReferral.follow_ups) && selectedReferral.follow_ups.length > 0 && (
+                                <div className="mb-4" onClick={(e) => e.stopPropagation()}>
+                                    <h5 className="text-primary mb-3">Follow-up History</h5>
+                                    {selectedReferral.follow_ups.map((followUp, index) => (
+                                        <Card key={index} className="mb-2" onClick={(e) => e.stopPropagation()}>
+                                            <Card.Body>
+                                                <div className="d-flex justify-content-between align-items-start mb-2">
+                                                    <Badge bg={followUp.status === "sent" ? "success" : "secondary"}>
+                                                        {followUp.kind === "thank_you" ? "Thank You" : "Follow-up"}
+                                                    </Badge>
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <small className="text-muted">
+                                                            {formatLocalDateTime(followUp.date)}
+                                                        </small>
+                                                        {editingFollowUp === index ? (
+                                                            <div className="d-flex gap-1">
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="success"
+                                                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleSaveFollowUpEdit(); }}
+                                                                >
+                                                                    Save
+                                                                </Button>
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="secondary"
+                                                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleCancelFollowUpEdit(); }}
+                                                                >
+                                                                    Cancel
+                                                                </Button>
+                                                            </div>
+                                                        ) : (
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="outline-primary"
+                                                                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleEditFollowUp(followUp, index); }}
+                                                            >
+                                                                Edit
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {editingFollowUp === index ? (
+                                                    <div onClick={(e) => e.stopPropagation()}>
+                                                        <Form.Control
+                                                            as="textarea"
+                                                            rows={3}
+                                                            value={editFollowUpMessage}
+                                                            onChange={(e) => setEditFollowUpMessage(e.target.value)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onFocus={(e) => e.stopPropagation()}
+                                                            placeholder="Edit follow-up message..."
+                                                            className="mb-2"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <p className="mb-0">{followUp.message}</p>
+                                                )}
+                                            </Card.Body>
+                                        </Card>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="d-flex gap-2 mt-4" onClick={(e) => e.stopPropagation()}>
+                                <Button 
+                                    variant="primary" 
+                                    onClick={(e) => { e.stopPropagation(); handleEdit(selectedReferral); setShowDetailModal(false); }}
+                                >
+                                    Edit Referral
+                                </Button>
+                                {shouldShowStandardFollowUpAlert(selectedReferral) && (
+                                    <Button 
+                                        variant="info"
+                                        onClick={(e) => { e.stopPropagation(); openFollowUpModal(selectedReferral, "standard"); setShowDetailModal(false); }}
+                                    >
+                                        Send Follow-up
+                                    </Button>
+                                )}
+                                {shouldShowThankYouAlert(selectedReferral) && (
+                                    <Button 
+                                        variant="success"
+                                        onClick={(e) => { e.stopPropagation(); openFollowUpModal(selectedReferral, "thank_you"); setShowDetailModal(false); }}
+                                    >
+                                        Send Thank You
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowDetailModal(false)}>
+                        Close
                     </Button>
                 </Modal.Footer>
             </Modal>

@@ -12,6 +12,7 @@ import OfferForm from "./OfferForm";
 import OfferCard from "./OfferCard";
 import NegotiationPrepView from "./NegotiationPrepView";
 import OfferDetailsModal from "./OfferDetailsModal";
+import OfferComparisonView from "./OfferComparisonView";
 
 export default function OffersPage() {
     const [offers, setOffers] = useState([]);
@@ -23,6 +24,8 @@ export default function OffersPage() {
     const [showDetails, setShowDetails] = useState(false);
     const [showNegotiationPrep, setShowNegotiationPrep] = useState(false);
     const [generatingPrep, setGeneratingPrep] = useState(null);
+    const [showComparison, setShowComparison] = useState(false);
+    const [showArchived, setShowArchived] = useState(false);
 
     useEffect(() => {
         loadOffers();
@@ -31,7 +34,9 @@ export default function OffersPage() {
     const loadOffers = async () => {
         try {
             setLoading(true);
-            const response = await OffersAPI.getAll();
+            const response = showArchived
+                ? await OffersAPI.getArchivedOffers()
+                : await OffersAPI.getActiveOffers();
             setOffers(response.data);
             setError(null);
         } catch (err) {
@@ -41,6 +46,10 @@ export default function OffersPage() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        loadOffers();
+    }, [showArchived]);
 
     const handleSaveOffer = async () => {
         setShowForm(false);
@@ -169,9 +178,18 @@ export default function OffersPage() {
         );
     }
 
+    if (showComparison) {
+        return (
+            <OfferComparisonView
+                offers={offers}
+                onBack={() => setShowComparison(false)}
+            />
+        );
+    }
+
     return (
         <Container className="py-4">
-            <Row className="mb-5">
+            <Row className="mb-4">
                 <Col>
                     <h1 style={{ fontSize: "2.5rem", fontWeight: "700", marginBottom: "8px", color: "#1a1a1a" }}>
                         Job Offers & Salary Negotiation
@@ -180,16 +198,43 @@ export default function OffersPage() {
                         Track your offers and prepare for negotiations with AI-powered insights
                     </p>
                 </Col>
-                <Col md={3} className="text-end">
+                <Col md={4} className="text-end">
+                    <Button
+                        variant="outline-primary"
+                        onClick={() => setShowComparison(true)}
+                        disabled={offers.length < 2}
+                        className="me-2"
+                    >
+                        📊 Compare Offers
+                    </Button>
                     <Button
                         variant="primary"
                         onClick={() => {
                             setEditingOffer(null);
                             setShowForm(true);
                         }}
-                        size="lg"
                     >
                         + Add New Offer
+                    </Button>
+                </Col>
+            </Row>
+
+            <Row className="mb-3">
+                <Col>
+                    <Button
+                        variant={showArchived ? "outline-secondary" : "secondary"}
+                        size="sm"
+                        onClick={() => setShowArchived(false)}
+                        className="me-2"
+                    >
+                        Active Offers
+                    </Button>
+                    <Button
+                        variant={showArchived ? "secondary" : "outline-secondary"}
+                        size="sm"
+                        onClick={() => setShowArchived(true)}
+                    >
+                        Archived Offers
                     </Button>
                 </Col>
             </Row>

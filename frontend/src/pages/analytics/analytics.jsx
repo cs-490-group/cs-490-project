@@ -7,6 +7,9 @@ import PerformanceAnalytics from "./PerformanceAnalytics";
 import SalaryAnalytics from "./SalaryAnalytics";
 import GoalTracking from "./GoalTracking";
 import TimeTracking from "./TimeTracking";
+import PredictiveAnalytics from "./PredictiveAnalytics";
+import CompetitiveBenchmarking from"./CompetitiveBenchmarking";
+
 import "../../styles/analytics.css";
 
 const AnalyticsPage = () => {
@@ -21,6 +24,8 @@ const AnalyticsPage = () => {
     { id: "network", name: "Network Analytics", icon: "🌐" },
     { id: "skills", name: "Skills Analytics", icon: "🧠" },
     { id: "performance", name: "Performance Analytics", icon: "⚡" },
+    { id : "predictive" , name : "Predictive Analytics" , icon : "🔮" } ,
+    { id : "competitive" , name : "Competitive Analysis" , icon : "🏆" } ,
   ];
 
   const renderContent = () => {
@@ -33,6 +38,8 @@ const AnalyticsPage = () => {
       case "network": return <NetworkAnalytics />;
       case "skills": return <SkillsAnalytics />;
       case "performance": return <PerformanceAnalytics />;
+      case "predictive": return <PredictiveAnalytics/>;
+      case "competitive": return <CompetitiveBenchmarking/>;
       default: return <GoalTracking />;
     }
   };

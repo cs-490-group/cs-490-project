@@ -173,17 +173,11 @@ export default function JobListHeader({
             
             <button
               onClick={() => {
-                setView("pipeline");
-                setShowJobMatching(true);
-                setShowSkillsGap(false);
-                setShowStatistics(false);
-                setShowCalendar(false);
-                setShowArchived(false);
-                setShowMaterials(false);     
+                setView("matching");     
               }}
               style={{
                 padding: "7px 12px",
-                background: showJobMatching ? "#4caf50" : "#03a9f4",
+                background: view === "matching" ? "#4caf50" : "#03a9f4",
                 color: "white",
                 border: "none",
                 borderRadius: "6px",
