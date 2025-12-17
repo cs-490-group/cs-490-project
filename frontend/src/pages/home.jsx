@@ -16,7 +16,7 @@ const Home = ({ user, session }) => {
             <div className="mb-4">
               <img
                 src="/logo.svg.webp" /* Direct path to public folder */
-                alt="Metamorphosis logo"
+                alt="logo"
                 className="hero-logo mb-3"
                 fetchPriority="high" 
                 width="200" 
