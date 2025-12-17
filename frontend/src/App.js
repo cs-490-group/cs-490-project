@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect } from "react";
+import React, { Suspense, lazy } from "react";
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Spinner } from 'react-bootstrap';
 import Nav from "./tools/nav";
@@ -89,14 +89,6 @@ const LinkedInCallback = lazy(() => import("./pages/callback/linkedin"));
 
 export function App() {
   const location = useLocation();
-
-  useEffect(() => {
-    const lcp = document.getElementById("static-lcp");
-    if (lcp) {
-      lcp.style.opacity = "0";
-      lcp.style.pointerEvents = "none";
-    }
-  }, []);
   
   return (
     <div className="App">
@@ -104,7 +96,7 @@ export function App() {
         <FlashMessage />
         <JobProvider>
           <header>
-            <Nav />
+            <Nav key={location.pathname} />
           </header>
           <main role="main" id="main-content" style={{ minHeight: '80vh' }}>
             <Suspense fallback={
