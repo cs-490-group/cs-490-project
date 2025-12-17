@@ -243,7 +243,7 @@ function Register() {
       <div className="register-card shadow" style={{ maxWidth: "500px" }}>
         <div className="login-logo mb-3">
           <img
-                src="/logo.svg.png" 
+                src="/logo.svg.webp" 
                 alt="Metamorphosis logo"
                 className="hero-logo mb-3"
                 fetchPriority="high"
