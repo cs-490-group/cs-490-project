@@ -28,7 +28,7 @@ const Home = ({ user, session }) => {
                   fontFamily: '"Playfair Display", serif',
                   fontWeight: 800,
                   fontSize: '4rem',
-                  color: '#000',
+                  color: '#ffffff',
                   }}
               >
               Metamorphosis
