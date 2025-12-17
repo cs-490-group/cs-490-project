@@ -6,6 +6,7 @@ import NetworksAPI from "../../api/network";
 import InformationalInterviewForm from "./InformationalInterviewForm";
 import { formatLocalDate, formatLocalDateTime, toLocalDate, isToday, getLocalDay, getLocalMonth, getLocalYear, toUTCDate } from "../../utils/dateUtils";
 import "./network.css";
+import posthog from 'posthog-js';
 
 export default function InformationalInterviewManagement() {
     const navigate = useNavigate();
@@ -169,6 +170,7 @@ export default function InformationalInterviewManagement() {
             await fetchData();
             setShowModal(false);
             resetForm();
+            posthog.capture(editing ? 'informational_interview_updated' : 'informational_interview_created', { interview_company: formData.company });
         } catch (error) {
             console.error("Error saving interview:", error);
         }

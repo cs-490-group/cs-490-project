@@ -8,6 +8,7 @@ import AuthAPI from "../api/authentication";
 import OrganizationsAPI from "../api/organizations"; // Import this
 import "../styles/register.css"; 
 import { Building, GraduationCap } from "lucide-react"; // Added Icons
+import posthog from 'posthog-js';
 
 function Register() {
   const {
@@ -45,6 +46,7 @@ function Register() {
       localStorage.setItem("email", data.email);
 
       showFlash("Account created successfully!", "success");
+      posthog.capture('user_registered', { user_type: userType, setup_team: setupTeam });
 
       // Branch logic based on User Type
       if (userType === "institution") {

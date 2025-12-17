@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ProjectsAPI from '../../api/projects';
 import '../../styles/resumes.css';
+import posthog from 'posthog-js';
 
 /**
  * ProjectsEditor Component
@@ -47,6 +48,7 @@ export default function ProjectsEditor({ projects, onUpdate }) {
       },
     ]);
     setEditingId(newId);
+    posthog.capture('project_added', { project_id: newId });
   };
 
   const handleEditProject = (id) => {
@@ -70,6 +72,7 @@ export default function ProjectsEditor({ projects, onUpdate }) {
       const updatedItems = items.filter((item) => item.id !== id);
       setItems(updatedItems);
       onUpdate(updatedItems);
+      posthog.capture('project_deleted', { project_id: id });
     }
   };
 
@@ -92,6 +95,7 @@ export default function ProjectsEditor({ projects, onUpdate }) {
     };
     setItems([...items, newProject]);
     onUpdate([...items, newProject]);
+    posthog.capture('project_imported', { project_id: newId });
   };
 
   return (

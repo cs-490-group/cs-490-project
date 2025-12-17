@@ -16,6 +16,7 @@ import SkillsApi from '../api/skills';
 import EducationApi from '../api/education';
 import ProjectsApi from '../api/projects';
 import CertificationsApi from '../api/certifications';
+import posthog from 'posthog-js';
 
 
 // Helper function to format ISO date to readable format
@@ -596,6 +597,7 @@ const Dashboard = () => {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+    posthog.capture('dashboard_summary_exported', { date: today });
     
     setExporting(false);
   };
@@ -808,7 +810,10 @@ const Dashboard = () => {
                         </div>
 
                         {/* Card content - scrollable */}
-                        <div className="flex-grow-1 overflow-auto card-content">
+                        <div className="flex-grow-1 overflow-auto card-content"
+                        tabIndex="0"          
+                          role="region"          
+                          aria-label={`${category.title} list`}>
                           <CategoryCard 
                               data={category.data} 
                               title={category.title} 
@@ -834,7 +839,10 @@ const Dashboard = () => {
                   >
                     🧩 Skills Overview
                   </Card.Link>
-                  <div className="flex-grow-1 overflow-hidden">
+                  <div className="flex-grow-1 overflow-hidden"
+                  tabIndex="0"     
+     role="region" 
+     aria-label="Skills proficiency chart">
                     <BarChart 
                       data={skillCategoryCounts}
                       title="Skills Proficiency"
@@ -851,7 +859,10 @@ const Dashboard = () => {
                   >
                     🕓 Recent Changes
                   </Card.Link>
-                  <div className="flex-grow-1 overflow-hidden">
+                  <div className="flex-grow-1 overflow-auto chart-scrollbar" 
+                            tabIndex="0" 
+                            role="region" 
+                            aria-label="Recent changes list">
                     <RecentChanges changes={formattedRecentUpdates} />
                   </div>
                 </Card.Body>

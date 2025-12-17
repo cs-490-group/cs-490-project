@@ -3,6 +3,7 @@ import EducationForm from "./EducationForm";
 import EducationAPI from "../../api/education";
 import { useLocation } from "react-router-dom";
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
+import posthog from 'posthog-js';
 
 const degreeEmojis = {
   "High School Degree": "🏫",
@@ -89,6 +90,7 @@ export default function EducationList() {
         setEntries([newEntry, ...entries]);
       }
       setShowForm(false);
+      posthog.capture('education_added', { education_id: response.data.education_id });
     } catch (error) {
       alert(error.response?.data?.detail || "Failed to add education. Please try again.");
     }
@@ -113,6 +115,7 @@ export default function EducationList() {
     try {
       await EducationAPI.delete(id);
       setEntries(entries.filter((e) => e.id !== id));
+      posthog.capture('education_deleted', { education_id: id });
     } catch (error) {
       alert(error.response?.data?.detail || "Failed to delete education. Please try again.");
     }

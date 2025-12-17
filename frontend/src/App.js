@@ -1,6 +1,6 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { Spinner } from 'react-bootstrap';
+import posthog from 'posthog-js';
 import Nav from "./tools/nav";
 
 // ONLY import your custom CSS - Bootstrap loads from CDN now
@@ -89,6 +89,21 @@ const LinkedInCallback = lazy(() => import("./pages/callback/linkedin"));
 
 export function App() {
   const location = useLocation();
+
+  useEffect(() => {
+   
+    posthog.capture('$pageview');
+
+   
+    const userUuid = localStorage.getItem("uuid");
+    const userEmail = localStorage.getItem("email");
+
+    if (userUuid) {
+      posthog.identify(userUuid, {
+        email: userEmail,
+      });
+    }
+  }, [location]);
   
   return (
     <div className="App">

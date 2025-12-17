@@ -6,6 +6,7 @@ import { Container, Row, Col, Card, Button, Table, Badge, Spinner, Alert } from 
 import ProgressBar from '../components/AccessibleProgressBar';
 import { Activity, Download, AlertTriangle, Lock } from 'lucide-react';
 import '../styles/analytics.css';
+import posthog from 'posthog-js';
 
 export default function APIMetricsPage() {
   const navigate = useNavigate();
@@ -71,6 +72,7 @@ export default function APIMetricsPage() {
       const today = new Date().toISOString().split('T')[0];
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       await APIMetrics.exportWeeklyReport(weekAgo, today);
+      posthog.capture('api_metrics_report_exported', { date_range: `${weekAgo} to ${today}` });
     } catch (err) {
       alert("Failed to export metrics report");
     }

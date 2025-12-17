@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useFlash } from "../context/flashContext";
 import AuthAPI from "../api/authentication";
 import "../styles/register.css";
+import posthog from 'posthog-js';
 
 export default function SetPassword() {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export default function SetPassword() {
         "Password set successfully! You can now manage your account normally.",
         "success"
       );
+      posthog.capture('password_set', { user_id: res.data.uuid });
 
       setPassword("");
       setConfirm("");

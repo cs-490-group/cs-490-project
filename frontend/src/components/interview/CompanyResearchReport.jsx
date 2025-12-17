@@ -3,6 +3,7 @@ import './CompanyResearchReport.css';
 import { FiChevronDown, FiDownload, FiRefreshCw } from 'react-icons/fi';
 import { jsPDF } from 'jspdf';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
+import posthog from 'posthog-js';
 
 const CompanyResearchReport = ({ interview, onRegenerateComplete }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -56,6 +57,7 @@ const CompanyResearchReport = ({ interview, onRegenerateComplete }) => {
     link.download = `${interview.company_name}_research.json`;
     link.click();
     URL.revokeObjectURL(url);
+    posthog.capture('research_exported_json', { interview_id: interview._id })
   };
 
   const handleExportPDF = () => {
@@ -337,6 +339,7 @@ const CompanyResearchReport = ({ interview, onRegenerateComplete }) => {
 
       // Save the PDF
       pdf.save(`${interview.company_name}_research.pdf`);
+      posthog.capture('research_exported_pdf', { interview_id: interview._id })
     } catch (err) {
       console.error('Error generating PDF:', err);
       alert('Failed to generate PDF. Please try again.');
