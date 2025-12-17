@@ -2,10 +2,10 @@ import React, { Suspense, lazy } from "react";
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Spinner } from 'react-bootstrap';
 import Nav from "./tools/nav";
-import 'bootstrap/dist/css/bootstrap.min.css';
+
+// ONLY import your custom CSS - Bootstrap loads from CDN now
 import './App.css';
-import "bootstrap-icons/font/bootstrap-icons.css";
-import '@fortawesome/fontawesome-free/css/all.min.css';
+
 import { FlashProvider, FlashMessage } from "./context/flashContext";
 import { JobProvider } from "./context/JobContext";
 
@@ -87,7 +87,6 @@ const NetworkingAnalytics = lazy(() => import("./pages/network/NetworkingAnalyti
 const APIMetricsPage = lazy(() => import("./pages/APIMetrics"));
 const LinkedInCallback = lazy(() => import("./pages/callback/linkedin"));
 
-
 export function App() {
   const location = useLocation();
   
@@ -100,7 +99,6 @@ export function App() {
             <Nav key={location.pathname} />
           </header>
           <main role="main" id="main-content" style={{ minHeight: '80vh' }}>
-            {/* Wrap Routes in Suspense to show spinner while chunks load */}
             <Suspense fallback={
               <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
                 <Spinner animation="border" variant="primary" role="status">
