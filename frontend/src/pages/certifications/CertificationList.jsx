@@ -209,7 +209,7 @@ export default function CertificationList() {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, #005e9e, #00c28a)",
+        background: "#009688",
         minHeight: "100vh",
         width: "100%",
         display: "flex",
@@ -256,7 +256,7 @@ export default function CertificationList() {
           height: "4px",
           margin: "6px auto 0",
           borderRadius: "2px",
-          background: "linear-gradient(90deg, #00c28a, #005e9e)", // green → blue
+          background: " #009688", // green → blue
         }}
       />
     </div>

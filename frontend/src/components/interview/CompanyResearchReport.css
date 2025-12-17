@@ -157,6 +157,7 @@
   cursor: pointer;
   background-color: #f9fafb;
   transition: background-color 0.2s ease;
+  -webkit-user-select: none;
   user-select: none;
 }
 

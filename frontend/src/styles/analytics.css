@@ -44,6 +44,7 @@
   font-size: 1rem;
   font-weight: 500;
   transition: all 0.3s ease;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 
@@ -67,7 +68,7 @@
 /* Page Wrapper */
 .analyticsDashboard {
   min-height: 100vh;
-  background: linear-gradient(135deg, #005e9e, #00c28a);
+  background: #009688;
   padding: 2rem;
   background-attachment: fixed;
 }

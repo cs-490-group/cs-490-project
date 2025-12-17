@@ -89,7 +89,7 @@ export default function SkillsGapPage() {
     style={{
       width: "70px",
       height: "4px",
-      background: "linear-gradient(90deg, #00e676, #00c6ff)",
+      background: "#009688",
       borderRadius: "999px",
       margin: "12px auto 0",
     }}

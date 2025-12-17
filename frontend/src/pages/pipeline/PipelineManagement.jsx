@@ -39,7 +39,7 @@ export default function PipelineManagement() {
           height: "4px",
           margin: "6px auto 0",
           borderRadius: "2px",
-          background: "linear-gradient(90deg, #00c28a, #005e9e)"
+          background: "#009688"
         }} />
       </div>
 

@@ -242,6 +242,7 @@
   cursor: pointer;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
+  -webkit-user-select: none;
   user-select: none;
   transition: background 0.2s ease;
 }

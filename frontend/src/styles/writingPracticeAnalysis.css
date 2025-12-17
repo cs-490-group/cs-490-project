@@ -127,6 +127,7 @@
 
 .metric-card {
   background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 30px 20px;
@@ -218,6 +219,7 @@
 
 .feedback-card {
   background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 35px;
@@ -358,6 +360,7 @@
   max-width: 1200px;
   margin: 0 auto 40px;
   background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 35px;

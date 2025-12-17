@@ -4,7 +4,7 @@
 
 .question-library-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #005e9e, #00c28a);
+  background: #009688;
   padding: 40px 20px;
 }
 
@@ -43,6 +43,7 @@
 
 .cta-content {
   background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 2px solid #4f8ef7;
   border-radius: 15px;
@@ -138,6 +139,7 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   border-radius: 50px;
   background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.5);
   display: flex;
@@ -176,6 +178,7 @@
 .question-library-sidebar {
   flex: 0 0 250px;
   background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   padding: 30px;
   border-radius: 15px;
@@ -252,6 +255,7 @@
 /* Industry Card */
 .industry-card {
   background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-radius: 15px;
   padding: 35px 25px;
@@ -377,6 +381,7 @@
   padding: 30px !important;
   border-radius: 15px !important;
   background: rgba(255, 255, 255, 0.85) !important;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px) !important;
   border: 1px solid rgba(255, 255, 255, 0.5) !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;

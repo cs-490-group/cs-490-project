@@ -141,7 +141,7 @@ export default function EmploymentList() {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, #005e9e, #00c28a)",
+        background: "#009688",
         minHeight: "100vh",
         width: "100%",
         display: "flex",

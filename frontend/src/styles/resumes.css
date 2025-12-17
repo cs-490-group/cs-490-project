@@ -12,7 +12,7 @@
 }
 
 .dashboard-gradient {
-  background: linear-gradient(135deg, #005e9e, #00c28a);
+  background: #009688;
   background-attachment: fixed;
   background-repeat: no-repeat;
   background-size: cover;
@@ -1128,6 +1128,7 @@ h1, h2 {
   border-radius: 6px;
   cursor: grab;
   transition: all 0.2s ease;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -2310,6 +2311,7 @@ h1, h2 {
 
 .drag-icon {
   font-weight: bold;
+  -webkit-user-select: none;
   user-select: none;
   letter-spacing: -2px;
 }
@@ -3496,6 +3498,7 @@ h1, h2 {
   background: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
   transition: background 0.2s ease;
 }

@@ -210,7 +210,7 @@ export default function PublicCoverLetterPage() {
                       type="submit" 
                       disabled={submitting}
                       className="btn btn-primary btn-lg w-100 fw-bold py-3 mt-2"
-                      style={{ background: "linear-gradient(90deg, #00c28a, #005e9e)", border: "none" }}
+                      style={{ background: "#009688", border: "none" }}
                     >
                       {submitting ? (
                         <span>Sending...</span>

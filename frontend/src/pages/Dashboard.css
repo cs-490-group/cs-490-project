@@ -2,10 +2,8 @@
 
 .dashboard-gradient,
 .dashboard-bg {
-  background: linear-gradient(135deg, #005e9e, #00c28a);
-  /* ALTERNATIVE STYLE:
-  background: linear-gradient(90deg, #003366, #00A67A);
-  */
+  background: #009688;
+  
   min-height: 100vh;
   font-family: 'Poppins', sans-serif;
   color: #222;
@@ -361,7 +359,7 @@
   height: 3px;
   margin: 2.5rem auto;
   border-radius: 5px;
-  background: linear-gradient(90deg, #00c28a, #005e9e, #00c28a);
+  background: #009688;
   background-size: 200% 100%;
   animation: shimmer 4s linear infinite;
 }

@@ -5,7 +5,7 @@
 }
 
 body {
-  background: linear-gradient(135deg, #004d7a, #008793, #00bf72);
+  background: #009688;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
@@ -16,12 +16,7 @@ body {
 .home-hero {
   min-height: 65vh;
   width: 100%;
-  background: linear-gradient(
-    135deg,
-    var(--hero-gradient-start),
-    var(--hero-gradient-mid),
-    var(--hero-gradient-end)
-  );
+  background: #009688;
   display: flex;
   justify-content: center;
   align-items: center;

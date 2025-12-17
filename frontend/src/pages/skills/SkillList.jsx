@@ -223,7 +223,7 @@ export default function SkillList() {
         height: "4px",
         margin: "6px auto 0",
         borderRadius: "2px",
-        background: "linear-gradient(90deg, #00c28a, #005e9e)", // green to blue
+        background: "#009688", // green to blue
       }}
     />
   </div>

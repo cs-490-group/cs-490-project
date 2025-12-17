@@ -434,7 +434,7 @@ View details: {self.frontend_url}/interview/details/{interview_data.get('schedul
                     <table width="600" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);">
                         <!-- Header -->
                         <tr>
-                            <td style="background: linear-gradient(135deg, #004d7a, #008793, #00bf72); padding: 40px 20px; text-align: center;">
+                            <td style="background: #009688; padding: 40px 20px; text-align: center;">
                                 <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 700;">📅 Interview Reminder</h1>
                             </td>
                         </tr>

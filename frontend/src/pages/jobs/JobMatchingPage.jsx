@@ -307,7 +307,7 @@ export default function JobMatchingPage() {
           style={{
             width: "80px",
             height: "4px",
-            background: "linear-gradient(90deg, #00c6ff, #00e676)",
+            background: "#009688",
             borderRadius: "999px",
             margin: "12px auto 24px",
           }}
