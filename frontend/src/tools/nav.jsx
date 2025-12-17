@@ -12,7 +12,7 @@ const Logo = () => (
     height="40" 
     viewBox="0 0 512 512" 
     xmlns="http://www.w3.org/2000/svg"
-    style={{ marginRight: "10px", display: "block", flexShrink: 0 }}
+    style={{ marginRight: "10px", display: "block" }}
   >
     {/* Background Circle */}
     <circle cx="256" cy="256" r="240" fill="#064e3b" />
