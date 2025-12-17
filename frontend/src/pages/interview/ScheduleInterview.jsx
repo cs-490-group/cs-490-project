@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import JobsAPI from '../../api/jobs';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
+import posthog from 'posthog-js';
 
 function ScheduleInterviewFromJob({ jobId, onClose, onSuccess }) {
   const handleClose = () => {
@@ -275,6 +276,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
         message: 'Interview scheduled successfully!',
         schedule_uuid: response.data.schedule_uuid 
       });
+      posthog.capture('interview_scheduled', { schedule_id: response.data.schedule_uuid });
       handleClose();
     } catch (err) {
       console.error('Submit Error:', err);

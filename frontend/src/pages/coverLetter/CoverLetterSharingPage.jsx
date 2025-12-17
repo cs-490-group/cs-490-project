@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import CoverLetterAPI from '../../api/coverLetters';
 import AIAPI from "../../api/AI";
 import { Copy, Trash2, ExternalLink, ArrowLeft } from 'lucide-react';
+import posthog from 'posthog-js';
 
 export default function CoverLetterSharingPage() {
   const { id } = useParams();
@@ -99,6 +100,7 @@ export default function CoverLetterSharingPage() {
 
       const result = res.data.response || res.data.result || res.data.text || "";
       setAnalysis(result);
+      posthog.capture('cover_letter_feedback_analyzed', { cover_letter_id: id  });
     } catch (err) {
       console.error(err);
       alert("Failed to analyze feedback");
@@ -128,6 +130,7 @@ export default function CoverLetterSharingPage() {
       });
       setNewComment("");
       fetchData(); // Refresh list
+      posthog.capture('cover_letter_feedback_added', { cover_letter_id: id });
     } catch (err) {
       console.error(err);
     }

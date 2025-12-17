@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useFlash } from "../context/flashContext";
 import AuthAPI from "../api/authentication";
 import "../styles/login.css";
+import posthog from 'posthog-js';
 
 const ResetPassword = () => {
   const { token } = useParams();
@@ -51,6 +52,7 @@ const ResetPassword = () => {
 
       localStorage.setItem("session", res.data.session_token);
       localStorage.setItem("uuid", res.data.uuid);
+      posthog.capture('password_reset', { user_id: res.data.uuid });
 
       navigate(`/dashboard`);
 

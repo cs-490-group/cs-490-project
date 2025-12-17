@@ -14,6 +14,7 @@ import NegotiationPrepView from "./NegotiationPrepView";
 import OfferDetailsModal from "./OfferDetailsModal";
 import OfferComparisonView from "./OfferComparisonView";
 import CareerSimulation from "../../components/CareerSimulation";
+import posthog from 'posthog-js';
 
 export default function OffersPage() {
     const [offers, setOffers] = useState([]);
@@ -68,6 +69,7 @@ export default function OffersPage() {
         try {
             await OffersAPI.delete(offerId);
             await loadOffers();
+            posthog.capture('offer_deleted', { offer_id: offerId });
         } catch (err) {
             console.error("Error deleting offer:", err);
             setError("Failed to delete offer");

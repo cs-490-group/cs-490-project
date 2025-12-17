@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import EducationAPI from '../../api/education';
 import '../../styles/resumes.css';
+import posthog from 'posthog-js';
 
 /**
  * EducationEditor Component
@@ -45,6 +46,7 @@ export default function EducationEditor({ education, onUpdate }) {
       },
     ]);
     setEditingId(newId);
+    posthog.capture('education_added', { education_id: newId });
   };
 
   const handleEditEducation = (id) => {
@@ -68,6 +70,7 @@ export default function EducationEditor({ education, onUpdate }) {
       const updatedItems = items.filter((item) => item.id !== id);
       setItems(updatedItems);
       onUpdate(updatedItems);
+      posthog.capture('education_deleted', { education_id: id });
     }
   };
 
@@ -88,6 +91,7 @@ export default function EducationEditor({ education, onUpdate }) {
     };
     setItems([...items, newEducation]);
     onUpdate([...items, newEducation]);
+    posthog.capture('education_imported', { education_id: newId });
   };
 
   return (

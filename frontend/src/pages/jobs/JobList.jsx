@@ -24,6 +24,7 @@ import JobMatchingPage from "./JobMatchingPage";
 import SkillsGapPage from "./SkillsGapPage";
 import InterviewInsights from "./InterviewInsights";
 import JobLocationMap, { SingleJobLocation } from "./JobLocationMap";
+import posthog from 'posthog-js';
 
 
 export default function JobList() {
@@ -185,6 +186,7 @@ export default function JobList() {
         await archiveJob(id, reason, true);
       }
       alert(`✅ Successfully archived ${selectedJobIds.length} job(s)`);
+      posthog.capture('jobs_bulk_archived', { count: selectedJobIds.length });
       setSelectedJobIds([]);
       loadJobs();
     } catch (error) {
@@ -205,6 +207,7 @@ export default function JobList() {
       }
       setJobs(jobs.filter(j => !selectedJobIds.includes(j.id)));
       alert(`✅ Successfully deleted ${selectedJobIds.length} job(s)`);
+      posthog.capture('jobs_bulk_deleted', { count: selectedJobIds.length });
       setSelectedJobIds([]);
     } catch (error) {
       alert("Some jobs failed to delete. Please try again.");

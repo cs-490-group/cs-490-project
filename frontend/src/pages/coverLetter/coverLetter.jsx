@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { Upload, Briefcase } from "lucide-react";
+import posthog from "posthog-js";
 
 const styles = ["formal", "creative", "technical", "modern", "casual"];
 const industries = [
@@ -454,6 +455,7 @@ export default function CoverLetterList() {
       }
       
       showFlash("Cover letter added!", "success");
+      posthog.capture("sample_cover_letter_added", { template_type: sample.id });
     } catch (err) {
       console.error("Failed to add sample:", err);
       showFlash("Failed to add cover letter.", "error");

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Clock, Target, AlertCircle, Award, Zap, ArrowUp, ArrowDown, Briefcase, Users, Download, Plus, CheckCircle, X } from 'lucide-react';
 import ApplicationWorkflowAPI from '../../api/applicationWorkflow';
 import JobsAPI from '../../api/jobs';
+import posthog from 'posthog-js';
 
 export default function AnalyticsDashboard() {
   const [funnel, setFunnel] = useState(null);
@@ -102,6 +103,7 @@ export default function AnalyticsDashboard() {
       setShowGoalModal(false);
       setNewGoal({ goal_type: 'applications_per_week', target_value: 10, description: '' });
       await loadAnalytics();
+      posthog.capture('goal_created', { goal_type: newGoal.goal_type });
     } catch (error) {
       console.error('Failed to create goal:', error);
       alert('Failed to create goal. Please try again.');
@@ -117,6 +119,7 @@ export default function AnalyticsDashboard() {
       });
       setEditingGoal(null);
       await loadAnalytics();
+      posthog.capture('goal_updated', { goal_id: editingGoal._id });
     } catch (error) {
       console.error('Failed to update goal:', error);
       alert('Failed to update goal. Please try again.');
@@ -128,6 +131,7 @@ export default function AnalyticsDashboard() {
       await ApplicationWorkflowAPI.deleteGoal(goalId);
       setShowDeleteConfirm(null);
       await loadAnalytics();
+      posthog.capture('goal_deleted', { goal_id: goalId });
     } catch (error) {
       console.error('Failed to delete goal:', error);
       alert('Failed to delete goal. Please try again.');

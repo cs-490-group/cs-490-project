@@ -6,6 +6,7 @@ import UserAPI from "../../api/user";
 import AIAPI from "../../api/AI";
 import { useFlash } from "../../context/flashContext";
 import { Undo2, Redo2, Bold, Italic, Underline, List, Zap, Save, Clock, AlertCircle, CheckCircle, Briefcase } from "lucide-react";
+import posthog from 'posthog-js';
 
 export default function EditCoverLetterPage() {
   const navigate = useNavigate();
@@ -198,6 +199,7 @@ export default function EditCoverLetterPage() {
       });
       const syns = (res.data.result || res.data.response || res.data.text || "").split(",").map(s => s.trim()).filter(Boolean);
       setSynonyms(syns);
+      posthog.capture('fetch_synonyms', { word, synonyms: syns });
     } catch (err) {
       console.error(err);
       setSynonyms([]);
@@ -416,6 +418,7 @@ export default function EditCoverLetterPage() {
 
       setAiPrompt("");
       showFlash("Cover letter generated successfully.", "success");
+      posthog.capture('cover_letter_generated', { cover_letter_id: id  });
     } catch (err) {
       console.error(err);
       showFlash("Failed to generate cover letter. Content may be too long.", "error");
@@ -446,6 +449,7 @@ Return plain text suggestions only. Do not mention html/css elements or tags in 
     setAiSuggestions(suggestions);
     setShowAISuggestions(true);
     showFlash("AI suggestions generated.", "success");
+    posthog.capture('cover_letter_ai_suggestions', { cover_letter_id: id  });
     } catch (err) {
       console.error(err);
       showFlash("Failed to generate AI suggestions.", "error");

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ResumesAPI from '../../api/resumes';
 import TemplateSelector from '../../components/resumes/TemplateSelector';
 import '../../styles/resumes.css';
+import posthog from 'posthog-js';
 
 /**
  * ResumeCreate Component
@@ -63,6 +64,7 @@ export default function ResumeCreate() {
 
       // Redirect to editor with the new resume ID
       const resumeId = result.data?._id || result.data?.resume_id || result._id;
+      posthog.capture('resume_created', { resume_id: resumeId, template: selectedTemplate });
       navigate(`/resumes/edit/${resumeId}`);
     } catch (err) {
       alert('Failed to create resume: ' + err.message);

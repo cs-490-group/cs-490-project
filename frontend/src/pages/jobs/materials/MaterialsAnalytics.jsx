@@ -3,6 +3,7 @@ import ResumesAPI from "../../../api/resumes";
 import CoverLetterAPI from "../../../api/coverLetters";
 import JobsAPI from "../../../api/jobs";
 import api from "../../../api/base";
+import posthog from "posthog-js";
 
 export default function MaterialsAnalytics() {
   const [resumes, setResumes] = useState([]);
@@ -91,6 +92,7 @@ export default function MaterialsAnalytics() {
         setCoverLetters(coverLetters.filter(c => getMaterialId(c) !== id));
       }
       alert('✅ Document deleted successfully!');
+      posthog.capture('material_deleted', { material_id: id, material_type: type });
     } catch (error) {
       console.error("Error deleting file:", error);
       alert("Failed to delete file. Please try again.");

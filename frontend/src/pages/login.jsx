@@ -8,6 +8,7 @@ import { useMsal } from "@azure/msal-react";
 import AuthAPI from "../api/authentication";
 import teamsAPI from "../api/teams";
 import "../styles/login.css"; 
+import posthog from 'posthog-js';
 
 function Login() {
   const {
@@ -128,6 +129,7 @@ function Login() {
       if (teamId) {
         await acceptPendingInvite(teamId, res.data.email || data.email, res.data.uuid);
       }
+      posthog.capture('user_logged_in', { method: 'standard', uuid: res.data.uuid });
 
       navigate(`/dashboard`);
       return;
@@ -170,6 +172,8 @@ function Login() {
       if (teamId) {
         await acceptPendingInvite(teamId, res.data.email, res.data.uuid);
       }
+
+      posthog.capture('user_logged_in', { method: 'google', uuid: res.data.uuid });
 
       if (!res.data.has_password) {
         navigate("/set-password");
@@ -228,6 +232,8 @@ function Login() {
       if (teamId) {
         await acceptPendingInvite(teamId, res.data.email, res.data.uuid);
       }
+
+      posthog.capture('user_logged_in', { method: 'microsoft', uuid: res.data.uuid });
 
       if (!res.data.has_password) {
         navigate(`/set-password`);

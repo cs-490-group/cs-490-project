@@ -5,6 +5,7 @@ import NetworksAPI from "../../api/network";
 import NetworkEventForm from "./NetworkEventForm";
 import { formatLocalDate, formatLocalDateTime, toLocalDate, isToday, getLocalDay, getLocalMonth, getLocalYear, toUTCDate } from "../../utils/dateUtils";
 import "./network.css";
+import posthog from 'posthog-js';
 
 export default function NetworkEventManagement() {
     const [events, setEvents] = useState([]);
@@ -252,6 +253,7 @@ export default function NetworkEventManagement() {
             await fetchEvents();
             setShowModal(false);
             resetForm();
+            posthog.capture(editing ? 'network_event_updated' : 'network_event_created', { event_name: formData.event_name });
         } catch (error) {
             console.error("Error saving event:", error);
         }
@@ -292,6 +294,7 @@ export default function NetworkEventManagement() {
             try {
                 await NetworkEventsAPI.delete(event._id);
                 await fetchEvents();
+                posthog.capture('network_event_deleted', { event_name: event.event_name });
             } catch (error) {
                 console.error("Failed to delete event:", error);
             }

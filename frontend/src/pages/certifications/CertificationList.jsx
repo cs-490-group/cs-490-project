@@ -4,6 +4,7 @@ import CertificationCard from "./CertificationCard";
 import CertificationsAPI from "../../api/certifications";
 import { useLocation } from "react-router-dom";
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
+import posthog from 'posthog-js';
 
 export default function CertificationList() {
   const [certs, setCerts] = useState([]);
@@ -118,6 +119,7 @@ export default function CertificationList() {
       }
 
       await loadCertifications();
+      posthog.capture('certification_created', { certification_id: res.data.certification_id });
       setShowForm(false);
     } catch (error) {
       console.error("Failed to add certification:", error);

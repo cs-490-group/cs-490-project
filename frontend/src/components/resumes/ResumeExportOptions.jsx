@@ -3,6 +3,7 @@ import { Card, Button, Form, Alert, Spinner, Row, Col, Badge } from 'react-boots
 import ResumesAPI from '../../api/resumes';
 import { getAllThemes, getThemeByName } from '../../utils/resumeExportThemes';
 import './ResumeExportOptions.css';
+import posthog from 'posthog-js';
 
 /**
  * ResumeExportOptions Component
@@ -90,6 +91,7 @@ export default function ResumeExportOptions({ resumeId, resumeName }) {
       window.URL.revokeObjectURL(url);
 
       setSuccess(true);
+      posthog.capture('resume_exported', { resume_id: resumeId, format: selectedFormat });
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err.message || 'Export failed. Please try again.');

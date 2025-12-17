@@ -7,6 +7,7 @@ import profilesAPI from "../api/profiles";
 import { Container, Row, Col, Card, Button, Form, Badge, InputGroup, Nav, Spinner } from 'react-bootstrap';
 import { MessageSquare, ThumbsUp, Trash2, Share2, ArrowLeft, Video, Send, User, Settings } from 'lucide-react';
 import '../styles/resumes.css'; 
+import posthog from 'posthog-js';
 
 function GroupPage() {
   const { groupId } = useParams();
@@ -119,13 +120,15 @@ function GroupPage() {
       setCommentTexts({ ...commentTexts, [postId]: '' });
       fetchPosts();
       showFlash('Comment added!', 'success');
+      posthog.capture('comment_added', { post_id: postId });
     } catch (error) { showFlash('Failed to add comment', 'error'); }
   };
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post?')) return;
-    try { await postsAPI.deletePost(groupId, postId, uuid); fetchPosts(); } catch (error) { showFlash('Failed to delete post', 'error'); }
-  };
+    try { await postsAPI.deletePost(groupId, postId, uuid); fetchPosts(); posthog.capture('post_deleted', { post_id: postId }); } catch (error) { showFlash('Failed to delete post', 'error'); }
+  
+};
 
   const handleDeleteComment = async (postId, commentId, commentUuid) => {
      if (commentUuid !== uuid && !isUserAdmin()) return showFlash('You can only delete your own comment unless you are an admin', 'error');

@@ -10,10 +10,9 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import { msalConfig } from "./tools/msal";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
+import posthog from 'posthog-js';
 
  // Sentry monitoring going up.
-
-
  
 Sentry.init({
   dsn: process.env.REACT_APP_SENTRY_DSN,
@@ -23,6 +22,15 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 });
 
+
+posthog.init(process.env.REACT_APP_POSTHOG_KEY, {
+    api_host: 'https://us.i.posthog.com',
+    person_profiles: 'identified_only', 
+    autocapture: true,
+});
+
+posthog.opt_in_capturing();
+posthog.startSessionRecording();
 
 const PCA = new PublicClientApplication(msalConfig);
 

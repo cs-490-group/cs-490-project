@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import AdvisorsAPI from '../../api/advisors';
 import { Calendar, CheckSquare, Plus, User, Clock, Video, ExternalLink, Trophy, Target, Briefcase  } from 'lucide-react';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import posthog from 'posthog-js';
 
 // Fixes localhost relative linking
 const ensureAbsoluteUrl = (url) => {
@@ -46,6 +47,7 @@ export default function AdvisorPortal() {
     setNewTask("");
     loadData();
     alert("Task assigned to candidate");
+    posthog.capture('task_assigned', { task_title: newTask })
   };
 
   const handleAddSession = async () => {
@@ -61,6 +63,7 @@ export default function AdvisorPortal() {
     setNewSessionLink("");
     loadData();
     alert("Session scheduled");
+    posthog.capture('session_scheduled', { session_date: newSessionDate })
   };
 
   // --- LOADING STATE ---
