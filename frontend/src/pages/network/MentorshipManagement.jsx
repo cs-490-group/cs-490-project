@@ -4,6 +4,7 @@ import MentorshipAPI from "../../api/mentorship";
 import MentorshipForm from "./MentorshipForm";
 import NetworksAPI from "../../api/network";
 import { formatLocalDate } from "../../utils/dateUtils";
+import posthog from 'posthog-js';
 
 const MentorshipManagement = () => {
     const [mentorships, setMentorships] = React.useState([]);
@@ -162,6 +163,7 @@ const MentorshipManagement = () => {
                 await MentorshipAPI.delete(mentorship._id);
                 await fetchMentorships();
                 setSuccess("Mentorship relationship deleted successfully");
+                posthog.capture('mentorship_deleted', { mentorship_id: mentorship._id });
                 setTimeout(() => setSuccess(""), 3000);
             } catch (error) {
                 console.error("Failed to delete mentorship:", error);

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Container, Card, Spinner, Row, Col, Badge, Button } from "react-bootstrap";
 import NetworksAPI from "../../api/network";
 import "./network.css";
+import posthog from "posthog-js";
 
 let loadingMessages = [
 	"**Discovering new connections...**",
@@ -203,6 +204,7 @@ export default function DiscoveryPage() {
 			}
 			
 			alert(`Successfully added ${contact.name} to your contacts!`);
+			posthog.capture("contact_added", { contact_name: contact.name, contact_email: contact.email });
 			
 			// Optionally refresh the discovery contacts list
 			fetchDiscoveryContacts();

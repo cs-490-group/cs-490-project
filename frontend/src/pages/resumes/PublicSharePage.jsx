@@ -4,6 +4,7 @@ import ResumesAPI from '../../api/resumes';
 import api from '../../api/base';
 import ResumePreview from '../../components/resumes/ResumePreview';
 import '../../styles/resumes.css';
+import posthog from 'posthog-js';
 
 /**
  * PublicSharePage Component
@@ -88,6 +89,7 @@ export default function PublicSharePage() {
       }]);
       setNewComment('');
       alert('Thank you! Your feedback has been submitted.');
+      posthog.capture('public_resume_feedback_submitted', { resume_id: resume._id });
     } catch (err) {
       alert('Failed to submit feedback: ' + err.message);
     }

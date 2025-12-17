@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SkillsAPI from '../../api/skills';
 import '../../styles/resumes.css';
+import posthog from 'posthog-js';
 
 /**
  * SkillsManager Component
@@ -56,6 +57,7 @@ export default function SkillsManager({ skills, onUpdate }) {
       }
 
       setNewSkill('');
+      posthog.capture('skill_added', { skill_name: skillName });
     } catch (err) {
       setError('Failed to add skill');
       console.error('Error adding skill:', err);

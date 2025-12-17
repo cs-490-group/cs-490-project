@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useFlash } from "../../context/flashContext";
 import teamsAPI from "../../api/teams";
 import { Plus, UserPlus, Users, ArrowRight } from "lucide-react";
+import posthog from 'posthog-js';
 
 function SetupTeam() {
   const navigate = useNavigate();
@@ -66,6 +67,7 @@ function SetupTeam() {
       if (response && response.id) {
         handleSelectTeam(response.id);
       }
+      posthog.capture('team_created', { team_id: response.id, team_name: teamName });
     } catch (error) {
       console.error("Create team error:", error);
       showFlash("Failed to create team", "error");

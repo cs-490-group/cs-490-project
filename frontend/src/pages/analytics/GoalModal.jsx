@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../../styles/goalModal.css";
+import posthog from 'posthog-js';
 
 const GoalModal = ({ goal = null, onSave, onCancel }) => {
   const isEdit = goal !== null;
@@ -56,6 +57,7 @@ const GoalModal = ({ goal = null, onSave, onCancel }) => {
       }));
       setNewMilestone("");
     }
+    posthog.capture('milestone_added', { milestone_name: newMilestone.trim() });
   };
 
   const handleRemoveMilestone = (index) => {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
+import posthog from 'posthog-js';
 
 function CompleteInterview() {
   const { scheduleId } = useParams();
@@ -90,6 +91,7 @@ function CompleteInterview() {
       
       console.log('[CompleteInterview] Successfully completed interview');
       setMessage('Interview completed successfully!');
+      posthog.capture('interview_completed', { schedule_id: scheduleId, outcome: formData.outcome });
       
       setTimeout(() => {
         setShowFollowUpSuggestion(true);

@@ -3,6 +3,7 @@ import EmploymentForm from "./EmploymentForm";
 import EmploymentAPI from "../../api/employment";
 import { useLocation } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
+import posthog from 'posthog-js';
 
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
@@ -69,6 +70,7 @@ export default function EmploymentList() {
     try {
       await EmploymentAPI.delete(id);
       setItems(items.filter(it => it.id !== id));
+      posthog.capture('employment_deleted', { employment_id: id });
     } catch (error) {
       console.error("Failed to delete employment:", error);
       alert(error.response?.data?.detail || "Failed to delete employment. Please try again.");
@@ -87,9 +89,11 @@ export default function EmploymentList() {
           const newEntry = { ...data, id: res.data.employment_id };
           setItems([newEntry, ...items]);
         }
+        posthog.capture('employment_added', { employment_id: data.id || res.data.employment_id });
       }
       setShowForm(false);
       setEditEntry(null);
+      
     } catch (error) {
       console.error("Failed to save employment:", error);
       alert(error.response?.data?.detail || "Failed to save employment. Please try again.");
