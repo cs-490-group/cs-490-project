@@ -287,6 +287,7 @@ const SalaryModal = ({ record = null, onSave, onCancel }) => {
                 onChange={handleChange}
                 className="salary-form-select"
                 disabled={isSubmitting}
+                aria-label="Select employment type"
               >
                 <option value="full-time">Full-time</option>
                 <option value="part-time">Part-time</option>

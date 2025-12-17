@@ -294,16 +294,7 @@ export default function ProjectsList() {
               setShowForm(!showForm);
               setEditProject(null);
             }}
-            style={{
-              padding: "12px 24px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "14px"
-            }}
+            className="btn btn-primary"
           >
             {showForm ? "← Cancel" : "+ Add Project"}
           </button>
@@ -371,6 +362,7 @@ export default function ProjectsList() {
                     borderRadius: "4px",
                     fontSize: "14px"
                   }}
+                  aria-label="Filter by Status"
                 >
                   <option value="">All Status</option>
                   <option value="Planned">Planned</option>
@@ -387,6 +379,7 @@ export default function ProjectsList() {
                     borderRadius: "4px",
                     fontSize: "14px"
                   }}
+                  aria-label="Sort projects by date"
                 >
                   <option value="">Sort By...</option>
                   <option value="date_desc">Newest First</option>

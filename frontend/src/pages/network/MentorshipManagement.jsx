@@ -280,7 +280,7 @@ const MentorshipManagement = () => {
             <Row className="py-4">
                 <Col xs={12} className="mb-4">
                     <div className="filter-section">
-                        <h5 className="text-white mb-3">Filter Mentorships</h5>
+                        <h2 className="text-white mb-3">Filter Mentorships</h2>
                         <div className="filter-controls">
                             <div className="filter-group">
                                 <input
@@ -298,6 +298,7 @@ const MentorshipManagement = () => {
                                     value={filterText.status}
                                     onChange={handleFilterChange}
                                     className="filter-input"
+                                    aria-label="Filter by Status"
                                 >
                                     <option value="">All Statuses</option>
                                     <option value="active">Active</option>
@@ -312,6 +313,7 @@ const MentorshipManagement = () => {
                                     value={filterText.relationship_type}
                                     onChange={handleFilterChange}
                                     className="filter-input"
+                                    aria-label="Filter by Relationship Type"
                                 >
                                     <option value="">All Types</option>
                                     <option value="mentor">Mentor</option>
@@ -324,6 +326,7 @@ const MentorshipManagement = () => {
                                     value={filterText.meeting_frequency}
                                     onChange={handleFilterChange}
                                     className="filter-input"
+                                    aria-label="Filter by Meeting Frequency"
                                 >
                                     <option value="">All Frequencies</option>
                                     <option value="weekly">Weekly</option>

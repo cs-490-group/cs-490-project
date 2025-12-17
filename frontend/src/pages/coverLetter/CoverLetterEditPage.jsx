@@ -484,8 +484,18 @@ Return plain text suggestions only. Do not mention html/css elements or tags in 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "20px" }}>
         <div>
           <div style={{ marginBottom: "15px", display: "flex", gap: "10px" }}>
-            <button onClick={() => setEditorMode("visual")} style={{ padding: "8px 16px", background: editorMode === "visual" ? "#2196f3" : "#ccc", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>Visual Editor</button>
-            <button onClick={() => setEditorMode("html")} style={{ padding: "8px 16px", background: editorMode === "html" ? "#2196f3" : "#ccc", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>HTML Editor</button>
+            <button 
+              onClick={() => setEditorMode("visual")} 
+              className={`btn ${editorMode === "visual" ? "btn-primary" : "btn-secondary"}`}
+            >
+              Visual Editor
+            </button>
+            <button 
+              onClick={() => setEditorMode("html")} 
+              className={`btn ${editorMode === "html" ? "btn-primary" : "btn-secondary"}`}
+            >
+              HTML Editor
+            </button>
           </div>
 
           {editorMode === "visual" && (
@@ -501,12 +511,12 @@ Return plain text suggestions only. Do not mention html/css elements or tags in 
                 <button onClick={() => insertList("ul")} title="Bullet List" style={{ padding: "6px 10px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "3px" }}><List size={16} /></button>
                 <button onClick={() => insertList("ol")} title="Numbered List" style={{ padding: "6px 10px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "3px" }}><List size={16} style={{ transform: "rotate(90deg)" }} /></button>
                 <div style={{ width: "1px", height: "20px", background: "#ccc", margin: "0 5px" }} />
-                <button onClick={() => setShowAIHelper(!showAIHelper)} title="AI Helper" style={{ padding: "6px 10px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "3px", background: showAIHelper ? "#e0f7fa" : "white" }}><Zap size={16} /></button>
+                <button onClick={() => setShowAIHelper(!showAIHelper)} title="AI Helper" className={`btn ${showAIHelper ? "btn-info" : "btn-light"}`}style={{ padding: "6px 10px", border: "1px solid #ccc", borderRadius: "3px" }}><Zap size={16} /></button>
                 <button onClick={handleSave} title="Save Now" style={{ padding: "6px 10px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "3px" }}><Save size={16} /></button>
                 <button 
                   onClick={() => navigate("/cover-letter")} 
                   title="Cancel" 
-                  style={{ padding: "6px 10px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "3px", marginLeft: "5px", background: "#ff3b30", color: "white" }}
+                  className="btn btn-danger"
                 >
                   Exit
                 </button>
@@ -557,7 +567,7 @@ Return plain text suggestions only. Do not mention html/css elements or tags in 
               <button 
                 onClick={handleGenerateCoverLetter} 
                 disabled={aiLoading} 
-                style={{ width: "100%", padding: "8px", background: "#2196f3", color: "white", border: "none", borderRadius: "4px", cursor: aiLoading ? "not-allowed" : "pointer", marginBottom: "10px" }}
+                className="btn btn-primary w-100 mb-2"
               >
                 {aiLoading ? "Generating..." : "Generate Cover Letter"}
               </button>
@@ -566,8 +576,8 @@ Return plain text suggestions only. Do not mention html/css elements or tags in 
               <button 
                 onClick={handleAISuggestions} 
                 disabled={aiLoading} 
-                style={{ width: "100%", padding: "8px", background: "#ffeb3b", color: "black", border: "none", borderRadius: "4px", cursor: aiLoading ? "not-allowed" : "pointer" }}
-              >
+                className="btn btn-warning w-100"
+                >
                 💡 Suggestions
               </button>
             </div>

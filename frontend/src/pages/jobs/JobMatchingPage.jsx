@@ -150,7 +150,7 @@ export default function JobMatchingPage() {
 
   return (
     <div className="container py-4">
-      <h2 className="text-white">Job Match Analysis</h2>
+      <h1 className="text-white">Job Match Analysis</h1>
 
       {/* Weight Controls */}
       <div className="card mb-3">
@@ -165,6 +165,7 @@ export default function JobMatchingPage() {
                 handleWeightChange("skillsWeight", e.target.value)
               }
               className="form-control"
+              aria-label="Skills weight"
             />
           </div>
 
@@ -178,6 +179,7 @@ export default function JobMatchingPage() {
                 handleWeightChange("experienceWeight", e.target.value)
               }
               className="form-control"
+              aria-label="Experience weight"
             />
           </div>
 
@@ -191,6 +193,7 @@ export default function JobMatchingPage() {
                 handleWeightChange("educationWeight", e.target.value)
               }
               className="form-control"
+              aria-label="Education weight"
             />
           </div>
 
@@ -231,7 +234,7 @@ export default function JobMatchingPage() {
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <div>
-                    <h5 className="card-title mb-0">{m.jobTitle}</h5>
+                    <h2 className="card-title mb-0">{m.jobTitle}</h2>
                     <small className="text-muted">
                       {typeof m.company === 'object' ? m.company?.name || 'Company' : m.company}
                     </small>

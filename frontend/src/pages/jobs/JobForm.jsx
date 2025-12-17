@@ -910,6 +910,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
               required
+              aria-label="Select Industry"
             >
               <option value="">Select Industry</option>
               <option value="Technology">Technology</option>
@@ -932,6 +933,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
               value={jobType}
               onChange={(e) => setJobType(e.target.value)}
               required
+              aria-label="Select Job Type"
             >
               <option value="">Select Type</option>
               <option value="Full-Time">Full-Time</option>
@@ -948,6 +950,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
             value={workLocation}
             onChange={(e) => setWorkLocation(e.target.value)}
             required
+            aria-label="Select Work Location Type"
           >
             <option value="">Select Type</option>
             <option value="Remote">Remote</option>
@@ -961,6 +964,7 @@ export default function JobForm({ addJob, editJob, cancelEdit }) {
               style={inputStyle}
               value={status}
               onChange={(e) => setStatus(e.target.value)}
+              aria-label="Select Application Status"
             >
               <option value="Interested">Interested</option>
               <option value="Applied">Applied</option>

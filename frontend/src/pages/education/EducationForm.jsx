@@ -131,6 +131,7 @@ export default function EducationForm({ addEntry, editEntry, cancelEdit }) {
             value={degree}
             onChange={(e) => setDegree(e.target.value)}
             required
+            aria-label="Select education level"
           >
             <option value="" disabled>Select Education Level</option>
             <option value="High School Degree">🏫 High School</option>
@@ -264,16 +265,7 @@ export default function EducationForm({ addEntry, editEntry, cancelEdit }) {
           </button>
           <button
             type="submit"
-            style={{
-              padding: "12px 24px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "600"
-            }}
+            className="btn btn-primary"
           >
             {editEntry ? "💾 Save Changes" : "➕ Add Education"}
           </button>

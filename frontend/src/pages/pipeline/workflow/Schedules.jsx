@@ -35,6 +35,7 @@ export default function SchedulesTab({
                 className="form-select"
                 value={scheduleJobId}
                 onChange={(e) => setScheduleJobId(e.target.value)}
+                aria-label="Select job to schedule application for"
               >
                 <option value="">Select Job</option>
                 {jobs.map((j, i) => (
@@ -55,6 +56,7 @@ export default function SchedulesTab({
                 className="form-select"
                 value={schedulePackageId}
                 onChange={(e) => setSchedulePackageId(e.target.value)}
+                aria-label="Select package for scheduled application"
               >
                 <option value="">Select Package</option>
                 {packages.map((p, i) => (

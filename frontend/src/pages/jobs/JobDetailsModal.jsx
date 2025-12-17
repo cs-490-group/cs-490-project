@@ -358,15 +358,7 @@ export default function JobDetailsModal({
                 alert("Invalid date format. Please use YYYY-MM-DD");
               }
             }}}
-          style={{marginLeft: "8px",
-            padding: "6px 12px",
-            background: "#2196f3",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: "600"}}
+          className="btn btn-primary"
         >
           📅 Extend
         </button>
@@ -689,17 +681,7 @@ export default function JobDetailsModal({
                   }
                 }
               }}
-              style={{
-                marginLeft: "8px",
-                padding: "6px 12px",
-                background: "#2196f3",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: "600"
-              }}
+              className="btn btn-primary"
             >
               📅 Extend Deadline
             </button>
@@ -938,7 +920,7 @@ export default function JobDetailsModal({
 
               <button
                 onClick={() => { deleteJob(selectedJob.id); }}
-                style={{ padding: "10px 20px", background: "#ff3b30", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px", fontWeight: "600" }}
+                className="btn btn-danger"
               >
                 🗑️ Delete Job
               </button>

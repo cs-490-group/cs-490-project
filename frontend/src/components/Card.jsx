@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CategoryCard = ({ data }) => {
+const CategoryCard = ({ data, title }) => {
   // Default data if none provided
   const defaultData = [
     ["Sub1", ["thing1", "thing 2", "thing 3"]], 
@@ -18,7 +18,8 @@ const CategoryCard = ({ data }) => {
   // Check if data is empty array
   if (data && data.length === 0) {
     return (
-      <div style={{
+      <div 
+      style={{
         width: '100%',
         padding: '10px',
         backgroundColor: '#E5E9EC', // Soft Gray for card backgrounds
@@ -39,8 +40,19 @@ const CategoryCard = ({ data }) => {
     );
   }
 
+  const regionLabel = data && data.length > 0 && data[0][0] 
+  ? `${data[0][0]} Section` 
+  : "Category Details";
+
+  const finalLabel = title ? `${title} Details` : (regionLabel || "Category Details");
+
   return (
-    <div style={{
+    <div 
+    tabIndex="0"                 
+    role="region"                 
+    aria-label={regionLabel}
+    
+    style={{
       width: '100%',
       height: '100%', // Fill the scrollable container
       padding: '10px',
@@ -62,7 +74,7 @@ const CategoryCard = ({ data }) => {
             marginBottom: index === cardData.length - 1 ? '0' : '12px',
             width: '100%' // Ensure section takes full width
           }}>
-            <h2 style={{
+            <h3 style={{
               fontSize: '14px',
               fontWeight: '600',
               color: '#0A0F1A', // Text Primary
@@ -74,7 +86,7 @@ const CategoryCard = ({ data }) => {
               width: '100%' // Ensure full width
             }}>
               {subheading}
-            </h2>
+            </h3>
             <ul style={{ 
               listStyle: 'none', 
               padding: 0, 

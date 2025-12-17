@@ -265,16 +265,7 @@ export default function CertificationList() {
             setShowForm(!showForm);
             setEditCert(null);
           }}
-          style={{
-            padding: "12px 24px",
-            background: "#4f8ef7",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "14px"
-          }}
+          className="btn btn-primary"
         >
           {showForm ? "← Cancel" : "+ Add Certification"}
         </button>

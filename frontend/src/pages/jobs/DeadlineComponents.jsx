@@ -430,7 +430,7 @@ export function DeadlineReminderModal({ job, onClose, onSave }) {
           <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", fontSize: "14px" }}>
             Remind me (days before deadline)
           </label>
-          <select value={reminderDays} onChange={(e) => setReminderDays(Number(e.target.value))} style={inputStyle}>
+          <select  aria-label="Select reminder days" value={reminderDays} onChange={(e) => setReminderDays(Number(e.target.value))} style={inputStyle}>
             <option value={1}>1 day before</option>
             <option value={2}>2 days before</option>
             <option value={3}>3 days before</option>
@@ -542,7 +542,7 @@ export function DeadlineReminderModal({ job, onClose, onSave }) {
           <button onClick={onClose} style={{ padding: "10px 20px", background: "#999", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px", fontWeight: "600" }}>
             Cancel
           </button>
-          <button onClick={handleSave} style={{ padding: "10px 20px", background: "#4f8ef7", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px", fontWeight: "600" }}>
+          <button onClick={handleSave} className="btn btn-primary">
             💾 Save Settings
           </button>
         </div>

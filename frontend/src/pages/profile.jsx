@@ -355,6 +355,7 @@ export default function Profile() {
                             name="experience_level"
                             value={form.experience_level}
                             onChange={onChange}
+                            aria-label="Select experience level"
                         >
                             <option value="">(select)</option>
                             <option>Intern</option>

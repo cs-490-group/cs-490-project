@@ -274,7 +274,7 @@ export default function DiscoveryPage() {
 			<Row className="py-4">
 				<Col xs={12} className="mb-4">
 					<div className="filter-section">
-						<h5 className="text-white mb-3">Search Professionals</h5>
+						<h2 className="text-white mb-3">Search Professionals</h2>
 						<div className="filter-controls">
 							<div className="filter-group">
 								<input
@@ -359,6 +359,7 @@ export default function DiscoveryPage() {
 							<div className="filter-group">
 								<select
 									name="connectionDegree"
+									aria-label="Filter by Connection Degree"
 									value={filterText.connectionDegree}
 									onChange={handleFilterChange}
 									className="form-select"

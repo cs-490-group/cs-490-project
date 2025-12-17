@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as APIMetrics from '../api/apiMetrics';
 import ProfilesAPI from '../api/profiles';
-import { Container, Row, Col, Card, Button, Table, Badge, ProgressBar, Spinner, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Table, Badge, Spinner, Alert } from 'react-bootstrap';
+import ProgressBar from '../components/AccessibleProgressBar';
 import { Activity, Download, AlertTriangle, Lock } from 'lucide-react';
 import '../styles/analytics.css';
 
@@ -149,10 +150,10 @@ export default function APIMetricsPage() {
           {/* Header */}
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div>
-              <h2 className="fw-bold d-flex align-items-center gap-2">
+              <h1 className="fw-bold d-flex align-items-center gap-2">
                 <Activity size={32} className="text-primary"/>
                 API Metrics Dashboard
-              </h2>
+              </h1>
               <p className="text-muted mb-0">Monitor API usage, quotas, and performance</p>
             </div>
             <Button
@@ -205,7 +206,7 @@ export default function APIMetricsPage() {
                 >
                   <Card.Body className="p-4">
                     <div className="d-flex justify-content-between align-items-center mb-3">
-                      <h6 className="text-uppercase text-muted fw-bold m-0 small">{provider}</h6>
+                      <h2 className="text-uppercase text-muted fw-bold m-0 small">{provider}</h2>
                       <Badge
                         bg={quota.percent_remaining > 50 ? 'success' : quota.percent_remaining > 15 ? 'warning' : 'danger'}
                         style={{ fontSize: '12px' }}
@@ -227,6 +228,7 @@ export default function APIMetricsPage() {
                             borderRadius: '10px',
                             transition: 'width 0.5s ease'
                           }}
+                          aria-label={`${provider} API Quota Usage`}
                         />
                         <small className="text-muted">{quota.remaining.toLocaleString()} calls remaining this month</small>
                       </>
@@ -248,7 +250,7 @@ export default function APIMetricsPage() {
                 borderBottom: '2px solid #e0e0e0'
               }}
             >
-              <h5 className="fw-bold m-0">Usage by Provider (Last 7 Days)</h5>
+              <h2 className="fw-bold m-0">Usage by Provider (Last 7 Days)</h2>
             </Card.Header>
             <Card.Body className="p-0">
               <div className="table-responsive">
@@ -307,7 +309,7 @@ export default function APIMetricsPage() {
                 borderBottom: '2px solid #ffe0b2'
               }}
             >
-              <h5 className="fw-bold m-0">Fallback Events</h5>
+              <h2 className="fw-bold m-0">Fallback Events</h2>
             </Card.Header>
             <Card.Body className="p-4">
               {fallbackEvents.length === 0 ? (
@@ -363,7 +365,7 @@ export default function APIMetricsPage() {
                 borderBottom: '2px solid #ffcdd2'
               }}
             >
-              <h5 className="fw-bold m-0">Recent Errors</h5>
+              <h2 className="fw-bold m-0">Recent Errors</h2>
             </Card.Header>
             <Card.Body className="p-0">
               <div className="table-responsive">

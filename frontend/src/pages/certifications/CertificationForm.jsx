@@ -147,6 +147,7 @@ export default function CertificationForm({ addCert, editCert, cancelEdit }) {
             value={category}
             onChange={e => setCategory(e.target.value)}
             required
+            aria-label="Select certification category"
           >
             <option value="" disabled>Select Category</option>
             {categories.map(c => (
@@ -277,16 +278,7 @@ export default function CertificationForm({ addCert, editCert, cancelEdit }) {
           </button>
           <button
             type="submit"
-            style={{
-              padding: "12px 24px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "600"
-            }}
+            className="btn btn-primary"
           >
             {editCert ? "💾 Save Changes" : "➕ Add Certification"}
           </button>

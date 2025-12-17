@@ -114,7 +114,7 @@ const JobAnalytics = () => {
     <div className="analyticsDashboard-content">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
         <h2 style={{ margin: 0 }}>Job Application Analytics</h2>
-        <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} style={{
+        <select value={dateRange} aria-label="Select date range" onChange={(e) => setDateRange(e.target.value)} style={{
           padding: "8px 12px", borderRadius: "6px", border: "1px solid #ddd", fontSize: "14px", cursor: "pointer"
         }}>
           <option value="all">All Time</option>

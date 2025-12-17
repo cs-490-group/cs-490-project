@@ -95,16 +95,7 @@ export default function SettingsModal({
           </button>
           <button
             onClick={saveAutoArchiveSettings}
-            style={{
-              padding: "10px 20px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "600"
-            }}
+            className="btn btn-primary"
           >
             💾 Save Settings
           </button>

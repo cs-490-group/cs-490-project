@@ -95,14 +95,16 @@ export function App() {
   
   return (
     <div className="App">
-      <header>
-
+      
         <>
 
           <FlashProvider>
             <FlashMessage />
             <JobProvider>
+              <header>
               <Nav key={location.pathname} />
+              </header>
+              <main role="main" id="main-content" style={{ minHeight: '80vh' }}>
               <Routes>
                 <Route path = "/" element = {<Home />} />
                 <Route path = "/register" element = {<Register />} />
@@ -189,11 +191,12 @@ export function App() {
               <Route path="/api-metrics" element={<APIMetricsPage />} />
               <Route path="/callback/linkedin" element={<LinkedInCallback />} />
               </Routes>
+              </main>
             </JobProvider>
             </FlashProvider>
           </>
 
-      </header>
+      
     </div>
   );
 }

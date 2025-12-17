@@ -541,6 +541,7 @@ export default function NetworkOverview() {
 									onChange={handleFilterChange}
 									className="filter-input"
 									style={{color:"black"}}
+									aria-label="Filter by Degree"
 								>
 									<option value="">All Degrees</option>
 									{getUniqueDegrees().map(degree => (
@@ -558,6 +559,7 @@ export default function NetworkOverview() {
 									onChange={handleFilterChange}
 									className="filter-input"
 									style={{color:"black"}}
+									aria-label="Filter by Relationship Strength"
 								>
 									<option value="">All Strengths</option>
 									{getUniqueRelationshipStrengths().map(strength => (
@@ -575,6 +577,7 @@ export default function NetworkOverview() {
 									onChange={handleFilterChange}
 									className="filter-input"
 									style={{color:"black"}}
+									aria-label="Filter by Relationship Type"
 								>
 									<option value="">All Types</option>
 									{getUniqueRelationshipTypes().map(type => (
@@ -592,6 +595,7 @@ export default function NetworkOverview() {
 									onChange={handleFilterChange}
 									className="filter-input"
 									style={{color:"black"}}
+									aria-label="Filter by Industry"
 								>
 									<option value="">All Industries</option>
 									{getUniqueIndustries().map(industry => (

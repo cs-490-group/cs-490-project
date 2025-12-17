@@ -413,16 +413,7 @@ export default function MaterialsAnalytics() {
                       <div style={{ display: "flex", gap: "4px", flexDirection: "column", marginLeft: "8px" }}>
                         <button
                           onClick={() => handleView(resume, 'resume')}
-                          style={{
-                            padding: "4px 8px",
-                            background: "#2196f3",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "10px",
-                            whiteSpace: "nowrap"
-                          }}
+                          className="btn btn-primary"
                         >
                           👁 View
                         </button>
@@ -546,16 +537,7 @@ export default function MaterialsAnalytics() {
                       <div style={{ display: "flex", gap: "4px", flexDirection: "column", marginLeft: "8px" }}>
                         <button
                           onClick={() => handleView(letter, 'coverLetter')}
-                          style={{
-                            padding: "4px 8px",
-                            background: "#2196f3",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "10px",
-                            whiteSpace: "nowrap"
-                          }}
+                          className="btn btn-primary"
                         >
                           👁 View
                         </button>

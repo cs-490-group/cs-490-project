@@ -48,7 +48,7 @@ const ForgotPassword = () => {
             />
             </div>
 
-            <h2 className="fw-bold mb-2">Forgot Password?</h2>
+            <h1 className="fw-bold mb-2">Forgot Password?</h1>
             <p className="text-muted mb-4">
             Enter the email address associated with your account and we’ll send
             you a password reset link.

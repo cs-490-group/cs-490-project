@@ -75,7 +75,7 @@ export default function SetPassword() {
           <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
         </div>
 
-        <h2 className="fw-bold mb-2">Set Your Password</h2>
+        <h1 className="fw-bold mb-2">Set Your Password</h1>
         <p className="text-muted mb-4">
           Please create a password to manage your account securely.
         </p>
@@ -88,6 +88,7 @@ export default function SetPassword() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="New Password"
+            aria-label="New Password"
             title="Password must be minimum 8 characters with at least 1 uppercase, 1 lowercase, and 1 number."
             className="form-control mb-3"
             required
@@ -98,6 +99,7 @@ export default function SetPassword() {
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             placeholder="Confirm Password"
+            aria-label="Confirm Password"
             className="form-control mb-3"
             required
           />

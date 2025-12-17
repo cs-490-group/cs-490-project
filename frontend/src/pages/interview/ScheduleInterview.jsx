@@ -422,6 +422,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
             </label>
             <select
               name="job_application_uuid"
+              aria-label="Select Job Application"
               value={formData.job_application_uuid}
               onChange={handleChange}
               disabled={loadingJobs}
@@ -461,6 +462,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
                   <input
                     type="text"
                     name="scenario_name"
+                    aria-label="Enter Scenario Name"
                     value={formData.scenario_name}
                     onChange={handleChange}
                     required
@@ -477,6 +479,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
                   <input
                     type="text"
                     name="company_name"
+                    aria-label="Enter Company Name"
                     value={formData.company_name}
                     onChange={handleChange}
                     required
@@ -502,6 +505,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
               name="interview_datetime"
               value={formData.interview_datetime}
               onChange={handleChange}
+              aria-label="Select interview date and time"
               required
               style={{
                 width: '100%',
@@ -522,6 +526,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
               name="duration_minutes"
               value={formData.duration_minutes}
               onChange={handleChange}
+              aria-label="Enter duration in minutes"
               min="15"
               max="480"
               style={{
@@ -554,6 +559,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
                     type="radio"
                     name="location_type"
                     value={type}
+                    aria-label="Select location type"
                     checked={formData.location_type === type}
                     onChange={handleChange}
                     style={{ display: 'none' }}
@@ -574,6 +580,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
                 </label>
                 <select
                   name="video_platform"
+                  aria-label="Select Video Platform"
                   value={formData.video_platform}
                   onChange={handleChange}
                   style={{
@@ -601,6 +608,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
                   value={formData.video_link}
                   onChange={handleChange}
                   placeholder="https://..."
+                  aria-label="Enter meeting link"
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -624,6 +632,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
                 value={formData.phone_number}
                 onChange={handleChange}
                 placeholder="+1 (555) 123-4567"
+                aria-label="Enter phone number"
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -674,6 +683,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
                   name="interviewer_name"
                   value={formData.interviewer_name}
                   onChange={handleChange}
+                  aria-label="Enter interviewer name"
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -688,6 +698,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
                   type="text"
                   name="interviewer_title"
                   value={formData.interviewer_title}
+                  aria-label="Enter interviewer title"
                   onChange={handleChange}
                   placeholder="e.g., Senior Engineer"
                   style={{
@@ -706,6 +717,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
                 <input
                   type="email"
                   name="interviewer_email"
+                  aria-label="Enter interviewer email"
                   value={formData.interviewer_email}
                   onChange={handleChange}
                   style={{
@@ -722,6 +734,7 @@ const checkTimeConflict = async (interviewDatetime, durationMinutes) => {
                   type="tel"
                   name="interviewer_phone"
                   value={formData.interviewer_phone}
+                  aria-label="Enter interviewer phone"
                   onChange={handleChange}
                   style={{
                     width: '100%',

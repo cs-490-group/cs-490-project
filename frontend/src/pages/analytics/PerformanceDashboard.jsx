@@ -108,6 +108,7 @@ export default function PerformanceDashboard({ jobs }) {
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
+            aria-label="Select date range"
             style={{
               padding: "8px 12px",
               borderRadius: "6px",
@@ -126,6 +127,7 @@ export default function PerformanceDashboard({ jobs }) {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
+            aria-label="Select application status"
             style={{
               padding: "8px 12px",
               borderRadius: "6px",
