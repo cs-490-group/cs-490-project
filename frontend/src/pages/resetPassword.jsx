@@ -75,6 +75,7 @@ const ResetPassword = () => {
                 fetchPriority="high"
                 width="200" 
                 height="200"
+                crossOrigin="anonymous"
                 />
           </div>
           <p className="text-center text-muted">Loading...</p>
@@ -95,6 +96,7 @@ const ResetPassword = () => {
                 fetchPriority="high"
                 width="200" 
                 height="200"
+                crossOrigin="anonymous"
                 />
           </div>
           <h2 className="fw-bold mb-3 text-center">Invalid Link</h2>
@@ -117,6 +119,7 @@ const ResetPassword = () => {
                 fetchPriority="high"
                 width="200" 
                 height="200"
+                crossOrigin="anonymous"
                 />
         </div>
 

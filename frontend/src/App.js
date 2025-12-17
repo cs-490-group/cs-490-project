@@ -100,12 +100,10 @@ export function App() {
           </header>
           <main role="main" id="main-content" style={{ minHeight: '80vh' }}>
             <Suspense fallback={
-              <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
-                <Spinner animation="border" variant="primary" role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </Spinner>
-              </div>
-            }>
+  <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh', background: 'rgba(6, 78, 59, 0.05)' }}>
+    <div style={{ color: '#10b981' }}>Loading Metamorphosis...</div>
+  </div>
+}>
               <Routes>
                 {/* Standard Routes */}
                 <Route path="/" element={<Home />} />
