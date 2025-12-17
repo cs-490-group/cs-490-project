@@ -69,6 +69,10 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+
+
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
@@ -101,6 +105,22 @@ origins = [ # domains to provide access to
     "https://metamorphosis1.vercel.app"
 ]
 
+# Enforce HTTPS in production
+if os.getenv("ENV") == "production":
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+# Trusted hosts (prevents host header attacks)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=[
+        "localhost",
+        "127.0.0.1",
+        "metamorphosis1.vercel.app",
+        "*.vercel.app"
+    ]
+)
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,      
@@ -108,6 +128,24 @@ app.add_middleware(
     allow_methods=["*"],         
     allow_headers=["*"],         
 )
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "img-src 'self' data: https:; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "connect-src 'self' https:;"
+    )
+
+    return response
+
 
 app.include_router(auth_router, prefix = api_prefix)
 app.include_router(profiles_router, prefix = api_prefix)
@@ -237,6 +275,17 @@ async def shutdown_event():
     except Exception as e:
         print(f"[Shutdown] Warning: Could not stop schedueler scheduler: {e}")
 
+@app.get("/api/csrf-token")
+def get_csrf_token(response: Response):
+    token = os.urandom(16).hex()
+    response.set_cookie(
+        key="csrf_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="strict"
+    )
+    return {"csrfToken": token}
 
 
 
