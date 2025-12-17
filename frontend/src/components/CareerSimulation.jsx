@@ -25,6 +25,30 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
     const [selectedSimulation, setSelectedSimulation] = useState(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showCompareModal, setShowCompareModal] = useState(false);
+
+    const safeNumberValue = (v) => {
+        if (v === null || v === undefined || v === "") return "";
+        const n = typeof v === "number" ? v : Number(v);
+        return Number.isFinite(n) ? n : "";
+    };
+
+    const formatError = (e) => {
+        if (e === null || e === undefined) return null;
+        if (typeof e === "string") return e;
+        if (typeof e === "number" || typeof e === "boolean") return String(e);
+        if (Array.isArray(e)) return e.map(formatError).filter(Boolean).join("\n");
+
+        if (typeof e === "object") {
+            const detail = e.detail ?? e.message ?? e.msg;
+            if (detail) return formatError(detail);
+            try {
+                return JSON.stringify(e);
+            } catch {
+                return "An unexpected error occurred";
+            }
+        }
+        return "An unexpected error occurred";
+    };
     
     // Simulation form state
     const [simulationForm, setSimulationForm] = useState({
@@ -89,7 +113,7 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                 setShowDetailsModal(true);
             }
         } catch (err) {
-            setError(err.response?.data?.detail || 'Failed to create career simulation');
+            setError(formatError(err.response?.data?.detail) || 'Failed to create career simulation');
             console.error('Error creating simulation:', err);
         } finally {
             setLoading(false);
@@ -527,8 +551,8 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                     <Form.Label>Starting Salary</Form.Label>
                                     <Form.Control
                                         type="number"
-                                        value={simulationForm.startingSalary}
-                                        onChange={(e) => setSimulationForm({ ...simulationForm, startingSalary: e.target.value })}
+                                        value={safeNumberValue(simulationForm.startingSalary)}
+                                        onChange={(e) => setSimulationForm({ ...simulationForm, startingSalary: e.target.value === "" ? "" : e.target.value })}
                                         min="0"
                                     />
                                 </Form.Group>
@@ -538,9 +562,25 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                     <Form.Label>Expected Annual Raise %</Form.Label>
                                     <Form.Control
                                         type="number"
-                                        value={simulationForm.annualRaisePercent}
+                                        value={safeNumberValue(simulationForm.annualRaisePercent)}
                                         onChange={(e) => {
+                                            if (e.target.value === "") {
+                                                setSimulationForm({
+                                                    ...simulationForm,
+                                                    annualRaisePercent: "",
+                                                    raiseScenarios: {
+                                                        conservative: "",
+                                                        expected: "",
+                                                        optimistic: "",
+                                                    }
+                                                });
+                                                return;
+                                            }
+
                                             const v = parseFloat(e.target.value);
+                                            if (!Number.isFinite(v)) {
+                                                return;
+                                            }
                                             setSimulationForm({
                                                 ...simulationForm,
                                                 annualRaisePercent: v,
@@ -564,10 +604,10 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                     <Form.Label>Conservative %</Form.Label>
                                     <Form.Control
                                         type="number"
-                                        value={simulationForm.raiseScenarios?.conservative ?? 0}
+                                        value={safeNumberValue(simulationForm.raiseScenarios?.conservative)}
                                         onChange={(e) => setSimulationForm({
                                             ...simulationForm,
-                                            raiseScenarios: { ...simulationForm.raiseScenarios, conservative: parseFloat(e.target.value) }
+                                            raiseScenarios: { ...simulationForm.raiseScenarios, conservative: e.target.value === "" ? "" : e.target.value }
                                         })}
                                         step="0.1"
                                         min="0"
@@ -579,10 +619,10 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                     <Form.Label>Expected %</Form.Label>
                                     <Form.Control
                                         type="number"
-                                        value={simulationForm.raiseScenarios?.expected ?? 0}
+                                        value={safeNumberValue(simulationForm.raiseScenarios?.expected)}
                                         onChange={(e) => setSimulationForm({
                                             ...simulationForm,
-                                            raiseScenarios: { ...simulationForm.raiseScenarios, expected: parseFloat(e.target.value) }
+                                            raiseScenarios: { ...simulationForm.raiseScenarios, expected: e.target.value === "" ? "" : e.target.value }
                                         })}
                                         step="0.1"
                                         min="0"
@@ -594,10 +634,10 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                     <Form.Label>Optimistic %</Form.Label>
                                     <Form.Control
                                         type="number"
-                                        value={simulationForm.raiseScenarios?.optimistic ?? 0}
+                                        value={safeNumberValue(simulationForm.raiseScenarios?.optimistic)}
                                         onChange={(e) => setSimulationForm({
                                             ...simulationForm,
-                                            raiseScenarios: { ...simulationForm.raiseScenarios, optimistic: parseFloat(e.target.value) }
+                                            raiseScenarios: { ...simulationForm.raiseScenarios, optimistic: e.target.value === "" ? "" : e.target.value }
                                         })}
                                         step="0.1"
                                         min="0"
@@ -622,8 +662,8 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                     <Form.Label>Annual Equity Value</Form.Label>
                                     <Form.Control
                                         type="number"
-                                        value={simulationForm.annualEquity}
-                                        onChange={(e) => setSimulationForm({ ...simulationForm, annualEquity: e.target.value })}
+                                        value={safeNumberValue(simulationForm.annualEquity)}
+                                        onChange={(e) => setSimulationForm({ ...simulationForm, annualEquity: e.target.value === "" ? "" : e.target.value })}
                                         min="0"
                                     />
                                 </Form.Group>
@@ -635,7 +675,7 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                     <Form.Label>Simulation Years</Form.Label>
                                     <Form.Select 
                                         value={simulationForm.simulationYears}
-                                        onChange={(e) => setSimulationForm({...simulationForm, simulationYears: parseInt(e.target.value)})}
+                                        onChange={(e) => setSimulationForm({...simulationForm, simulationYears: parseInt(e.target.value, 10)})}
                                     >
                                         <option value={5}>5 Years</option>
                                         <option value={10}>10 Years</option>
@@ -649,8 +689,12 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                         min="0" 
                                         max="1" 
                                         step="0.1"
-                                        value={simulationForm.riskTolerance}
-                                        onChange={(e) => setSimulationForm({...simulationForm, riskTolerance: parseFloat(e.target.value)})}
+                                        value={safeNumberValue(simulationForm.riskTolerance) || 0}
+                                        onChange={(e) => {
+                                            const v = parseFloat(e.target.value);
+                                            if (!Number.isFinite(v)) return;
+                                            setSimulationForm({...simulationForm, riskTolerance: v});
+                                        }}
                                     />
                                     <small className="text-muted">
                                         {simulationForm.riskTolerance < 0.3 ? 'Conservative' : 
@@ -668,8 +712,12 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                         min="0" 
                                         max="1" 
                                         step="0.1"
-                                        value={simulationForm.personalGrowthRate}
-                                        onChange={(e) => setSimulationForm({...simulationForm, personalGrowthRate: parseFloat(e.target.value)})}
+                                        value={safeNumberValue(simulationForm.personalGrowthRate) || 0}
+                                        onChange={(e) => {
+                                            const v = parseFloat(e.target.value);
+                                            if (!Number.isFinite(v)) return;
+                                            setSimulationForm({...simulationForm, personalGrowthRate: v});
+                                        }}
                                     />
                                     <small className="text-muted">
                                         {simulationForm.personalGrowthRate < 0.3 ? 'Steady' : 
@@ -684,8 +732,12 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                         min="1" 
                                         max="10" 
                                         step="0.5"
-                                        value={simulationForm.jobChangeFrequency}
-                                        onChange={(e) => setSimulationForm({...simulationForm, jobChangeFrequency: parseFloat(e.target.value)})}
+                                        value={safeNumberValue(simulationForm.jobChangeFrequency) || 1}
+                                        onChange={(e) => {
+                                            const v = parseFloat(e.target.value);
+                                            if (!Number.isFinite(v)) return;
+                                            setSimulationForm({...simulationForm, jobChangeFrequency: v});
+                                        }}
                                     />
                                     <small className="text-muted">
                                         Every {simulationForm.jobChangeFrequency} years
@@ -744,7 +796,10 @@ const CareerSimulation = ({ offerId, offerDetails, offers = [] }) => {
                                                     type="number"
                                                     value={m.year}
                                                     min="1"
-                                                    onChange={(e) => updateMilestone(idx, { year: parseInt(e.target.value, 10) })}
+                                                    onChange={(e) => {
+                                                        const v = parseInt(e.target.value, 10);
+                                                        updateMilestone(idx, { year: Number.isFinite(v) ? v : 1 });
+                                                    }}
                                                 />
                                             </Col>
                                             <Col md={3}>

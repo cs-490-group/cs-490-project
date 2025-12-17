@@ -44,10 +44,45 @@ class CareerSimulationAPI {
 
     // Helper method to create a simulation request
     createSimulationRequest(offerId, options = {}) {
-        return {
+        const isBlank = (v) => v === "" || v === null || v === undefined;
+        const numOrUndefined = (v) => {
+            if (isBlank(v)) return undefined;
+            const n = typeof v === "number" ? v : parseFloat(String(v));
+            return Number.isFinite(n) ? n : undefined;
+        };
+        const intOrUndefined = (v) => {
+            if (isBlank(v)) return undefined;
+            const n = typeof v === "number" ? v : parseInt(String(v), 10);
+            return Number.isFinite(n) ? n : undefined;
+        };
+        const bonusOrUndefined = (v) => {
+            if (isBlank(v)) return undefined;
+            if (typeof v === "number") return Number.isFinite(v) ? v : undefined;
+            const s = String(v).trim();
+            if (!s) return undefined;
+            const n = Number(s.replace(/,/g, ""));
+            if (Number.isFinite(n) && !/%|\$|k$/i.test(s)) {
+                return n;
+            }
+            return s;
+        };
+
+        const milestones = (options.milestones || []).map((m) => {
+            const year = intOrUndefined(m?.year) ?? 1;
+            return {
+                year,
+                title: isBlank(m?.title) ? undefined : m.title,
+                raise_percent: numOrUndefined(m?.raise_percent),
+                new_base_salary: numOrUndefined(m?.new_base_salary),
+                bonus_expected: numOrUndefined(m?.bonus_expected),
+                equity_value: numOrUndefined(m?.equity_value),
+            };
+        });
+
+        const req = {
             offer_id: offerId,
-            simulation_years: options.simulationYears || 5,
-            success_criteria: options.successCriteria || options.success_criteria || [
+            simulation_years: options.simulationYears ?? 5,
+            success_criteria: options.successCriteria ?? options.success_criteria ?? [
                 {
                     criteria_type: 'salary',
                     weight: 0.4,
@@ -77,22 +112,46 @@ class CareerSimulationAPI {
                     description: 'Meaningful work and impact'
                 }
             ],
-            personal_growth_rate: options.personalGrowthRate || 0.5,
-            risk_tolerance: options.riskTolerance || 0.5,
-            job_change_frequency: options.jobChangeFrequency || 2.5,
-            geographic_flexibility: options.geographicFlexibility !== false,
-            industry_switch_willingness: options.industrySwitchWillingness || false,
-            inflation_rate: options.inflationRate || 0.025,
-            market_growth_rate: options.marketGrowthRate || 0.05,
-            industry_trend_override: options.industryTrendOverride,
-            starting_salary: options.startingSalary ?? options.starting_salary,
-            annual_raise_percent: options.annualRaisePercent ?? options.annual_raise_percent,
-            raise_scenarios: options.raiseScenarios ?? options.raise_scenarios,
-            milestones: options.milestones,
-            annual_bonus: options.annualBonus ?? options.annual_bonus,
-            annual_equity: options.annualEquity ?? options.annual_equity,
-            notes: options.notes
         };
+
+        req.personal_growth_rate = numOrUndefined(options.personalGrowthRate) ?? 0.5;
+        req.risk_tolerance = numOrUndefined(options.riskTolerance) ?? 0.5;
+        req.job_change_frequency = numOrUndefined(options.jobChangeFrequency) ?? 2.5;
+        req.geographic_flexibility = options.geographicFlexibility ?? true;
+        req.industry_switch_willingness = options.industrySwitchWillingness ?? false;
+        req.inflation_rate = numOrUndefined(options.inflationRate) ?? 0.025;
+        req.market_growth_rate = numOrUndefined(options.marketGrowthRate) ?? 0.05;
+        if (!isBlank(options.industryTrendOverride)) req.industry_trend_override = options.industryTrendOverride;
+
+        const startingSalary = numOrUndefined(options.startingSalary ?? options.starting_salary);
+        if (startingSalary !== undefined) req.starting_salary = startingSalary;
+
+        const annualRaisePercent = numOrUndefined(options.annualRaisePercent ?? options.annual_raise_percent);
+        if (annualRaisePercent !== undefined) req.annual_raise_percent = annualRaisePercent;
+
+        const raiseScenarios = options.raiseScenarios ?? options.raise_scenarios;
+        if (raiseScenarios && typeof raiseScenarios === "object") {
+            const normalized = {
+                conservative: numOrUndefined(raiseScenarios.conservative),
+                expected: numOrUndefined(raiseScenarios.expected),
+                optimistic: numOrUndefined(raiseScenarios.optimistic),
+            };
+            if (Object.values(normalized).some((v) => v !== undefined)) {
+                req.raise_scenarios = normalized;
+            }
+        }
+
+        if (milestones.length > 0) req.milestones = milestones;
+
+        const annualBonus = bonusOrUndefined(options.annualBonus ?? options.annual_bonus);
+        if (annualBonus !== undefined) req.annual_bonus = annualBonus;
+
+        const annualEquity = numOrUndefined(options.annualEquity ?? options.annual_equity);
+        if (annualEquity !== undefined) req.annual_equity = annualEquity;
+
+        if (!isBlank(options.notes)) req.notes = options.notes;
+
+        return req;
     }
 
     // Helper method to format simulation response for display
