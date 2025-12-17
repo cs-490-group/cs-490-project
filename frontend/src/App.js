@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from "react";
 import { Routes, Route, useLocation } from 'react-router-dom';
 import posthog from 'posthog-js';
 import Nav from "./tools/nav";
+import { Banner } from "./components/Banner";
 
 // ONLY import your custom CSS - Bootstrap loads from CDN now
 import './App.css';
@@ -97,10 +98,10 @@ export function App() {
   const location = useLocation();
 
   useEffect(() => {
-   
+  
+  if (posthog.has_opted_in_capturing()) {
     posthog.capture('$pageview');
 
-   
     const userUuid = localStorage.getItem("uuid");
     const userEmail = localStorage.getItem("email");
 
@@ -109,10 +110,12 @@ export function App() {
         email: userEmail,
       });
     }
-  }, [location]);
+  }
+}, [location]);
   
   return (
     <div className="App">
+      <Banner />
       <FlashProvider>
         <FlashMessage />
         <JobProvider>
@@ -121,10 +124,10 @@ export function App() {
           </header>
           <main role="main" id="main-content" style={{ minHeight: '80vh' }}>
             <Suspense fallback={
-  <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh', background: 'rgba(6, 78, 59, 0.05)' }}>
-    <div style={{ color: '#10b981' }}>Loading Metamorphosis...</div>
-  </div>
-}>
+              <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh', background: 'rgba(6, 78, 59, 0.05)' }}>
+                <div style={{ color: '#10b981' }}>Loading Metamorphosis...</div>
+              </div>
+            }>
               <Routes>
                 {/* Standard Routes */}
                 <Route path="/" element={<Home />} />

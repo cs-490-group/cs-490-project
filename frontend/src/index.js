@@ -26,11 +26,12 @@ Sentry.init({
 posthog.init(process.env.REACT_APP_POSTHOG_KEY, {
     api_host: 'https://us.i.posthog.com',
     person_profiles: 'identified_only', 
+    cookieless_mode: 'on_reject',
     autocapture: true,
 });
 
-posthog.opt_in_capturing();
-posthog.startSessionRecording();
+window.posthog = posthog;
+
 
 const PCA = new PublicClientApplication(msalConfig);
 

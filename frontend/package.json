@@ -33,17 +33,22 @@
     "lucide-react": "^0.553.0",
     "mustache": "^4.2.0",
     "posthog-js": "^1.309.0",
-    "react": "^19.2.0",
+    "react": "^18.3.1",
     "react-bootstrap": "^2.10.10",
     "react-chartjs-2": "^5.3.1",
-    "react-dom": "^19.2.0",
+    "react-dom": "^18.3.1",
     "react-hook-form": "^7.65.0",
     "react-icons": "^5.5.0",
-    "react-leaflet": "^5.0.0",
-    "react-router-dom": "^7.9.4",
+    "react-leaflet": "^4.2.1",
+    "react-router-dom": "^7.11.0",
     "react-scripts": "^5.0.1",
     "recharts": "^3.5.1",
     "web-vitals": "^2.1.4"
+  },
+  "overrides": {
+    "nth-check": "^2.1.1",
+    "postcss": "^8.4.38",
+    "webpack-dev-server": "4.15.1"
   },
   "scripts": {
     "start": "react-scripts start",

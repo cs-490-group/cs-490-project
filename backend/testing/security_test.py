@@ -1,11 +1,16 @@
 import requests
 import json
 import time
+import os
+import datetime
+import logging
+import random 
 
 # CONFIGURATION
-#BASE_URL = "http://localhost:8000/api" 
-BASE_URL = "https://cs-490-project-production.up.railway.app/api"  #Use for actual website.
+# BASE_URL = "http://localhost:8000/api" 
+BASE_URL = "https://cs-490-project-production.up.railway.app/api"  # Production
 
+# Base credentials
 ATTACKER_CREDS = {
     "username": "attacker",
     "password": "password123",
@@ -20,6 +25,22 @@ VICTIM_CREDS = {
     "full_name": "Victim Account"
 }
 
+# --- SETUP LOGGING ---
+if not os.path.exists('security_reports'):
+    os.makedirs('security_reports')
+
+timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+report_filename = f"security_reports/audit_{timestamp}.log"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - [%(levelname)s] - %(message)s',
+    handlers=[
+        logging.FileHandler(report_filename), 
+        logging.StreamHandler()              
+    ]
+)
+
 class Colors:
     HEADER = '\033[95m'
     OKGREEN = '\033[92m'
@@ -28,10 +49,18 @@ class Colors:
     ENDC = '\033[0m'
 
 def log(message, type="INFO"):
-    if type == "PASS": print(f"{Colors.OKGREEN}[PASS]{Colors.ENDC} {message}")
-    elif type == "FAIL": print(f"{Colors.FAIL}[VULNERABLE]{Colors.ENDC} {message}")
-    elif type == "WARN": print(f"{Colors.WARNING}[WARNING]{Colors.ENDC} {message}")
-    else: print(f"[INFO] {message}")
+    if type == "PASS": 
+        print(f"{Colors.OKGREEN}[PASS]{Colors.ENDC} {message}")
+        logging.info(f"[PASS] {message}")
+    elif type == "FAIL": 
+        print(f"{Colors.FAIL}[VULNERABLE]{Colors.ENDC} {message}")
+        logging.error(f"[VULNERABLE] {message}")
+    elif type == "WARN": 
+        print(f"{Colors.WARNING}[WARNING]{Colors.ENDC} {message}")
+        logging.warning(f"[WARNING] {message}")
+    else: 
+        print(f"[INFO] {message}")
+        logging.info(f"[INFO] {message}")
 
 class MetamorphosisScanner:
     def __init__(self):
@@ -39,7 +68,14 @@ class MetamorphosisScanner:
         self.attacker_auth = None
 
     def setup_users(self):
+        # ⚡ FIX: Generate unique emails based on time to avoid "User Already Exists" errors
+        unique_id = int(time.time())
+        ATTACKER_CREDS["email"] = f"attacker_{unique_id}@test.com"
+        VICTIM_CREDS["email"] = f"victim_{unique_id}@test.com"
+        
+        log(f"Generated unique test accounts: {ATTACKER_CREDS['email']}, {VICTIM_CREDS['email']}")
         log("Setting up Attacker and Victim accounts...")
+
         for creds in [ATTACKER_CREDS, VICTIM_CREDS]:
             # Register (Ignore errors if they exist)
             requests.post(f"{BASE_URL}/auth/register", json=creds)
@@ -51,32 +87,84 @@ class MetamorphosisScanner:
             if resp.status_code == 200:
                 data = resp.json()
                 auth_headers = {
-                    "uuid": data["uuid"],
-                    "Authorization": f"Bearer {data['session_token']}"
+                    "uuid": data.get("uuid"), 
+                    "Authorization": f"Bearer {data.get('session_token')}"
                 }
                 if creds == ATTACKER_CREDS: self.attacker_auth = auth_headers
                 else: self.victim_auth = auth_headers
                 log(f"Logged in as {creds['username']}")
             else:
-                log(f"Login failed for {creds['username']}: {resp.status_code}", "FAIL")
+                # ⚡ FIX: Print the ACTUAL error message from the server
+                log(f"Login failed for {creds['username']}: {resp.status_code} - RESPONSE: {resp.text}", "FAIL")
 
     def test_rate_limiting(self):
         print(f"\n{Colors.HEADER}--- Testing Rate Limiting ---{Colors.ENDC}")
 
+        # Use the randomized credentials for the test
         for test in ["register", "login"]:
-            url = f"{BASE_URL}/auth/{test}"
             log(f"Spamming {test} endpoint 20 times...", "INFO")
             
             blocked = False
             for i in range(20):
-                # Send correct payload structure so we test logic, not schema validation
-                resp = requests.post(f"{BASE_URL}/auth/register", json=ATTACKER_CREDS) if test == "register" else requests.post(f"{BASE_URL}/auth/login", json={"email": "attacker@test.com", "password": f"wrong{i}"})
+                # Send valid JSON structure
+                if test == "register":
+                    payload = ATTACKER_CREDS.copy()
+                    payload["email"] = f"spam_{i}_{int(time.time())}@test.com" # Unique email per spam
+                    resp = requests.post(f"{BASE_URL}/auth/register", json=payload)
+                else:
+                    resp = requests.post(f"{BASE_URL}/auth/login", json={"email": ATTACKER_CREDS["email"], "password": f"wrong{i}"})
+                
                 if resp.status_code == 429:
                     blocked = True
                     break
             
             if blocked: log(f"Rate limiting active. Blocked after {i} requests.", "PASS")
             else: log("No rate limiting detected. Sent 20 reqs without 429.", "FAIL")
+    
+    def test_sensitive_headers(self):
+        print(f"\n{Colors.HEADER}--- Testing Sensitive Headers ---{Colors.ENDC}")
+        try:
+            resp = requests.get(f"{BASE_URL}/auth/login")
+            headers = resp.headers
+            
+            if "Server" in headers or "X-Powered-By" in headers:
+                log(f"Sensitive Header Found: {headers.get('Server', '')} {headers.get('X-Powered-By', '')}", "WARN")
+            else:
+                log("Server headers are hidden.", "PASS")
+        except Exception as e:
+            log(f"Header check failed: {e}", "WARN")
+
+    def test_csrf(self):
+        print(f"\n{Colors.HEADER}--- Testing CSRF Vulnerabilities ---{Colors.ENDC}")
+        if not self.victim_auth:
+            log("Skipping CSRF: No Victim Session", "FAIL")
+            return
+
+        csrf_payload = {
+            "title": "CSRF Attack Job",
+            "company": "Hacker Inc",
+            "description": "If this exists, CSRF is possible.",
+            "status": "Applied",
+            "deadline": "2025-12-31"
+        }
+
+        vulnerable_headers = {
+            "Content-Type": "application/json"
+            # NOTE: Authorization header is intentionally REMOVED
+        }
+
+        try:
+            resp = requests.post(f"{BASE_URL}/jobs", json=csrf_payload, headers=vulnerable_headers)
+
+            if resp.status_code == 200 or resp.status_code == 201:
+                log("VULNERABLE: Request succeeded without Auth header! (Possible CSRF)", "FAIL")
+            elif resp.status_code == 401 or resp.status_code == 403:
+                log("Safe: Server rejected request without explicit Authorization header.", "PASS")
+            else:
+                log(f"Safe: Request failed with status {resp.status_code}", "PASS")
+                
+        except Exception as e:
+            log(f"CSRF test error: {e}", "WARN")
 
     def test_nosql_injection(self):
         print(f"\n{Colors.HEADER}--- Testing NoSQL Injection ---{Colors.ENDC}")
@@ -91,7 +179,7 @@ class MetamorphosisScanner:
             
             if resp.status_code == 200:
                 log("NoSQL Injection Successful! Login bypassed.", "FAIL")
-            elif resp.status_code == 422:
+            elif resp.status_code == 422 or resp.status_code == 400:
                 log("Pydantic blocked the injection (Type Validation).", "PASS")
             else:
                 log(f"Injection failed with status {resp.status_code}", "PASS")
@@ -162,3 +250,5 @@ if __name__ == "__main__":
     scanner.test_nosql_injection()
     scanner.test_xss()
     scanner.test_idor()
+    scanner.test_csrf()
+    scanner.test_sensitive_headers()
