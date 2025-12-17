@@ -4,7 +4,6 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useFlash } from "../context/flashContext";
 import AuthAPI from "../api/authentication";
 import "../styles/login.css";
-import logo from "../logo.svg.png";
 
 const ResetPassword = () => {
   const { token } = useParams();
@@ -69,7 +68,14 @@ const ResetPassword = () => {
       <div className="login-page">
         <div className="login-card shadow">
           <div className="login-logo mb-3">
-            <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+            <img
+                src="/logo.svg.png" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                />
           </div>
           <p className="text-center text-muted">Loading...</p>
         </div>
@@ -82,7 +88,14 @@ const ResetPassword = () => {
       <div className="login-page">
         <div className="login-card shadow">
           <div className="login-logo mb-3">
-            <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+            <img
+                src="/logo.svg.png" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                />
           </div>
           <h2 className="fw-bold mb-3 text-center">Invalid Link</h2>
           <p className="text-muted mb-4 text-center">
@@ -97,7 +110,14 @@ const ResetPassword = () => {
     <div className="login-page">
       <div className="login-card shadow">
         <div className="login-logo mb-3">
-          <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+          <img
+                src="/logo.svg.png" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                />
         </div>
 
         <h2 className="fw-bold mb-3">Reset Password</h2>

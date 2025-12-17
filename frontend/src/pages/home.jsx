@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { Container, Row, Col, Button, Card } from "react-bootstrap";
-import logo from "../logo.svg.png"; 
 import "../styles/home.css"; 
 import { Link } from "react-router-dom";
 
@@ -16,9 +15,12 @@ const Home = ({ user, session }) => {
           <div className="d-flex flex-column align-items-center justify-content-center">
             <div className="mb-4">
               <img
-                src={logo}
+                src="/logo.svg.png" /* Direct path to public folder */
                 alt="Metamorphosis logo"
                 className="hero-logo mb-3"
+                fetchPriority="high" 
+                width="200" 
+                height="200"
               />
               <h1
                 style={{
@@ -40,9 +42,14 @@ const Home = ({ user, session }) => {
               <Button 
                 as={Link}
                 to="/login"
-                variant="success"
+                variant="success" 
                 size="lg"
                 className="me-3"
+                style={{ 
+                  backgroundColor: "#157347", 
+                  borderColor: "#146c43", 
+                  color: "#ffffff"
+                }}
               >
                 Get Started
               </Button>

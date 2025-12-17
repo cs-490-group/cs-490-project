@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useFlash } from "../context/flashContext";
 import AuthAPI from "../api/authentication";
 import "../styles/register.css";
-import logo from "../logo.svg.png";
 
 export default function SetPassword() {
   const navigate = useNavigate();
@@ -72,7 +71,14 @@ export default function SetPassword() {
     <div className="register-page">
       <div className="register-card shadow">
         <div className="login-logo mb-3">
-          <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+          <img
+                src="/logo.svg.png" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                />
         </div>
 
         <h1 className="fw-bold mb-2">Set Your Password</h1>
