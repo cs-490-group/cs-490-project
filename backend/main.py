@@ -67,6 +67,7 @@ from routes.emails_router import emails_router
 from routes.extension_import import extension_import_router
 from routes.material_comparison_router import material_comparison_router
 from routes.badges import badges_router
+from routes.problem_submissions import problem_submissions_router
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -170,6 +171,7 @@ app.include_router(emails_router, prefix=api_prefix)
 app.include_router(extension_import_router, prefix=api_prefix)
 app.include_router(material_comparison_router, prefix = api_prefix)
 app.include_router(badges_router, prefix = api_prefix)
+app.include_router(problem_submissions_router, prefix = api_prefix)
 app.include_router(career_simulation_router, prefix = api_prefix)
 
 

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Badge, Button, Spinner, Alert, Modal, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Badge, Button, Spinner, Alert, Modal, Form, Table } from 'react-bootstrap';
 import { FaArrowLeft, FaTrophy, FaFire, FaChartLine, FaMedal, FaStar, FaCode, FaCheckCircle, FaExternalLinkAlt, FaPlus, FaEdit, FaTrash, FaInfoCircle } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import ProfileApi from '../api/profiles';
 import BadgesAPI from '../api/badges';
+import ProblemSubmissionsAPI from '../api/problem_submissions';
 
 export default function HackerRankDetails() {
     const { username } = useParams();
@@ -11,6 +12,17 @@ export default function HackerRankDetails() {
     const [profileData, setProfileData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const [submissions, setSubmissions] = useState([]);
+    const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+    const [editingSubmissionId, setEditingSubmissionId] = useState(null);
+    const [submissionForm, setSubmissionForm] = useState({
+        problem_title: '',
+        description: '',
+        difficulty: 'Easy',
+        language: '',
+        submission_date: ''
+    });
     
     // Badge management state
     const [showBadgeModal, setShowBadgeModal] = useState(false);
@@ -37,6 +49,9 @@ export default function HackerRankDetails() {
                 
                 setProfileData(profileResponse.data);
                 setBadges(badgesResponse.badges.map(badge => BadgesAPI.formatBadgeFromAPI(badge)));
+
+                const submissionsResponse = await ProblemSubmissionsAPI.list('hackerrank');
+                setSubmissions(Array.isArray(submissionsResponse) ? submissionsResponse : []);
             } catch (err) {
                 setError('Failed to fetch profile data. Please try again.');
                 console.error('Error fetching profile data:', err);
@@ -49,6 +64,62 @@ export default function HackerRankDetails() {
             fetchProfileData();
         }
     }, [username]);
+
+    const resetSubmissionForm = () => {
+        setEditingSubmissionId(null);
+        setSubmissionForm({
+            problem_title: '',
+            description: '',
+            difficulty: 'Easy',
+            language: '',
+            submission_date: ''
+        });
+    };
+
+    const openAddSubmission = () => {
+        resetSubmissionForm();
+        setShowSubmissionModal(true);
+    };
+
+    const openEditSubmission = (submission) => {
+        setEditingSubmissionId(submission._id);
+        setSubmissionForm({
+            problem_title: submission.problem_title || '',
+            description: submission.description || '',
+            difficulty: submission.difficulty || 'Easy',
+            language: submission.language || '',
+            submission_date: submission.submission_date ? new Date(submission.submission_date).toISOString().slice(0, 10) : ''
+        });
+        setShowSubmissionModal(true);
+    };
+
+    const handleSubmissionSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingSubmissionId) {
+                await ProblemSubmissionsAPI.update('hackerrank', editingSubmissionId, submissionForm);
+            } else {
+                await ProblemSubmissionsAPI.create('hackerrank', submissionForm);
+            }
+            const submissionsResponse = await ProblemSubmissionsAPI.list('hackerrank');
+            setSubmissions(Array.isArray(submissionsResponse) ? submissionsResponse : []);
+            setShowSubmissionModal(false);
+            resetSubmissionForm();
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Failed to save submission. Please try again.');
+        }
+    };
+
+    const handleDeleteSubmission = async (submissionId) => {
+        if (!window.confirm('Delete this submission?')) return;
+        try {
+            await ProblemSubmissionsAPI.remove('hackerrank', submissionId);
+            const submissionsResponse = await ProblemSubmissionsAPI.list('hackerrank');
+            setSubmissions(Array.isArray(submissionsResponse) ? submissionsResponse : []);
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Failed to delete submission. Please try again.');
+        }
+    };
 
     const handleBadgeSubmit = async (e) => {
         e.preventDefault();
@@ -255,6 +326,129 @@ export default function HackerRankDetails() {
                     </Row>
                 </Card.Body>
             </Card>
+
+            {/* Problem Solving Submissions */}
+            <Card className="mb-4">
+                <Card.Header className="d-flex justify-content-between align-items-center">
+                    <h5 className="mb-0">Problem Solving Submissions</h5>
+                    <Button variant="primary" size="sm" onClick={openAddSubmission}>
+                        <FaPlus className="me-2" />
+                        Add Submission
+                    </Button>
+                </Card.Header>
+                <Card.Body>
+                    {submissions.length === 0 ? (
+                        <Alert variant="info">
+                            <FaInfoCircle className="me-2" />
+                            No submissions yet. Add your problem-solving submissions to track progress.
+                        </Alert>
+                    ) : (
+                        <Table responsive hover>
+                            <thead>
+                                <tr>
+                                    <th>Problem</th>
+                                    <th>Difficulty</th>
+                                    <th>Language</th>
+                                    <th>Date</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {submissions.map((s) => (
+                                    <tr key={s._id}>
+                                        <td>
+                                            <div className="fw-bold">{s.problem_title}</div>
+                                            {s.description && <div className="text-muted small">{s.description}</div>}
+                                        </td>
+                                        <td>
+                                            <Badge bg={s.difficulty === 'Hard' ? 'danger' : s.difficulty === 'Medium' ? 'warning' : 'success'}>
+                                                {s.difficulty || 'N/A'}
+                                            </Badge>
+                                        </td>
+                                        <td>{s.language || 'N/A'}</td>
+                                        <td>{s.submission_date ? new Date(s.submission_date).toLocaleDateString() : 'N/A'}</td>
+                                        <td className="text-end">
+                                            <div className="d-flex gap-1 justify-content-end">
+                                                <Button size="sm" variant="outline-secondary" onClick={() => openEditSubmission(s)}>
+                                                    <FaEdit />
+                                                </Button>
+                                                <Button size="sm" variant="outline-danger" onClick={() => handleDeleteSubmission(s._id)}>
+                                                    <FaTrash />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </Table>
+                    )}
+                </Card.Body>
+            </Card>
+
+            <Modal show={showSubmissionModal} onHide={() => setShowSubmissionModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>{editingSubmissionId ? 'Edit Submission' : 'Add Submission'}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form onSubmit={handleSubmissionSubmit}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Problem Title</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={submissionForm.problem_title}
+                                onChange={(e) => setSubmissionForm({ ...submissionForm, problem_title: e.target.value })}
+                                required
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Description</Form.Label>
+                            <Form.Control
+                                as="textarea"
+                                rows={2}
+                                value={submissionForm.description}
+                                onChange={(e) => setSubmissionForm({ ...submissionForm, description: e.target.value })}
+                            />
+                        </Form.Group>
+                        <Row className="mb-3">
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label>Difficulty</Form.Label>
+                                    <Form.Select
+                                        value={submissionForm.difficulty}
+                                        onChange={(e) => setSubmissionForm({ ...submissionForm, difficulty: e.target.value })}
+                                    >
+                                        <option value="Easy">Easy</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Hard">Hard</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label>Language</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        value={submissionForm.language}
+                                        onChange={(e) => setSubmissionForm({ ...submissionForm, language: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Submission Date</Form.Label>
+                            <Form.Control
+                                type="date"
+                                value={submissionForm.submission_date}
+                                onChange={(e) => setSubmissionForm({ ...submissionForm, submission_date: e.target.value })}
+                            />
+                        </Form.Group>
+                        <div className="d-flex justify-content-end gap-2">
+                            <Button variant="secondary" onClick={() => setShowSubmissionModal(false)}>Cancel</Button>
+                            <Button variant="primary" type="submit">Save</Button>
+                        </div>
+                    </Form>
+                </Modal.Body>
+            </Modal>
 
             {/* Manual Progress Tracking */}
             <Row className="mb-4">
