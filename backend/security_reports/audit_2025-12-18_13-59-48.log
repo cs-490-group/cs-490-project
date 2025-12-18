@@ -1,0 +1,19 @@
+2025-12-18 13:59:48,606 - [INFO] - [INFO] Generated unique test accounts: attacker_1766084388@test.com, victim_1766084388@test.com
+2025-12-18 13:59:48,606 - [INFO] - [INFO] Setting up Attacker and Victim accounts...
+2025-12-18 13:59:53,303 - [INFO] - [INFO] Logged in as attacker_1766084388
+2025-12-18 13:59:58,062 - [INFO] - [INFO] Logged in as victim_1766084388
+2025-12-18 13:59:58,064 - [INFO] - [INFO] Spamming register endpoint 50 times...
+2025-12-18 14:00:07,082 - [INFO] - [PASS] Rate limiting active. Blocked after 3 requests.
+2025-12-18 14:00:07,083 - [INFO] - [INFO] Spamming login endpoint 50 times...
+2025-12-18 14:00:16,094 - [INFO] - [PASS] Rate limiting active. Blocked after 3 requests.
+2025-12-18 14:00:18,116 - [INFO] - [PASS] Pydantic blocked the injection (Type Validation).
+2025-12-18 14:01:55,569 - [INFO] - [PASS] Safe: XSS Payload sanitized or encoded.
+2025-12-18 14:03:32,029 - [INFO] - [INFO] Victim created Job ID
+2025-12-18 14:03:34,076 - [INFO] - [PASS] Secure: Access Denied.
+2025-12-18 14:03:36,122 - [INFO] - [PASS] Safe: Server rejected request without explicit Authorization header.
+2025-12-18 14:03:38,161 - [INFO] - [PASS] Server headers are hidden.
+2025-12-18 14:03:38,163 - [INFO] - [INFO] Attempting to upload binary file to: http://localhost:8000/api/cover-letters/upload
+2025-12-18 14:03:40,207 - [INFO] - [PASS] Safe: Server correctly rejected the invalid file content.
+2025-12-18 14:03:42,665 - [INFO] - [PASS] Safe: Pydantic stripped unknown fields.
+2025-12-18 14:03:44,708 - [INFO] - [INFO] Logging out victim...
+2025-12-18 14:03:48,788 - [INFO] - [PASS] Secure: Token was successfully invalidated server-side.

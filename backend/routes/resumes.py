@@ -5,6 +5,7 @@ import tempfile
 import requests
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from utils.sanitize import sanitize_dict
 
 from mongo.resumes_dao import resumes_dao
 from mongo.jobs_dao import jobs_dao
@@ -22,7 +23,7 @@ async def add_resume(resume: Resume, uuid: str = Depends(authorize)):
         model = resume.model_dump()
 
         model["uuid"] = uuid
-        result = await resumes_dao.add_resume(model)
+        result = await resumes_dao.add_resume(uuid, model)
     except DuplicateKeyError:
         raise HTTPException(400, "Resume already exists") # FIXME: redundant since keys are generated uniquely?
     except Exception as e:
@@ -33,7 +34,7 @@ async def add_resume(resume: Resume, uuid: str = Depends(authorize)):
 @resumes_router.get("", tags = ["resumes"])
 async def get_resume(resume_id: str, uuid: str = Depends(authorize)):
     try:
-        result = await resumes_dao.get_resume(resume_id)
+        result = await resumes_dao.get_resume(resume_id, uuid)
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -92,7 +93,7 @@ async def add_feedback_to_shared_resume(token: str, feedback: ResumeFeedback):
             raise HTTPException(403, "Comments are not allowed for this shared resume")
 
         # Add feedback to the resume
-        model = feedback.model_dump()
+        model = sanitize_dict(feedback.model_dump())
         print(f"[DEBUG] Feedback model: {model}")
         model["resume_id"] = resume["_id"]  # Use the resume's _id, not the share's _id
         result = await resumes_dao.add_resume_feedback(model)
@@ -109,7 +110,7 @@ async def add_feedback_to_shared_resume(token: str, feedback: ResumeFeedback):
 async def update_resume(resume_id: str, resume: Resume, uuid: str = Depends(authorize)):
     try:
         model = resume.model_dump(exclude_unset = True)
-        updated = await resumes_dao.update_resume(resume_id, model)
+        updated = await resumes_dao.update_resume(resume_id, uuid, model)
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -121,7 +122,7 @@ async def update_resume(resume_id: str, resume: Resume, uuid: str = Depends(auth
 @resumes_router.delete("", tags = ["resumes"])
 async def delete_resume(resume_id: str, uuid: str = Depends(authorize)):
     try:
-        deleted = await resumes_dao.delete_resume(resume_id)
+        deleted = await resumes_dao.delete_resume(resume_id, uuid)
     except Exception as e:
         raise HTTPException(500, str(e))
 
