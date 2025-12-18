@@ -199,8 +199,8 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
           </div>
         )}
 
-        {/* UC-121: Response Time Tracking */}
-        {job.response_tracking?.responded_at && (
+        {/* UC-121: Response Time Tracking - Only show for Applied status and beyond */}
+        {job.status && job.status.toLowerCase() !== "interested" && job.response_tracking?.responded_at && (
           <div style={{
             fontSize: "11px",
             marginTop: "6px",
@@ -220,7 +220,7 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
           </div>
         )}
 
-        {job.response_tracking && !job.response_tracking.responded_at && (
+        {job.status && job.status.toLowerCase() !== "interested" && job.response_tracking && !job.response_tracking.responded_at && (
           <div style={{
             fontSize: "11px",
             marginTop: "6px",
@@ -407,8 +407,8 @@ export default function JobCard({ job, onView, onEdit, onDelete, onArchive, onRe
                 🤝 Request Referral
               </button>
 
-              {/* UC-121: Manual Response Date Entry */}
-              {job.response_tracking && !job.response_tracking.responded_at && (
+              {/* UC-121: Manual Response Date Entry - Only show for Applied status and beyond */}
+              {job.status && job.status.toLowerCase() !== "interested" && job.response_tracking && !job.response_tracking.responded_at && (
                 <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #eee" }}>
                   <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "6px", fontWeight: "600" }}>
                     📅 Set company response date:
