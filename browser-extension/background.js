@@ -1,28 +1,25 @@
-const DEFAULT_API_BASE = "https://cs-490-project-production.up.railway.app"; // TODO: adjust to your backend origin
+const API_BASE = "https://cs-490-project-production.up.railway.app"; // TODO: adjust to your backend origin
 
 async function getAuth() {
-  const data = await chrome.storage.local.get(["token", "uuid", "apiBase"]);
+  const data = await chrome.storage.local.get(["token", "uuid"]);
   return {
     token: data.token,
     uuid: data.uuid,
-    apiBase: data.apiBase || DEFAULT_API_BASE,
   };
 }
 
-async function setAuth(token, uuid, apiBase) {
-  const toStore = { token, uuid };
-  if (apiBase) toStore.apiBase = apiBase;
-  await chrome.storage.local.set(toStore);
-  console.log("[ext] Stored auth from webapp domain", { apiBase: toStore.apiBase });
+async function setAuth(token, uuid) {
+  await chrome.storage.local.set({ token, uuid });
+  console.log("[ext] Stored auth from webapp domain");
 }
 
 async function postApplication(payload) {
-  const { token, uuid, apiBase } = await getAuth();
+  const { token, uuid } = await getAuth();
   if (!token || !uuid) {
     throw new Error("Missing auth (token/uuid) in extension storage");
   }
 
-  const url = `${apiBase}/api/applications/import/extension`;
+  const url = `${API_BASE}/api/applications/import/extension`;
   console.log("[ext][bg] POST", url, payload);
   const resp = await fetch(url, {
     method: "POST",
