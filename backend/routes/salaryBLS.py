@@ -11,7 +11,7 @@ import httpx
 import os
 
 from sessions.session_authorizer import authorize
-from mongo.salaryBLS_dao import SalaryBLSDAO
+from mongo.salaryBLS_dao import salaryBLS_dao
 
 salaryBLS_router = APIRouter(prefix="/salaryBLS")
 
@@ -186,7 +186,7 @@ async def search_salary_data(
         state = request.state.strip() if request.state else None
         
         # Check cache first
-        cached_data = await SalaryBLSDAO.get_salary_data(job_title, city, state)
+        cached_data = await salaryBLS_dao.get_salary_data(job_title, city, state)
         
         # If cached data exists and is less than 1 month old, return it
         if cached_data:
@@ -229,13 +229,13 @@ async def search_salary_data(
         # Store or update in database
         if cached_data:
             # Update existing entry
-            await SalaryBLSDAO.update_salary_data(
+            await salaryBLS_dao.update_salary_data(
                 cached_data["_id"] if "_id" in cached_data else cached_data.get("id"),
                 salary_data
             )
         else:
             # Create new entry
-            await SalaryBLSDAO.create_salary_data(salary_data)
+            await salaryBLS_dao.create_salary_data(salary_data)
         
         return SalaryResponse(
             job_title=job_title,
@@ -265,7 +265,7 @@ async def get_recent_searches(
     Get recent salary searches (most recently updated)
     """
     try:
-        recent = await SalaryBLSDAO.get_recent_searches(limit)
+        recent = await salaryBLS_dao.get_recent_searches(limit)
         
         return {
             "searches": [
@@ -295,7 +295,7 @@ async def search_by_title(
     Get all cached salary data for a specific job title across different cities
     """
     try:
-        results = await SalaryBLSDAO.search_by_job_title(job_title)
+        results = await salaryBLS_dao.search_by_job_title(job_title)
         
         return {
             "job_title": job_title,
@@ -327,7 +327,7 @@ async def delete_cached_entry(
     Delete a cached salary entry (admin function)
     """
     try:
-        success = await SalaryBLSDAO.delete_salary_data(salary_id)
+        success = await salaryBLS_dao.delete_salary_data(salary_id)
         
         if success:
             return {"detail": "Cached entry deleted successfully"}
@@ -347,7 +347,7 @@ async def get_cache_stats(uuid: str = Depends(authorize)):
     Get statistics about cached salary data
     """
     try:
-        stats = await SalaryBLSDAO.get_stats()
+        stats = await salaryBLS_dao.get_stats()
         
         return {
             "total_entries": stats.get("total_entries", 0),

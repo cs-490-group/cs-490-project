@@ -12,7 +12,7 @@ class SalaryBLSDAO:
     
     def __init__(self):
         self.collection_name = "salaryBLS_data"
-        self.collection_name = db_client.get_collection(self.collection_name)
+        self.collection = db_client.get_collection(self.collection_name)
     
     async def get_salary_data(
         self, 
