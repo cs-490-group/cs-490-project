@@ -126,6 +126,7 @@ export default function ExperienceEditor({ experience, onUpdate }) {
                         className="form-control"
                         value={formData.company || ''}
                         onChange={(e) => handleFormChange('company', e.target.value)}
+                        aria-label="Company Name"
                       />
                     </div>
                     <div className="form-group">
@@ -135,6 +136,7 @@ export default function ExperienceEditor({ experience, onUpdate }) {
                         className="form-control"
                         value={formData.position || ''}
                         onChange={(e) => handleFormChange('position', e.target.value)}
+                        aria-label="Position Title"
                       />
                     </div>
                   </div>
@@ -146,6 +148,7 @@ export default function ExperienceEditor({ experience, onUpdate }) {
                         className="form-control"
                         value={formData.startDate || ''}
                         onChange={(e) => handleFormChange('startDate', e.target.value)}
+                        aria-label="Start Date"
                       />
                     </div>
                     <div className="form-group">
@@ -155,6 +158,7 @@ export default function ExperienceEditor({ experience, onUpdate }) {
                         className="form-control"
                         value={formData.endDate || ''}
                         onChange={(e) => handleFormChange('endDate', e.target.value)}
+                        aria-label="End Date"
                       />
                     </div>
                   </div>

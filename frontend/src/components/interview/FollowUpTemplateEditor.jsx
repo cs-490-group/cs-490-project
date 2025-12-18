@@ -67,6 +67,7 @@ function FollowUpTemplateEditor({
               onChange={(e) => setEditedSubject(e.target.value)}
               className="subject-input"
               placeholder="Email subject line..."
+              aria-label="Email Subject Line"
             />
           ) : (
             <div className="subject-preview">{editedSubject}</div>
