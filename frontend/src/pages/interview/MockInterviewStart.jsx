@@ -147,6 +147,7 @@ function MockInterviewStart() {
               value={selectedIndustry}
               onChange={handleIndustryChange}
               className="form-control"
+              aria-label="Select industry"
             >
               <option value="">-- Choose an industry --</option>
               {industries.map((industry) => (
@@ -167,6 +168,7 @@ function MockInterviewStart() {
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
               className="form-control"
+              aria-label="Select target role"
             >
               <option value="">-- Choose a role --</option>
               {roles.map((role) => (

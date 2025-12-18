@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useFlash } from "../context/flashContext";
 import AuthAPI from "../api/authentication";
 import "../styles/login.css";
-import logo from "../logo.svg.png";
+import posthog from 'posthog-js';
 
 const ResetPassword = () => {
   const { token } = useParams();
@@ -52,6 +52,7 @@ const ResetPassword = () => {
 
       localStorage.setItem("session", res.data.session_token);
       localStorage.setItem("uuid", res.data.uuid);
+      posthog.capture('password_reset', { user_id: res.data.uuid });
 
       navigate(`/dashboard`);
 
@@ -69,7 +70,15 @@ const ResetPassword = () => {
       <div className="login-page">
         <div className="login-card shadow">
           <div className="login-logo mb-3">
-            <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+            <img
+                src="/logo.svg.webp" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                crossOrigin="anonymous"
+                />
           </div>
           <p className="text-center text-muted">Loading...</p>
         </div>
@@ -82,7 +91,15 @@ const ResetPassword = () => {
       <div className="login-page">
         <div className="login-card shadow">
           <div className="login-logo mb-3">
-            <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+            <img
+                src="/logo.svg.webp" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                crossOrigin="anonymous"
+                />
           </div>
           <h2 className="fw-bold mb-3 text-center">Invalid Link</h2>
           <p className="text-muted mb-4 text-center">
@@ -97,7 +114,15 @@ const ResetPassword = () => {
     <div className="login-page">
       <div className="login-card shadow">
         <div className="login-logo mb-3">
-          <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+          <img
+                src="/logo.svg.webp" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                crossOrigin="anonymous"
+                />
         </div>
 
         <h2 className="fw-bold mb-3">Reset Password</h2>

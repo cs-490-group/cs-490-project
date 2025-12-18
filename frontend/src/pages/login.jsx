@@ -8,7 +8,7 @@ import { useMsal } from "@azure/msal-react";
 import AuthAPI from "../api/authentication";
 import teamsAPI from "../api/teams";
 import "../styles/login.css"; 
-import logo from "../logo.svg.png"; 
+import posthog from 'posthog-js';
 
 function Login() {
   const {
@@ -129,6 +129,7 @@ function Login() {
       if (teamId) {
         await acceptPendingInvite(teamId, res.data.email || data.email, res.data.uuid);
       }
+      posthog.capture('user_logged_in', { method: 'standard', uuid: res.data.uuid });
 
       navigate(`/dashboard`);
       return;
@@ -171,6 +172,8 @@ function Login() {
       if (teamId) {
         await acceptPendingInvite(teamId, res.data.email, res.data.uuid);
       }
+
+      posthog.capture('user_logged_in', { method: 'google', uuid: res.data.uuid });
 
       if (!res.data.has_password) {
         navigate("/set-password");
@@ -229,6 +232,8 @@ function Login() {
       if (teamId) {
         await acceptPendingInvite(teamId, res.data.email, res.data.uuid);
       }
+
+      posthog.capture('user_logged_in', { method: 'microsoft', uuid: res.data.uuid });
 
       if (!res.data.has_password) {
         navigate(`/set-password`);
@@ -352,7 +357,15 @@ function Login() {
     <div className="login-page">
       <div className="login-card shadow">
         <div className="login-logo mb-3">
-          <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+          <img
+                src="/logo.svg.webp" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                crossOrigin="anonymous"
+                />
         </div>
 
         <h2 className="fw-bold mb-3">Welcome Back</h2>

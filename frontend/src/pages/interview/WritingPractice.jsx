@@ -391,10 +391,9 @@ function WritingPractice() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
+              className={`btn ${activeTab === tab ? 'btn-primary' : 'btn-light'} rounded-top`}
               style={{
                 padding: '0.75rem 1.5rem',
-                background: activeTab === tab ? '#667eea' : 'transparent',
-                color: activeTab === tab ? 'white' : '#1f3a70',
                 border: 'none',
                 borderRadius: '6px 6px 0 0',
                 cursor: 'pointer',
@@ -452,19 +451,18 @@ function WritingPractice() {
                         </div>
                       </div>
                       <button
-                        onClick={() => handleStart(question)}
-                        disabled={isLoading}
-                        style={{
-                          padding: '0.5rem 1.5rem',
-                          background: isLoading ? '#ccc' : '#667eea',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: isLoading ? 'not-allowed' : 'pointer',
-                          fontWeight: '500',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
+                          onClick={() => handleStart(question)}
+                          disabled={isLoading}
+                          className={`btn ${isLoading ? "btn-secondary" : "btn-primary"}`} 
+                          style={{
+                            padding: '0.5rem 1.5rem',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: isLoading ? 'not-allowed' : 'pointer',
+                            fontWeight: '500',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
                         {isLoading ? 'Loading...' : 'Start Practice'}
                       </button>
                     </div>
@@ -565,16 +563,7 @@ function WritingPractice() {
                       <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e0e0e0' }}>
                         <p style={{ color: '#333', lineHeight: '1.6' }}>{exercise.instructions}</p>
                         <button
-                          style={{
-                            marginTop: '1rem',
-                            padding: '0.5rem 1.5rem',
-                            background: '#667eea',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontWeight: '500'
-                          }}
+                          className="btn btn-primary"
                         >
                           Start Exercise
                         </button>

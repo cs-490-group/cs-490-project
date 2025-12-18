@@ -297,7 +297,7 @@ export default function TemplateLibraryPage() {
         {/* Left Side: Template List */}
         <div className="template-list-panel">
           <div className="template-list-header-section">
-            <h3>Available Templates</h3>
+            <h2>Available Templates</h2>
             <button
               onClick={() => setShowImportModal(true)}
               className="btn btn-sm btn-success"
@@ -314,7 +314,7 @@ export default function TemplateLibraryPage() {
                 onClick={() => setSelectedTemplate(template)}
               >
                 <div className="template-list-header">
-                  <h4>{template.name}</h4>
+                  <h3>{template.name}</h3>
                   {template.is_default && <span className="badge bg-primary">Default</span>}
                 </div>
                 <p className="template-type-badge">{template.template_type}</p>

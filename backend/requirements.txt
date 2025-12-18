@@ -2,6 +2,7 @@ annotated-doc==0.0.3
 annotated-types==0.7.0
 anyio==4.11.0
 APScheduler==3.11.1
+axe_playwright_python==0.1.7
 bcrypt==5.0.0
 beautifulsoup4==4.14.2
 brotli==1.2.0

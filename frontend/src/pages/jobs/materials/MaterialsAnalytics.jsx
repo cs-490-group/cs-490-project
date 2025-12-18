@@ -3,6 +3,7 @@ import ResumesAPI from "../../../api/resumes";
 import CoverLetterAPI from "../../../api/coverLetters";
 import JobsAPI from "../../../api/jobs";
 import api from "../../../api/base";
+import posthog from "posthog-js";
 
 export default function MaterialsAnalytics() {
   const [resumes, setResumes] = useState([]);
@@ -91,6 +92,7 @@ export default function MaterialsAnalytics() {
         setCoverLetters(coverLetters.filter(c => getMaterialId(c) !== id));
       }
       alert('✅ Document deleted successfully!');
+      posthog.capture('material_deleted', { material_id: id, material_type: type });
     } catch (error) {
       console.error("Error deleting file:", error);
       alert("Failed to delete file. Please try again.");
@@ -413,16 +415,7 @@ export default function MaterialsAnalytics() {
                       <div style={{ display: "flex", gap: "4px", flexDirection: "column", marginLeft: "8px" }}>
                         <button
                           onClick={() => handleView(resume, 'resume')}
-                          style={{
-                            padding: "4px 8px",
-                            background: "#2196f3",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "10px",
-                            whiteSpace: "nowrap"
-                          }}
+                          className="btn btn-primary"
                         >
                           👁 View
                         </button>
@@ -546,16 +539,7 @@ export default function MaterialsAnalytics() {
                       <div style={{ display: "flex", gap: "4px", flexDirection: "column", marginLeft: "8px" }}>
                         <button
                           onClick={() => handleView(letter, 'coverLetter')}
-                          style={{
-                            padding: "4px 8px",
-                            background: "#2196f3",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "10px",
-                            whiteSpace: "nowrap"
-                          }}
+                          className="btn btn-primary"
                         >
                           👁 View
                         </button>

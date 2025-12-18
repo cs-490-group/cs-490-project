@@ -36,11 +36,19 @@ class OfferComparisonService:
         """
         salary_details = offer_data.get("offered_salary_details", {})
 
+        def _safe_float(value, default: float = 0.0) -> float:
+            if value is None or value == "":
+                return default
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return default
+
         # Parse base salary
-        base_salary = float(salary_details.get("base_salary", 0))
+        base_salary = _safe_float(salary_details.get("base_salary"), 0.0)
 
         # Parse signing bonus
-        signing_bonus = float(salary_details.get("signing_bonus", 0))
+        signing_bonus = _safe_float(salary_details.get("signing_bonus"), 0.0)
 
         # Parse annual bonus (can be percentage or dollar range)
         annual_bonus_str = salary_details.get("annual_bonus", "")
@@ -48,12 +56,12 @@ class OfferComparisonService:
 
         # Get equity values
         equity_details = salary_details.get("equity_details", {})
-        year_1_equity = float(equity_details.get("year_1_value", 0))
-        annual_equity = float(equity_details.get("annual_equity_value", 0))
+        year_1_equity = _safe_float(equity_details.get("year_1_value"), 0.0)
+        annual_equity = _safe_float(equity_details.get("annual_equity_value"), 0.0)
 
         # Get benefits value
         benefits_val = salary_details.get("benefits_valuation", {})
-        total_benefits = float(benefits_val.get("total_benefits_value", 0))
+        total_benefits = _safe_float(benefits_val.get("total_benefits_value"), 0.0)
 
         # Calculate totals
         year_1_total = base_salary + signing_bonus + bonus_expected + year_1_equity + total_benefits
@@ -232,29 +240,50 @@ class OfferComparisonService:
         - wellness_stipend
         - home_office_stipend
         """
-        health = float(benefits_data.get("health_insurance_value", 0))
-        dental_vision = float(benefits_data.get("dental_vision_value", 0))
-        life = float(benefits_data.get("life_insurance_value", 0))
-        disability = float(benefits_data.get("disability_insurance_value", 0))
-        hsa = float(benefits_data.get("hsa_contribution", 0))
-        commuter = float(benefits_data.get("commuter_benefits", 0))
-        education = float(benefits_data.get("education_stipend", 0))
-        wellness = float(benefits_data.get("wellness_stipend", 0))
-        home_office = float(benefits_data.get("home_office_stipend", 0))
+        def _safe_float(value, default: float = 0.0) -> float:
+            if value is None or value == "":
+                return default
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return default
+
+        def _safe_int(value, default: int = 0) -> int:
+            if value is None or value == "":
+                return default
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return default
+
+        base_salary = _safe_float(base_salary, 0.0)
+        pto_days = _safe_int(pto_days, 0)
+
+        health = _safe_float(benefits_data.get("health_insurance_value"), 0.0)
+        dental_vision = _safe_float(benefits_data.get("dental_vision_value"), 0.0)
+        life = _safe_float(benefits_data.get("life_insurance_value"), 0.0)
+        disability = _safe_float(benefits_data.get("disability_insurance_value"), 0.0)
+        hsa = _safe_float(benefits_data.get("hsa_contribution"), 0.0)
+        commuter = _safe_float(benefits_data.get("commuter_benefits"), 0.0)
+        education = _safe_float(benefits_data.get("education_stipend"), 0.0)
+        wellness = _safe_float(benefits_data.get("wellness_stipend"), 0.0)
+        home_office = _safe_float(benefits_data.get("home_office_stipend"), 0.0)
 
         # Calculate 401k match
-        retirement_str = benefits_data.get("retirement_401k_match", "0")
+        retirement_str = benefits_data.get("retirement_401k_match")
+        if retirement_str is None or retirement_str == "":
+            retirement_str = "0"
         if isinstance(retirement_str, str) and '%' in retirement_str:
             # Parse percentage (e.g., "6%")
-            match_pct = float(retirement_str.replace('%', '').strip())
-            retirement_match = base_salary * (match_pct / 100)
+            match_pct = _safe_float(retirement_str.replace('%', '').strip(), 0.0)
+            retirement_match = base_salary * (match_pct / 100.0)
         else:
-            retirement_match = float(retirement_str)
+            retirement_match = _safe_float(retirement_str, 0.0)
 
         # Calculate PTO monetary value
         # Assume 260 working days per year (52 weeks * 5 days)
-        daily_rate = base_salary / 260
-        pto_value = daily_rate * pto_days
+        daily_rate = (base_salary / 260.0) if base_salary else 0.0
+        pto_value = daily_rate * max(pto_days, 0)
 
         # Total
         total = (health + dental_vision + retirement_match + life + disability +
@@ -515,18 +544,26 @@ class OfferComparisonService:
         """Helper to calculate total comp without saving to DB"""
         salary_details = offer_data.get("offered_salary_details", {})
 
-        base_salary = float(salary_details.get("base_salary", 0))
-        signing_bonus = float(salary_details.get("signing_bonus", 0))
+        def _safe_float(value, default: float = 0.0) -> float:
+            if value is None or value == "":
+                return default
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return default
+
+        base_salary = _safe_float(salary_details.get("base_salary"), 0.0)
+        signing_bonus = _safe_float(salary_details.get("signing_bonus"), 0.0)
 
         annual_bonus_str = salary_details.get("annual_bonus", "")
         bonus_min, bonus_max, bonus_expected = self._parse_bonus(annual_bonus_str, base_salary)
 
         equity_details = salary_details.get("equity_details", {})
-        year_1_equity = float(equity_details.get("year_1_value", 0))
-        annual_equity = float(equity_details.get("annual_equity_value", 0))
+        year_1_equity = _safe_float(equity_details.get("year_1_value"), 0.0)
+        annual_equity = _safe_float(equity_details.get("annual_equity_value"), 0.0)
 
         benefits_val = salary_details.get("benefits_valuation", {})
-        total_benefits = float(benefits_val.get("total_benefits_value", 0))
+        total_benefits = _safe_float(benefits_val.get("total_benefits_value"), 0.0)
 
         year_1_total = base_salary + signing_bonus + bonus_expected + year_1_equity + total_benefits
         annual_total = base_salary + bonus_expected + annual_equity + total_benefits

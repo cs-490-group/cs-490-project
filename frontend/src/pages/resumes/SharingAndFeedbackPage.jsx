@@ -4,6 +4,7 @@ import ResumesAPI from '../../api/resumes';
 import AIAPI from '../../api/AI';
 import SharingControls from '../../components/resumes/SharingControls';
 import '../../styles/resumes.css';
+import posthog from 'posthog-js';
 
 export default function SharingAndFeedbackPage() {
   const { id } = useParams();
@@ -93,6 +94,7 @@ export default function SharingAndFeedbackPage() {
         resolved: false,
       };
       setFeedback([...feedback, comment]);
+      posthog.capture('resume_feedback_added', { resume_id: id });
       setNewComment('');
     } catch (err) {
       alert('Failed to add comment: ' + err.message);
@@ -171,6 +173,7 @@ export default function SharingAndFeedbackPage() {
 
       const result = res.data.response || res.data.result || res.data.text || "";
       setAnalysis(result);
+      posthog.capture('resume_feedback_analyzed', { resume_id: id });
     } catch (err) {
       console.error(err);
       alert("Failed to analyze feedback");

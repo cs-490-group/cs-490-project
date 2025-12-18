@@ -75,9 +75,9 @@ const AnalyticsPage = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="analyticsDashboard-main">
+        <div className="analyticsDashboard-main">
           {renderContent()}
-        </main>
+        </div>
       </div>
     </div>
   );

@@ -77,7 +77,7 @@ export default function SetupOrganization() {
                   <div className="bg-primary bg-opacity-10 p-3 rounded-circle d-inline-block mb-3 text-primary">
                     <Plus size={32} />
                   </div>
-                  <h3 className="fw-bold mb-2">Create Organization</h3>
+                  <h2 className="fw-bold mb-2">Create Organization</h2>
                   <p className="text-muted">Register a new institution or career services department.</p>
                   <Button variant="primary" className="fw-bold mt-3 w-100">Get Started</Button>
                 </Card.Body>
@@ -90,7 +90,7 @@ export default function SetupOrganization() {
                   <div className="bg-success bg-opacity-10 p-3 rounded-circle d-inline-block mb-3 text-success">
                     <UserPlus size={32} />
                   </div>
-                  <h3 className="fw-bold mb-2">Join Existing</h3>
+                  <h2 className="fw-bold mb-2">Join Existing</h2>
                   <p className="text-muted">Enter an invite code to join your team's organization.</p>
                   <Button variant="success" className="fw-bold mt-3 w-100">Join Now</Button>
                 </Card.Body>
@@ -106,7 +106,7 @@ export default function SetupOrganization() {
                  <Button variant="link" className="p-0 me-3 text-secondary text-decoration-none" onClick={() => setMode(null)}>
                     <ArrowLeft size={20}/>
                  </Button>
-                 <h3 className="fw-bold m-0">Create Organization</h3>
+                 <h2 className="fw-bold m-0">Create Organization</h2>
               </div>
               <Form onSubmit={handleCreate}>
                 <Form.Group className="mb-3">
@@ -144,7 +144,7 @@ export default function SetupOrganization() {
                  <Button variant="link" className="p-0 me-3 text-secondary text-decoration-none" onClick={() => setMode(null)}>
                     <ArrowLeft size={20}/>
                  </Button>
-                 <h3 className="fw-bold m-0">Join Organization</h3>
+                 <h2 className="fw-bold m-0">Join Organization</h2>
               </div>
               <Form onSubmit={handleJoin}>
                 <Form.Group className="mb-4">

@@ -36,30 +36,14 @@ export default function FilterBar({
           {!showArchived && (
             <button
               onClick={selectAllVisible}
-              style={{
-                padding: "6px 12px",
-                background: "#4f8ef7",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "12px",
-              }}
+              className="btn btn-primary"
             >
               ☑️ Select All Visible
             </button>
           )}
           <button
             onClick={clearAllFilters}
-            style={{
-              padding: "6px 12px",
-              background: "#ff3b30",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "12px",
-            }}
+            className="btn btn-danger"
           >
             Clear All
           </button>
@@ -77,12 +61,12 @@ export default function FilterBar({
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px" }}>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={inputStyle}>
+        <select value={statusFilter} aria-label="Filter by status" onChange={(e) => setStatusFilter(e.target.value)} style={inputStyle}>
           <option value="All">All Statuses</option>
           {stages.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
 
-        <select value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value)} style={inputStyle}>
+        <select value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value)} aria-label="Filter by industry" style={inputStyle}>
           <option value="All">All Industries</option>
           <option value="Technology">Technology</option>
           <option value="Finance">Finance</option>
@@ -104,7 +88,7 @@ export default function FilterBar({
           style={inputStyle}
         />
 
-        <select value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)} style={inputStyle}>
+        <select value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)} aria-label="Filter by job type" style={inputStyle}>
           <option value="All">All Types</option>
           <option value="Full-Time">Full-Time</option>
           <option value="Part-Time">Part-Time</option>
@@ -120,7 +104,7 @@ export default function FilterBar({
           style={inputStyle}
         />
 
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={inputStyle}>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort by" style={inputStyle}>
           <option value="dateAdded">Sort: Date Added</option>
           <option value="recentlyUpdated">Sort: Recently Updated</option>
           <option value="leastRecentlyUpdated">Sort: Least Recently Updated</option>

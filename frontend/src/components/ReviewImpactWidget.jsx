@@ -69,9 +69,9 @@ export default function ReviewImpactWidget({ teamId }) {
   return (
     <div className="card border-0 shadow-sm mb-4" style={{ background: "linear-gradient(to right, #ffffff, #f8f9fa)" }}>
       <div className="card-body p-4">
-        <h4 className="card-title fw-bold mb-4 d-flex align-items-center">
+        <h2 className="card-title fw-bold mb-4 d-flex align-items-center">
           {teamId ? "Team Review Impact" : "Review Impact Analysis"}
-        </h4>
+        </h2>
 
         <div className="row g-4 text-center">
           {/* Reviewed Stats */}

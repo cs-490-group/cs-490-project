@@ -4,6 +4,7 @@ import ExportOptions from '../../components/resumes/ExportOptions';
 import PDFAPI from '../../api/pdf';
 import resumesAPI from '../../api/resumes';
 import '../../styles/resumes.css';
+import posthog from 'posthog-js';
 
 /**
  * ExportResumePage Component
@@ -105,6 +106,7 @@ export default function ExportResumePage() {
       }
 
       downloadFile(fileBlob, filename);
+      posthog.capture('resume_exported', { resume_id: id, format: selectedFormat });
     } catch (err) {
       setError(err.message || `Error exporting to ${selectedFormat.toUpperCase()}`);
       console.error('Export error:', err);

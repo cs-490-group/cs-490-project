@@ -371,14 +371,7 @@ return empty list (no solution found)`}
           }}>
             <h3 style={{ marginTop: 0 }}>Data Structure Review</h3>
             <p>Refresh on Arrays, Linked Lists, Trees, Graphs, and Hash Maps</p>
-            <button onClick={() => navigate("/technical-prep/coding")} style={{
-              padding: "8px 16px",
-              backgroundColor: "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer"
-            }}>
+            <button onClick={() => navigate("/technical-prep/coding")} className="btn btn-primary">
               Practice Coding →
             </button>
           </div>
@@ -391,14 +384,7 @@ return empty list (no solution found)`}
           }}>
             <h3 style={{ marginTop: 0 }}>System Design Practice</h3>
             <p>Learn to design large-scale systems and components</p>
-            <button onClick={() => navigate("/technical-prep/system-design")} style={{
-              padding: "8px 16px",
-              backgroundColor: "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer"
-            }}>
+            <button onClick={() => navigate("/technical-prep/system-design")} className="btn btn-primary">
               Explore Design →
             </button>
           </div>
@@ -411,14 +397,7 @@ return empty list (no solution found)`}
           }}>
             <h3 style={{ marginTop: 0 }}>Behavioral Practice</h3>
             <p>Master case studies and business problem-solving</p>
-            <button onClick={() => navigate("/technical-prep/case-study")} style={{
-              padding: "8px 16px",
-              backgroundColor: "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer"
-            }}>
+            <button onClick={() => navigate("/technical-prep/case-study")} className="btn btn-primary">
               Try Case Studies →
             </button>
           </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Clock, Target, AlertCircle, Award, Zap, ArrowUp, ArrowDown, Briefcase, Users, Download, Plus, CheckCircle, X } from 'lucide-react';
 import ApplicationWorkflowAPI from '../../api/applicationWorkflow';
 import JobsAPI from '../../api/jobs';
+import posthog from 'posthog-js';
 
 export default function AnalyticsDashboard() {
   const [funnel, setFunnel] = useState(null);
@@ -102,6 +103,7 @@ export default function AnalyticsDashboard() {
       setShowGoalModal(false);
       setNewGoal({ goal_type: 'applications_per_week', target_value: 10, description: '' });
       await loadAnalytics();
+      posthog.capture('goal_created', { goal_type: newGoal.goal_type });
     } catch (error) {
       console.error('Failed to create goal:', error);
       alert('Failed to create goal. Please try again.');
@@ -117,6 +119,7 @@ export default function AnalyticsDashboard() {
       });
       setEditingGoal(null);
       await loadAnalytics();
+      posthog.capture('goal_updated', { goal_id: editingGoal._id });
     } catch (error) {
       console.error('Failed to update goal:', error);
       alert('Failed to update goal. Please try again.');
@@ -128,6 +131,7 @@ export default function AnalyticsDashboard() {
       await ApplicationWorkflowAPI.deleteGoal(goalId);
       setShowDeleteConfirm(null);
       await loadAnalytics();
+      posthog.capture('goal_deleted', { goal_id: goalId });
     } catch (error) {
       console.error('Failed to delete goal:', error);
       alert('Failed to delete goal. Please try again.');
@@ -306,16 +310,7 @@ export default function AnalyticsDashboard() {
         <p style={{ color: '#666', marginBottom: '20px' }}>{error}</p>
         <button
           onClick={loadAnalytics}
-          style={{
-            padding: '12px 24px',
-            background: '#4f8ef7',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}
+          className="btn btn-primary"
         >
           Retry
         </button>
@@ -383,6 +378,7 @@ export default function AnalyticsDashboard() {
               background: 'white',
               fontWeight: '500'
             }}
+            aria-label="Select date range"
           >
             <option value="30">Last 30 Days</option>
             <option value="90">Last 90 Days</option>
@@ -509,6 +505,7 @@ export default function AnalyticsDashboard() {
                             borderRadius: '6px',
                             fontSize: '13px'
                           }}
+                          aria-label="Select goal type"
                         >
                           <option value="applications_per_week">Applications Per Week</option>
                           <option value="interview_rate">Interview Rate (%)</option>
@@ -572,16 +569,7 @@ export default function AnalyticsDashboard() {
                         </button>
                         <button
                           onClick={handleUpdateGoal}
-                          style={{
-                            padding: '8px 16px',
-                            background: '#4f8ef7',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            cursor: 'pointer'
-                          }}
+                          className="btn btn-primary"
                         >
                           Save
                         </button>
@@ -603,31 +591,13 @@ export default function AnalyticsDashboard() {
                           {isComplete && <CheckCircle size={24} color="#34c759" />}
                           <button
                             onClick={() => setEditingGoal(goal)}
-                            style={{
-                              padding: '6px 12px',
-                              background: '#4f8ef7',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              cursor: 'pointer'
-                            }}
+                            className="btn btn-primary"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => setShowDeleteConfirm(goal._id)}
-                            style={{
-                              padding: '6px 12px',
-                              background: '#ff3b30',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              cursor: 'pointer'
-                            }}
+                            className="btn btn-danger"
                           >
                             Delete
                           </button>
@@ -718,6 +688,7 @@ export default function AnalyticsDashboard() {
                     borderRadius: '6px',
                     fontSize: '14px'
                   }}
+                  aria-label="Select goal type"
                 >
                   <option value="applications_per_week">Applications Per Week</option>
                   <option value="interview_rate">Interview Rate (%)</option>
@@ -828,16 +799,7 @@ export default function AnalyticsDashboard() {
               </button>
               <button
                 onClick={() => handleDeleteGoal(showDeleteConfirm)}
-                style={{
-                  padding: '10px 20px',
-                  background: '#ff3b30',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
+                className="btn btn-danger"
               >
                 Delete
               </button>

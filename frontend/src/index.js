@@ -10,16 +10,27 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import { msalConfig } from "./tools/msal";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
+import posthog from 'posthog-js';
 
  // Sentry monitoring going up.
-
+ 
 Sentry.init({
   dsn: process.env.REACT_APP_SENTRY_DSN,
   environment: process.env.NODE_ENV,
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 0.1,
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
 });
+
+
+posthog.init(process.env.REACT_APP_POSTHOG_KEY, {
+    api_host: 'https://us.i.posthog.com',
+    person_profiles: 'identified_only', 
+    cookieless_mode: 'on_reject',
+    autocapture: true,
+});
+
+window.posthog = posthog;
 
 
 const PCA = new PublicClientApplication(msalConfig);
@@ -48,4 +59,13 @@ root.render(
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+
+
+requestAnimationFrame(() => {
+  const loader = document.getElementById('initial-loader');
+  if (loader) {
+    loader.style.display = 'none'; 
+  }
+});
+
 reportWebVitals();

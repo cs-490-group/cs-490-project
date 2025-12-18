@@ -5,6 +5,7 @@ import NetworksAPI from "../../api/network";
 import NetworkEventForm from "./NetworkEventForm";
 import { formatLocalDate, formatLocalDateTime, toLocalDate, isToday, getLocalDay, getLocalMonth, getLocalYear, toUTCDate } from "../../utils/dateUtils";
 import "./network.css";
+import posthog from 'posthog-js';
 
 export default function NetworkEventManagement() {
     const [events, setEvents] = useState([]);
@@ -252,6 +253,7 @@ export default function NetworkEventManagement() {
             await fetchEvents();
             setShowModal(false);
             resetForm();
+            posthog.capture(editing ? 'network_event_updated' : 'network_event_created', { event_name: formData.event_name });
         } catch (error) {
             console.error("Error saving event:", error);
         }
@@ -292,6 +294,7 @@ export default function NetworkEventManagement() {
             try {
                 await NetworkEventsAPI.delete(event._id);
                 await fetchEvents();
+                posthog.capture('network_event_deleted', { event_name: event.event_name });
             } catch (error) {
                 console.error("Failed to delete event:", error);
             }
@@ -631,6 +634,7 @@ export default function NetworkEventManagement() {
                             <div className="filter-group">
                                 <Form.Select
                                     name="event_type"
+                                    aria-label="Filter by Event Type"
                                     value={filterText.event_type}
                                     onChange={handleFilterChange}
                                     className="filter-input"
@@ -650,6 +654,7 @@ export default function NetworkEventManagement() {
                                     value={filterText.industry}
                                     onChange={handleFilterChange}
                                     className="filter-input"
+                                    aria-label="Filter by Industry"
                                 >
                                     <option value="">All Industries</option>
                                     <option value="Technology">Technology</option>

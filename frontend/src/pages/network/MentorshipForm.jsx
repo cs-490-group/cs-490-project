@@ -89,6 +89,7 @@ export default function MentorshipForm({
                                 <Form.Select
                                     value={formData.status}
                                     onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                    aria-label="select status"
                                 >
                                     <option value="active">Active</option>
                                     <option value="completed">Completed</option>

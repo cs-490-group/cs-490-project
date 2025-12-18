@@ -185,6 +185,7 @@ const TimeTracking = () => {
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(Number(e.target.value))}
             className="time-period-select"
+            aria-label="Select time period"
           >
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>

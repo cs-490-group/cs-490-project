@@ -70,17 +70,17 @@ const TechnicalPrepHome = () => {
     return filtered;
   };
 
-  const getDifficultyColor = (difficulty) => {
-    const colors = {
-      easy: "#10b981",
-      medium: "#f59e0b",
-      hard: "#ef4444",
-      junior: "#10b981",
-      senior: "#ef4444",
-      architect: "#8b5cf6"
-    };
-    return colors[difficulty] || "#6b7280";
+  const getDifficultyClass = (difficulty) => {
+  const classes = {
+    easy: "bg-success",    
+    medium: "bg-warning text-dark", 
+    hard: "bg-danger",    
+    junior: "bg-success",
+    senior: "bg-danger",
+    architect: "bg-primary" 
   };
+  return classes[difficulty] || "bg-secondary";
+};
 
   const getDifficultyBadge = (difficulty) => {
     const badges = {
@@ -268,17 +268,7 @@ const TechnicalPrepHome = () => {
                     };
                     navigate(typeMap[type]);
                   }}
-                  style={{
-                    padding: "12px",
-                    backgroundColor: "#3b82f6",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "0.9rem",
-                    fontWeight: "600",
-                    transition: "all 0.3s"
-                  }}
+                  className="btn btn-primary"
                   onMouseOver={(e) => e.target.style.backgroundColor = "#2563eb"}
                   onMouseOut={(e) => e.target.style.backgroundColor = "#3b82f6"}
                 >
@@ -325,7 +315,7 @@ const TechnicalPrepHome = () => {
       <div className="filters-section">
         <div className="filter-group">
           <label>Challenge Type:</label>
-          <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
+          <select value={selectedType} aria-label="Select Challenge Type" onChange={(e) => setSelectedType(e.target.value)}>
             <option value="all">All Types</option>
             <option value="coding">Coding</option>
             <option value="system_design">System Design</option>
@@ -335,7 +325,7 @@ const TechnicalPrepHome = () => {
 
         <div className="filter-group">
           <label>Difficulty:</label>
-          <select value={selectedDifficulty} onChange={(e) => setSelectedDifficulty(e.target.value)}>
+          <select value={selectedDifficulty} aria-label="Select Difficulty Level" onChange={(e) => setSelectedDifficulty(e.target.value)}>
             <option value="all">All Levels</option>
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
@@ -353,10 +343,7 @@ const TechnicalPrepHome = () => {
               <div key={challenge._id} className="challenge-card">
                 <div className="challenge-header">
                   <h3>{challenge.title}</h3>
-                  <span
-                    className="difficulty-badge"
-                    style={{ backgroundColor: getDifficultyColor(challenge.difficulty) }}
-                  >
+                  <span className={`badge ${getDifficultyClass(challenge.difficulty)}`}>
                     {getDifficultyBadge(challenge.difficulty)}
                   </span>
                 </div>

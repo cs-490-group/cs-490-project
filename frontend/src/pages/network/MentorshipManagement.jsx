@@ -4,6 +4,7 @@ import MentorshipAPI from "../../api/mentorship";
 import MentorshipForm from "./MentorshipForm";
 import NetworksAPI from "../../api/network";
 import { formatLocalDate } from "../../utils/dateUtils";
+import posthog from 'posthog-js';
 
 const MentorshipManagement = () => {
     const [mentorships, setMentorships] = React.useState([]);
@@ -162,6 +163,7 @@ const MentorshipManagement = () => {
                 await MentorshipAPI.delete(mentorship._id);
                 await fetchMentorships();
                 setSuccess("Mentorship relationship deleted successfully");
+                posthog.capture('mentorship_deleted', { mentorship_id: mentorship._id });
                 setTimeout(() => setSuccess(""), 3000);
             } catch (error) {
                 console.error("Failed to delete mentorship:", error);
@@ -280,7 +282,7 @@ const MentorshipManagement = () => {
             <Row className="py-4">
                 <Col xs={12} className="mb-4">
                     <div className="filter-section">
-                        <h5 className="text-white mb-3">Filter Mentorships</h5>
+                        <h2 className="text-white mb-3">Filter Mentorships</h2>
                         <div className="filter-controls">
                             <div className="filter-group">
                                 <input
@@ -298,6 +300,7 @@ const MentorshipManagement = () => {
                                     value={filterText.status}
                                     onChange={handleFilterChange}
                                     className="filter-input"
+                                    aria-label="Filter by Status"
                                 >
                                     <option value="">All Statuses</option>
                                     <option value="active">Active</option>
@@ -312,6 +315,7 @@ const MentorshipManagement = () => {
                                     value={filterText.relationship_type}
                                     onChange={handleFilterChange}
                                     className="filter-input"
+                                    aria-label="Filter by Relationship Type"
                                 >
                                     <option value="">All Types</option>
                                     <option value="mentor">Mentor</option>
@@ -324,6 +328,7 @@ const MentorshipManagement = () => {
                                     value={filterText.meeting_frequency}
                                     onChange={handleFilterChange}
                                     className="filter-input"
+                                    aria-label="Filter by Meeting Frequency"
                                 >
                                     <option value="">All Frequencies</option>
                                     <option value="weekly">Weekly</option>

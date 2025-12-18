@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../../styles/goalModal.css";
+import posthog from 'posthog-js';
 
 const GoalModal = ({ goal = null, onSave, onCancel }) => {
   const isEdit = goal !== null;
@@ -56,6 +57,7 @@ const GoalModal = ({ goal = null, onSave, onCancel }) => {
       }));
       setNewMilestone("");
     }
+    posthog.capture('milestone_added', { milestone_name: newMilestone.trim() });
   };
 
   const handleRemoveMilestone = (index) => {
@@ -181,6 +183,7 @@ const GoalModal = ({ goal = null, onSave, onCancel }) => {
                 onChange={handleChange}
                 className="goal-form-select"
                 disabled={isSubmitting}
+                aria-label="Select goal type"
               >
                 <option value="short-term">Short-term</option>
                 <option value="long-term">Long-term</option>

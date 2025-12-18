@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CertificationsAPI from '../../api/certifications';
 import '../../styles/resumes.css';
+import posthog from 'posthog-js';
 
 /**
  * CertificationsEditor Component
@@ -45,6 +46,7 @@ export default function CertificationsEditor({ certifications, onUpdate }) {
       },
     ]);
     setEditingId(newId);
+    posthog.capture('certification_added', { certification_id: newId });
   };
 
   const handleEditCertification = (id) => {
@@ -68,6 +70,7 @@ export default function CertificationsEditor({ certifications, onUpdate }) {
       const updatedItems = items.filter((item) => item.id !== id);
       setItems(updatedItems);
       onUpdate(updatedItems);
+      posthog.capture('certification_deleted', { certification_id: id });
     }
   };
 
@@ -88,6 +91,7 @@ export default function CertificationsEditor({ certifications, onUpdate }) {
     };
     setItems([...items, newCertification]);
     onUpdate([...items, newCertification]);
+    posthog.capture('certification_imported', { certification_id: newId });
   };
 
   return (

@@ -777,18 +777,7 @@ function InterviewCalendar() {
                       <button
                         onClick={() => generateCompanyResearch(selectedInterview._id)}
                         disabled={researchGenerating}
-                        style={{
-                          padding: '12px 24px',
-                          background: '#667eea',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '8px',
-                          cursor: researchGenerating ? 'not-allowed' : 'pointer',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          opacity: researchGenerating ? 0.6 : 1,
-                          transition: 'all 0.3s ease'
-                        }}
+                        className="btn btn-primary"
                       >
                         {researchGenerating ? 'Generating Research...' : 'Generate Company Research'}
                       </button>
@@ -883,6 +872,7 @@ function InterviewCalendar() {
                   value={editFormData.location_type}
                   onChange={(e) => setEditFormData({...editFormData, location_type: e.target.value})}
                   style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  aria-label="Select Location Type"
                 >
                   <option value="video">Video</option>
                   <option value="phone">Phone</option>
@@ -898,6 +888,7 @@ function InterviewCalendar() {
                       value={editFormData.video_platform}
                       onChange={(e) => setEditFormData({...editFormData, video_platform: e.target.value})}
                       style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                      aria-label="Select Video Platform"
                     >
                       <option value="zoom">Zoom</option>
                       <option value="teams">Microsoft Teams</option>

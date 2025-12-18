@@ -281,16 +281,7 @@ export default function GoalSettingsModal({ show, memberUuid, teamId, onClose, o
           <button
             onClick={handleSave}
             disabled={loading}
-            style={{
-              padding: "8px 16px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: loading ? "not-allowed" : "pointer",
-              fontWeight: "600",
-              opacity: loading ? 0.6 : 1
-            }}
+            className="btn btn-primary"
           >
             {loading ? "Saving..." : "Save Goals"}
           </button>
