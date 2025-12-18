@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { Upload, Briefcase } from "lucide-react";
+import posthog from "posthog-js";
 
 const styles = ["formal", "creative", "technical", "modern", "casual"];
 const industries = [
@@ -454,6 +455,7 @@ export default function CoverLetterList() {
       }
       
       showFlash("Cover letter added!", "success");
+      posthog.capture("sample_cover_letter_added", { template_type: sample.id });
     } catch (err) {
       console.error("Failed to add sample:", err);
       showFlash("Failed to add cover letter.", "error");
@@ -531,6 +533,7 @@ export default function CoverLetterList() {
 
   return (
     <div>
+      <h1 className="visually-hidden">Cover Letters</h1>
       {editingLetter && (
         <CoverLetterForm
           editEntry={editingLetter}
@@ -589,22 +592,21 @@ export default function CoverLetterList() {
               />
               <label htmlFor="file-upload" style={{ display: "inline-block", flexShrink: 0 }}>
                 <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    padding: "10px 20px",
-                    background: uploading ? "#ccc" : "#2196f3",
-                    color: "white",
-                    borderRadius: "6px",
-                    cursor: uploading ? "not-allowed" : "pointer",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    whiteSpace: "nowrap",
-                    width: "fit-content",
-                    flexShrink: 0,
-                  }}
+                  className={`btn ${uploading ? "btn-secondary" : "btn-primary"}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      padding: "10px 20px",
+                      borderRadius: "6px",
+                      cursor: uploading ? "not-allowed" : "pointer",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      whiteSpace: "nowrap",
+                      width: "fit-content",
+                      flexShrink: 0,
+                    }}
                 >
                   <Upload size={18} />
                   {uploading ? "Uploading..." : "Upload HTML Template"}
@@ -627,44 +629,24 @@ export default function CoverLetterList() {
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
-                    <h4 style={{ margin: 0, flex: 1, minWidth: "150px" }}>{letter.title}</h4>
+                    <h3 style={{ margin: 0, flex: 1, minWidth: "150px" }}>{letter.title}</h3>
                     {letter.uploadedFile && (
-                      <span style={{ 
-                        fontSize: "11px", 
-                        padding: "2px 8px", 
-                        background: "#4caf50", 
-                        color: "white", 
-                        borderRadius: "3px" 
-                      }}>
-                        UPLOADED
-                      </span>
-                    )}
-                    {letter.usage_count > 0 && (
-                      <span style={{ 
-                        fontSize: "11px", 
-                        padding: "2px 8px", 
-                        background: "#2196f3", 
-                        color: "white", 
-                        borderRadius: "3px" 
-                      }}>
-                        Used {letter.usage_count}x
-                      </span>
-                    )}
-                     {/* Job Link Indicator */}
-                    {letter.job_id && (
-                        <span style={{ 
-                            fontSize: "11px", 
-                            padding: "2px 8px", 
-                            background: "#9c27b0", 
-                            color: "white", 
-                            borderRadius: "3px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px"
-                          }}>
-                            <Briefcase size={10} /> Linked to Job
-                          </span>
-                    )}
+                            <span className="badge bg-success ms-2">
+                              UPLOADED
+                            </span>
+                          )}
+
+                          {letter.usage_count > 0 && (
+                            <span className="badge bg-primary ms-2">
+                              Used {letter.usage_count}x
+                            </span>
+                          )}
+
+                          {letter.job_id && (
+                            <span className="badge bg-info text-white ms-2 d-inline-flex align-items-center gap-1">
+                              <Briefcase size={10} /> Linked to Job
+                            </span>
+                          )}
                   </div>
                   <iframe
                     ref={(el) => (iframeRefs.current[letter.id] = el)}
@@ -676,39 +658,39 @@ export default function CoverLetterList() {
                   <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
                     <button
                       onClick={() => navigate(`/cover-letter/edit/${letter.id}`)}
-                      style={{ padding: "6px 12px", background: "#ffa500", color: "white", border: "none", borderRadius: "4px" }}
-                    >
+                      className="btn btn-warning text-white"
+                        >
                       Edit
                     </button>
                     {/* Add to Job Button */}
                     <button
                         onClick={() => handleJobAdd(letter.id)}
-                        style={{ padding: "6px 12px", background: "#009688", color: "white", border: "none", borderRadius: "4px" }}
+                        className="btn btn-success"
                         title="Link to a Job"
                     >
                         {letter.job_id ? "Change Job Link" : "Link to Job"}
                     </button>
                     <button
                       onClick={() => handleDelete(letter.id)}
-                      style={{ padding: "6px 12px", background: "#f44336", color: "white", border: "none", borderRadius: "4px" }}
+                      className="btn btn-danger"
                     >
                       Delete
                     </button>
                     <button
                       onClick={() => handleDownloadPDF(letter.id, letter.title)}
-                      style={{ padding: "6px 12px", background: "#34c759", color: "white", border: "none", borderRadius: "4px" }}
+                      className="btn btn-success"
                     >
                       Download PDF
                     </button>
                     <button
                       onClick={() => handleDownloadDOCX(letter.id, letter.title)}
-                      style={{ padding: "6px 12px", background: "#9c27b0", color: "white", border: "none", borderRadius: "4px" }}
+                      className="btn btn-info text-white"
                     >
                       Download DOCX
                     </button>
                     <button
                       onClick={() => handleDownloadHTML(letter.id, letter.title)}
-                      style={{ padding: "6px 12px", background: "#007aff", color: "white", border: "none", borderRadius: "4px" }}
+                      className="btn btn-primary"
                       title="Download as HTML (can be re-uploaded)"
                     >
                       Download HTML
@@ -716,7 +698,7 @@ export default function CoverLetterList() {
 
                     <button
                       onClick={() => navigate(`/cover-letter/feedback/${letter.id}`)}
-                      style={{ padding: "6px 12px", background: "#9c27b0", color: "white", border: "none", borderRadius: "4px" }}
+                      className="btn btn-info text-white"
                     >
                       Share & Feedback
                     </button>
@@ -767,6 +749,7 @@ export default function CoverLetterList() {
                     appearance: "none",
                     textAlign: "center",
                   }}
+                  aria-label="Filter by Style"
                 >
                   <option value="">All</option>
                   {styles.map((s) => (
@@ -805,6 +788,7 @@ export default function CoverLetterList() {
                     appearance: "none",
                     textAlign: "center",
                   }}
+                  aria-label="Filter by Industry"
                 >
                   <option value="">All</option>
                   {industries.map((i) => (
@@ -843,6 +827,7 @@ export default function CoverLetterList() {
                     appearance: "none",
                     textAlign: "center",
                   }}
+                  aria-label="Sort by Usage"
                 >
                   <option value="">None</option>
                   <option value="most">Most Used</option>
@@ -856,7 +841,7 @@ export default function CoverLetterList() {
 
               return (
                 <div key={group.style || group.industry} style={{ color: "black", marginBottom: "30px" }}>
-                  <h3 style={{ textTransform: "capitalize", color: "white" }}>{group.style || group.industry}</h3>
+                  <h2 style={{ textTransform: "capitalize", color: "white" }}>{group.style || group.industry}</h2>
                   <div
                     style={{
                       display: "flex",
@@ -880,16 +865,9 @@ export default function CoverLetterList() {
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "10px" }}>
-                          <h4 style={{ margin: 0 }}>{sample.title}</h4>
+                          <h3 style={{ margin: 0 }}>{sample.title}</h3>
                           {sample.usage_count > 0 && (
-                            <span style={{ 
-                              fontSize: "11px", 
-                              padding: "2px 8px", 
-                              background: "#ff9800", 
-                              color: "white", 
-                              borderRadius: "3px",
-                              whiteSpace: "nowrap"
-                            }}>
+                            <span className="badge bg-warning text-dark">
                               {sample.usage_count}x used
                             </span>
                           )}
@@ -909,15 +887,7 @@ export default function CoverLetterList() {
                         />
                         <button
                           onClick={() => handleAddSample(sample)}
-                          style={{
-                            marginTop: "10px",
-                            padding: "6px 12px",
-                            background: "#4f8ef7",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            alignSelf: "center",
-                          }}
+                          className="btn btn-primary"
                         >
                           Use this sample
                         </button>

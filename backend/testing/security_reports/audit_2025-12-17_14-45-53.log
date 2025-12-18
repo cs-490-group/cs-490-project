@@ -1,0 +1,9 @@
+2025-12-17 14:45:53,063 - [INFO] - [INFO] Generated unique test accounts: attacker_1766000753@test.com, victim_1766000753@test.com
+2025-12-17 14:45:53,064 - [INFO] - [INFO] Setting up Attacker and Victim accounts...
+2025-12-17 14:45:55,078 - [INFO] - [INFO] Logged in as attacker_1766000753
+2025-12-17 14:45:56,521 - [INFO] - [INFO] Logged in as victim_1766000753
+2025-12-17 14:45:56,524 - [INFO] - [INFO] Attempting to upload binary file to: https://cs-490-project-production.up.railway.app/api/cover-letters/upload
+2025-12-17 14:45:57,094 - [INFO] - [PASS] Safe: Server correctly rejected the invalid file content.
+2025-12-17 14:45:57,869 - [INFO] - [PASS] Safe: Pydantic stripped unknown fields.
+2025-12-17 14:45:58,405 - [INFO] - [INFO] Logging out victim...
+2025-12-17 14:45:59,322 - [INFO] - [PASS] Secure: Token was successfully invalidated server-side.

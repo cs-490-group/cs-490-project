@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { InterviewScheduleAPI } from '../../api/interviewSchedule';
+import posthog from 'posthog-js';
 
 function CompleteInterview() {
   const { scheduleId } = useParams();
@@ -90,6 +91,7 @@ function CompleteInterview() {
       
       console.log('[CompleteInterview] Successfully completed interview');
       setMessage('Interview completed successfully!');
+      posthog.capture('interview_completed', { schedule_id: scheduleId, outcome: formData.outcome });
       
       setTimeout(() => {
         setShowFollowUpSuggestion(true);
@@ -129,15 +131,7 @@ function CompleteInterview() {
           <p>Interview not found</p>
           <button 
             onClick={() => navigate('/interview/calendar')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
+            className="btn btn-primary"
           >
             Back to Calendar
           </button>
@@ -460,17 +454,7 @@ function CompleteInterview() {
             
             <button
               onClick={() => navigate(`/interview/follow-up`)}
-              style={{
-                padding: '0.75rem 2rem',
-                background: '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '1rem',
-                marginTop: '1rem'
-              }}
+              className="btn btn-primary"
             >
               Generate Follow-Up Email
             </button>

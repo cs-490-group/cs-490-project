@@ -169,6 +169,7 @@ export default function ProjectForm({ addProject, editProject, cancelEdit }) {
                 value={status}
                 onChange={e => setStatus(e.target.value)}
                 required
+                aria-label="Select Status"
               >
                 <option value="" disabled>Select Status</option>
                 <option value="Planned">📅 Planned</option>
@@ -357,16 +358,7 @@ export default function ProjectForm({ addProject, editProject, cancelEdit }) {
           <button
             type="button"
             onClick={handleSubmit}
-            style={{
-              padding: "12px 24px",
-              background: "#4f8ef7",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "600"
-            }}
+            className="btn btn-primary"
           >
             {editProject ? "💾 Save Changes" : "➕ Add Project"}
           </button>

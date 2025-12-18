@@ -120,7 +120,7 @@ export default function EnterpriseDashboard() {
   );
 
   if (loading) return <div className="dashboard-gradient min-vh-100 d-flex align-items-center justify-content-center"><Spinner animation="border" variant="light" /></div>;
-  if (!data) return <div className="dashboard-gradient min-vh-100 d-flex align-items-center justify-content-center"><div className="bg-white p-5 rounded-4 text-center text-danger"><h3>Access Denied</h3></div></div>;
+  if (!data) return <div className="dashboard-gradient min-vh-100 d-flex align-items-center justify-content-center"><div className="bg-white p-5 rounded-4 text-center text-danger"><h1>Access Denied</h1></div></div>;
 
   const { analytics, organization } = data;
 
@@ -137,7 +137,7 @@ export default function EnterpriseDashboard() {
                             {logoUrl ? <img src={logoUrl} alt="Logo" style={{ height: "32px" }} /> : <Building size={32} className="text-dark" />}
                         </div>
                         <div>
-                            <h2 className="fw-bold mb-0 text-white" style={{ fontFamily: '"Playfair Display", serif' }}>{organization.name}</h2>
+                            <h1 className="fw-bold mb-0 text-white" style={{ fontFamily: '"Playfair Display", serif' }}>{organization.name}</h1>
                             <p className="mb-0 opacity-75 small">Enterprise Portal</p>
                         </div>
                     </div>
@@ -220,7 +220,7 @@ export default function EnterpriseDashboard() {
                             ].map((stat, idx) => (
                                 <Col md={3} key={idx}>
                                     <div className={`p-3 rounded-3 bg-${stat.color} bg-opacity-10 border border-${stat.color} border-opacity-25`}>
-                                        <h3 className={`fw-bold text-${stat.color} mb-0`}>{stat.value}</h3>
+                                        <h2 className={`fw-bold text-${stat.color} mb-0`}>{stat.value}</h2>
                                         <small className="text-muted fw-bold">{stat.label}</small>
                                     </div>
                                 </Col>
@@ -272,7 +272,7 @@ export default function EnterpriseDashboard() {
                                             <td>{c.students}</td>
                                             <td>
                                                 <div className="d-flex align-items-center gap-2">
-                                                    <ProgressBar now={c.placement_rate} style={{width: '60px', height: '6px'}} variant="success"/>
+                                                    <ProgressBar now={c.placement_rate} style={{width: '60px', height: '6px'}} variant="success" aria-label={`Placement rate for ${c.name}`}/>
                                                     <span className="small">{c.placement_rate}%</span>
                                                 </div>
                                             </td>
@@ -306,7 +306,7 @@ export default function EnterpriseDashboard() {
 
                 {activeTab === 'settings' && (
                     <Card className="border-danger shadow-sm rounded-4">
-                        <Card.Header className="bg-danger bg-opacity-10 border-0 pt-4 px-4"><h5 className="text-danger fw-bold m-0"><Trash2 size={20} className="me-2"/>Danger Zone</h5></Card.Header>
+                        <Card.Header className="bg-danger bg-opacity-10 border-0 pt-4 px-4"><h4 className="text-danger fw-bold m-0"><Trash2 size={20} className="me-2"/>Danger Zone</h4></Card.Header>
                         <Card.Body className="p-4">
                             <p className="text-muted">Permanently delete this organization.</p>
                             <Button variant="danger" onClick={handleDeleteOrg}>Delete Organization</Button>

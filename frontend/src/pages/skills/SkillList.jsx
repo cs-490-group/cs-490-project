@@ -13,6 +13,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import SkillItem from "./SkillItem";
 import SkillsAPI from "../../api/skills";
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
+import posthog from 'posthog-js';
 
 export default function SkillList() {
   const [skills, setSkills] = useState([]);
@@ -65,6 +66,7 @@ export default function SkillList() {
         const newSkill = { ...skillData, id: res.data.skill_id };
         setSkills([...skills, newSkill]);
       }
+      posthog.capture('skill_added', { skill_id: res.data.skill_id, category: skill.category });
     } catch (error) {
       console.error("Failed to add skill:", error);
       alert(error.response?.data?.detail || "Failed to add skill. Please try again.");
@@ -78,6 +80,7 @@ export default function SkillList() {
       setSkills((prev) =>
         prev.map((s) => (s.id === id ? { ...s, ...updatedFields } : s))
       );
+      posthog.capture('skill_updated', { skill_id: id, updated_fields: Object.keys(updatedFields) });
     } catch (error) {
       console.error("Failed to update skill:", error);
       alert(error.response?.data?.detail || "Failed to update skill. Please try again.");
@@ -91,6 +94,7 @@ export default function SkillList() {
       await SkillsAPI.delete(id);
 
       setSkills((prev) => prev.filter((s) => s.id !== id));
+      posthog.capture('skill_deleted', { skill_id: id });
     } catch (error) {
       console.error("Failed to delete skill:", error);
       alert(error.response?.data?.detail || "Failed to delete skill. Please try again.");
@@ -243,6 +247,7 @@ export default function SkillList() {
             borderRadius: "6px",
             boxSizing: "border-box"
           }}
+          aria-label="Search Skills"
         />
       </div>
 

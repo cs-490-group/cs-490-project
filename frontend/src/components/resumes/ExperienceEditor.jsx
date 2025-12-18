@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import EmploymentAPI from '../../api/employment';
 import '../../styles/resumes.css';
+import posthog from 'posthog-js';
 
 /**
  * ExperienceEditor Component
@@ -45,6 +46,7 @@ export default function ExperienceEditor({ experience, onUpdate }) {
       },
     ]);
     setEditingId(newId);
+    posthog.capture('experience_added', { experience_id: newId });
   };
 
   const handleEditExperience = (id) => {
@@ -96,6 +98,7 @@ export default function ExperienceEditor({ experience, onUpdate }) {
     };
     setItems([...items, newExperience]);
     onUpdate([...items, newExperience]);
+    posthog.capture('experience_imported', { experience_id: newId });
   };
 
   return (

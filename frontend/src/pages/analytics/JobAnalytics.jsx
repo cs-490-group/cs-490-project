@@ -116,57 +116,15 @@ const JobAnalytics = () => {
     <div className="analyticsDashboard-content">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
         <h2 style={{ margin: 0 }}>Job Application Analytics</h2>
-        {activeTab === "overview" && (
-          <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} style={{
-            padding: "8px 12px", borderRadius: "6px", border: "1px solid #ddd", fontSize: "14px", cursor: "pointer"
-          }}>
-            <option value="all">All Time</option>
-            <option value="30days">Last 30 Days</option>
-            <option value="90days">Last 90 Days</option>
-            <option value="6months">Last 6 Months</option>
-            <option value="year">Last Year</option>
-          </select>
-        )}
-      </div>
-
-      {/* UC-121: Tab Navigation */}
-      <div style={{ display: "flex", gap: "0", borderBottom: "2px solid #ddd", marginBottom: "24px" }}>
-        <button
-          onClick={() => setActiveTab("overview")}
-          style={{
-            padding: "12px 24px",
-            background: activeTab === "overview" ? "#4f8ef7" : "transparent",
-            color: activeTab === "overview" ? "white" : "#666",
-            border: "none",
-            borderBottom: activeTab === "overview" ? "none" : "2px solid transparent",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "600",
-            borderTopLeftRadius: "6px",
-            borderTopRightRadius: "6px",
-            transition: "all 0.2s"
-          }}
-        >
-          Overview
-        </button>
-        <button
-          onClick={() => setActiveTab("response-times")}
-          style={{
-            padding: "12px 24px",
-            background: activeTab === "response-times" ? "#4f8ef7" : "transparent",
-            color: activeTab === "response-times" ? "white" : "#666",
-            border: "none",
-            borderBottom: activeTab === "response-times" ? "none" : "2px solid transparent",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "600",
-            borderTopLeftRadius: "6px",
-            borderTopRightRadius: "6px",
-            transition: "all 0.2s"
-          }}
-        >
-          📊 Response Times
-        </button>
+        <select value={dateRange} aria-label="Select date range" onChange={(e) => setDateRange(e.target.value)} style={{
+          padding: "8px 12px", borderRadius: "6px", border: "1px solid #ddd", fontSize: "14px", cursor: "pointer"
+        }}>
+          <option value="all">All Time</option>
+          <option value="30days">Last 30 Days</option>
+          <option value="90days">Last 90 Days</option>
+          <option value="6months">Last 6 Months</option>
+          <option value="year">Last Year</option>
+        </select>
       </div>
 
       {/* Tab Content */}

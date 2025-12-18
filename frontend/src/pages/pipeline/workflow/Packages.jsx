@@ -489,6 +489,7 @@ export default function PackagesTab({
                   className="form-select form-select-sm"
                   value={pkgResume}
                   onChange={(e) => setPkgResume(e.target.value)}
+                  aria-label="Select resume"
                 >
                   <option value="">Select resume</option>
                   {resumes.map((r, i) => (
@@ -503,6 +504,7 @@ export default function PackagesTab({
                   className="form-select form-select-sm"
                   value={pkgCoverLetter}
                   onChange={(e) => setPkgCoverLetter(e.target.value)}
+                  aria-label="Select cover letter"
                 >
                   <option value="">None</option>
                   {coverLetters.map((c, i) => (
@@ -560,6 +562,7 @@ export default function PackagesTab({
               className="form-select"
               value={bulkPackageId}
               onChange={(e) => setBulkPackageId(e.target.value)}
+              aria-label="Select package for bulk apply"
             >
               <option value="">Select Package</option>
               {packages.map((p, i) => (

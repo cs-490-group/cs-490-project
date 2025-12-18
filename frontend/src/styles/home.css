@@ -2,6 +2,13 @@
   --hero-gradient-start: #004d7a;
   --hero-gradient-mid: #008793;
   --hero-gradient-end: #00bf72;
+  --focus-ring-color: var(--hero-gradient-start, #004d7a);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring-color);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 body {
@@ -30,6 +37,16 @@ body {
   padding: 3rem 1rem;
   position: relative;
   overflow: hidden;
+}
+
+.home-hero :focus-visible {
+  outline-color: #ffffff;
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid CanvasText;
+  }
 }
 
 /* Logo */

@@ -1,3 +1,6 @@
+/* ==========================================================================
+   1. STANDARD REACT DEFAULTS
+   ========================================================================== */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -10,4 +13,281 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* ==========================================================================
+   2. GLOBAL ACCESSIBILITY & FOCUS
+   ========================================================================== */
+
+/* High-visibility Focus Ring for Keyboard Users */
+:focus-visible {
+  outline: 3px solid #004d7a !important; 
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Hide focus outline for mouse users (clicks) */
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* High Contrast Mode Support */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid CanvasText;
+  }
+}
+
+/* Skip Navigation Link (Best Practice) */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: white;
+  padding: 8px;
+  z-index: 9999;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* ==========================================================================
+   3. ACCESSIBILITY OMNI-FIX (CONTRAST & BADGES)
+   ========================================================================== */
+
+/* --- TEXT COLORS --- */
+/* Forces light blues to Brand Dark Blue (#004d7a) */
+[style*="rgb(79, 142, 247)"],
+[style*="rgb(33, 150, 243)"],
+[style*="rgb(102, 126, 234)"],
+[style*="rgb(0, 123, 255)"],
+body .text-primary, 
+body a.text-primary,
+body .card-title-link,
+body .text-info,
+body small.text-info {
+  color: #004d7a !important; 
+}
+
+/* Forces oranges to High-Contrast Dark Brown */
+[style*="rgb(245, 158, 11)"],
+[style*="rgb(255, 152, 0)"],
+body .text-warning,
+h5[style*="rgb(245, 158, 11)"] {
+  color: #7c2d12 !important; 
+}
+
+/* Forces grey text to be darker */
+[style*="color: rgb(156, 163, 175)"],
+.text-muted {
+  color: #4b5563 !important; 
+}
+
+/* --- BUTTONS --- */
+/* Blue Buttons (Primary/Info) */
+button[style*="background: rgb(33, 150, 243)"],
+button[style*="background: rgb(0, 123, 255)"], 
+button[style*="background: rgb(59, 130, 246)"],
+body .btn-primary, 
+body .btn-info,
+.goal-add-button {
+  background-color: #005e9e !important;
+  border-color: #004d7a !important;
+  color: #ffffff !important;
+}
+
+/* Green Buttons (Success) */
+body .btn-success {
+  background-color: #15803d !important;
+  border-color: #14532d !important;
+  color: #ffffff !important;
+}
+
+/* Red Buttons (Danger/Delete) */
+body .btn-danger,
+body button[style*="rgb(229, 57, 53)"],
+body .delete-account p { 
+  background-color: #d32f2f !important;
+  color: #ffffff !important;
+}
+
+/* Light/Upload Buttons */
+body .upload-btn {
+  color: #000000 !important;
+  border: 1px solid #ccc;
+}
+
+/* --- BADGES (Crucial for Network/Teams Pages) --- */
+.badge.bg-info {
+  background-color: #0891b2 !important; /* Dark Teal */
+  color: white !important;
+}
+.badge.bg-success {
+  background-color: #15803d !important; /* Dark Green */
+  color: white !important;
+}
+.badge.bg-warning {
+  background-color: #fed7aa !important; /* Darker orange background */
+  color: #7c2d12 !important; /* Dark Text */
+}
+
+/* --- COMPONENT SPECIFIC --- */
+.analyticsDashboard-navButton.active {
+  background: #ffffff !important;
+  color: #005e9e !important;
+  font-weight: 700;
+}
+
+.analyticsDashboard-subtitle {
+  opacity: 1 !important; 
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+.section-title {
+  color: #333 !important; 
+  font-weight: 700 !important;
+}
+
+span[style*="rgb(79, 142, 247)"] {
+  background-color: #005e9e !important; /* Dark Blue */
+  color: #ffffff !important;
+}
+
+button[style*="rgb(52, 199, 89)"] {
+  background-color: #15803d !important; /* Dark Green */
+  color: #ffffff !important;
+}
+
+div[style*="rgb(227, 242, 253)"] {
+  background-color: #e0f2fe !important;
+  color: #0c4a6e !important; /* Darker Text for contrast */
+  border: 1px solid #0c4a6e; /* Border for extra visibility */
+}
+
+.btn-outline-info {
+  color: #005e9e !important;
+  border-color: #005e9e !important;
+}
+.btn-outline-info:hover {
+  background-color: #005e9e !important;
+  color: #fff !important;
+}
+
+.category-button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.industry-card-button {
+  width: 100%;
+  height: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================================================
+   4. ENHANCED ACCESSIBILITY FEATURES
+   ========================================================================== */
+
+/* Focus styles for all interactive elements */
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #004d7a !important;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Button hover states */
+body .btn-primary:hover,
+body .btn-info:hover,
+.goal-add-button:hover {
+  background-color: #004d7a !important;
+}
+
+body .btn-success:hover {
+  background-color: #14532d !important;
+}
+
+body .btn-danger:hover {
+  background-color: #b91c1c !important;
+}
+
+/* Interactive element hover states */
+.category-button:hover,
+.industry-card-button:hover {
+  opacity: 0.8;
+}
+
+.category-button[aria-pressed="true"] {
+  background-color: #e0f2fe;
+  font-weight: 600;
+}
+
+/* Active feedback */
+button:active,
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* Minimum touch target size (44x44px) */
+button,
+a,
+input[type="checkbox"],
+input[type="radio"] {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  button:active,
+  .btn:active {
+    transform: none;
+  }
 }

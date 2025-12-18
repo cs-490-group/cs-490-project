@@ -81,6 +81,7 @@ function MyPractice() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
+            aria-label="Filter practice questions"
           >
             <option value="all">All Questions ({practiceHistory.length})</option>
             <option value="practiced">
@@ -99,7 +100,7 @@ function MyPractice() {
         {/* Sort */}
         <div className="sort-group">
           <label>Sort:</label>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort practice questions">
             <option value="recent">Most Recent</option>
             <option value="oldest">Oldest First</option>
           </select>

@@ -247,37 +247,14 @@ export default function StatusMonitoring() {
               setShowTimeline(true);
               if (jobs.length > 0) setTimelineApp(jobs[0]);
             }}
-            style={{
-              padding: '12px 24px',
-              background: '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '15px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
+            className="btn btn-primary"
           >
             <Calendar size={18} />
             Timeline View
           </button>
           <button
             onClick={() => setShowUpdateModal(true)}
-            style={{
-              padding: '12px 24px',
-              background: '#4f8ef7',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '15px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
+            className="btn btn-primary"
           >
             + Update Status
           </button>
@@ -352,6 +329,7 @@ export default function StatusMonitoring() {
               cursor: 'pointer',
               background: 'white'
             }}
+            aria-label="Sort by"
           >
             <option value="lastUpdate">Last Update</option>
             <option value="daysInStage">Days in Stage</option>
@@ -1150,19 +1128,7 @@ const ApplicationCard = ({ job, statusColors, statusIcons, onStatusUpdate, onVie
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '20px' }}>
       <button
         onClick={onViewTimeline}
-        style={{
-          padding: '8px 16px',
-          background: '#667eea',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontWeight: '600',
-          fontSize: '13px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}
+        className="btn btn-primary"
       >
         <Calendar size={14} />
         Timeline
@@ -1184,16 +1150,7 @@ const ApplicationCard = ({ job, statusColors, statusIcons, onStatusUpdate, onVie
       </button>
       <button
         onClick={onViewDetails}
-        style={{
-          padding: '8px 16px',
-          background: '#4f8ef7',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontWeight: '600',
-          fontSize: '13px'
-        }}
+        className="btn btn-primary"
       >
         Details
       </button>
@@ -1366,6 +1323,7 @@ onClick={(e) => e.stopPropagation()}
       <select
         value={selectedJobId}
         onChange={(e) => setSelectedJobId(e.target.value)}
+        aria-label="Select application"
         style={{
           width: '100%',
           padding: '10px',

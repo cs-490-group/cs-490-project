@@ -129,6 +129,7 @@ export default function NetworkEventForm({
                                 <Form.Select
                                     value={formData.industry}
                                     onChange={(e) => setFormData({...formData, industry: e.target.value})}
+                                    aria-label="Industry Select"
                                 >
                                     <option value="">Select Industry</option>
                                     <option value="Technology">Technology</option>

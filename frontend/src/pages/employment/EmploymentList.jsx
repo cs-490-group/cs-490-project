@@ -3,6 +3,7 @@ import EmploymentForm from "./EmploymentForm";
 import EmploymentAPI from "../../api/employment";
 import { useLocation } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
+import posthog from 'posthog-js';
 
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
@@ -69,6 +70,7 @@ export default function EmploymentList() {
     try {
       await EmploymentAPI.delete(id);
       setItems(items.filter(it => it.id !== id));
+      posthog.capture('employment_deleted', { employment_id: id });
     } catch (error) {
       console.error("Failed to delete employment:", error);
       alert(error.response?.data?.detail || "Failed to delete employment. Please try again.");
@@ -87,9 +89,11 @@ export default function EmploymentList() {
           const newEntry = { ...data, id: res.data.employment_id };
           setItems([newEntry, ...items]);
         }
+        posthog.capture('employment_added', { employment_id: data.id || res.data.employment_id });
       }
       setShowForm(false);
       setEditEntry(null);
+      
     } catch (error) {
       console.error("Failed to save employment:", error);
       alert(error.response?.data?.detail || "Failed to save employment. Please try again.");
@@ -197,16 +201,7 @@ export default function EmploymentList() {
             setShowForm(!showForm);
             setEditEntry(null);
           }}
-          style={{
-            padding: "12px 24px",
-            background: "#4f8ef7",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "14px"
-          }}
+          className="btn btn-primary"
         >
           {showForm ? "← Cancel" : "+ Add Employment"}
         </button>
@@ -316,14 +311,14 @@ export default function EmploymentList() {
                             marginBottom: "8px"
                           }}>
                             <div style={{ flex: 1 }}>
-                              <h3 style={{
+                              <h2 style={{
                                 margin: 0,
                                 fontSize: "18px",
                                 color: "#333",
                                 marginBottom: "4px"
                               }}>
                                 {it.title}
-                              </h3>
+                              </h2>
                               {it.company && (
                                 <p style={{
                                   margin: "4px 0",
@@ -408,16 +403,7 @@ export default function EmploymentList() {
                             </button>
                             <button
                               onClick={() => onDelete(it.id)}
-                              style={{
-                                padding: "8px 16px",
-                                background: "#ff3b30",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "13px",
-                                fontWeight: "600"
-                              }}
+                              className="btn btn-danger"
                             >
                               🗑️ Delete
                             </button>

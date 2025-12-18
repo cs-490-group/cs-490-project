@@ -11,7 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import MemberWorkReview from "../components/MemberWorkReview";
 import CoachingDashboard from "../components/coaching/CoachingDashboard";
 import ReviewImpactWidget from "../components/ReviewImpactWidget";
-import { Container, Row, Col, Card, Button, Nav, ProgressBar, Badge, Spinner, Table } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Nav, Badge, Spinner, Table } from 'react-bootstrap';
+import ProgressBar from "../components/AccessibleProgressBar";
 import '../styles/resumes.css';
 
 function TeamsDashboard() {
@@ -172,7 +173,7 @@ function TeamsDashboard() {
           <Col md={12}>
             <Card className="border-0 shadow-sm rounded-4">
               <Card.Header className="bg-white border-0 pt-4 px-4">
-                <h4 className="fw-bold text-dark">Team Goals</h4>
+                <h2 className="fw-bold text-dark">Team Goals</h2>
               </Card.Header>
               <Card.Body className="px-4 pb-4">
                 <Row className="g-4 text-center">
@@ -200,7 +201,7 @@ function TeamsDashboard() {
               <Col lg={7}>
                 <Card className="border-0 shadow-sm rounded-4 h-100">
                   <Card.Header className="bg-white border-0 pt-4 px-4">
-                      <h4 className="fw-bold text-dark">Team Performance</h4>
+                      <h2 className="fw-bold text-dark">Team Performance</h2>
                   </Card.Header>
                   <Card.Body className="p-4">
                     <div className="d-flex flex-column gap-3">
@@ -213,8 +214,13 @@ function TeamsDashboard() {
                             </div>
                             <span className="fw-bold text-primary">{member.progress}%</span>
                           </div>
-                          <ProgressBar now={member.progress} variant="primary" style={{height: '6px'}} className="mb-3" />
-                          
+                          <ProgressBar 
+                              now={member.progress} 
+                              variant="primary" 
+                              style={{height: '6px'}} 
+                              className="mb-3" 
+                              aria-label={`Progress for ${member.name}: ${member.progress}% complete`}
+                            /> 
                           <Row className="g-2">
                               <Col><Badge bg="success" className="w-100 py-2 fw-normal">Success: {member.applications.successRate}%</Badge></Col>
                               <Col><Badge bg="primary" className="w-100 py-2 fw-normal">Interview: {member.applications.interviewRate}%</Badge></Col>
@@ -244,7 +250,7 @@ function TeamsDashboard() {
     <Card className="border-0 shadow-sm rounded-4">
         <Card.Body className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="fw-bold m-0">Team Members</h3>
+                <h2 className="fw-bold m-0">Team Members</h2>
                 {isAdmin() && (
                     <div className="d-flex gap-2">
                         <input 
@@ -258,6 +264,7 @@ function TeamsDashboard() {
                             value={newInvite.role}
                             onChange={e => setNewInvite({...newInvite, role: e.target.value})}
                             style={{width: '120px'}}
+                            aria-label="Select role for new invite"
                         >
                             <option value="candidate">Candidate</option>
                             <option value="mentor">Mentor</option>
@@ -284,7 +291,7 @@ function TeamsDashboard() {
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
-                    <select className="form-select" style={{width: '200px'}} value={filterRole} onChange={e => setFilterRole(e.target.value)}>
+                    <select className="form-select" aria-label="Filter by role" style={{width: '200px'}} value={filterRole} onChange={e => setFilterRole(e.target.value)}>
                         <option value="all">All Roles</option>
                         <option value="candidate">Candidates</option>
                         <option value="mentor">Mentors</option>
@@ -306,7 +313,7 @@ function TeamsDashboard() {
                                 <Card.Body>
                                     <div className="d-flex justify-content-between mb-3">
                                         <div>
-                                            <h5 className="fw-bold mb-1">{member.name} {isMe && "(You)"}</h5>
+                                            <h3 className="fw-bold mb-1">{member.name} {isMe && "(You)"}</h3>
                                             <Badge bg="secondary" className="text-uppercase">{member.role}</Badge>
                                         </div>
                                         <div className="d-flex gap-1">
@@ -343,8 +350,14 @@ function TeamsDashboard() {
                                                 <span>Progress</span>
                                                 <span>{progressData.progress}%</span>
                                             </div>
-                                            <ProgressBar now={progressData.progress} variant="success" style={{height: '6px'}} />
-                                        </div>
+                                            <ProgressBar 
+                                              now={progressData.progress} 
+                                              variant="success" 
+                                              style={{height: '6px'}} 
+                                              aria-label={`Progress for ${member.name}: ${progressData.progress}% complete`}
+          
+                                            />            
+                                            </div>
                                     )}
 
                                     <div className="d-flex flex-column gap-2">
@@ -387,7 +400,7 @@ function TeamsDashboard() {
             {selectedMember && (
                 <div className="mt-4 p-4 border rounded-3 bg-light" style={{position: 'relative'}}>
                     <div className="d-flex justify-content-between align-items-center mb-4">
-                        <h3 className="fw-bold m-0">Managing: {selectedMember.name}</h3>
+                        <h2 className="fw-bold m-0">Managing: {selectedMember.name}</h2>
                         <Button variant="outline-secondary" onClick={() => setSelectedMember(null)}>Close</Button>
                     </div>
                     
@@ -414,7 +427,7 @@ function TeamsDashboard() {
                         {/* RIGHT COLUMN: Feedback */}
                         <Col lg={5}>
                              <div className="bg-white p-4 rounded-3 border">
-                                <h5 className="fw-bold mb-3">Feedback History</h5>
+                                <h3 className="fw-bold mb-3">Feedback History</h3>
                                 <div className="list-group mb-3">
                                     {selectedMember.feedback?.map((fb, i) => (
                                         <div key={i} className="list-group-item">
@@ -543,11 +556,12 @@ function TeamsDashboard() {
         <Card className="border-0 shadow-sm rounded-4 mb-4">
             <Card.Header className="bg-white border-0 pt-4 px-4">
                  <div className="d-flex justify-content-between align-items-center">
-                    <h4 className="fw-bold text-dark mb-0">Subscription Status</h4>
+                    <h2 className="fw-bold text-dark mb-0">Subscription Status</h2>
                     <Badge bg="success" className="px-3 py-2">ACTIVE</Badge>
                  </div>
             </Card.Header>
             <Card.Body className="p-4">
+              <h2 className="fw-bold mb-4">Available Plans</h2>
                  <Row className="g-4">
                      <Col md={6}>
                          <div className="p-3 bg-light rounded-3">
@@ -606,7 +620,7 @@ function TeamsDashboard() {
         {/* Invoice History */}
         <Card className="border-0 shadow-sm rounded-4 mb-4">
             <Card.Header className="bg-white border-0 pt-4 px-4">
-                <h5 className="fw-bold mb-0">Invoice History</h5>
+                <h3 className="fw-bold mb-0">Invoice History</h3>
             </Card.Header>
             <Card.Body className="p-0">
                 <Table hover className="mb-0 align-middle">
@@ -638,7 +652,7 @@ function TeamsDashboard() {
         <Card className="border-danger shadow-sm rounded-4 bg-danger bg-opacity-10">
             <Card.Body className="p-4 d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 className="text-danger fw-bold mb-1">Cancel Subscription</h5>
+                    <h3 className="text-danger fw-bold mb-1">Cancel Subscription</h3>
                     <p className="text-danger text-opacity-75 mb-0 small">This will downgrade you to the free plan immediately.</p>
                 </div>
                 <Button variant="danger" onClick={handleCancelSubscription}>Cancel Plan</Button>
@@ -670,7 +684,7 @@ function TeamsDashboard() {
         {/* Header */}
         <div className="text-white mb-4">
             <h1 className="fw-bold display-4 mb-1" style={{ fontFamily: '"Playfair Display", serif' }}>
-                {team?.name}
+                {team?.name || "Team Dashboard"}
             </h1>
             <p className="opacity-75">Team Dashboard</p>
         </div>

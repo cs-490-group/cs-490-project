@@ -85,6 +85,7 @@ export default function SkillsOptimization({ resumeId, jobPosting, onApplySkills
                   (suggestions.optimization_score || 0) >= 75 ? 'success' :
                   (suggestions.optimization_score || 0) >= 50 ? 'warning' : 'danger'
                 }
+                aria-label="Skills Optimization Score"
               />
             </div>
 

@@ -29,6 +29,40 @@ class JobsDAO:
         updated = await self.collection.update_one({"_id": ObjectId(job_id)}, {"$set": data})
         return updated.matched_count
     
+    async def find_job_by_dedupe_key(self, uuid: str, dedupe_key: str) -> dict | None:
+        return await self.collection.find_one({
+            "uuid": uuid,
+            "dedupe_key": dedupe_key
+        })
+
+    async def add_platform(self, job_id: str, platform: str) -> int:
+        now = datetime.now(timezone.utc)
+        result = await self.collection.update_one(
+            {"_id": ObjectId(job_id)},
+            {
+                "$addToSet": {"platforms": platform},
+                "$set": {"date_updated": now}
+            }
+        )
+        return result.matched_count
+
+    async def set_status(self, job_id: str, status: str, at: str | None = None) -> int:
+        now = datetime.now(timezone.utc)
+        at_value = at or now.isoformat()
+        result = await self.collection.update_one(
+            {"_id": ObjectId(job_id)},
+            {
+                "$set": {
+                    "status": status,
+                    "date_updated": now
+                },
+                "$push": {
+                    "status_history": [status, at_value]
+                }
+            }
+        )
+        return result.matched_count
+
     async def bulk_apply(self, user_uuid: str, package_id: str, job_ids: list[str]) -> int:
         """
         Apply a package to many jobs at once.

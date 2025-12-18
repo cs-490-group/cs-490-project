@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useFlash } from "../context/flashContext";
 import AuthAPI from "../api/authentication";
 import "../styles/register.css";
-import logo from "../logo.svg.png";
+import posthog from 'posthog-js';
 
 export default function SetPassword() {
   const navigate = useNavigate();
@@ -46,6 +46,7 @@ export default function SetPassword() {
         "Password set successfully! You can now manage your account normally.",
         "success"
       );
+      posthog.capture('password_set', { user_id: res.data.uuid });
 
       setPassword("");
       setConfirm("");
@@ -72,10 +73,18 @@ export default function SetPassword() {
     <div className="register-page">
       <div className="register-card shadow">
         <div className="login-logo mb-3">
-          <img src={logo} alt="Metamorphosis logo" className="login-logo-img" />
+          <img
+                src="/logo.svg.webp" 
+                alt="Metamorphosis logo"
+                className="hero-logo mb-3"
+                fetchPriority="high"
+                width="200" 
+                height="200"
+                crossOrigin="anonymous"
+                />
         </div>
 
-        <h2 className="fw-bold mb-2">Set Your Password</h2>
+        <h1 className="fw-bold mb-2">Set Your Password</h1>
         <p className="text-muted mb-4">
           Please create a password to manage your account securely.
         </p>
@@ -88,6 +97,7 @@ export default function SetPassword() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="New Password"
+            aria-label="New Password"
             title="Password must be minimum 8 characters with at least 1 uppercase, 1 lowercase, and 1 number."
             className="form-control mb-3"
             required
@@ -98,6 +108,7 @@ export default function SetPassword() {
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             placeholder="Confirm Password"
+            aria-label="Confirm Password"
             className="form-control mb-3"
             required
           />

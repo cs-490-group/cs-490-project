@@ -3,6 +3,7 @@ import ProjectForm from "./ProjectForm";
 import ProjectCard from "./ProjectCard";
 import ProjectsAPI from "../../api/projects";
 import { useLocation } from "react-router-dom";
+import posthog from 'posthog-js';
 
 export default function ProjectsList() {
   const [projects, setProjects] = useState([]);
@@ -151,6 +152,7 @@ export default function ProjectsList() {
         await loadProjects();
       }
       setShowForm(false);
+      posthog.capture('project_added', { project_id: res.data.project_id });
     } catch (error) {
       console.error("Failed to add project:", error);
       alert(error.response?.data?.detail || "Failed to add project. Please try again.");
@@ -194,6 +196,7 @@ export default function ProjectsList() {
       if (expandedCardId === id) {
         setExpandedCardId(null);
       }
+      posthog.capture('project_deleted', { project_id: id });
     } catch (error) {
       console.error("Failed to delete project:", error);
       alert(error.response?.data?.detail || "Failed to delete project. Please try again.");
@@ -418,6 +421,7 @@ export default function ProjectsList() {
                     borderRadius: "4px",
                     fontSize: "14px"
                   }}
+                  aria-label="Filter by Status"
                 >
                   <option value="">All Status</option>
                   <option value="Planned">Planned</option>
@@ -434,6 +438,7 @@ export default function ProjectsList() {
                     borderRadius: "4px",
                     fontSize: "14px"
                   }}
+                  aria-label="Sort projects by date"
                 >
                   <option value="">Sort By...</option>
                   <option value="date_desc">Newest First</option>

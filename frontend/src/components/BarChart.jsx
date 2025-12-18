@@ -125,6 +125,9 @@ const BarChart = ({ data, title = "Bar Chart" }) => {
         scrollbarColor: '#cbd5e1 transparent',
       }}
       className="chart-scrollbar"
+      tabIndex={0}
+      role="region"
+      aria-label="Chart Data"
     >
       {/* Chart Title */}
       <h3 style={{

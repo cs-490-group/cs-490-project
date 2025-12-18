@@ -76,19 +76,7 @@ function TeamReports() {
         </h1>
         <button
           onClick={fetchReports}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            background: "#2196f3",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "bold"
-          }}
+          className="btn btn-primary"
         >
           <RefreshCw size={16} />
           Refresh

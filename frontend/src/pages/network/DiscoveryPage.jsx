@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Container, Card, Spinner, Row, Col, Badge, Button } from "react-bootstrap";
 import NetworksAPI from "../../api/network";
 import "./network.css";
+import posthog from "posthog-js";
 
 let loadingMessages = [
 	"**Discovering new connections...**",
@@ -203,6 +204,7 @@ export default function DiscoveryPage() {
 			}
 			
 			alert(`Successfully added ${contact.name} to your contacts!`);
+			posthog.capture("contact_added", { contact_name: contact.name, contact_email: contact.email });
 			
 			// Optionally refresh the discovery contacts list
 			fetchDiscoveryContacts();
@@ -279,7 +281,7 @@ export default function DiscoveryPage() {
 			<Row className="py-4">
 				<Col xs={12} className="mb-4">
 					<div className="filter-section">
-						<h5 className="text-white mb-3">Search Professionals</h5>
+						<h2 className="text-white mb-3">Search Professionals</h2>
 						<div className="filter-controls">
 							<div className="filter-group">
 								<input
@@ -364,6 +366,7 @@ export default function DiscoveryPage() {
 							<div className="filter-group">
 								<select
 									name="connectionDegree"
+									aria-label="Filter by Connection Degree"
 									value={filterText.connectionDegree}
 									onChange={handleFilterChange}
 									className="form-select"

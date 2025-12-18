@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import ProfilesAPI from "../api/profiles";
 import DeleteAccount from "../components/DeleteAccount";
 import "../styles/profile.css";
+import posthog from 'posthog-js';
 
 export default function Profile() {
     const [avatarUrl, setAvatarUrl] = useState(null);
@@ -189,6 +190,7 @@ export default function Profile() {
                 setPreviewUrl(null);
                 if (fileRef.current) fileRef.current.value = "";
             }, 500);
+            posthog.capture('profile_updated', { username: form.username });
         } catch (e) {
             setErr(e.message || "Failed to save profile.");
         } finally {
@@ -355,6 +357,7 @@ export default function Profile() {
                             name="experience_level"
                             value={form.experience_level}
                             onChange={onChange}
+                            aria-label="Select experience level"
                         >
                             <option value="">(select)</option>
                             <option>Intern</option>

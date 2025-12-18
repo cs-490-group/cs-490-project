@@ -439,17 +439,7 @@ export default function ProjectCard({ project, deleteProject, onEdit, expanded, 
                                   e.stopPropagation();
                                   handleDeleteMedia(file.media_id, file.filename);
                                 }}
-                                style={{
-                                  background: "#ff3b30",
-                                  color: "white",
-                                  border: "none",
-                                  borderRadius: "4px",
-                                  padding: "4px 8px",
-                                  cursor: "pointer",
-                                  fontSize: "11px",
-                                  fontWeight: "600",
-                                  transition: "opacity 0.2s"
-                                }}
+                                className="btn btn-danger"
                                 title="Delete this file"
                               >
                                 🗑️
@@ -493,16 +483,7 @@ export default function ProjectCard({ project, deleteProject, onEdit, expanded, 
                   e.stopPropagation();
                   deleteProject(project.id);
                 }}
-                style={{
-                  padding: "8px 16px",
-                  background: "#ff3b30",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "13px",
-                  fontWeight: "600"
-                }}
+                className="btn btn-danger"
               >
                 🗑️ Delete
               </button>

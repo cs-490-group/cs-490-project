@@ -17,6 +17,7 @@ import JobPostingSelector from '../../components/resumes/JobPostingSelector';
 import AISuggestionPanel from '../../components/resumes/AISuggestionPanel';
 import ResumePreview from '../../components/resumes/ResumePreview';
 import '../../styles/resumes.css';
+import posthog from 'posthog-js';
 
 /**
  * ResumeEditor Component
@@ -355,12 +356,15 @@ export default function ResumeEditor() {
       switch (aiFeatureType) {
         case 'content':
           result = await aiResumeAPI.generateContent(id, jobPosting);
+          posthog.capture('ai_content_generated', { resume_id: id });
           break;
         case 'skills':
           result = await aiResumeAPI.optimizeSkills(id, jobPosting);
+          posthog.capture('ai_skills_optimized', { resume_id: id });
           break;
         case 'experience':
           result = await aiResumeAPI.tailorExperience(id, jobPosting);
+          posthog.capture('ai_experience_tailored', { resume_id: id }); 
           break;
         default:
           throw new Error('Invalid AI feature type');

@@ -1,0 +1,240 @@
+[SERIOUS] /dashboard
+Issue: Scrollable region must have keyboard access
+Desc: Ensure elements that have scrollable content are accessible by keyboard
+Element: <div class="chart-scrollbar" style="width: 100%; height:...">
+----------------------------------------
+[SERIOUS] /analytics
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="milestone-name">Complete Sprint 1</span>
+----------------------------------------
+[SERIOUS] /newGroup
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="text-uppercase badge bg-info">Healthcare</span>
+----------------------------------------
+[SERIOUS] /teams
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="w-100 py-2 fw-normal badge bg-success">Success: 0%</span>
+----------------------------------------
+[MODERATE] /teams
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h6 class="fw-bold mb-0 text-dark">aiw</h6>
+----------------------------------------
+[MODERATE] /enterprise
+Issue: Page should contain a level-one heading
+Desc: Ensure that the page, or at least one of its frames contains a level-one heading
+Element: <html lang="en">
+----------------------------------------
+[SERIOUS] /skills
+Issue: Interactive controls must not be nested
+Desc: Ensure interactive controls are not nested as they are not always announced by screen readers or can cause focus problems for assistive technologies
+Element: <div role="button" tabindex="0" aria-disabled="false" aria-roledescription="sortable" aria-describedby="DndDescribedBy-0" style="display: flex; gap: ...">
+----------------------------------------
+[MODERATE] /education
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3 style="margin: 0px; color: rgb(51, 51, 51); font-size: 18px;">Bachelor's Degree</h3>
+----------------------------------------
+[MODERATE] /certifications
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3 style="margin: 0px; font-size: 18px; color: rgb(51, 51, 51);">AWS Cloud Computing</h3>
+----------------------------------------
+[SERIOUS] /offers
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="badge bg-info" style="font-size: 0.75rem; padding: 3px 8px;">received</span>
+----------------------------------------
+[MODERATE] /offers
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h6 class="mb-0" style="font-size: 1rem; font-weight: 600;">Owner Operator Carhaul Driver, CDL-A</h6>
+----------------------------------------
+[SERIOUS] /resumes
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="badge bg-success">Default</span>
+----------------------------------------
+[MODERATE] /resumes
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3>Test Resume for Job</h3>
+----------------------------------------
+[SERIOUS] /resumes/templates
+Issue: Scrollable region must have keyboard access
+Desc: Ensure elements that have scrollable content are accessible by keyboard
+Element: <div class="template-preview-box">
+----------------------------------------
+[SERIOUS] /interview/question-library
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="count">12</span>
+----------------------------------------
+[SERIOUS] /interview/my-practice
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <button class="btn-review">Review →</button>
+----------------------------------------
+[MODERATE] /interview/my-practice
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3>Tell me about a time you had to debug a complex issue in production code.</h3>
+----------------------------------------
+[SERIOUS] /interview/progress
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <div class="role-badge">1 questions</div>
+----------------------------------------
+[MODERATE] /interview/progress
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3 class="stat-value">3</h3>
+----------------------------------------
+[MODERATE] /interview/mock-interview-start
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3>Interview Tips</h3>
+----------------------------------------
+[MODERATE] /interview/schedule-interview
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h4 style="margin-top: 0px; margin-bottom: 12px;">Job Details</h4>
+----------------------------------------
+[SERIOUS] /interview/analytics
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <div style="font-size: 2rem; font-weight: bold; color: rgb(153, 153, 153);">25.0%</div>
+----------------------------------------
+[MODERATE] /interview/analytics
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h4 style="color: rgb(40, 167, 69); margin-bottom: 0.75rem;">✓ Strengths</h4>
+----------------------------------------
+[SERIOUS] /interview/follow-up
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <div style="font-size: 0.85rem; color: rgb(153, 153, 153);">-10 days ago</div>
+----------------------------------------
+[MODERATE] /interview/follow-up
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3 style="margin-top: 0px; margin-bottom: 1rem;">Select Interview</h3>
+----------------------------------------
+[MODERATE] /interview/writing-practice
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3 style="margin-bottom: 1rem;">Select a Question to Practice</h3>
+----------------------------------------
+[MODERATE] /interview/success-probability
+Issue: Page should contain a level-one heading
+Desc: Ensure that the page, or at least one of its frames contains a level-one heading
+Element: <html lang="en">
+----------------------------------------
+[SERIOUS] /interview/calendar
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <button class="btn-action">Prepare</button>
+----------------------------------------
+[MODERATE] /interview/calendar
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3 class="interview-title">2026 Internship, Spring - IT</h3>
+----------------------------------------
+[MODERATE] /interview/performance
+Issue: Page should contain a level-one heading
+Desc: Ensure that the page, or at least one of its frames contains a level-one heading
+Element: <html lang="en">
+----------------------------------------
+[SERIOUS] /technical-prep
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="badge bg-success">Easy</span>
+----------------------------------------
+[SERIOUS] /technical-prep/coding
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <button class="gen-btn easy">🟢 Easy</button>
+----------------------------------------
+[MODERATE] /technical-prep/coding
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3>Quick Generate</h3>
+----------------------------------------
+[MODERATE] /technical-prep/system-design
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3>What to Expect</h3>
+----------------------------------------
+[MODERATE] /technical-prep/case-study
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3>What to Expect</h3>
+----------------------------------------
+[MODERATE] /technical-prep/whiteboarding
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h3 style="margin-top: 0px; color: rgb(146, 64, 14);">💡 Golden Rules</h3>
+----------------------------------------
+[SERIOUS] /network
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="small-badge badge bg-success">mentor</span>
+----------------------------------------
+[MODERATE] /network
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h5 class="text-white mb-3">Search Contacts</h5>
+----------------------------------------
+[SERIOUS] /network/referrals
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="badge bg-info">Requested</span>
+----------------------------------------
+[MINOR] /network/referrals
+Issue: Headings should not be empty
+Desc: Ensure headings have discernible text
+Element: <h4 class="card-title"></h4>
+----------------------------------------
+[MODERATE] /network/referrals
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h5 class="text-white mb-3">Filter Referrals</h5>
+----------------------------------------
+[SERIOUS] /network/events
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <button class="calendar-nav-button">← Previous</button>
+----------------------------------------
+[MODERATE] /network/events
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h5 class="text-white mb-3">Filter Events</h5>
+----------------------------------------
+[SERIOUS] /network/interviews
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="badge bg-success">in_person</span>
+----------------------------------------
+[MINOR] /network/interviews
+Issue: Headings should not be empty
+Desc: Ensure headings have discernible text
+Element: <h3 class="card-title"></h3>
+----------------------------------------
+[MODERATE] /network/interviews
+Issue: Heading levels should only increase by one
+Desc: Ensure the order of headings is semantically correct
+Element: <h5 class="text-white mb-3">Filter Interviews</h5>
+----------------------------------------
+[MODERATE] /network/discovery
+Issue: Page should contain a level-one heading
+Desc: Ensure that the page, or at least one of its frames contains a level-one heading
+Element: <html lang="en">
+----------------------------------------
+[SERIOUS] /api-metrics
+Issue: Elements must meet minimum color contrast ratio thresholds
+Desc: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+Element: <span class="badge bg-success" style="font-size: 12px;">97.5% left</span>
+----------------------------------------

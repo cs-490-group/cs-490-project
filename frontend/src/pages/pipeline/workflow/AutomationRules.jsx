@@ -203,6 +203,7 @@ export default function AutomationRules() {
             className="form-control"
             value={form.trigger}
             onChange={e => updateForm("trigger", e.target.value)}
+            aria-label="Select trigger"
           >
             <option value="on_job_created">On Job Created</option>
             <option value="on_status_change">On Status Change</option>
@@ -214,6 +215,7 @@ export default function AutomationRules() {
             className="form-control"
             value={form.rule_type}
             onChange={e => updateForm("rule_type", e.target.value)}
+            aria-label="Select rule type"
           >
             <option value="auto_assign_materials">Auto Assign Materials</option>
             <option value="auto_create_package">Auto Create Package</option>
@@ -241,6 +243,7 @@ export default function AutomationRules() {
               <select
                 className="form-control"
                 onChange={e => updateAction("resume_id", e.target.value)}
+                aria-label="Select resume"
               >
                 <option value="">Select resume</option>
                 {resumes.map(r => (
@@ -254,6 +257,7 @@ export default function AutomationRules() {
               <select
                 className="form-control"
                 onChange={e => updateAction("cover_letter_id", e.target.value)}
+                aria-label="Select cover letter"
               >
                 <option value="">Select cover letter</option>
                 {coverLetters.map(c => (
@@ -306,6 +310,7 @@ export default function AutomationRules() {
               <select
                 className="form-control"
                 onChange={e => updateAction("package_id", e.target.value)}
+                aria-label="Select package to schedule"
               >
                 <option value="">Select package</option>
                 {packages.map(p => (

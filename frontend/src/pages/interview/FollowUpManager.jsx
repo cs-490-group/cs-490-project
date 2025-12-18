@@ -309,7 +309,7 @@ function FollowUpManager() {
                       <div style={{ fontSize: '0.85rem', color: '#667eea', marginBottom: '0.25rem' }}>
                         👤 {interview.interviewer_name}
                         {interview.interviewer_email && (
-                          <span style={{ color: '#999' }}> • {interview.interviewer_email}</span>
+                          <span className="text-muted"> • {interview.interviewer_email}</span>
                         )}
                       </div>
                     )}

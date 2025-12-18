@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, Badge, Button, Row, Col, Tooltip, OverlayTrigger } from "react-bootstrap";
+import { FaChartLine } from "react-icons/fa";
 
 export default function OfferCard({
     offer,
@@ -7,6 +8,7 @@ export default function OfferCard({
     onEdit,
     onDelete,
     onGenNegotiationPrep,
+    onViewCareerSimulation,
 }) {
     const getStatusBadgeVariant = (status) => {
         const variants = {
@@ -162,6 +164,24 @@ export default function OfferCard({
                             ✓ Ready
                         </Badge>
                     )}
+
+                    <OverlayTrigger
+                        placement="top"
+                        overlay={
+                            <Tooltip>
+                                Simulate career path outcomes
+                            </Tooltip>
+                        }
+                    >
+                        <Button
+                            size="sm"
+                            variant="info"
+                            onClick={() => onViewCareerSimulation(offer)}
+                            style={{ fontSize: "0.8rem", padding: "4px 10px" }}
+                        >
+                            <FaChartLine />
+                        </Button>
+                    </OverlayTrigger>
 
                     <Button
                         size="sm"

@@ -165,7 +165,7 @@ const ProgressTracker = ({ data }) => {
       marginLeft: 'auto',
       marginRight: 'auto'
     }}>
-      <h3 style={{
+      <h2 style={{
         fontSize: '20px',
         fontWeight: '600',
         color: '#003366', // Primary Blue
@@ -173,7 +173,7 @@ const ProgressTracker = ({ data }) => {
         textAlign: 'center'
       }}>
         Profile Completion
-      </h3>
+      </h2>
 
       {/* Progress Bar */}
       <div style={{
@@ -229,14 +229,14 @@ const ProgressTracker = ({ data }) => {
           {/* Incomplete Sections */}
           {incompleteCards.length > 0 && (
             <>
-              <h4 style={{
+              <h3 style={{
                 fontSize: '16px',
                 fontWeight: '600',
                 color: '#0A0F1A', // Text Primary
                 marginBottom: '10px'
               }}>
                 Complete these sections:
-              </h4>
+              </h3>
               
               {incompleteCards.map((cardName) => (
                 <div key={cardName} style={{
@@ -246,7 +246,7 @@ const ProgressTracker = ({ data }) => {
                   border: '1px solid #D1D5DB',
                   marginBottom: '10px'
                 }}>
-                  <h5 style={{
+                  <h4 style={{
                     fontSize: '14px',
                     fontWeight: '600',
                     color: '#DC2626', // Red for incomplete
@@ -254,7 +254,7 @@ const ProgressTracker = ({ data }) => {
                     textTransform: 'capitalize'
                   }}>
                     {formatCardName(cardName)} - Incomplete
-                  </h5>
+                  </h4>
                   <ul style={{
                     margin: 0,
                     paddingLeft: '15px',
@@ -277,7 +277,7 @@ const ProgressTracker = ({ data }) => {
           {/* Partial Sections */}
           {partialCardsArray.length > 0 && (
             <>
-              <h4 style={{
+              <h3 style={{
                 fontSize: '16px',
                 fontWeight: '600',
                 color: '#0A0F1A', // Text Primary
@@ -285,7 +285,7 @@ const ProgressTracker = ({ data }) => {
                 marginTop: incompleteCards.length > 0 ? '20px' : '0'
               }}>
                 Improve these sections:
-              </h4>
+              </h3>
               
               {partialCardsArray.map((cardName) => {
                 const details = getCompletionDetails(data[cardName], cardName);
@@ -298,7 +298,7 @@ const ProgressTracker = ({ data }) => {
                     border: '1px solid #F59E0B', // Warning border
                     marginBottom: '10px'
                   }}>
-                    <h5 style={{
+                    <h4 style={{
                       fontSize: '14px',
                       fontWeight: '600',
                       color: '#F59E0B', // Warning color
@@ -306,7 +306,7 @@ const ProgressTracker = ({ data }) => {
                       textTransform: 'capitalize'
                     }}>
                       {formatCardName(cardName)} - Could be improved
-                    </h5>
+                    </h4>
                     
                     {details.needsMoreEntries ? (
                       <p style={{

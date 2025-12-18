@@ -76,7 +76,7 @@ const CaseStudyChallenges = () => {
         <h3>Generate New Case Study</h3>
         <div className="generate-form">
           <label>Industry Focus:</label>
-          <select value={industry} onChange={(e) => setIndustry(e.target.value)}>
+          <select value={industry} aria-label="Filter by Industry" onChange={(e) => setIndustry(e.target.value)}>
             <option value="all">Any Industry</option>
             <option value="technology">Technology</option>
             <option value="finance">Finance</option>
