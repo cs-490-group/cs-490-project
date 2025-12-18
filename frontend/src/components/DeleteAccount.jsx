@@ -171,6 +171,7 @@ const DeleteAccount = () => {
             color: '#0A0F1A',
             backgroundColor: '#FFFFFF'
           }}
+          aria-label="Enter your password to confirm account deletion"
         />
       </div>
 

@@ -162,6 +162,7 @@ function GoalTracker({ teamId, member, currentUserRole, onGoalsUpdate }) {
                 </label>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                   <input
+                  aria-label="{goal.label}"
                     type="number"
                     min="0"
                     value={goals[goal.key]}

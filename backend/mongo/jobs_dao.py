@@ -1,6 +1,7 @@
 from mongo.dao_setup import db_client, JOBS
 from bson import ObjectId
 from datetime import datetime, timezone
+from utils.sanitize import sanitize_text
 
 class JobsDAO:
     def __init__(self):
@@ -8,6 +9,13 @@ class JobsDAO:
 
     async def add_job(self, data: dict) -> str:
         time = datetime.now(timezone.utc)
+        
+           # 🔐 XSS FIX: sanitize user-controlled fields
+        for field in ["title", "company", "description"]:
+            if field in data:
+                data[field] = sanitize_text(data[field])
+
+        
         data["date_created"] = time
         data["date_updated"] = time
         result = await self.collection.insert_one(data)
@@ -26,6 +34,12 @@ class JobsDAO:
 
     async def update_job(self, job_id: str, data: dict) -> int:
         data["date_updated"] = datetime.now(timezone.utc)
+        
+        # 🔐 XSS FIX: sanitize user-controlled fields
+        for field in ["title", "company", "description"]:
+            if field in data:
+                data[field] = sanitize_text(data[field])
+        
         updated = await self.collection.update_one({"_id": ObjectId(job_id)}, {"$set": data})
         return updated.matched_count
     
@@ -92,8 +106,11 @@ class JobsDAO:
         return result.modified_count
 
 
-    async def delete_job(self, job_id: str) -> int:
-        result = await self.collection.delete_one({"_id": ObjectId(job_id)})
+    async def delete_job(self, job_id: str, uuid: str) -> int:
+        result = await self.collection.delete_one({
+            "_id": ObjectId(job_id),
+            "uuid": uuid
+        })
         return result.deleted_count
 
     async def add_offer_to_job(self, job_id: str, offer_id: str) -> bool:

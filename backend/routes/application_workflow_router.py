@@ -543,6 +543,60 @@ async def set_manual_response_date(
 async def get_goals(uuid: str = Depends(authorize)):
     return await application_analytics_dao.get_user_goals(uuid)
 
+@workflow_router.post("/goals")
+async def create_goal(goal_data: dict = Body(...), uuid: str = Depends(authorize)):
+    """Create a new application workflow goal"""
+    try:
+        goal_data["uuid"] = uuid
+        goal_id = await application_analytics_dao.add_goal(goal_data)
+        return {"detail": "Goal created successfully", "goal_id": goal_id}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to create goal: {str(e)}")
+
+@workflow_router.put("/goals/{goal_id}")
+async def update_goal(goal_id: str, goal_data: dict = Body(...), uuid: str = Depends(authorize)):
+    """Update an existing goal"""
+    try:
+        # Verify ownership
+        from bson import ObjectId
+        existing_goal = await application_analytics_dao.analytics_collection.find_one({"_id": ObjectId(goal_id)})
+        if not existing_goal:
+            raise HTTPException(404, "Goal not found")
+        if existing_goal.get("uuid") != uuid:
+            raise HTTPException(403, "Not authorized")
+
+        result = await application_analytics_dao.update_goal(goal_id, goal_data)
+        if result > 0:
+            return {"detail": "Goal updated successfully"}
+        else:
+            raise HTTPException(404, "Goal not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to update goal: {str(e)}")
+
+@workflow_router.delete("/goals/{goal_id}")
+async def delete_goal(goal_id: str, uuid: str = Depends(authorize)):
+    """Delete a goal"""
+    try:
+        # Verify ownership
+        from bson import ObjectId
+        existing_goal = await application_analytics_dao.analytics_collection.find_one({"_id": ObjectId(goal_id)})
+        if not existing_goal:
+            raise HTTPException(404, "Goal not found")
+        if existing_goal.get("uuid") != uuid:
+            raise HTTPException(403, "Not authorized")
+
+        result = await application_analytics_dao.delete_goal(goal_id)
+        if result > 0:
+            return {"detail": "Goal deleted successfully"}
+        else:
+            raise HTTPException(404, "Goal not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to delete goal: {str(e)}")
+
 
 # ================================================================
 # SCHEDULING EMAIL NOTIFICATIONS (UC-124)

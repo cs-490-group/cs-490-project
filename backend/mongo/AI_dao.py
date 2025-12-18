@@ -8,7 +8,10 @@ from services.tracked_ai_clients import TrackedCohereClient
 class AIDAO:
     def __init__(self):
         # Use TrackedCohereClient for automatic logging and fallback
-        self.co = TrackedCohereClient()
+        try:
+            self.co = TrackedCohereClient()
+        except Exception:
+            self.co = None
         self.executor = ThreadPoolExecutor(max_workers=3)
 
     async def generate_text(self, prompt: str, system_message="") -> str:
@@ -31,6 +34,8 @@ class AIDAO:
     def _call_cohere(self, prompt: str, system_message: str) -> str:
         """Synchronous Cohere API call wrapper"""
         try:
+            if self.co is None:
+                raise Exception("Cohere client not configured")
             response = self.co.chat(
                 model="command-a-03-2025",
                 messages=[

@@ -2,6 +2,8 @@ from mongo.dao_setup import db_client, RESUMES
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 import secrets
+from utils.sanitize import sanitize_dict
+
 
 class ResumeDAO:
     def __init__(self):
@@ -10,7 +12,10 @@ class ResumeDAO:
         self.feedback_collection = db_client.get_collection("resume_feedback")
         self.shares_collection = db_client.get_collection("resume_shares")
 
-    async def add_resume(self, data: dict) -> str:
+    async def add_resume(self, uuid: str, data: dict) -> str:
+        data = sanitize_dict(data)
+        data["uuid"] = uuid
+        
         time = datetime.now(timezone.utc)
         data["date_created"] = time
         data["date_updated"] = time
@@ -18,25 +23,64 @@ class ResumeDAO:
         return str(result.inserted_id)
 
     async def get_all_resumes(self, uuid: str) -> list[dict]:
+        # Get main resumes
         cursor = self.collection.find({"uuid": uuid})
         results = []
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])
+            # Mark this as the current/main resume
+            doc["is_current"] = True
             results.append(doc)
+
+            # Get all versions for this resume
+            resume_id = doc["_id"]
+            versions = await self.get_resume_versions(resume_id)
+
+            # Add each version as a separate selectable item
+            for version in versions:
+                version_doc = {
+                    "_id": version["_id"],
+                    "resume_id": resume_id,
+                    "uuid": uuid,
+                    "name": doc.get("name", "Unnamed Resume"),
+                    "version_name": version.get("version_name", "Unnamed Version"),
+                    "date_created": version.get("date_created"),
+                    "is_current": False,
+                    "is_version": True,
+                    "parent_resume_id": resume_id,
+                    "file_size": version.get("file_size"),
+                    "resume_data": version.get("resume_data")
+                }
+                results.append(version_doc)
+
         return results
 
-    async def get_resume(self, resume_id: str) -> dict | None:
-        return await self.collection.find_one({"_id": ObjectId(resume_id)})
+    async def get_resume(self, resume_id: str, uuid: str) -> dict | None:
+        resume = await self.collection.find_one({
+            "_id": ObjectId(resume_id),
+            "uuid": uuid
+        })
 
-    async def update_resume(self, resume_id: str, data: dict) -> int:
+        if resume:
+            resume["_id"] = str(resume["_id"])
+        return resume
+
+    async def update_resume(self, resume_id: str, uuid: str, data: dict) -> int:
+        data = sanitize_dict(data)
         data["date_updated"] = datetime.now(timezone.utc)
-        updated = await self.collection.update_one({"_id": ObjectId(resume_id)}, {"$set": data})
+
+        updated = await self.collection.update_one(
+            {"_id": ObjectId(resume_id), "uuid": uuid},
+            {"$set": data}
+        )
         return updated.matched_count
 
-    async def delete_resume(self, resume_id: str) -> int:
-        result = await self.collection.delete_one({"_id": ObjectId(resume_id)})
+    async def delete_resume(self, resume_id: str,uuid: str) -> int:
+        result = await self.collection.delete_one({
+            "_id": ObjectId(resume_id),
+            "uuid": uuid
+        })
         return result.deleted_count
-
     # SET DEFAULT RESUME
     async def set_default_resume(self, resume_id: str, uuid: str) -> int:
         # Set all other resumes for this user to default_resume = False
@@ -121,7 +165,7 @@ class ResumeDAO:
         results = []
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])
-            results.append(doc)
+            results.append(sanitize_dict(doc))
         return results
 
     async def update_resume_feedback(self, feedback_id: str, data: dict) -> int:

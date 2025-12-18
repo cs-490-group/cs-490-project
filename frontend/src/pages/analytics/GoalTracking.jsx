@@ -53,19 +53,25 @@ const GoalTracking = () => {
 
   const handleSaveGoal = async (goalData) => {
     try {
+      console.log('Attempting to save goal with data:', goalData);
       if (editingGoal) {
         // Update existing goal
-        await goalsAPI.update(editingGoal._id, goalData);
+        const response = await goalsAPI.update(editingGoal._id, goalData);
+        console.log('Update response:', response);
       } else {
         // Create new goal
-        await goalsAPI.add(goalData);
+        const response = await goalsAPI.add(goalData);
+        console.log('Create response:', response);
       }
       setRefreshTrigger(prev => prev + 1);
       setShowModal(false);
       setEditingGoal(null);
     } catch (error) {
-      console.error('Failed to save goal:', error);
-      throw error; // Let modal handle the error display
+      console.error('Failed to save goal - Full error:', error);
+      console.error('Error response:', error.response);
+      console.error('Error data:', error.response?.data);
+      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error occurred';
+      throw new Error(errorMessage);
     }
   };
 

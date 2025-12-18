@@ -389,13 +389,25 @@ class ApplicationAnalyticsDAO:
         result = await self.analytics_collection.insert_one(goal_data)
         return str(result.inserted_id)
     
+    async def add_goal(self, goal_data: dict) -> str:
+        """Add a new goal"""
+        from bson import ObjectId
+
+        goal_data["date_created"] = datetime.now(timezone.utc)
+        goal_data["date_updated"] = datetime.now(timezone.utc)
+        goal_data["status"] = "active"
+        goal_data["progress"] = 0.0
+
+        result = await self.analytics_collection.insert_one(goal_data)
+        return str(result.inserted_id)
+
     async def get_user_goals(self, user_uuid: str) -> List[dict]:
         """Get all goals for a user"""
         cursor = self.analytics_collection.find({
             "uuid": user_uuid,
             "status": "active"
         }).sort("date_created", -1)
-        
+
         results = []
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])

@@ -287,6 +287,7 @@ function SetupTeam() {
                   onChange={(e) => setTeamName(e.target.value)}
                   placeholder="e.g., Tech Talent 2025"
                   className="form-control"
+                  aria-label="Team Name"
                   style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", borderRadius: "0.5rem" }}
                 />
               </div>
@@ -335,6 +336,7 @@ function SetupTeam() {
                   onChange={(e) => setInviteCode(e.target.value)}
                   placeholder="Paste invite code"
                   className="form-control"
+                  aria-label="Invite Code"
                   style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", borderRadius: "0.5rem", fontFamily: "monospace" }}
                 />
               </div>

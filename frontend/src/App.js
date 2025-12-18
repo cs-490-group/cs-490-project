@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from "react";
 import { Routes, Route, useLocation } from 'react-router-dom';
 import posthog from 'posthog-js';
 import Nav from "./tools/nav";
+import SupportFooter from "./tools/SupportFooter";
 import { Banner } from "./components/Banner";
 
 // ONLY import your custom CSS - Bootstrap loads from CDN now
@@ -90,6 +91,9 @@ const LinkedInCallback = lazy(() => import("./pages/callback/linkedin"));
 const LeetCodeDetails = lazy(() => import("./pages/LeetCodeDetails"));
 const HackerRankDetails = lazy(() => import("./pages/HackerRankDetails"));
 const CodecademyDetails = lazy(() => import("./pages/CodecademyDetails"));
+const GitHubIntegration = lazy(() => import('./pages/GitHub/GitHubIntegration'));
+const MaterialComparisonDashboard = lazy(() => import('./pages/materials/MaterialComparisonDashboard'));
+
 
 // inside your router
 
@@ -160,7 +164,11 @@ export function App() {
                 <Route path="/education" element={<EducationList />} />
                 <Route path="/certifications" element={<CertificationList />} />
                 <Route path="/projects" element={<ProjectsList />} />
-                <Route path="/jobs" element={<JobsList />} />
+                
+              <Route path="/github" element={<GitHubIntegration />} />
+
+
+              <Route path="/jobs" element={<JobsList />} />
                 <Route path="/offers" element={<OffersPage />} />
                 <Route path="/resumes" element={<ResumeList />} />
                 <Route path="/resumes/templates" element={<TemplateLibraryPage />} />
@@ -170,6 +178,9 @@ export function App() {
                 <Route path="/resumes/feedback/:id" element={<SharingAndFeedbackPage />} />
                 <Route path="/resumes/public/:token" element={<PublicSharePage />} />
                 <Route path="/resumes/export/:id" element={<ExportResumePage />} />
+
+                {/* Materials Comparison */}
+                <Route path="/materials/comparison" element={<MaterialComparisonDashboard />} />
 
                 {/* Interview Question Bank Routes */}
                 <Route path="/interview/question-library" element={<QuestionLibrary />} />
@@ -216,12 +227,14 @@ export function App() {
                 <Route path="/network/analytics" element={<NetworkingAnalytics />} />
                 <Route path="/api-metrics" element={<APIMetricsPage />} />
                 <Route path="/callback/linkedin" element={<LinkedInCallback />} />
+                <Route path="/linkedin-callback" element={<LinkedInCallback />} />
               <Route path="/leetcode/:username" element={<LeetCodeDetails />} />
               <Route path="/hackerrank/:username" element={<HackerRankDetails />} />
               <Route path="/codecademy/:username" element={<CodecademyDetails />} />
               </Routes>
             </Suspense>
           </main>
+          <footer><SupportFooter /></footer>
         </JobProvider>
       </FlashProvider>
     </div>

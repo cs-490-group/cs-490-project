@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Container,
     Row,
@@ -9,8 +9,10 @@ import {
     Table,
     Alert,
     Form,
+    Spinner,
 } from "react-bootstrap";
 import OffersAPI from "../../api/offers";
+import salaryBLSAPI from "../../api/salaryBLSAPI";
 import OfferEvaluationTab from "./OfferEvaluationTab";
 
 export default function OfferDetailsModal({
@@ -25,12 +27,47 @@ export default function OfferDetailsModal({
     const [newStatus, setNewStatus] = useState(offer.offer_status);
     const [updating, setUpdating] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [salaryData, setSalaryData] = useState(null);
+    const [salaryLoading, setSalaryLoading] = useState(false);
+    const [salaryError, setSalaryError] = useState(null);
 
     const handleRefresh = async () => {
         setRefreshKey(prev => prev + 1);
         // Reload offer data
         const response = await OffersAPI.get(offer._id);
         Object.assign(offer, response.data);
+    };
+
+    // Fetch salary data when compensation tab is opened
+    useEffect(() => {
+        if (activeTab === "compensation" && !salaryData && offer.job_title && offer.location) {
+            fetchSalaryData();
+        }
+    }, [activeTab]);
+
+    const fetchSalaryData = async () => {
+        setSalaryLoading(true);
+        setSalaryError(null);
+        
+        try {
+            // Parse location to extract city and state
+            const locationParts = offer.location.split(',').map(s => s.trim());
+            const city = locationParts[0];
+            const state = locationParts[1] || undefined;
+
+            const response = await salaryBLSAPI.search({
+                job_title: offer.job_title,
+                city: city,
+                state: state
+            });
+
+            setSalaryData(response.data);
+        } catch (err) {
+            console.error('Error fetching salary data:', err);
+            setSalaryError('Unable to fetch market salary data');
+        } finally {
+            setSalaryLoading(false);
+        }
     };
 
     const formatCurrency = (value) => {
@@ -77,6 +114,24 @@ export default function OfferDetailsModal({
         const diffTime = deadline - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays;
+    };
+
+    const calculateOfferVsMarket = () => {
+        if (!salaryData || !offer.offered_salary_details?.base_salary) return null;
+        
+        const offerSalary = offer.offered_salary_details.base_salary;
+        const marketMedian = salaryData.percentile_50;
+        
+        if (!marketMedian) return null;
+        
+        const difference = offerSalary - marketMedian;
+        const percentDiff = ((difference / marketMedian) * 100).toFixed(1);
+        
+        return {
+            difference,
+            percentDiff,
+            isAboveMarket: difference > 0
+        };
     };
 
     const days = daysUntilDeadline();
@@ -275,58 +330,205 @@ export default function OfferDetailsModal({
                 )}
 
                 {activeTab === "compensation" && (
-                    <Card className="mb-4">
-                        <Card.Body>
-                            <h6 className="mb-3">Salary & Bonus Structure</h6>
-                            <Table borderless responsive>
-                                <tbody>
-                                    <tr>
-                                        <td className="fw-bold">Base Salary</td>
-                                        <td>
-                                            <h5 className="text-primary mb-0">
-                                                {formatCurrency(
-                                                    offer.offered_salary_details?.base_salary
-                                                )}
-                                            </h5>
-                                        </td>
-                                    </tr>
-                                    {offer.offered_salary_details?.signing_bonus && (
+                    <>
+                        <Card className="mb-4">
+                            <Card.Body>
+                                <h6 className="mb-3">Salary & Bonus Structure</h6>
+                                <Table borderless responsive>
+                                    <tbody>
                                         <tr>
-                                            <td className="fw-bold">Signing Bonus</td>
+                                            <td className="fw-bold">Base Salary</td>
                                             <td>
-                                                {formatCurrency(
-                                                    offer.offered_salary_details
-                                                        .signing_bonus
-                                                )}
+                                                <h5 className="text-primary mb-0">
+                                                    {formatCurrency(
+                                                        offer.offered_salary_details?.base_salary
+                                                    )}
+                                                </h5>
                                             </td>
                                         </tr>
-                                    )}
-                                    {offer.offered_salary_details?.annual_bonus && (
-                                        <tr>
-                                            <td className="fw-bold">Annual Bonus</td>
-                                            <td>
-                                                {offer.offered_salary_details.annual_bonus}
-                                            </td>
-                                        </tr>
-                                    )}
-                                    {offer.offered_salary_details?.stock_options && (
-                                        <tr>
-                                            <td className="fw-bold">Stock Options</td>
-                                            <td>
-                                                {offer.offered_salary_details.stock_options}
-                                            </td>
-                                        </tr>
-                                    )}
-                                    {offer.offered_salary_details?.rsus && (
-                                        <tr>
-                                            <td className="fw-bold">RSUs</td>
-                                            <td>{offer.offered_salary_details.rsus}</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </Table>
-                        </Card.Body>
-                    </Card>
+                                        {offer.offered_salary_details?.signing_bonus && (
+                                            <tr>
+                                                <td className="fw-bold">Signing Bonus</td>
+                                                <td>
+                                                    {formatCurrency(
+                                                        offer.offered_salary_details
+                                                            .signing_bonus
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {offer.offered_salary_details?.annual_bonus && (
+                                            <tr>
+                                                <td className="fw-bold">Annual Bonus</td>
+                                                <td>
+                                                    {offer.offered_salary_details.annual_bonus}
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {offer.offered_salary_details?.stock_options && (
+                                            <tr>
+                                                <td className="fw-bold">Stock Options</td>
+                                                <td>
+                                                    {offer.offered_salary_details.stock_options}
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {offer.offered_salary_details?.rsus && (
+                                            <tr>
+                                                <td className="fw-bold">RSUs</td>
+                                                <td>{offer.offered_salary_details.rsus}</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </Table>
+                            </Card.Body>
+                        </Card>
+
+                        {/* Market Salary Data Section */}
+                        <Card className="mb-4">
+                            <Card.Header className="bg-primary text-white">
+                                <h6 className="mb-0">📊 Market Salary Data</h6>
+                            </Card.Header>
+                            <Card.Body>
+                                {salaryLoading && (
+                                    <div className="text-center py-4">
+                                        <Spinner animation="border" role="status" size="sm" />
+                                        <p className="text-muted mt-2 mb-0">
+                                            Fetching market salary data...
+                                        </p>
+                                    </div>
+                                )}
+
+                                {salaryError && (
+                                    <Alert variant="warning">
+                                        <small>{salaryError}</small>
+                                    </Alert>
+                                )}
+
+                                {salaryData && !salaryLoading && (
+                                    <>
+                                        <div className="mb-3">
+                                            <small className="text-muted">
+                                                Market data for <strong>{salaryData.job_title}</strong> in{" "}
+                                                <strong>{salaryData.city}{salaryData.state && `, ${salaryData.state}`}</strong>
+                                            </small>
+                                            <Badge 
+                                                bg={salaryData.source === 'cache' ? 'info' : 'success'} 
+                                                className="ms-2"
+                                            >
+                                                {salaryData.source === 'cache' ? '📦 Cached' : '🆕 Fresh'}
+                                            </Badge>
+                                            {salaryData.last_updated && (
+                                                <small className="text-muted ms-2">
+                                                    Updated: {new Date(salaryData.last_updated).toLocaleDateString()}
+                                                </small>
+                                            )}
+                                        </div>
+
+                                        <Row className="g-3 mb-3">
+                                            <Col md={4}>
+                                                <Card className="h-100 border-secondary">
+                                                    <Card.Body className="text-center">
+                                                        <small className="text-muted d-block mb-1">
+                                                            25th Percentile
+                                                        </small>
+                                                        <h5 className="mb-0">
+                                                            {formatCurrency(salaryData.percentile_25)}
+                                                        </h5>
+                                                        <small className="text-muted">Entry Level</small>
+                                                    </Card.Body>
+                                                </Card>
+                                            </Col>
+                                            <Col md={4}>
+                                                <Card className="h-100 border-primary">
+                                                    <Card.Body className="text-center bg-light">
+                                                        <small className="text-muted d-block mb-1">
+                                                            <strong>50th Percentile (Median)</strong>
+                                                        </small>
+                                                        <h5 className="mb-0 text-primary">
+                                                            {formatCurrency(salaryData.percentile_50)}
+                                                        </h5>
+                                                        <small className="text-muted">Mid-Level</small>
+                                                    </Card.Body>
+                                                </Card>
+                                            </Col>
+                                            <Col md={4}>
+                                                <Card className="h-100 border-secondary">
+                                                    <Card.Body className="text-center">
+                                                        <small className="text-muted d-block mb-1">
+                                                            75th Percentile
+                                                        </small>
+                                                        <h5 className="mb-0">
+                                                            {formatCurrency(salaryData.percentile_75)}
+                                                        </h5>
+                                                        <small className="text-muted">Senior Level</small>
+                                                    </Card.Body>
+                                                </Card>
+                                            </Col>
+                                        </Row>
+
+                                        {/* Offer vs Market Comparison */}
+                                        {(() => {
+                                            const comparison = calculateOfferVsMarket();
+                                            if (!comparison) return null;
+
+                                            return (
+                                                <Alert 
+                                                    variant={comparison.isAboveMarket ? "success" : "warning"}
+                                                    className="mb-0"
+                                                >
+                                                    <div className="d-flex align-items-center justify-content-between">
+                                                        <div>
+                                                            <strong>Your Offer vs Market:</strong>
+                                                            <span className="ms-2">
+                                                                {comparison.isAboveMarket ? '📈' : '📉'}{' '}
+                                                                {formatCurrency(Math.abs(comparison.difference))}{' '}
+                                                                ({comparison.isAboveMarket ? '+' : ''}{comparison.percentDiff}%)
+                                                            </span>
+                                                        </div>
+                                                        <Badge 
+                                                            bg={comparison.isAboveMarket ? "success" : "warning"}
+                                                            className="px-3 py-2"
+                                                        >
+                                                            {comparison.isAboveMarket 
+                                                                ? 'Above Market Median' 
+                                                                : 'Below Market Median'}
+                                                        </Badge>
+                                                    </div>
+                                                    {!comparison.isAboveMarket && (
+                                                        <small className="d-block mt-2 text-muted">
+                                                            💡 Consider negotiating for a higher base salary to match market rates
+                                                        </small>
+                                                    )}
+                                                </Alert>
+                                            );
+                                        })()}
+
+                                        {salaryData.data_year && (
+                                            <small className="text-muted d-block text-center mt-2">
+                                                Data from {salaryData.data_year}
+                                            </small>
+                                        )}
+                                    </>
+                                )}
+
+                                {!salaryData && !salaryLoading && !salaryError && (
+                                    <div className="text-center py-3">
+                                        <p className="text-muted mb-2">
+                                            Market salary data not yet loaded
+                                        </p>
+                                        <Button 
+                                            variant="outline-primary" 
+                                            size="sm"
+                                            onClick={fetchSalaryData}
+                                        >
+                                            Load Salary Data
+                                        </Button>
+                                    </div>
+                                )}
+                            </Card.Body>
+                        </Card>
+                    </>
                 )}
 
                 {activeTab === "benefits" && (

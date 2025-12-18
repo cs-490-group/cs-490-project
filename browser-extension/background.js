@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = "http://localhost:8000"; // TODO: adjust to your backend origin
+const DEFAULT_API_BASE = "https://cs-490-project-production.up.railway.app"; // TODO: adjust to your backend origin
 
 async function getAuth() {
   const data = await chrome.storage.local.get(["token", "uuid", "apiBase"]);
