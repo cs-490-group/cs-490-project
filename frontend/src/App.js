@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from "react";
 import { Routes, Route, useLocation } from 'react-router-dom';
 import posthog from 'posthog-js';
 import Nav from "./tools/nav";
+import SupportFooter from "./tools/SupportFooter";
 import { Banner } from "./components/Banner";
 
 // ONLY import your custom CSS - Bootstrap loads from CDN now
@@ -228,6 +229,7 @@ export function App() {
               </Routes>
             </Suspense>
           </main>
+          <footer><SupportFooter /></footer>
         </JobProvider>
       </FlashProvider>
     </div>
