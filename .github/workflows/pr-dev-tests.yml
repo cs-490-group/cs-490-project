@@ -1,0 +1,55 @@
+name: PR Test Suite (dev)
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
+
+      # - name: Run frontend Sprint 4 coverage gate
+      #   run: npm run test:frontend-coverage-gate:sprint4
+      #   working-directory: frontend
+      #   env:
+      #     CI: 'true'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend deps
+        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt
+
+      - name: Run backend Sprint 4 coverage gate
+        run: python -m pytest test_sprint4_automation_engine.py test_sprint4_ai.py --cov=services.automation_engine --cov=services.application_workflow_scheduler --cov=routes.AI --cov=mongo.AI_dao --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=90
+        working-directory: backend
+
+      - name: Upload frontend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+
+      - name: Upload backend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml

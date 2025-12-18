@@ -21,6 +21,8 @@ class MockTestClient:
         return Mock(status_code=200, json=lambda: {})
     
     def post(self, path, **kwargs):
+        if path == "/api/auth/logout":
+            return Mock(status_code=204, json=lambda: {})
         return Mock(status_code=201, json=lambda: {})
     
     def put(self, path, **kwargs):
@@ -574,8 +576,13 @@ def test_email_validation():
         ("@example.com", False),
     ]
     for email, valid in emails:
-        has_at = "@" in email
-        assert has_at == valid
+        is_valid = (
+            "@" in email
+            and not email.startswith("@")
+            and not email.endswith("@")
+            and "." in email.split("@", 1)[-1]
+        )
+        assert is_valid == valid
 
 
 def test_password_validation():

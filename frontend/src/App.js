@@ -227,6 +227,7 @@ export function App() {
                 <Route path="/network/analytics" element={<NetworkingAnalytics />} />
                 <Route path="/api-metrics" element={<APIMetricsPage />} />
                 <Route path="/callback/linkedin" element={<LinkedInCallback />} />
+                <Route path="/linkedin-callback" element={<LinkedInCallback />} />
               <Route path="/leetcode/:username" element={<LeetCodeDetails />} />
               <Route path="/hackerrank/:username" element={<HackerRankDetails />} />
               <Route path="/codecademy/:username" element={<CodecademyDetails />} />

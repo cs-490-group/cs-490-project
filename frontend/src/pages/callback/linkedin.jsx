@@ -8,31 +8,49 @@ function LinkedInCallback() {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const code = urlParams.get('code');
+    const state = urlParams.get('state');
     const error = urlParams.get('error');
     const errorDescription = urlParams.get('error_description');
 
+    const payload = {
+      type: 'LINKEDIN_AUTH_SUCCESS',
+      code: code,
+      error: error || errorDescription,
+      state: state,
+    };
+
+    try {
+      const storageKey = `linkedin_oauth_result:${state || 'nostate'}`;
+      window.localStorage.setItem(storageKey, JSON.stringify(payload));
+    } catch (e) {
+    }
+
     // Send message back to parent window
     if (window.opener) {
-      window.opener.postMessage({
-        type: 'LINKEDIN_AUTH_SUCCESS',
-        code: code,
-        error: error || errorDescription,
-      }, window.location.origin);
+      try {
+        window.opener.postMessage(payload, window.location.origin);
+      } catch (e) {
+      }
       
       // Close the popup
       window.close();
     } else {
-      // Fallback: redirect to main app if not opened as popup
-      if (error) {
-        navigate('/login?error=' + encodeURIComponent(errorDescription || error));
-      } else if (code) {
-        // Store code temporarily and redirect to login
-        sessionStorage.setItem('linkedin_code', code);
-        navigate('/login');
-      } else {
-        navigate('/login?error=LinkedIn authentication failed');
-      }
+      window.close();
     }
+
+    setTimeout(() => {
+      if (!window.closed) {
+        const qs = new URLSearchParams();
+        if (payload.state) {
+          qs.set('linkedin_state', payload.state);
+        }
+        if (payload.error) {
+          qs.set('error', payload.error);
+        }
+        const suffix = qs.toString();
+        navigate('/login' + (suffix ? `?${suffix}` : ''));
+      }
+    }, 500);
   }, [navigate, location]);
 
   return (
