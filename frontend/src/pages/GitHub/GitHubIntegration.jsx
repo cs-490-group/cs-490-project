@@ -10,7 +10,7 @@ import githubAPI from '../../api/githubAPI';
 import RepositoryCard from './RepositoryCard';
 import GitHubStats from './GitHubStats';
 import ContributionActivity from './ContributionActivity';
-import './GitHubIntegration.css';
+import './GithubIntegration.css';
 
 const GitHubIntegration = () => {
   const [isConnected, setIsConnected] = useState(false);

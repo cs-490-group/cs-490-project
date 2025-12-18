@@ -90,7 +90,8 @@ const LinkedInCallback = lazy(() => import("./pages/callback/linkedin"));
 const LeetCodeDetails = lazy(() => import("./pages/LeetCodeDetails"));
 const HackerRankDetails = lazy(() => import("./pages/HackerRankDetails"));
 const CodecademyDetails = lazy(() => import("./pages/CodecademyDetails"));
-import GitHubIntegration from './pages/GitHub/GitHubIntegration';
+const GitHubIntegration = lazy(() => import('./pages/GitHub/GitHubIntegration'));
+
 
 
 // inside your router
