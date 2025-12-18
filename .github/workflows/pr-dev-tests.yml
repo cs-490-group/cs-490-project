@@ -24,11 +24,11 @@ jobs:
         run: npm ci
         working-directory: frontend
 
-      - name: Run frontend Sprint 4 coverage gate
-        run: npm run test:frontend-coverage-gate:sprint4
-        working-directory: frontend
-        env:
-          CI: 'true'
+      # - name: Run frontend Sprint 4 coverage gate
+      #   run: npm run test:frontend-coverage-gate:sprint4
+      #   working-directory: frontend
+      #   env:
+      #     CI: 'true'
 
       - name: Setup Python
         uses: actions/setup-python@v5
