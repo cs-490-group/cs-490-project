@@ -5,6 +5,7 @@ APScheduler==3.11.1
 axe_playwright_python==0.1.7
 bcrypt==5.0.0
 beautifulsoup4==4.14.2
+bleach
 brotli==1.2.0
 cachetools==6.2.1
 certifi==2025.10.5
