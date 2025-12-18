@@ -119,6 +119,7 @@ export default function CertificationsEditor({ certifications, onUpdate }) {
                         className="form-control"
                         value={formData.name || ''}
                         onChange={(e) => handleFormChange('name', e.target.value)}
+                        aria-label="Certification Name"
                       />
                     </div>
                     <div className="form-group">
@@ -129,6 +130,7 @@ export default function CertificationsEditor({ certifications, onUpdate }) {
                         placeholder="e.g., Google, AWS, Microsoft"
                         value={formData.issuer || ''}
                         onChange={(e) => handleFormChange('issuer', e.target.value)}
+                        aria-label="Certification Issuer"
                       />
                     </div>
                   </div>
@@ -141,6 +143,7 @@ export default function CertificationsEditor({ certifications, onUpdate }) {
                         placeholder="e.g., 2023-06"
                         value={formData.dateEarned || ''}
                         onChange={(e) => handleFormChange('dateEarned', e.target.value)}
+                        aria-label="Date Earned"
                       />
                     </div>
                     <div className="form-group">
@@ -151,6 +154,7 @@ export default function CertificationsEditor({ certifications, onUpdate }) {
                         placeholder="e.g., 2025-06"
                         value={formData.dateExpiry || ''}
                         onChange={(e) => handleFormChange('dateExpiry', e.target.value)}
+                        aria-label="Expiry Date"
                       />
                     </div>
                   </div>
@@ -162,6 +166,7 @@ export default function CertificationsEditor({ certifications, onUpdate }) {
                         className="form-control"
                         value={formData.certNumber || ''}
                         onChange={(e) => handleFormChange('certNumber', e.target.value)}
+                        aria-label="Credential ID"
                       />
                     </div>
                     <div className="form-group">
@@ -172,6 +177,7 @@ export default function CertificationsEditor({ certifications, onUpdate }) {
                         placeholder="e.g., Cloud, Security"
                         value={formData.category || ''}
                         onChange={(e) => handleFormChange('category', e.target.value)}
+                        aria-label="Certification Category"
                       />
                     </div>
                   </div>

@@ -528,6 +528,7 @@ export default function AnalyticsDashboard() {
                             borderRadius: '6px',
                             fontSize: '13px'
                           }}
+                          aria-label="Enter target value"
                         />
                       </div>
                       
@@ -711,6 +712,7 @@ export default function AnalyticsDashboard() {
                     borderRadius: '6px',
                     fontSize: '14px'
                   }}
+                  aria-label="Enter target value"
                 />
               </div>
 

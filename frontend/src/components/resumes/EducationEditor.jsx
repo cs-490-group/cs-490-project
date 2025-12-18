@@ -119,6 +119,7 @@ export default function EducationEditor({ education, onUpdate }) {
                         className="form-control"
                         value={formData.school || ''}
                         onChange={(e) => handleFormChange('school', e.target.value)}
+                        aria-label="School or Institution Name"
                       />
                     </div>
                     <div className="form-group">
@@ -129,6 +130,7 @@ export default function EducationEditor({ education, onUpdate }) {
                         placeholder="e.g., Bachelor's, Master's"
                         value={formData.degree || ''}
                         onChange={(e) => handleFormChange('degree', e.target.value)}
+                        aria-label="Degree"
                       />
                     </div>
                   </div>
@@ -141,6 +143,7 @@ export default function EducationEditor({ education, onUpdate }) {
                         placeholder="e.g., Computer Science"
                         value={formData.field || ''}
                         onChange={(e) => handleFormChange('field', e.target.value)}
+                        aria-label="Field of Study"
                       />
                     </div>
                     <div className="form-group">
@@ -151,6 +154,7 @@ export default function EducationEditor({ education, onUpdate }) {
                         placeholder="e.g., 2022"
                         value={formData.year || ''}
                         onChange={(e) => handleFormChange('year', e.target.value)}
+                        aria-label="Graduation Year"
                       />
                     </div>
                   </div>
@@ -163,6 +167,7 @@ export default function EducationEditor({ education, onUpdate }) {
                         placeholder="e.g., 3.8"
                         value={formData.gpa || ''}
                         onChange={(e) => handleFormChange('gpa', e.target.value)}
+                        aria-label="GPA"
                       />
                     </div>
                     <div className="form-group">
@@ -173,6 +178,7 @@ export default function EducationEditor({ education, onUpdate }) {
                         placeholder="e.g., Summa Cum Laude"
                         value={formData.achievements || ''}
                         onChange={(e) => handleFormChange('achievements', e.target.value)}
+                        aria-label="Achievements"
                       />
                     </div>
                   </div>

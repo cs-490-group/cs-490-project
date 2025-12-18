@@ -93,6 +93,7 @@ export default function ResumeCreate() {
             placeholder="e.g., Software Engineer Resume, Product Manager Resume"
             value={resumeName}
             onChange={(e) => setResumeName(e.target.value)}
+            disabled={loading}
           />
         </div>
 

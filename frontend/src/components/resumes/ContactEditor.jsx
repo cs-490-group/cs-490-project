@@ -31,6 +31,7 @@ export default function ContactEditor({ contact, onUpdate }) {
           placeholder="John Smith"
           value={formData.name || ''}
           onChange={(e) => handleInputChange('name', e.target.value)}
+          aria-label="Full Name"
         />
       </div>
 
@@ -46,6 +47,7 @@ export default function ContactEditor({ contact, onUpdate }) {
             placeholder="john.smith@email.com"
             value={formData.email || ''}
             onChange={(e) => handleInputChange('email', e.target.value)}
+            aria-label="Email Address"
           />
         </div>
 
@@ -60,6 +62,7 @@ export default function ContactEditor({ contact, onUpdate }) {
             placeholder="(555) 123-4567"
             value={formData.phone || ''}
             onChange={(e) => handleInputChange('phone', e.target.value)}
+            aria-label="Phone Number"
           />
         </div>
       </div>
@@ -75,6 +78,7 @@ export default function ContactEditor({ contact, onUpdate }) {
           placeholder="San Francisco, CA"
           value={formData.address || ''}
           onChange={(e) => handleInputChange('address', e.target.value)}
+          aria-label="Address"
         />
       </div>
 
@@ -89,6 +93,7 @@ export default function ContactEditor({ contact, onUpdate }) {
           placeholder="linkedin.com/in/yourprofile"
           value={formData.linkedin || ''}
           onChange={(e) => handleInputChange('linkedin', e.target.value)}
+          aria-label="LinkedIn URL"
         />
       </div>
     </div>

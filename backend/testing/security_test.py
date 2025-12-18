@@ -7,8 +7,8 @@ import logging
 import random 
 
 # CONFIGURATION
-BASE_URL = "http://localhost:8000/api" 
-#BASE_URL = "https://cs-490-project-staging.up.railway.app/api"  # staging
+# BASE_URL = "http://localhost:8000/api" 
+BASE_URL = "https://cs-490-project-staging.up.railway.app/api"  # staging
 
 # Base credentials
 ATTACKER_CREDS = {
