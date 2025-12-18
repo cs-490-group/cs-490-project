@@ -15,9 +15,10 @@ import os
 # Add backend to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 from datetime import datetime, timezone
 from dotenv import load_dotenv
+import certifi
 
 # Load environment variables
 load_dotenv()
@@ -31,13 +32,20 @@ async def backfill_response_tracking():
     """Backfill response_tracking for all existing jobs"""
 
     # Connect to MongoDB
-    client = AsyncIOMotorClient(MONGO_CONNECTION_STRING)
+    client = AsyncMongoClient(
+        MONGO_CONNECTION_STRING,
+        tls=True,
+        tlsCAFile=certifi.where(),
+        maxPoolSize=10,
+        minPoolSize=2,
+        serverSelectionTimeoutMS=5000
+    )
     db = client[DATABASE_NAME]
     jobs_collection = db[JOBS_COLLECTION]
 
-    print("🔄 Starting response tracking backfill...")
-    print(f"📊 Database: {DATABASE_NAME}")
-    print(f"📁 Collection: {JOBS_COLLECTION}")
+    print("Starting response tracking backfill...")
+    print(f"Database: {DATABASE_NAME}")
+    print(f"Collection: {JOBS_COLLECTION}")
     print("-" * 60)
 
     # Find all jobs without response_tracking
@@ -51,10 +59,10 @@ async def backfill_response_tracking():
     cursor = jobs_collection.find(query)
     jobs_to_update = await cursor.to_list(length=None)
 
-    print(f"📋 Found {len(jobs_to_update)} jobs to backfill")
+    print(f"Found {len(jobs_to_update)} jobs to backfill")
 
     if len(jobs_to_update) == 0:
-        print("✅ No jobs need backfilling. All done!")
+        print("No jobs need backfilling. All done!")
         return
 
     updated_count = 0
@@ -70,9 +78,21 @@ async def backfill_response_tracking():
         elif job.get("date_created"):
             submitted_at = job["date_created"]
         else:
-            print(f"⚠️  Skipping job {job_id}: No submitted_at or date_created")
+            print(f"WARNING: Skipping job {job_id}: No submitted_at or date_created")
             skipped_count += 1
             continue
+
+        # Convert string to datetime if needed
+        if isinstance(submitted_at, str):
+            try:
+                submitted_at = datetime.fromisoformat(submitted_at.replace('Z', '+00:00'))
+            except:
+                try:
+                    submitted_at = datetime.fromisoformat(submitted_at)
+                except:
+                    print(f"WARNING: Skipping job {job_id}: Invalid date format")
+                    skipped_count += 1
+                    continue
 
         # Ensure timezone-aware
         if submitted_at and submitted_at.tzinfo is None:
@@ -130,13 +150,13 @@ async def backfill_response_tracking():
         if result.modified_count > 0:
             updated_count += 1
             status_msg = f"responded in {response_days} days" if response_days else "pending"
-            print(f"✓ Updated job {job_id}: {status_msg}")
+            print(f"Updated job {job_id}: {status_msg}")
         else:
             skipped_count += 1
-            print(f"⚠️  Failed to update job {job_id}")
+            print(f"WARNING: Failed to update job {job_id}")
 
     print("-" * 60)
-    print(f"✅ Backfill complete!")
+    print(f"Backfill complete!")
     print(f"   Updated: {updated_count}")
     print(f"   Skipped: {skipped_count}")
     print(f"   Total processed: {len(jobs_to_update)}")

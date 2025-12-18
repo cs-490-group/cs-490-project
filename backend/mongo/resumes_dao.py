@@ -23,11 +23,36 @@ class ResumeDAO:
         return str(result.inserted_id)
 
     async def get_all_resumes(self, uuid: str) -> list[dict]:
+        # Get main resumes
         cursor = self.collection.find({"uuid": uuid})
         results = []
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])
+            # Mark this as the current/main resume
+            doc["is_current"] = True
             results.append(doc)
+
+            # Get all versions for this resume
+            resume_id = doc["_id"]
+            versions = await self.get_resume_versions(resume_id)
+
+            # Add each version as a separate selectable item
+            for version in versions:
+                version_doc = {
+                    "_id": version["_id"],
+                    "resume_id": resume_id,
+                    "uuid": uuid,
+                    "name": doc.get("name", "Unnamed Resume"),
+                    "version_name": version.get("version_name", "Unnamed Version"),
+                    "date_created": version.get("date_created"),
+                    "is_current": False,
+                    "is_version": True,
+                    "parent_resume_id": resume_id,
+                    "file_size": version.get("file_size"),
+                    "resume_data": version.get("resume_data")
+                }
+                results.append(version_doc)
+
         return results
 
     async def get_resume(self, resume_id: str, uuid: str) -> dict | None:

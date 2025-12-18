@@ -204,9 +204,21 @@ class ApplicationWorkflowAPI {
   /* ============================================ */
   /* GOALS (UC-069) */
   /* ============================================ */
-  
+
   getGoals() {
     return api.get("/application-workflow/goals");
+  }
+
+  createGoal(data) {
+    return api.post("/application-workflow/goals", data);
+  }
+
+  updateGoal(id, data) {
+    return api.put(`/application-workflow/goals/${id}`, data);
+  }
+
+  deleteGoal(id) {
+    return api.delete(`/application-workflow/goals/${id}`);
   }
 
   /* ============================================ */

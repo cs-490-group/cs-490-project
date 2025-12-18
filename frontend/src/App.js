@@ -92,6 +92,7 @@ const LeetCodeDetails = lazy(() => import("./pages/LeetCodeDetails"));
 const HackerRankDetails = lazy(() => import("./pages/HackerRankDetails"));
 const CodecademyDetails = lazy(() => import("./pages/CodecademyDetails"));
 const GitHubIntegration = lazy(() => import('./pages/GitHub/GitHubIntegration'));
+const MaterialComparisonDashboard = lazy(() => import('./pages/materials/MaterialComparisonDashboard'));
 
 
 // inside your router
@@ -177,6 +178,9 @@ export function App() {
                 <Route path="/resumes/feedback/:id" element={<SharingAndFeedbackPage />} />
                 <Route path="/resumes/public/:token" element={<PublicSharePage />} />
                 <Route path="/resumes/export/:id" element={<ExportResumePage />} />
+
+                {/* Materials Comparison */}
+                <Route path="/materials/comparison" element={<MaterialComparisonDashboard />} />
 
                 {/* Interview Question Bank Routes */}
                 <Route path="/interview/question-library" element={<QuestionLibrary />} />
