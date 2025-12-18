@@ -178,6 +178,7 @@ async def search_salary_data(
     Returns cached data if available and recent (< 1 month old)
     Otherwise fetches from BLS API and caches the result
     """
+    print("YEA IN HERE")
     try:
         # Normalize inputs
         job_title = request.job_title.strip()
