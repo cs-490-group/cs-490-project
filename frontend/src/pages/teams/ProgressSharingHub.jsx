@@ -275,12 +275,13 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
         {publicLink && (
             <div style={{ display: "flex", gap: "8px", alignItems: "center", background: "#f9f9f9", padding: "12px", borderRadius: "6px", border: "1px solid #eee" }}>
                 <input
+                  aria-label="Public Link"
                     type="text"
                     value={publicLink}
                     readOnly
                     style={{ flex: 1, border: "none", background: "transparent", fontFamily: "monospace", fontSize: "13px", color: "#333" }}
                 />
-                <button
+                <button aria-label="Copy Public Link"
                     onClick={() => copyToClipboard(publicLink)}
                     style={{
                         background: "white", border: "1px solid #ddd", borderRadius: "4px",
@@ -544,6 +545,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
                   fontSize: "14px",
                   boxSizing: "border-box"
                 }}
+                aria-label="Email Address"
               />
             </div>
 
@@ -564,6 +566,7 @@ export default function ProgressSharingHub({ teamId, memberId, memberName }) {
                   fontSize: "14px",
                   boxSizing: "border-box"
                 }}
+                aria-label="Name (optional)"
               />
             </div>
 

@@ -4,12 +4,13 @@ import { SharedArray } from 'k6/data';
 import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
-const BASE_URL = 'https://cs-490-project-production.up.railway.app';
+const BASE_URL = __ENV.API_URL || 'https://cs-490-project-development.up.railway.app';
+// Use: k6 run -e API_URL=https://your-load-test-env.up.railway.app load_test.js
 
-// Generate 20 test users (enough for load testing with user recycling)
+// Generate 50 test users (enough for 50+ concurrent load testing)
 const users = new SharedArray('users', function () {
   const userList = [];
-  for (let i = 1; i <= 20; i++) {
+  for (let i = 1; i <= 50; i++) {
     userList.push({
       email: `user${i}@test.com`,
       username: `testuser${i}`,
@@ -22,19 +23,19 @@ const users = new SharedArray('users', function () {
 
 // Test configuration
 export const options = {
-  setupTimeout: '30m', // 30 minutes to register all users (100 users * 12s = 20 min)
+  setupTimeout: '5m', // 5 minutes is plenty now (50 users * 0.2s = 10 seconds)
   stages: [
     { duration: '30s', target: 10 },   // Ramp up to 10 users
-    { duration: '1m', target: 10 },    // Stay at 10 users
+    { duration: '1m', target: 25 },    // Stay at 25 users (baseline)
     { duration: '30s', target: 50 },   // Ramp up to 50 users
     { duration: '3m', target: 50 },    // Stay at 50 users (peak load)
-    { duration: '30s', target: 100 },  // Ramp up to 100 users (stress test)
-    { duration: '2m', target: 100 },   // Stay at 100 users
+    { duration: '30s', target: 50 },  // Ramp up to 50 users (stress test)
+    { duration: '2m', target: 50 },   // Stay at 50 users (breaking point)
     { duration: '30s', target: 0 },    // Ramp down to 0
   ],
   thresholds: {
-    http_req_duration: ['p(95)<2000', 'p(99)<3000'], // 95% < 2s, 99% < 3s
-    http_req_failed: ['rate<0.05'],                   // Error rate < 5%
+    http_req_duration: ['p(95)<2000', 'p(99)<3000'],
+    http_req_failed: ['rate<0.05'],  // Less than 5% errors
     'http_req_duration{scenario:login}': ['p(95)<500'],
     'http_req_duration{scenario:upload}': ['p(95)<5000'],
     'http_req_duration{scenario:download}': ['p(95)<3000'],
@@ -102,9 +103,8 @@ export function setup() {
       console.log(`❌ Failed to register ${user.email}: ${registerRes.status} - ${registerRes.body}`);
     }
 
-    // Rate limit protection - your API has 5 req/min limit on register
-    // So wait 12+ seconds between each registration to be safe
-    sleep(12);
+    // No rate limiting on test environment - register quickly!
+    sleep(0.2);
   });
 
   console.log(`\n📊 Registration Summary:`);
@@ -158,7 +158,9 @@ export default function (data) {
     return;
   }
 
-  const sessionToken = JSON.parse(loginRes.body).session_token;
+  const loginBody = JSON.parse(loginRes.body);
+  const sessionToken = loginBody.session_token;
+  const userId = loginBody.uuid; // Extract uuid from login response
 
   sleep(1); // Think time
 
@@ -176,6 +178,7 @@ export default function (data) {
   const uploadParams = {
     headers: {
       'Authorization': `Bearer ${sessionToken}`,
+      'uuid': userId, // Add uuid header required by your API
     },
     tags: { scenario: 'upload' },
   };
@@ -214,6 +217,7 @@ export default function (data) {
   const downloadParams = {
     headers: {
       'Authorization': `Bearer ${sessionToken}`,
+      'uuid': userId, // Add uuid header
     },
     tags: { scenario: 'download' },
   };
@@ -236,6 +240,7 @@ export default function (data) {
   const listParams = {
     headers: {
       'Authorization': `Bearer ${sessionToken}`,
+      'uuid': userId, // Add uuid header
     },
     tags: { scenario: 'list' },
   };

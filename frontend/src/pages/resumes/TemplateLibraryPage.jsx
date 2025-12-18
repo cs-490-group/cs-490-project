@@ -371,6 +371,7 @@ export default function TemplateLibraryPage() {
                   value={resumeName}
                   onChange={(e) => setResumeName(e.target.value)}
                   disabled={creating}
+                  aria-label="Resume Name"
                 />
               </div>
 
@@ -454,6 +455,7 @@ export default function TemplateLibraryPage() {
                   className="form-control"
                   onChange={handleFileSelected}
                   disabled={importing}
+                  aria-label="HTML Resume File"
                 />
                 <small className="text-muted">Select an HTML file exported from your resume</small>
               </div>
@@ -470,6 +472,7 @@ export default function TemplateLibraryPage() {
                   value={importName}
                   onChange={(e) => setImportName(e.target.value)}
                   disabled={importing}
+                  aria-label="Template Name"
                 />
               </div>
 

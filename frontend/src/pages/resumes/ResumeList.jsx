@@ -164,6 +164,7 @@ export default function ResumeList() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="form-control"
+          aria-label="Search Resumes"
         />
       </div>
 
@@ -190,6 +191,7 @@ export default function ResumeList() {
                       onChange={(e) => setEditingName(e.target.value)}
                       autoFocus
                       onKeyPress={(e) => e.key === 'Enter' && handleRenameSave()}
+                      aria-label="Edit Resume Name"
                     />
                     <button
                       onClick={handleRenameSave}

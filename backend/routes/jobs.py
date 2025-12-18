@@ -677,7 +677,7 @@ async def update_job(job_id: str, job: Job, uuid: str = Depends(authorize)):
 @jobs_router.delete("", tags=["jobs"])
 async def delete_job(job_id: str, uuid: str = Depends(authorize)):
     try:
-        deleted = await jobs_dao.delete_job(job_id)
+        deleted = await jobs_dao.delete_job(job_id, uuid)
     except Exception as e:
         raise HTTPException(500, str(e))
 

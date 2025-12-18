@@ -16,7 +16,7 @@ async def add_education(education: Education, uuid: str = Depends(authorize)):
             raise HTTPException(422, "Education requires an institution name")
 
         model["uuid"] = uuid
-        result = await education_dao.add_education(model)
+        result = await education_dao.add_education(uuid, model)
     except DuplicateKeyError:
         raise HTTPException(400, "Education already exists") # FIXME: redundant since keys are generated uniquely?
     except HTTPException as http:
@@ -29,7 +29,7 @@ async def add_education(education: Education, uuid: str = Depends(authorize)):
 @education_router.get("", tags = ["education"])
 async def get_education(education_id: str, uuid: str = Depends(authorize)):
     try:
-        result = await education_dao.get_education(education_id)
+        result = await education_dao.get_education(education_id, uuid)
     except Exception as e:
         raise HTTPException(500, str(e))
     
@@ -53,7 +53,7 @@ async def get_all_education(uuid: str = Depends(authorize)):
 async def update_education(education_id: str, education: Education, uuid: str = Depends(authorize)):    
     try:
         model = education.model_dump(exclude_unset = True)
-        updated = await education_dao.update_education(education_id, model)
+        updated = await education_dao.update_education(education_id, uuid, model)
     except Exception as e:
         raise HTTPException(500, str(e))
     
@@ -65,7 +65,7 @@ async def update_education(education_id: str, education: Education, uuid: str = 
 @education_router.delete("", tags = ["education"])
 async def delete_education(education_id: str, uuid: str = Depends(authorize)):
     try:
-        deleted = await education_dao.delete_education(education_id)
+        deleted = await education_dao.delete_education(education_id, uuid)
     except Exception as e:
         raise HTTPException(500, str(e))
 

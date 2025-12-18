@@ -72,6 +72,7 @@ function PreparationChecklist({ tasks, onTaskToggle, onAddTask, onDeleteTask }) 
                     checked={task.is_completed}
                     onChange={() => onTaskToggle(task.task_id)}
                     className="task-checkbox"
+                    aria-label="Toggle task completion status"
                   />
                   
                   <div className="task-content">

@@ -2,9 +2,14 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-
+# Combine system dependencies (Build tools + Playwright libraries)
 RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    libcairo2-dev \
+    pkg-config \
+    python3-dev \
     libnss3 \
     libnspr4 \
     libdbus-1-3 \
@@ -21,7 +26,10 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install -r requirements.txt && playwright install
+COPY requirements.txt .
+
+# Install Python deps (with no-cache) and Playwright browsers
+RUN pip install --no-cache-dir -r requirements.txt && playwright install
 
 COPY . .
 

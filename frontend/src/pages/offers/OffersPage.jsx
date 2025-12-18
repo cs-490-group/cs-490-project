@@ -42,6 +42,8 @@ export default function OffersPage() {
                 ? await OffersAPI.getArchivedOffers()
                 : await OffersAPI.getActiveOffers();
             setOffers(response.data);
+            console.log("HERE")
+            console.log(offers)
             setError(null);
         } catch (err) {
             console.error("Error loading offers:", err);
@@ -147,6 +149,8 @@ export default function OffersPage() {
     }
 
     if (showDetails && selectedOffer) {
+        console.log("NOW HERE")
+        console.log(selectedOffer)
         return (
             <Container className="py-4">
                 <OfferDetailsModal

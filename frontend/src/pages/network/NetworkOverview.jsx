@@ -618,6 +618,7 @@ export default function NetworkOverview() {
 									onChange={handleFilterChange}
 									className="filter-input"
 									style={{color:"black"}}
+									aria-label="Filter by Industry Professional Status"
 								>
 									<option value="">All Contacts</option>
 									<option value="true">Industry Professionals</option>

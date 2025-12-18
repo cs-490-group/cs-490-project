@@ -252,6 +252,7 @@ export default function VersionManagementPage() {
                 <div className="version-checkbox">
                   <input
                     type="checkbox"
+                    aria-label="Select Version"
                     id={`version-${version._id}`}
                     checked={selectedVersions.includes(version._id)}
                     onChange={() => handleVersionSelect(version._id)}

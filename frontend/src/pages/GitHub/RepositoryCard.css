@@ -1,0 +1,349 @@
+.repository-card {
+  background: white;
+  border: 1px solid #d0d7de;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.repository-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: #0969da;
+}
+
+.repository-card.featured {
+  border: 2px solid #bf8700;
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.featured-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+  padding: 0.4rem 1rem;
+  border-bottom-left-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.repo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.repo-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.repo-title h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+.repo-link {
+  color: #0969da;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color 0.2s;
+}
+
+.repo-link:hover {
+  color: #0860ca;
+  text-decoration: underline;
+}
+
+.external-icon {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.fork-badge, .archived-badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  background-color: #f6f8fa;
+  color: #666;
+  border: 1px solid #d0d7de;
+}
+
+.archived-badge {
+  background-color: #fff3cd;
+  color: #856404;
+  border-color: #ffc107;
+}
+
+.feature-button {
+  background-color: transparent;
+  border: 2px solid #d0d7de;
+  color: #6b7280;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.feature-button:hover {
+  border-color: #fbbf24;
+  color: #fbbf24;
+  background-color: #fffbeb;
+}
+
+.feature-button.active {
+  background-color: #fef3c7;
+  border-color: #fbbf24;
+  color: #d97706;
+}
+
+.repo-description {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.repo-homepage {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0969da;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  word-break: break-all;
+}
+
+.repo-homepage:hover {
+  text-decoration: underline;
+}
+
+.repo-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.stat-item svg {
+  font-size: 0.95rem;
+}
+
+.stat-item.language {
+  font-weight: 600;
+}
+
+.repo-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.topic-tag {
+  background-color: #ddf4ff;
+  color: #0969da;
+  padding: 0.3rem 0.7rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.languages-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.language-tag {
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 2px solid;
+  background-color: white;
+}
+
+.repo-notes-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.notes-toggle {
+  background-color: transparent;
+  border: 1px solid #d0d7de;
+  color: #666;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.notes-toggle:hover {
+  border-color: #0969da;
+  color: #0969da;
+  background-color: #f6f8fa;
+}
+
+.notes-editor {
+  margin-top: 0.75rem;
+}
+
+.notes-editor textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 0.5rem;
+}
+
+.notes-editor textarea:focus {
+  outline: none;
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+
+.notes-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.save-notes, .cancel-notes {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.save-notes {
+  background-color: #22c55e;
+  color: white;
+}
+
+.save-notes:hover:not(:disabled) {
+  background-color: #16a34a;
+}
+
+.save-notes:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancel-notes {
+  background-color: #f6f8fa;
+  color: #666;
+  border: 1px solid #d0d7de;
+}
+
+.cancel-notes:hover {
+  background-color: #eaeef2;
+}
+
+.notes-preview {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #555;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.note-icon {
+  color: #0969da;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.notes-preview p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.linked-skills {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #f0f9ff;
+  border-left: 3px solid #0969da;
+  border-radius: 4px;
+  color: #0369a1;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .repository-card {
+    padding: 1rem;
+  }
+
+  .repo-header {
+    flex-direction: column;
+  }
+
+  .feature-button {
+    align-self: flex-start;
+  }
+
+  .repo-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

@@ -67,11 +67,11 @@ export default function CoachingDashboard() {
         <div className="card p-4 mb-4 shadow-sm border-0">
           <h4 className="mb-3">Invite a Career Coach</h4>
           <div className="row g-3">
-            <div className="col-md-6"><input className="form-control" placeholder="Coach Name" value={inviteForm.name} onChange={e => setInviteForm({...inviteForm, name: e.target.value})} /></div>
-            <div className="col-md-6"><input className="form-control" placeholder="Coach Email" value={inviteForm.email} onChange={e => setInviteForm({...inviteForm, email: e.target.value})} /></div>
-            <div className="col-md-6"><input className="form-control" placeholder="Hourly Rate (Optional)" value={inviteForm.rate} onChange={e => setInviteForm({...inviteForm, rate: e.target.value})} /></div>
-            <div className="col-md-6"><input className="form-control" placeholder="Payment Link (Stripe/PayPal)" value={inviteForm.payment_link} onChange={e => setInviteForm({...inviteForm, payment_link: e.target.value})} /></div>
-            <div className="col-12"><button onClick={handleInvite} className="btn btn-success">Send Invitation</button></div>
+            <div className="col-md-6"><input className="form-control" placeholder="Coach Name" aria-label="Coach Name" value={inviteForm.name} onChange={e => setInviteForm({...inviteForm, name: e.target.value})} /></div>
+            <div className="col-md-6"><input className="form-control" placeholder="Coach Email" aria-label="Coach Email" value={inviteForm.email} onChange={e => setInviteForm({...inviteForm, email: e.target.value})} /></div>
+            <div className="col-md-6"><input className="form-control" placeholder="Hourly Rate (Optional)" aria-label="Hourly Rate (Optional)" value={inviteForm.rate} onChange={e => setInviteForm({...inviteForm, rate: e.target.value})} /></div>
+            <div className="col-md-6"><input className="form-control" placeholder="Payment Link (Stripe/PayPal)" aria-label="Payment Link (Stripe/PayPal)" value={inviteForm.payment_link} onChange={e => setInviteForm({...inviteForm, payment_link: e.target.value})} /></div>
+            <div className="col-12"><button onClick={handleInvite} aria-label="Send Invitation" className="btn btn-success">Send Invitation</button></div>
           </div>
         </div>
       )}
