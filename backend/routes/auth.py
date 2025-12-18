@@ -28,12 +28,24 @@ from jose import jwt, JWTError
 import os
 from bson import ObjectId
 
+from functools import wraps
+
+RATE_LIMITING_ENABLED = os.getenv("RATE_LIMITING_ENABLED", "true").lower() == "true"
+
+def conditional_limiter(limit_string):
+    """Apply rate limit only if enabled"""
+    def decorator(func):
+        if RATE_LIMITING_ENABLED:
+            return limiter.limit(limit_string)(func)
+        return func
+    return decorator
+
 auth_router = APIRouter(prefix = "/auth")
 
 limiter = Limiter(key_func=get_remote_address)
 
 @auth_router.post("/register", tags = ["profiles"])
-@limiter.limit("5/minute")
+@conditional_limiter("5/minute")
 async def register(request: Request,info: RegistInfo):
     # Authentication
     try:
@@ -80,7 +92,7 @@ async def register(request: Request,info: RegistInfo):
     return {"detail": "Sucessfully registered user", "uuid": uuid, "session_token": session_token}
 
 @auth_router.post("/login", tags = ["profiles"])
-@limiter.limit("5/minute")
+@conditional_limiter("5/minute")
 async def login(request: Request,credentials: LoginCred):
     # Authentication (for real this time)
     try:
