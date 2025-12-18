@@ -7,8 +7,8 @@ import logging
 import random 
 
 # CONFIGURATION
-# BASE_URL = "http://localhost:8000/api" 
-BASE_URL = "https://cs-490-project-production.up.railway.app/api"  # Production
+BASE_URL = "http://localhost:8000/api" 
+#BASE_URL = "https://cs-490-project-staging.up.railway.app/api"  # staging
 
 # Base credentials
 ATTACKER_CREDS = {
@@ -154,9 +154,13 @@ class MetamorphosisScanner:
             log("VULNERABLE: Old token is STILL valid after logout!", "FAIL")
 
     def test_mass_assignment(self):
-        print(f"\n{Colors.HEADER}--- Testing Mass Assignment (Privilege Esc) ---{Colors.ENDC}")
+        print(f"\n{Colors.HEADER}--- Testing Mass Assignment on Multiple Endpoints ---{Colors.ENDC}")
         
-        # Attempt to register a user with 'admin' privileges injected
+        vulnerable_count = 0
+        tested_count = 0
+
+        # Test 1: Register endpoint (original test)
+        log("Testing Mass Assignment on /auth/register...", "INFO")
         payload = ATTACKER_CREDS.copy()
         payload["email"] = f"admin_try_{int(time.time())}@test.com"
         payload["username"] = f"admin_hack_{int(time.time())}"
@@ -168,19 +172,135 @@ class MetamorphosisScanner:
 
         try:
             resp = requests.post(f"{BASE_URL}/auth/register", json=payload)
+            tested_count += 1
             
             if resp.status_code in [200, 201]:
                 data = resp.json()
-                # Check if the server echoed back our malicious fields
                 if data.get("is_admin") is True or data.get("role") == "admin":
-                    log("VULNERABLE: Server accepted admin fields!", "FAIL")
+                    log("VULNERABLE: Register - Server accepted admin fields!", "FAIL")
+                    vulnerable_count += 1
                 else:
-                    log("Safe: Pydantic stripped unknown fields.", "PASS")
+                    log("Safe: Register - Pydantic stripped unknown fields.", "PASS")
             else:
-                log(f"Registration blocked (possibly due to schema validation). Status: {resp.status_code}", "PASS")
-                
+                log(f"Register - Blocked with status {resp.status_code}", "PASS")
         except Exception as e:
-            log(f"Mass assignment test error: {e}", "WARN")
+            log(f"Register mass assignment test error: {e}", "WARN")
+
+        # Test 2: Jobs endpoint - try to inject owner/uuid
+        log("Testing Mass Assignment on /jobs endpoint...", "INFO")
+        if self.attacker_auth:
+            job_payload = {
+                "title": "Mass Assignment Test",
+                "company": "Evil Corp",
+                "deadline": "2025-01-01",
+                # INJECTED FIELDS
+                "uuid": "fake-uuid-12345",  # Try to set different owner
+                "owner": "admin",
+                "is_featured": True,
+                "priority": 999
+            }
+            
+            try:
+                resp = requests.post(f"{BASE_URL}/jobs", json=job_payload, headers=self.attacker_auth)
+                tested_count += 1
+                
+                if resp.status_code in [200, 201]:
+                    job_id = resp.json().get("_id") or resp.json().get("id")
+                    check = requests.get(f"{BASE_URL}/jobs/{job_id}", headers=self.attacker_auth)
+                    
+                    check_data = check.json()
+                    if (check_data.get("uuid") == "fake-uuid-12345" or 
+                        check_data.get("is_featured") is True or 
+                        check_data.get("priority") == 999):
+                        log("VULNERABLE: Jobs - Server accepted injected fields!", "FAIL")
+                        vulnerable_count += 1
+                    else:
+                        log("Safe: Jobs - Injected fields were stripped.", "PASS")
+                else:
+                    log(f"Jobs - Blocked with status {resp.status_code}", "PASS")
+            except Exception as e:
+                log(f"Jobs mass assignment test error: {e}", "WARN")
+
+        # Test 3: Resumes endpoint
+        log("Testing Mass Assignment on /resumes endpoint...", "INFO")
+        if self.attacker_auth:
+            resume_payload = {
+                "name": "Mass Assignment Resume",
+                "template": "modern",
+                # INJECTED FIELDS
+                "uuid": "fake-uuid-67890",
+                "is_public": True,
+                "view_count": 9999,
+                "featured": True
+            }
+            
+            try:
+                resp = requests.post(f"{BASE_URL}/resumes", json=resume_payload, headers=self.attacker_auth)
+                tested_count += 1
+                
+                if resp.status_code in [200, 201]:
+                    resume_id = resp.json().get("resume_id")
+                    check = requests.get(f"{BASE_URL}/resumes?resume_id={resume_id}", headers=self.attacker_auth)
+                    
+                    check_data = check.json()
+                    if (check_data.get("uuid") == "fake-uuid-67890" or 
+                        check_data.get("view_count") == 9999):
+                        log("VULNERABLE: Resumes - Server accepted injected fields!", "FAIL")
+                        vulnerable_count += 1
+                    else:
+                        log("Safe: Resumes - Injected fields were stripped.", "PASS")
+                else:
+                    log(f"Resumes - Blocked with status {resp.status_code}", "PASS")
+            except Exception as e:
+                log(f"Resumes mass assignment test error: {e}", "WARN")
+
+        # Test 4: Update endpoints - try to modify protected fields
+        log("Testing Mass Assignment on UPDATE operations...", "INFO")
+        if self.attacker_auth:
+            # Create a job first
+            job_data = {"title": "Original Title", "company": "Test Co", "deadline": "2025-01-01"}
+            resp = requests.post(f"{BASE_URL}/jobs", json=job_data, headers=self.attacker_auth)
+            
+            if resp.status_code in [200, 201]:
+                job_id = resp.json().get("_id") or resp.json().get("id")
+                
+                # Try to update with injected fields
+                update_payload = {
+                    "title": "Updated Title",
+                    # INJECTED FIELDS
+                    "uuid": "different-owner-uuid",
+                    "created_at": "1970-01-01",
+                    "_id": "fake-id-12345"
+                }
+                
+                try:
+                    resp = requests.put(f"{BASE_URL}/jobs/{job_id}", 
+                                    json=update_payload, 
+                                    headers=self.attacker_auth)
+                    tested_count += 1
+                    
+                    if resp.status_code in [200, 204]:
+                        check = requests.get(f"{BASE_URL}/jobs/{job_id}", headers=self.attacker_auth)
+                        check_data = check.json()
+                        
+                        if (check_data.get("uuid") == "different-owner-uuid" or 
+                            check_data.get("created_at") == "1970-01-01"):
+                            log("VULNERABLE: Update - Protected fields were modified!", "FAIL")
+                            vulnerable_count += 1
+                        else:
+                            log("Safe: Update - Protected fields cannot be modified.", "PASS")
+                    else:
+                        log(f"Update - Blocked with status {resp.status_code}", "PASS")
+                except Exception as e:
+                    log(f"Update mass assignment test error: {e}", "WARN")
+
+        # Summary
+        print(f"\n{Colors.HEADER}--- Mass Assignment Test Summary ---{Colors.ENDC}")
+        log(f"Tested {tested_count} endpoints/operations", "INFO")
+        if vulnerable_count > 0:
+            log(f"Found {vulnerable_count} mass assignment vulnerabilities!", "FAIL")
+        else:
+            log(f"All tested endpoints properly filter input fields", "PASS")
 
 
     def test_file_upload(self):
@@ -247,11 +367,21 @@ class MetamorphosisScanner:
             log(f"Header check failed: {e}", "WARN")
 
     def test_csrf(self):
-        print(f"\n{Colors.HEADER}--- Testing CSRF Vulnerabilities ---{Colors.ENDC}")
+        print(f"\n{Colors.HEADER}--- Testing CSRF on Multiple Endpoints ---{Colors.ENDC}")
         if not self.victim_auth:
             log("Skipping CSRF: No Victim Session", "FAIL")
             return
 
+        vulnerable_count = 0
+        tested_count = 0
+        
+        vulnerable_headers = {
+            "Content-Type": "application/json"
+            # NOTE: Authorization header is intentionally REMOVED
+        }
+
+        # Test 1: Jobs endpoint
+        log("Testing CSRF on /jobs endpoint...", "INFO")
         csrf_payload = {
             "title": "CSRF Attack Job",
             "company": "Hacker Inc",
@@ -260,27 +390,100 @@ class MetamorphosisScanner:
             "deadline": "2025-12-31"
         }
 
-        vulnerable_headers = {
-            "Content-Type": "application/json"
-            # NOTE: Authorization header is intentionally REMOVED
+        try:
+            resp = requests.post(f"{BASE_URL}/jobs", json=csrf_payload, headers=vulnerable_headers)
+            tested_count += 1
+
+            if resp.status_code in [200, 201]:
+                log("VULNERABLE: Jobs - Request succeeded without Auth header!", "FAIL")
+                vulnerable_count += 1
+            elif resp.status_code in [401, 403]:
+                log("Safe: Jobs - Server rejected request without Authorization.", "PASS")
+            else:
+                log(f"Safe: Jobs - Request failed with status {resp.status_code}", "PASS")
+        except Exception as e:
+            log(f"Jobs CSRF test error: {e}", "WARN")
+
+        # Test 2: Education endpoint
+        log("Testing CSRF on /education endpoint...", "INFO")
+        edu_payload = {
+            "institution_name": "CSRF University",
+            "degree": "Bachelor's",
+            "start_date": "2020-01-01"
         }
 
         try:
-            resp = requests.post(f"{BASE_URL}/jobs", json=csrf_payload, headers=vulnerable_headers)
+            resp = requests.post(f"{BASE_URL}/education", json=edu_payload, headers=vulnerable_headers)
+            tested_count += 1
 
-            if resp.status_code == 200 or resp.status_code == 201:
-                log("VULNERABLE: Request succeeded without Auth header! (Possible CSRF)", "FAIL")
-            elif resp.status_code == 401 or resp.status_code == 403:
-                log("Safe: Server rejected request without explicit Authorization header.", "PASS")
+            if resp.status_code in [200, 201]:
+                log("VULNERABLE: Education - Request succeeded without Auth header!", "FAIL")
+                vulnerable_count += 1
+            elif resp.status_code in [401, 403]:
+                log("Safe: Education - Server rejected request without Authorization.", "PASS")
             else:
-                log(f"Safe: Request failed with status {resp.status_code}", "PASS")
-                
+                log(f"Safe: Education - Request failed with status {resp.status_code}", "PASS")
         except Exception as e:
-            log(f"CSRF test error: {e}", "WARN")
+            log(f"Education CSRF test error: {e}", "WARN")
+
+        # Test 3: Skills endpoint
+        log("Testing CSRF on /skills endpoint...", "INFO")
+        skill_payload = {
+            "name": "CSRF Skill",
+            "proficiency": "Expert"
+        }
+
+        try:
+            resp = requests.post(f"{BASE_URL}/skills", json=skill_payload, headers=vulnerable_headers)
+            tested_count += 1
+
+            if resp.status_code in [200, 201]:
+                log("VULNERABLE: Skills - Request succeeded without Auth header!", "FAIL")
+                vulnerable_count += 1
+            elif resp.status_code in [401, 403]:
+                log("Safe: Skills - Server rejected request without Authorization.", "PASS")
+            else:
+                log(f"Safe: Skills - Request failed with status {resp.status_code}", "PASS")
+        except Exception as e:
+            log(f"Skills CSRF test error: {e}", "WARN")
+
+        # Test 4: Resumes endpoint
+        log("Testing CSRF on /resumes endpoint...", "INFO")
+        resume_payload = {
+            "name": "CSRF Resume",
+            "template": "modern"
+        }
+
+        try:
+            resp = requests.post(f"{BASE_URL}/resumes", json=resume_payload, headers=vulnerable_headers)
+            tested_count += 1
+
+            if resp.status_code in [200, 201]:
+                log("VULNERABLE: Resumes - Request succeeded without Auth header!", "FAIL")
+                vulnerable_count += 1
+            elif resp.status_code in [401, 403]:
+                log("Safe: Resumes - Server rejected request without Authorization.", "PASS")
+            else:
+                log(f"Safe: Resumes - Request failed with status {resp.status_code}", "PASS")
+        except Exception as e:
+            log(f"Resumes CSRF test error: {e}", "WARN")
+
+        # Summary
+        print(f"\n{Colors.HEADER}--- CSRF Test Summary ---{Colors.ENDC}")
+        log(f"Tested {tested_count} endpoints", "INFO")
+        if vulnerable_count > 0:
+            log(f"Found {vulnerable_count} potential CSRF vulnerabilities!", "FAIL")
+        else:
+            log(f"All tested endpoints require proper authorization", "PASS")
 
     def test_nosql_injection(self):
-        print(f"\n{Colors.HEADER}--- Testing NoSQL Injection ---{Colors.ENDC}")
-        # Payload: Pass a dictionary instead of a string to bypass password check
+        print(f"\n{Colors.HEADER}--- Testing NoSQL Injection on Multiple Endpoints ---{Colors.ENDC}")
+        
+        vulnerable_count = 0
+        tested_count = 0
+
+        # Test 1: Login endpoint (original test)
+        log("Testing NoSQL Injection on /auth/login...", "INFO")
         payload = {
             "email": VICTIM_CREDS["email"],
             "password": {"$ne": None} 
@@ -288,72 +491,431 @@ class MetamorphosisScanner:
         
         try:
             resp = requests.post(f"{BASE_URL}/auth/login", json=payload) 
+            tested_count += 1
             
             if resp.status_code == 200:
-                log("NoSQL Injection Successful! Login bypassed.", "FAIL")
-            elif resp.status_code == 422 or resp.status_code == 400:
-                log("Pydantic blocked the injection (Type Validation).", "PASS")
+                log("VULNERABLE: Login - NoSQL Injection bypassed authentication!", "FAIL")
+                vulnerable_count += 1
+            elif resp.status_code in [422, 400]:
+                log("Safe: Login - Pydantic blocked the injection.", "PASS")
             else:
-                log(f"Injection failed with status {resp.status_code}", "PASS")
+                log(f"Login - Injection failed with status {resp.status_code}", "PASS")
         except Exception as e:
-            log(f"Error testing injection: {e}", "WARN")
+            log(f"Login injection test error: {e}", "WARN")
+
+        # Test 2: Jobs query injection (if there's a search/filter endpoint)
+        log("Testing NoSQL Injection on potential query parameters...", "INFO")
+        if self.attacker_auth:
+            # Try injection in query parameters
+            injection_params = {
+                "status": {"$ne": None},  # Try to bypass filters
+                "company": {"$regex": ".*"}  # Try regex injection
+            }
+            
+            try:
+                # Attempt to exploit query parameters
+                resp = requests.get(f"{BASE_URL}/jobs/me", 
+                                params=injection_params, 
+                                headers=self.attacker_auth)
+                tested_count += 1
+                
+                # If the server accepts dictionary params, it might be vulnerable
+                if resp.status_code == 200:
+                    # Check if response seems abnormal (hard to detect automatically)
+                    log("Query params accepted - manual review needed", "WARN")
+                else:
+                    log(f"Query injection blocked with status {resp.status_code}", "PASS")
+            except Exception as e:
+                log(f"Query injection test error: {e}", "WARN")
+
+        # Test 3: Registration with injection
+        log("Testing NoSQL Injection on /auth/register...", "INFO")
+        register_payload = {
+            "username": f"inject_test_{int(time.time())}",
+            "email": f"inject_{int(time.time())}@test.com",
+            "password": {"$ne": ""},  # Try to inject in password field
+            "full_name": "Injection Test"
+        }
+        
+        try:
+            resp = requests.post(f"{BASE_URL}/auth/register", json=register_payload)
+            tested_count += 1
+            
+            if resp.status_code in [200, 201]:
+                log("VULNERABLE: Register - NoSQL object accepted in password field!", "FAIL")
+                vulnerable_count += 1
+            elif resp.status_code in [422, 400]:
+                log("Safe: Register - Pydantic blocked the injection.", "PASS")
+            else:
+                log(f"Register - Injection failed with status {resp.status_code}", "PASS")
+        except Exception as e:
+            log(f"Register injection test error: {e}", "WARN")
+
+        # Test 4: Try operator injection in filter/search
+        log("Testing MongoDB operator injection...", "INFO")
+        if self.attacker_auth:
+            # Create a job first
+            job_data = {"title": "Test Job", "company": "Test Co", "deadline": "2025-01-01"}
+            resp = requests.post(f"{BASE_URL}/jobs", json=job_data, headers=self.attacker_auth)
+            
+            if resp.status_code in [200, 201]:
+                job_id = resp.json().get("_id") or resp.json().get("id")
+                
+                # Try to exploit with MongoDB operators in update
+                exploit_update = {
+                    "title": {"$set": {"is_admin": True}},  # Try to inject $set operator
+                    "status": "Applied"
+                }
+                
+                try:
+                    resp = requests.put(f"{BASE_URL}/jobs/{job_id}", 
+                                    json=exploit_update, 
+                                    headers=self.attacker_auth)
+                    tested_count += 1
+                    
+                    if resp.status_code in [200, 204]:
+                        # Check if the exploit worked by retrieving the job
+                        check = requests.get(f"{BASE_URL}/jobs/{job_id}", headers=self.attacker_auth)
+                        if "is_admin" in check.text:
+                            log("VULNERABLE: MongoDB operator injection succeeded!", "FAIL")
+                            vulnerable_count += 1
+                        else:
+                            log("Safe: Operator injection blocked or sanitized.", "PASS")
+                    else:
+                        log(f"Operator injection blocked with status {resp.status_code}", "PASS")
+                except Exception as e:
+                    log(f"Operator injection test error: {e}", "WARN")
+
+        # Summary
+        print(f"\n{Colors.HEADER}--- NoSQL Injection Test Summary ---{Colors.ENDC}")
+        log(f"Tested {tested_count} injection vectors", "INFO")
+        if vulnerable_count > 0:
+            log(f"Found {vulnerable_count} NoSQL injection vulnerabilities!", "FAIL")
+        else:
+            log(f"All tested endpoints appear to validate input types properly", "PASS")
 
     def test_xss(self):
-        print(f"\n{Colors.HEADER}--- Testing Stored XSS ---{Colors.ENDC}")
+        print(f"\n{Colors.HEADER}--- Testing Stored XSS (Multiple Endpoints) ---{Colors.ENDC}")
         if not self.attacker_auth: 
             log("Skipping XSS: No Attacker Token", "FAIL")
             return
 
-        xss_payload = "<img src=x onerror=alert('XSS')>"
-        data = {
-            "title": "XSS Test Job",
-            "company": "Evil Corp",
-            "description": xss_payload,
-            "status": "Interested",
-            "deadline": "2025-01-01"
+        xss_payloads = [
+            "<img src=x onerror=alert('XSS')>",
+            "<script>alert('XSS')</script>",
+            "javascript:alert('XSS')",
+            "<svg onload=alert('XSS')>",
+            "';alert('XSS');//"
+        ]
+        
+        vulnerable_count = 0
+        tested_count = 0
+        
+        # Test 1: Jobs endpoint (description field)
+        log("Testing /jobs endpoint...", "INFO")
+        for payload in xss_payloads[:2]:  # Test first 2 payloads
+            data = {
+                "title": "XSS Test Job",
+                "company": "Evil Corp",
+                "description": payload,
+                "status": "Interested",
+                "deadline": "2025-01-01"
+            }
+            
+            resp = requests.post(f"{BASE_URL}/jobs", json=data, headers=self.attacker_auth)
+            tested_count += 1
+            
+            if resp.status_code in [200, 201]:
+                job_id = resp.json().get("_id") or resp.json().get("id")
+                get_resp = requests.get(f"{BASE_URL}/jobs/{job_id}", headers=self.attacker_auth)
+                
+                if payload in get_resp.text:
+                    log(f"VULNERABLE: Jobs endpoint - XSS payload returned unsanitized: {payload[:30]}...", "FAIL")
+                    vulnerable_count += 1
+                else:
+                    log(f"Safe: Jobs endpoint sanitized payload: {payload[:30]}...", "PASS")
+            else:
+                log(f"Could not create job. Status: {resp.status_code}", "WARN")
+
+        # Test 2: Education endpoint (institution_name, degree, field_of_study)
+        log("Testing /education endpoint...", "INFO")
+        edu_data = {
+            "institution_name": xss_payloads[0],
+            "degree": "Bachelor's",
+            "field_of_study": xss_payloads[1],
+            "start_date": "2020-01-01",
+            "end_date": "2024-01-01"
         }
         
-        # Attacker creates the malicious job
-        resp = requests.post(f"{BASE_URL}/jobs", json=data, headers=self.attacker_auth)
+        resp = requests.post(f"{BASE_URL}/education", json=edu_data, headers=self.attacker_auth)
+        tested_count += 1
         
         if resp.status_code in [200, 201]:
-            job_id = resp.json().get("_id") or resp.json().get("id")
+            edu_id = resp.json().get("education_id")
+            get_resp = requests.get(f"{BASE_URL}/education?education_id={edu_id}", headers=self.attacker_auth)
             
-            # Fetch it back to see if it was sanitized
-            get_resp = requests.get(f"{BASE_URL}/jobs/{job_id}", headers=self.attacker_auth)
-            if xss_payload in get_resp.text:
-                log("VULNERABLE: XSS payload returned unsanitized!", "FAIL")
+            if any(payload in get_resp.text for payload in [xss_payloads[0], xss_payloads[1]]):
+                log("VULNERABLE: Education endpoint - XSS payload returned unsanitized!", "FAIL")
+                vulnerable_count += 1
             else:
-                log("Safe: XSS Payload sanitized or encoded.", "PASS")
+                log("Safe: Education endpoint sanitized payloads.", "PASS")
         else:
-            log(f"Could not create job. Status: {resp.status_code}", "WARNING")
+            log(f"Could not create education. Status: {resp.status_code}", "WARN")
+
+        # Test 3: Employment endpoint (title, company, description)
+        log("Testing /employment endpoint...", "INFO")
+        emp_data = {
+            "title": xss_payloads[0],
+            "company": "Test Company",
+            "description": xss_payloads[2],
+            "start_date": "2020-01-01"
+        }
+        
+        resp = requests.post(f"{BASE_URL}/employment", json=emp_data, headers=self.attacker_auth)
+        tested_count += 1
+        
+        if resp.status_code in [200, 201]:
+            emp_id = resp.json().get("employment_id")
+            get_resp = requests.get(f"{BASE_URL}/employment?employment_id={emp_id}", headers=self.attacker_auth)
+            
+            if any(payload in get_resp.text for payload in [xss_payloads[0], xss_payloads[2]]):
+                log("VULNERABLE: Employment endpoint - XSS payload returned unsanitized!", "FAIL")
+                vulnerable_count += 1
+            else:
+                log("Safe: Employment endpoint sanitized payloads.", "PASS")
+        else:
+            log(f"Could not create employment. Status: {resp.status_code}", "WARN")
+
+        # Test 4: Skills endpoint (name field)
+        log("Testing /skills endpoint...", "INFO")
+        skill_data = {
+            "name": xss_payloads[0],
+            "proficiency": "Expert"
+        }
+        
+        resp = requests.post(f"{BASE_URL}/skills", json=skill_data, headers=self.attacker_auth)
+        tested_count += 1
+        
+        if resp.status_code in [200, 201]:
+            skill_id = resp.json().get("skill_id")
+            get_resp = requests.get(f"{BASE_URL}/skills?skill_id={skill_id}", headers=self.attacker_auth)
+            
+            if xss_payloads[0] in get_resp.text:
+                log("VULNERABLE: Skills endpoint - XSS payload returned unsanitized!", "FAIL")
+                vulnerable_count += 1
+            else:
+                log("Safe: Skills endpoint sanitized payload.", "PASS")
+        else:
+            log(f"Could not create skill. Status: {resp.status_code}", "WARN")
+
+        # Test 5: Resume endpoint (name, summary)
+        log("Testing /resumes endpoint...", "INFO")
+        resume_data = {
+            "name": xss_payloads[0],
+            "summary": xss_payloads[3],
+            "template": "modern"
+        }
+        
+        resp = requests.post(f"{BASE_URL}/resumes", json=resume_data, headers=self.attacker_auth)
+        tested_count += 1
+        
+        if resp.status_code in [200, 201]:
+            resume_id = resp.json().get("resume_id")
+            get_resp = requests.get(f"{BASE_URL}/resumes?resume_id={resume_id}", headers=self.attacker_auth)
+            
+            if any(payload in get_resp.text for payload in [xss_payloads[0], xss_payloads[3]]):
+                log("VULNERABLE: Resumes endpoint - XSS payload returned unsanitized!", "FAIL")
+                vulnerable_count += 1
+            else:
+                log("Safe: Resumes endpoint sanitized payloads.", "PASS")
+        else:
+            log(f"Could not create resume. Status: {resp.status_code}", "WARN")
+
+        # Test 6: Resume Feedback endpoint (reviewer_name, comment)
+        log("Testing /resumes feedback endpoint...", "INFO")
+        # First create a clean resume to attach feedback to
+        clean_resume = {
+            "name": "Test Resume for Feedback",
+            "summary": "Testing feedback XSS",
+            "template": "modern"
+        }
+        resp = requests.post(f"{BASE_URL}/resumes", json=clean_resume, headers=self.attacker_auth)
+        
+        if resp.status_code in [200, 201]:
+            resume_id = resp.json().get("resume_id")
+            
+            feedback_data = {
+                "reviewer_name": xss_payloads[0],
+                "comment": xss_payloads[1],
+                "rating": 5
+            }
+            
+            resp = requests.post(f"{BASE_URL}/resumes/{resume_id}/feedback", json=feedback_data, headers=self.attacker_auth)
+            tested_count += 1
+            
+            if resp.status_code in [200, 201]:
+                get_resp = requests.get(f"{BASE_URL}/resumes/{resume_id}/feedback", headers=self.attacker_auth)
+                
+                if any(payload in get_resp.text for payload in [xss_payloads[0], xss_payloads[1]]):
+                    log("VULNERABLE: Resume Feedback endpoint - XSS payload returned unsanitized!", "FAIL")
+                    vulnerable_count += 1
+                else:
+                    log("Safe: Resume Feedback endpoint sanitized payloads.", "PASS")
+            else:
+                log(f"Could not create feedback. Status: {resp.status_code}", "WARN")
+        else:
+            log(f"Could not create resume for feedback test. Status: {resp.status_code}", "WARN")
+
+        # Summary
+        print(f"\n{Colors.HEADER}--- XSS Test Summary ---{Colors.ENDC}")
+        log(f"Tested {tested_count} endpoints/payloads", "INFO")
+        if vulnerable_count > 0:
+            log(f"Found {vulnerable_count} vulnerable endpoints!", "FAIL")
+        else:
+            log(f"All tested endpoints appear to sanitize XSS payloads", "PASS")
 
     def test_idor(self):
-        print(f"\n{Colors.HEADER}--- Testing IDOR (AuthZ) ---{Colors.ENDC}")
+        print(f"\n{Colors.HEADER}--- Testing IDOR (AuthZ) on Multiple Endpoints ---{Colors.ENDC}")
         if not self.victim_auth or not self.attacker_auth:
             log("Skipping IDOR: Missing tokens", "FAIL")
             return
 
-        # 1. Victim creates a job
+        vulnerable_count = 0
+        tested_count = 0
+
+        # Test 1: Jobs endpoint
+        log("Testing IDOR on /jobs endpoint...", "INFO")
         job_data = {"title": "Victim Job", "company": "Safe Co", "deadline": "2025-01-01"}
         resp = requests.post(f"{BASE_URL}/jobs", json=job_data, headers=self.victim_auth)
         
-        if resp.status_code not in [200, 201]:
-            log("Victim could not create job. IDOR test aborted.", "FAIL")
-            return
-
-        victim_job_id = resp.json().get("_id") or resp.json().get("id")
-        log(f"Victim created Job ID")
-
-        # 2. Attacker tries to DELETE it
-        del_resp = requests.delete(f"{BASE_URL}/jobs/{victim_job_id}", headers=self.attacker_auth)
-        
-        if del_resp.status_code in [200, 204]:
-            log("VULNERABLE: Attacker deleted Victim's job!", "FAIL")
-        elif del_resp.status_code in [403, 404]:
-            log("Secure: Access Denied.", "PASS")
+        if resp.status_code in [200, 201]:
+            victim_job_id = resp.json().get("_id") or resp.json().get("id")
+            
+            # Try to DELETE victim's job as attacker
+            del_resp = requests.delete(f"{BASE_URL}/jobs/{victim_job_id}", headers=self.attacker_auth)
+            tested_count += 1
+            
+            if del_resp.status_code in [200, 204]:
+                log("VULNERABLE: Jobs - Attacker deleted Victim's job!", "FAIL")
+                vulnerable_count += 1
+            elif del_resp.status_code in [403, 404]:
+                log("Safe: Jobs - Access Denied.", "PASS")
+            else:
+                log(f"Jobs - Unexpected status: {del_resp.status_code}", "WARN")
         else:
-            log(f"Unexpected status: {del_resp.status_code}", "WARNING")
+            log(f"Could not create victim job. Status: {resp.status_code}", "WARN")
+
+        # Test 2: Education endpoint
+        log("Testing IDOR on /education endpoint...", "INFO")
+        edu_data = {
+            "institution_name": "Victim University",
+            "degree": "Bachelor's",
+            "field_of_study": "Computer Science",
+            "start_date": "2020-01-01",
+            "end_date": "2024-01-01"
+        }
+        resp = requests.post(f"{BASE_URL}/education", json=edu_data, headers=self.victim_auth)
+        
+        if resp.status_code in [200, 201]:
+            victim_edu_id = resp.json().get("education_id")
+            
+            # Try to DELETE victim's education as attacker
+            del_resp = requests.delete(f"{BASE_URL}/education?education_id={victim_edu_id}", headers=self.attacker_auth)
+            tested_count += 1
+            
+            if del_resp.status_code in [200, 204]:
+                log("VULNERABLE: Education - Attacker deleted Victim's education!", "FAIL")
+                vulnerable_count += 1
+            elif del_resp.status_code in [403, 404, 400]:
+                log("Safe: Education - Access Denied.", "PASS")
+            else:
+                log(f"Education - Unexpected status: {del_resp.status_code}", "WARN")
+        else:
+            log(f"Could not create victim education. Status: {resp.status_code}", "WARN")
+
+        # Test 3: Employment endpoint
+        log("Testing IDOR on /employment endpoint...", "INFO")
+        emp_data = {
+            "title": "Software Engineer",
+            "company": "Victim Corp",
+            "start_date": "2020-01-01"
+        }
+        resp = requests.post(f"{BASE_URL}/employment", json=emp_data, headers=self.victim_auth)
+        
+        if resp.status_code in [200, 201]:
+            victim_emp_id = resp.json().get("employment_id")
+            
+            # Try to UPDATE victim's employment as attacker
+            update_data = {"title": "Hacked Title"}
+            update_resp = requests.put(f"{BASE_URL}/employment?employment_id={victim_emp_id}", 
+                                    json=update_data, headers=self.attacker_auth)
+            tested_count += 1
+            
+            if update_resp.status_code in [200, 204]:
+                log("VULNERABLE: Employment - Attacker updated Victim's employment!", "FAIL")
+                vulnerable_count += 1
+            elif update_resp.status_code in [403, 404, 400]:
+                log("Safe: Employment - Access Denied.", "PASS")
+            else:
+                log(f"Employment - Unexpected status: {update_resp.status_code}", "WARN")
+        else:
+            log(f"Could not create victim employment. Status: {resp.status_code}", "WARN")
+
+        # Test 4: Skills endpoint
+        log("Testing IDOR on /skills endpoint...", "INFO")
+        skill_data = {"name": "Python", "proficiency": "Expert"}
+        resp = requests.post(f"{BASE_URL}/skills", json=skill_data, headers=self.victim_auth)
+        
+        if resp.status_code in [200, 201]:
+            victim_skill_id = resp.json().get("skill_id")
+            
+            # Try to DELETE victim's skill as attacker
+            del_resp = requests.delete(f"{BASE_URL}/skills?skill_id={victim_skill_id}", headers=self.attacker_auth)
+            tested_count += 1
+            
+            if del_resp.status_code in [200, 204]:
+                log("VULNERABLE: Skills - Attacker deleted Victim's skill!", "FAIL")
+                vulnerable_count += 1
+            elif del_resp.status_code in [403, 404, 400]:
+                log("Safe: Skills - Access Denied.", "PASS")
+            else:
+                log(f"Skills - Unexpected status: {del_resp.status_code}", "WARN")
+        else:
+            log(f"Could not create victim skill. Status: {resp.status_code}", "WARN")
+
+        # Test 5: Resumes endpoint
+        log("Testing IDOR on /resumes endpoint...", "INFO")
+        resume_data = {
+            "name": "Victim's Resume",
+            "summary": "Private resume",
+            "template": "modern"
+        }
+        resp = requests.post(f"{BASE_URL}/resumes", json=resume_data, headers=self.victim_auth)
+        
+        if resp.status_code in [200, 201]:
+            victim_resume_id = resp.json().get("resume_id")
+            
+            # Try to READ victim's resume as attacker
+            get_resp = requests.get(f"{BASE_URL}/resumes?resume_id={victim_resume_id}", headers=self.attacker_auth)
+            tested_count += 1
+            
+            if get_resp.status_code == 200:
+                log("VULNERABLE: Resumes - Attacker read Victim's private resume!", "FAIL")
+                vulnerable_count += 1
+            elif get_resp.status_code in [403, 404, 400]:
+                log("Safe: Resumes - Access Denied.", "PASS")
+            else:
+                log(f"Resumes - Unexpected status: {get_resp.status_code}", "WARN")
+        else:
+            log(f"Could not create victim resume. Status: {resp.status_code}", "WARN")
+
+        # Summary
+        print(f"\n{Colors.HEADER}--- IDOR Test Summary ---{Colors.ENDC}")
+        log(f"Tested {tested_count} endpoints", "INFO")
+        if vulnerable_count > 0:
+            log(f"Found {vulnerable_count} IDOR vulnerabilities!", "FAIL")
+        else:
+            log(f"All tested endpoints properly enforce authorization", "PASS")
 
 if __name__ == "__main__":
     scanner = MetamorphosisScanner()
