@@ -12,6 +12,7 @@ from docx.oxml import OxmlElement
 import io
 import tempfile
 import requests
+from xhtml2pdf import pisa
 import re
 from bs4 import BeautifulSoup, NavigableString, Tag
 
@@ -433,7 +434,7 @@ async def download_pdf(
     letter_id: str = Path(...),
     uuid: str = Depends(authorize)
 ):
-    """Download cover letter as PDF with styling preserved using external service."""
+    """Download cover letter as PDF - self-hosted generation"""
     letter = await cover_letters_dao.get_cover_letter(letter_id, uuid)
     
     if not letter:
@@ -443,17 +444,21 @@ async def download_pdf(
         html_content = letter.get("content", "")
         filename = f"{letter.get('title', 'cover_letter')}.pdf"
         
-        response = requests.post(
-            'https://api.html2pdf.app/v1/generate',
-            json={'html': html_content},
-            timeout=30
+        # Generate PDF using xhtml2pdf
+        pdf_buffer = io.BytesIO()
+        pisa_status = pisa.CreatePDF(
+            io.BytesIO(html_content.encode('utf-8')),
+            dest=pdf_buffer
         )
         
-        if response.status_code != 200:
+        if pisa_status.err:
             raise HTTPException(status_code=500, detail="PDF generation failed")
         
+        pdf_buffer.seek(0)
+        
+        # Save to temp file
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
-            tmp.write(response.content)
+            tmp.write(pdf_buffer.getvalue())
             tmp_path = tmp.name
         
         return FileResponse(
