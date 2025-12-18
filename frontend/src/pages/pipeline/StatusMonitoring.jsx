@@ -976,6 +976,7 @@ const ApplicationCard = ({ job, statusColors, statusIcons, onStatusUpdate, onVie
           cursor: 'pointer',
           marginTop: '4px'
         }}
+        aria-label="Select application"
       />
       
       <div style={{ flex: 1 }}>

@@ -107,6 +107,7 @@ export default function SkillForm({ addSkill, existingSkills }) {
               onChange={handleNameChange}
               style={{ ...inputStyle, width: "100%" }}
               required
+              aria-label="Skill Name"
             />
             {suggestions.length > 0 && (
               <ul style={{

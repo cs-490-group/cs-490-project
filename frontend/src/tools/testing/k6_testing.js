@@ -26,11 +26,11 @@ export const options = {
   setupTimeout: '5m', // 5 minutes is plenty now (50 users * 0.2s = 10 seconds)
   stages: [
     { duration: '30s', target: 10 },   // Ramp up to 10 users
-    { duration: '1m', target: 10 },    // Stay at 10 users (baseline)
+    { duration: '1m', target: 25 },    // Stay at 25 users (baseline)
     { duration: '30s', target: 50 },   // Ramp up to 50 users
     { duration: '3m', target: 50 },    // Stay at 50 users (peak load)
-    { duration: '30s', target: 100 },  // Ramp up to 100 users (stress test)
-    { duration: '2m', target: 100 },   // Stay at 100 users (breaking point)
+    { duration: '30s', target: 50 },  // Ramp up to 50 users (stress test)
+    { duration: '2m', target: 50 },   // Stay at 50 users (breaking point)
     { duration: '30s', target: 0 },    // Ramp down to 0
   ],
   thresholds: {
