@@ -548,7 +548,9 @@ async def compute_matches_for_user(
         # no skills / edu / employment → just return []
         return []
 
-    jobs = await _get_jobs_for_matching(uuid, job_ids)
+    jobs_page = await _get_jobs_for_matching(uuid, job_ids)
+    jobs = jobs_page.get("results", [])
+    
     if not jobs:
         print("⚠ No jobs found for UUID", uuid)
         return []
