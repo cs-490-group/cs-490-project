@@ -17,7 +17,7 @@ function MatchPreview({ jobId }) {
   React.useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/matching/job-profile-compare/${jobId}`, {
+        const res = await fetch(`https://cs-490-project-production.up.railway.app/matching/job-profile-compare/${jobId}`, {
           headers: {
             "Content-Type": "application/json",
             uuid: localStorage.getItem("uuid"),
