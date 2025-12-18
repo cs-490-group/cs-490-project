@@ -194,7 +194,7 @@ app.include_router(salaryBLS_router, prefix=api_prefix)
 
 app.include_router(coaching_router, prefix = api_prefix)
 app.include_router(advisors_router,prefix=api_prefix)
-app.include_router(matching.router)
+app.include_router(matching.router, prefix=api_prefix)
 app.include_router(offers_router, prefix = api_prefix)
 app.include_router(technical_prep_router, prefix = api_prefix)
 app.include_router(goals_router, prefix = api_prefix)
