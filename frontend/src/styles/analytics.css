@@ -1,0 +1,1390 @@
+/* ANALYTICS DASHBOARD — COMPLETELY NAMESPACE-SAFE */
+/* No global overrides. No generic class names. */
+
+/* Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+/* Performance Analytics Specific Styles */
+.performance-analytics-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  margin: 0 1rem 2rem 1rem;
+}
+
+.performance-analytics-header h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.performance-analytics-header p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-bottom: 1.5rem;
+}
+
+.performance-view-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.view-toggle-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.view-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.view-toggle-btn.active {
+  background: white;
+  color: #667eea;
+  border-color: white;
+  font-weight: 600;
+}
+
+.performance-analytics-content {
+  padding: 0 1rem;
+}
+
+/* Page Wrapper */
+.analyticsDashboard {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #005e9e, #00c28a);
+  padding: 2rem;
+  background-attachment: fixed;
+}
+
+/* Header */
+.analyticsDashboard-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: white;
+}
+
+.analyticsDashboard-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.analyticsDashboard-subtitle {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+/* Layout */
+.analyticsDashboard-layout {
+  display: flex;
+  gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: 80vh;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Sidebar */
+.analyticsDashboard-sidebar {
+  width: 280px;
+  background: white;
+  border-right: 1px solid #eee;
+  padding: 1rem 0;
+}
+
+.analyticsDashboard-navList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.analyticsDashboard-navItem {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.analyticsDashboard-navButton {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  background: white;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #333;
+  text-align: left;
+  transition: 0.2s;
+  border-left: 4px solid transparent;
+}
+
+.analyticsDashboard-navButton:hover {
+  background: #f8f9fa;
+  color: #007bff;
+}
+
+.analyticsDashboard-navButton.active {
+  background: rgba(0, 123, 255, 0.05);
+  border-left-color: #007bff;
+  color: #007bff;
+  font-weight: 600;
+}
+
+.analyticsDashboard-navIcon {
+  margin-right: 0.75rem;
+  font-size: 1.2rem;
+}
+
+/* Main Content */
+.analyticsDashboard-main {
+  flex-grow: 1;
+  background: white;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.analyticsDashboard-content h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #007bff;
+}
+
+.analyticsDashboard-content p {
+  font-size: 1rem;
+  color: #555;
+}
+
+/* Animation */
+@keyframes dashboardFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.analyticsDashboard-content {
+  animation: dashboardFadeIn 0.3s ease-in-out;
+}
+
+/* ============================================ */
+/* SALARY ANALYTICS SPECIFIC STYLES */
+/* ============================================ */
+
+/* Salary Header with Action Button */
+.salary-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #007bff;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.salary-header-with-action h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.salary-add-btn {
+  padding: 0.6rem 1.2rem;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.salary-add-btn:hover {
+  background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* Stats Grid */
+.salary-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.salary-stat-card {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.salary-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
+}
+
+.salary-stat-label {
+  font-size: 0.85rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.salary-stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.salary-stat-value.positive {
+  color: #28a745;
+}
+
+.salary-stat-value.negative {
+  color: #dc3545;
+}
+
+/* Market Position Banner */
+.salary-position-banner {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 3px 10px rgba(0, 123, 255, 0.2);
+}
+
+.salary-position-banner strong {
+  font-size: 1.1rem;
+}
+
+.salary-position-indicator {
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.9rem;
+}
+
+.salary-position-indicator.positive {
+  background: rgba(40, 167, 69, 0.2);
+}
+
+.salary-position-indicator.negative {
+  background: rgba(220, 53, 69, 0.2);
+}
+
+/* Chart Container */
+.salary-chart-container {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 2rem;
+  margin: 2rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.salary-chart-container h3 {
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+/* Insights Section */
+.salary-insights {
+  background: #f8f9fa;
+  border-left: 4px solid #007bff;
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  margin-top: 2rem;
+}
+
+.salary-insights h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.salary-insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.salary-insights-list li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.salary-insights-list li:last-child {
+  border-bottom: none;
+}
+
+.insight-icon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+/* Salary Records Section */
+.salary-records-section {
+  margin-top: 2rem;
+}
+
+.salary-records-section h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.salary-records-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.salary-record-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  transition: all 0.2s;
+  border-left: 4px solid #28a745;
+}
+
+.salary-record-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.salary-record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.salary-record-year {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.salary-record-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.salary-action-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.salary-action-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.salary-edit-btn:hover {
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.salary-delete-btn:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.salary-record-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.salary-record-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.salary-record-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.salary-record-role {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.salary-record-company {
+  font-size: 0.95rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.salary-record-location {
+  font-size: 0.9rem;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.salary-record-employment {
+  font-size: 0.9rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-style: italic;
+}
+
+.salary-record-breakdown {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.salary-breakdown-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.salary-breakdown-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.salary-breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.salary-breakdown-label {
+  color: #666;
+}
+
+.salary-breakdown-value {
+  font-weight: 600;
+  color: #333;
+}
+
+.salary-breakdown-total {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid #dee2e6;
+  font-size: 1rem;
+}
+
+.salary-breakdown-total .salary-breakdown-label {
+  font-weight: 700;
+  color: #333;
+}
+
+.salary-breakdown-total .salary-breakdown-value {
+  font-size: 1.1rem;
+  color: #28a745;
+}
+
+.salary-record-notes {
+  background: #fff3cd;
+  border-left: 3px solid #ffc107;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #856404;
+}
+
+.salary-record-notes strong {
+  color: #856404;
+}
+
+/* ============================================ */
+/* GOAL TRACKING SPECIFIC STYLES */
+/* ============================================ */
+
+/* Goal Stats Grid */
+.goal-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.goal-stat-card {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.goal-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
+}
+
+.goal-stat-label {
+  font-size: 0.85rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.goal-stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.goal-stat-value.success {
+  color: #28a745;
+}
+
+/* Goals Section */
+.goals-section {
+  margin: 2rem 0;
+}
+
+.goals-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.goals-header h3 {
+  font-size: 1.4rem;
+  color: #333;
+  font-weight: 600;
+  margin: 0;
+}
+
+.goal-add-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.goal-add-button:hover {
+  background: #0056b3;
+}
+
+/* Goals List */
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Goal Card */
+.goal-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.goal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.goal-card-header {
+  margin-bottom: 1rem;
+}
+
+.goal-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.goal-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.goal-type-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.goal-type-badge.short-term {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.goal-type-badge.long-term {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.goal-status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+}
+
+.goal-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #666;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.goal-category {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.goal-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.goal-action-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.goal-action-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.goal-edit-btn:hover {
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.goal-delete-btn:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+/* Goal Card Body */
+.goal-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.goal-metrics {
+  font-size: 0.9rem;
+  color: #555;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.goal-metrics strong {
+  color: #333;
+}
+
+/* Progress Section */
+.goal-progress-section {
+  margin: 1rem 0;
+}
+
+.goal-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.goal-deadline {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.goal-progress-bar {
+  height: 12px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.goal-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 10px;
+}
+
+/* Milestones */
+.goal-milestones {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.milestones-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.milestones-header strong {
+  color: #333;
+}
+
+.milestones-count {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.milestones-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.milestones-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: #555;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.milestones-list li:hover {
+  background: white;
+}
+
+.milestones-list li.completed {
+  color: #28a745;
+}
+
+.milestones-list li.completed .milestone-name {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.milestone-checkbox {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.milestones-list li.completed .milestone-checkbox {
+  color: #28a745;
+}
+
+.milestone-name {
+  flex: 1;
+}
+
+/* Goal Insights */
+.goal-insights {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+}
+
+.goal-insights h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.goal-insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.goal-insights-list li {
+  padding: 0.75rem 0;
+  display: flex;
+  align-items: flex-start;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.goal-insights-list li:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.insight-bullet {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
+  color: #ffc107;
+  line-height: 1;
+}
+
+/* Achievement Summary */
+.achievement-summary {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin: 2rem 0;
+  box-shadow: 0 4px 16px rgba(40, 167, 69, 0.2);
+}
+
+.achievement-icon {
+  font-size: 3rem;
+  flex-shrink: 0;
+}
+
+.achievement-text h4 {
+  font-size: 1.3rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+.achievement-text p {
+  margin: 0;
+  font-size: 1rem;
+  opacity: 0.95;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .analyticsDashboard-layout {
+    flex-direction: column;
+  }
+  .analyticsDashboard-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #eee;
+  }
+  .analyticsDashboard-navList {
+    display: flex;
+    overflow-x: auto;
+  }
+  .analyticsDashboard-navItem {
+    border-bottom: none;
+    border-right: 1px solid #eee;
+  }
+}
+
+@media (max-width: 768px) {
+  .analyticsDashboard-title {
+    font-size: 2rem;
+  }
+  .analyticsDashboard-main {
+    padding: 1rem;
+  }
+  
+  .salary-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  
+  .salary-stat-card {
+    padding: 1rem;
+  }
+  
+  .salary-stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .salary-chart-container {
+    padding: 1rem;
+  }
+  
+  .salary-position-banner {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+  
+  /* Goal tracking responsive */
+  .goal-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  
+  .goals-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .goal-title-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .goal-card {
+    padding: 1rem;
+  }
+  
+  .achievement-summary {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .analyticsDashboard-navButton {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  .salary-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .salary-insights {
+    padding: 1rem;
+  }
+  
+  .salary-insights-list li {
+    font-size: 0.9rem;
+  }
+  
+  /* Salary records mobile */
+  .salary-record-amount {
+    font-size: 1.5rem;
+  }
+  
+  .salary-record-year {
+    font-size: 1.25rem;
+  }
+  
+  .salary-record-card {
+    padding: 1rem;
+  }
+  
+  /* Goal tracking mobile */
+  .goal-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .goal-insights {
+    padding: 1rem;
+  }
+  
+  .goal-insights-list li {
+    font-size: 0.9rem;
+  }
+  
+  .goal-card {
+    padding: 0.75rem;
+  }
+  
+  .achievement-summary {
+    padding: 1.5rem;
+  }
+  
+  .achievement-icon {
+    font-size: 2rem;
+  }
+}
+
+/* ============================================ */
+/* TIME TRACKING SPECIFIC STYLES */
+/* ============================================ */
+
+/* Time Tracking Header */
+.time-tracking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #6f42c1;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.time-tracking-header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.time-tracking-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.time-period-select {
+  padding: 0.6rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: white;
+  transition: all 0.2s;
+}
+
+.time-period-select:hover {
+  border-color: #6f42c1;
+}
+
+.time-period-select:focus {
+  outline: none;
+  border-color: #6f42c1;
+  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.1);
+}
+
+.time-add-btn {
+  padding: 0.6rem 1.2rem;
+  background: #6f42c1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.time-add-btn:hover {
+  background: #5a32a3;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(111, 66, 193, 0.3);
+}
+
+/* Time Stats Grid */
+.time-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.time-stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #6f42c1;
+  transition: all 0.2s;
+}
+
+.time-stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.time-stat-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.time-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #6f42c1;
+}
+
+/* Charts Container */
+.time-charts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.time-chart-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.time-chart-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  color: #333;
+  font-weight: 600;
+}
+
+/* Insights Section */
+.time-insights {
+  background: #f8f9fa;
+  border-left: 4px solid #6f42c1;
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+}
+
+.time-insights h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.time-insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.time-insights-list li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.time-insights-list li:last-child {
+  border-bottom: none;
+}
+
+.insight-bullet {
+  color: #6f42c1;
+  font-weight: bold;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* Time Entries Section */
+.time-entries-section {
+  margin-top: 2rem;
+}
+
+.time-entries-section h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.time-entries-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.time-entry-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 1rem 1.25rem;
+  transition: all 0.2s;
+  border-left: 3px solid #6f42c1;
+}
+
+.time-entry-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateX(2px);
+}
+
+.time-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.time-entry-date {
+  font-weight: 600;
+  color: #6f42c1;
+  font-size: 0.95rem;
+}
+
+.time-entry-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.time-action-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.time-action-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.time-edit-btn:hover {
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.time-delete-btn:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.time-entry-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.time-entry-activity {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+  border-left: 3px solid;
+  padding-left: 0.75rem;
+}
+
+.time-entry-duration {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.time-entry-notes {
+  font-size: 0.9rem;
+  color: #555;
+  background: #f8f9fa;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+/* Responsive for Time Tracking */
+@media (max-width: 768px) {
+  .time-charts-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .time-tracking-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .time-tracking-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .time-period-select {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .time-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .time-insights {
+    padding: 1rem;
+  }
+  
+  .time-entry-card {
+    padding: 0.75rem 1rem;
+  }
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casual Cover Letter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+            background-image: url('data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23f0f0f0" fill-opacity="0.2" fill-rule="evenodd"%3E%3Cpath d="M0 40L40 0H20L0 20M40 40V20L20 40"/%3E%3C/g%3E%3C/svg%3E');
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: right;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .header p {
+            margin: 2px 0;
+        }
+        .date {
+            text-align: left;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .greeting {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        .body {
+            margin-bottom: 20px;
+            font-size: 1em;
+            color: #34495e;
+        }
+        .closing {
+            font-size: 1.2em;
+            color: #2c3e50;
+        }
+        .signature {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .highlight {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <p>{{name}}</p>
+        <p>{{address}}</p>
+        <p>{{email}} | {{phone}}</p>
+    </div>
+    <div class="date">
+        <p>{{date}}</p>
+    </div>
+    <div class="greeting">
+        <p>Dear Hiring Manager,</p>
+    </div>
+    <div class="body">
+        <p>
+            I am excited to apply for the {{title}} role in the {{industry}} sector. With {{experience_level}} of experience, I have developed a strong foundation in <span class="highlight">{{skills}}</span>, which I believe aligns well with the requirements of this position. During my time as {{latest_title}} at {{latest_company}} in {{latest_location}}, I honed my ability to tackle complex challenges and deliver impactful results.
+        </p>
+        <p>
+            My educational background, including a {{top_degree}} in {{top_field}} from {{top_institution}}, has equipped me with the knowledge and skills necessary to excel in this field. Additionally, I hold certifications in <span class="highlight">{{certifications}}</span>, further demonstrating my commitment to professional growth and expertise.
+        </p>
+        <p>
+            I am particularly drawn to this opportunity because it allows me to leverage my strengths while contributing to a dynamic team. I am confident that my combination of technical skills, practical experience, and passion for {{industry}} makes me a strong candidate for this role. I would welcome the opportunity to discuss how my background aligns with the needs of your team.
+        </p>
+    </div>
+    <div class="closing">
+        <p>Sincerely,</p>
+        <div class="signature">
+            <p>{{name}}</p>
+        </div>
+    </div>
+</body>
+</html>

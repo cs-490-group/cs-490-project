@@ -1,0 +1,83 @@
+.login-page {
+  background: linear-gradient(135deg, #004d7a, #008793, #00bf72);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.login-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 2.5rem 2rem;
+  width: 380px;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* this creates the forms*/
+.Login input.form-control {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+  transition: border-color 0.3s;
+}
+
+.Login input.form-control:focus {
+  border-color: #00bf72;
+  box-shadow: 0 0 4px rgba(0, 191, 114, 0.4);
+}
+
+/* the buttons */
+.Login input[type="submit"] {
+  background: #00bf72;
+  border: none;
+  color: white;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  transition: background-color 0.3s;
+}
+
+.Login input[type="submit"]:hover {
+  background: #008f59;
+}
+
+/* authentification sections */
+.oauth-buttons {
+  margin-top: 1rem;
+}
+
+.google-login {
+  display: flex;
+  justify-content: center;
+}
+
+.microsoft-login {
+  border-radius: 0.5rem;
+}
+
+/* links */
+.extra-links a {
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.extra-links a:hover {
+  color: #00bf72;
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.login-logo-img {
+  width: 80px;
+  height: auto;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.2));
+}

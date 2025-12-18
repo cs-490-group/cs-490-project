@@ -1,0 +1,183 @@
+.validation-panel {
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.validation-panel.loading {
+  border: 1px solid #ccc;
+}
+
+.validation-panel.collapsed {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.validation-panel.expanded {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.validation-panel .card-header {
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.validation-panel .card-header:hover {
+  opacity: 0.9;
+}
+
+.validation-panel .score-icon {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.validation-panel .scores-section {
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 1.5rem;
+}
+
+.validation-panel .score-item {
+  margin-bottom: 1.5rem;
+}
+
+.validation-panel .score-item:last-child {
+  margin-bottom: 0;
+}
+
+.validation-panel .progress {
+  height: 1.5rem;
+  border-radius: 0.25rem;
+}
+
+.validation-panel .progress-bar {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+
+.validation-panel .issues-section {
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 1.5rem;
+}
+
+.validation-panel .issues-section:last-of-type {
+  border-bottom: none;
+}
+
+.validation-panel .list-group-item {
+  padding: 0.75rem;
+  border-left-width: 3px;
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.validation-panel .list-group-item.border-danger {
+  background-color: #fff5f5;
+  border-left-color: #dc3545;
+}
+
+.validation-panel .list-group-item.border-warning {
+  background-color: #fffbf0;
+  border-left-color: #ffc107;
+}
+
+.validation-panel .list-group-item.border-info {
+  background-color: #f0f8ff;
+  border-left-color: #17a2b8;
+}
+
+.validation-panel .bg-danger-light {
+  background-color: #fff5f5 !important;
+}
+
+.validation-panel .bg-warning-light {
+  background-color: #fffbf0 !important;
+}
+
+.validation-panel .bg-info-light {
+  background-color: #f0f8ff !important;
+}
+
+.validation-panel .text-danger {
+  color: #dc3545;
+}
+
+.validation-panel .text-warning {
+  color: #ffc107;
+}
+
+.validation-panel .missing-section-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.validation-panel .missing-section-tags .badge {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.validation-panel .suggestions-section {
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.validation-panel .suggestions-section .list-group-item {
+  border: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  margin-bottom: 0.5rem;
+}
+
+.validation-panel .suggestions-section .list-group-item:last-child {
+  margin-bottom: 0;
+}
+
+.validation-panel .metrics-section {
+  border: 1px solid #dee2e6;
+  margin-bottom: 1.5rem;
+}
+
+.validation-panel .metrics-section h6 {
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.validation-panel .metrics-section small {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.validation-panel .metrics-section strong {
+  font-size: 1.25rem;
+  color: #007bff;
+}
+
+.validation-panel .card-body {
+  padding: 1.5rem;
+}
+
+.validation-panel .btn {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .validation-panel .card-header {
+    padding: 0.75rem;
+  }
+
+  .validation-panel .card-body {
+    padding: 1rem;
+  }
+
+  .validation-panel .metrics-section .row {
+    margin: -0.5rem;
+  }
+
+  .validation-panel .metrics-section .col-6,
+  .validation-panel .metrics-section .col-md-3 {
+    padding: 0.5rem;
+  }
+}

@@ -1,0 +1,443 @@
+import React, { useEffect, useState } from "react";
+
+import ApplicationWorkflowAPI from "../../../api/applicationWorkflow";
+import ResumesAPI from "../../../api/resumes";
+import CoverLetterAPI from "../../../api/coverLetters";
+import JobsAPI from "../../../api/jobs";
+
+// Subcomponents
+import PackagesTab from "./Packages";
+import SchedulesTab from "./Schedules";
+import TemplatesTab from "./Templates";
+import AutomationRules from "./AutomationRules";
+
+import { safeId } from "./helpers";
+
+export default function WorkflowAutomation() {
+  /* --------------------------- STATE --------------------------- */
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("packages");
+
+  const [jobs, setJobs] = useState([]);
+  const [packages, setPackages] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [resumes, setResumes] = useState([]);
+  const [coverLetters, setCoverLetters] = useState([]);
+
+  const [selectedJobIds, setSelectedJobIds] = useState([]);
+  const [checklist, setChecklist] = useState({});
+
+  /* ---------- Package Form State ---------- */
+  const [editingPackageId, setEditingPackageId] = useState(null);
+  const [pkgName, setPkgName] = useState("");
+  const [pkgDescription, setPkgDescription] = useState("");
+  const [pkgResume, setPkgResume] = useState("");
+  const [pkgCoverLetter, setPkgCoverLetter] = useState("");
+  const [pkgPortfolioIds, setPkgPortfolioIds] = useState("");
+
+  const [bulkPackageId, setBulkPackageId] = useState("");
+
+  /* ---------- Schedule Form ---------- */
+  const [scheduleJobId, setScheduleJobId] = useState("");
+  const [schedulePackageId, setSchedulePackageId] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+
+  /* ---------- Templates Form ---------- */
+  const [templateTitle, setTemplateTitle] = useState("");
+  const [templateCategory, setTemplateCategory] = useState("screening_questions");
+  const [templateBody, setTemplateBody] = useState("");
+  const [templatePreview, setTemplatePreview] = useState("");
+
+  /* --------------------------- LOAD DATA --------------------------- */
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  async function loadAll() {
+    try {
+      setLoading(true);
+
+      const [
+        jobsRes,
+        pkgRes,
+        schedRes,
+        tmplRes,
+        resumesRes,
+        coverRes
+      ] = await Promise.all([
+        JobsAPI.getAll(),
+        ApplicationWorkflowAPI.getPackages(),
+        ApplicationWorkflowAPI.getSchedules(),
+        ApplicationWorkflowAPI.getTemplates(),
+        ResumesAPI.getAll(),
+        CoverLetterAPI.getAll()
+      ]);
+
+      setJobs(jobsRes.data || []);
+      setPackages(pkgRes.data || []);
+      setSchedules(schedRes.data || []);
+      setTemplates(tmplRes.data || []);
+      setResumes(resumesRes.data || []);
+      setCoverLetters(coverRes.data || []);
+
+      const chk = {};
+      jobsRes.data.forEach((job, i) => {
+        const id = safeId(job, `job-${i}`);
+        chk[id] = {
+          package: Boolean(job.application_package_id),
+          scheduled: schedRes.data.some((s) => s.job_id === id),
+          submitted:
+            job.status === "APPLIED" ||
+            job.status === "SUBMITTED" ||
+            Boolean(job.submitted)
+        };
+      });
+      setChecklist(chk);
+    } catch (err) {
+      console.error("Workflow load error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* -------------------------- HELPERS --------------------------- */
+  function toggleJob(id) {
+    setSelectedJobIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function updateChecklist(jobIds, patch) {
+    setChecklist((prev) => {
+      const next = { ...prev };
+      jobIds.forEach((id) => {
+        next[id] = { ...(next[id] || {}), ...patch };
+      });
+      return next;
+    });
+  }
+
+  /* -------------------------- PACKAGE ACTIONS --------------------------- */
+  function resetPackageForm() {
+    setEditingPackageId(null);
+    setPkgName("");
+    setPkgDescription("");
+    setPkgResume("");
+    setPkgCoverLetter("");
+    setPkgPortfolioIds("");
+  }
+
+  function startEditPackage(pkg) {
+    setEditingPackageId(safeId(pkg));
+    setPkgName(pkg.name || "");
+    setPkgDescription(pkg.description || "");
+    setPkgResume(pkg.resume_id || "");
+    setPkgCoverLetter(pkg.cover_letter_id || "");
+    setPkgPortfolioIds(pkg.portfolio_ids?.join(",") || "");
+  }
+
+  async function handleSavePackage(e) {
+    e.preventDefault();
+
+    const payload = {
+      name: pkgName || null,
+      description: pkgDescription || null,
+      resume_id: pkgResume,
+      cover_letter_id: pkgCoverLetter || null,
+      portfolio_ids: pkgPortfolioIds
+        ? pkgPortfolioIds.split(",").map((x) => x.trim())
+        : [],
+      status: "draft"
+    };
+
+    try {
+      if (editingPackageId) {
+        await ApplicationWorkflowAPI.updatePackage(editingPackageId, payload);
+      } else {
+        await ApplicationWorkflowAPI.createPackage(payload);
+      }
+      resetPackageForm();
+      loadAll();
+    } catch (err) {
+      console.error("Save package error:", err);
+    }
+  }
+
+  async function handleDeletePackage(id) {
+    if (!window.confirm("Delete this package?")) return;
+    await ApplicationWorkflowAPI.deletePackage(id);
+    loadAll();
+  }
+
+  async function handleUsePackage(id) {
+    // Find the package to check its quality score
+    const pkg = packages.find(p => p._id === id || p.uuid === id);
+
+    if (!pkg) {
+      alert("Package not found");
+      return;
+    }
+
+    // Check if package has been analyzed
+    if (!pkg.lastScore && pkg.lastScore !== 0) {
+      const shouldContinue = window.confirm(
+        "⚠️ This package hasn't been analyzed yet.\n\n" +
+        "It's recommended to analyze the package quality before using it.\n\n" +
+        "Do you want to use it anyway?"
+      );
+
+      if (!shouldContinue) {
+        return;
+      }
+    }
+
+    // Check if score meets minimum threshold (70)
+    const minimumThreshold = 70;
+    if (pkg.lastScore !== undefined && pkg.lastScore !== null && pkg.lastScore < minimumThreshold) {
+      alert(
+        `❌ Quality Score Below Threshold\n\n` +
+        `This package scored ${pkg.lastScore}/100, which is below the minimum required score of ${minimumThreshold}.\n\n` +
+        `Please improve your application materials and re-analyze before using this package.\n\n` +
+        `Suggestions:\n` +
+        `• Review the analysis feedback\n` +
+        `• Address high-priority improvements\n` +
+        `• Re-analyze after making changes`
+      );
+      return;
+    }
+
+    // If score is acceptable or user confirmed despite no analysis, proceed
+    await ApplicationWorkflowAPI.markPackageUsed(id);
+    loadAll();
+  }
+
+  async function bulkApply() {
+    if (!bulkPackageId || selectedJobIds.length === 0) {
+      return alert("Select package + jobs");
+    }
+
+    // Validate package quality score before bulk apply
+    const pkg = packages.find(p => p._id === bulkPackageId || p.uuid === bulkPackageId);
+
+    if (!pkg) {
+      alert("Selected package not found");
+      return;
+    }
+
+    // Check if package has been analyzed
+    if (!pkg.lastScore && pkg.lastScore !== 0) {
+      const shouldContinue = window.confirm(
+        "⚠️ This package hasn't been analyzed yet.\n\n" +
+        "It's strongly recommended to analyze the package quality before bulk applying to multiple jobs.\n\n" +
+        "Do you want to continue anyway?"
+      );
+
+      if (!shouldContinue) {
+        return;
+      }
+    }
+
+    // Check if score meets minimum threshold (70)
+    const minimumThreshold = 70;
+    if (pkg.lastScore !== undefined && pkg.lastScore !== null && pkg.lastScore < minimumThreshold) {
+      alert(
+        `❌ Quality Score Below Threshold\n\n` +
+        `This package scored ${pkg.lastScore}/100, which is below the minimum required score of ${minimumThreshold}.\n\n` +
+        `Cannot bulk apply with a low-quality package. Please improve your application materials and re-analyze.\n\n` +
+        `You're about to apply to ${selectedJobIds.length} job(s). Using a low-quality package could harm your chances.`
+      );
+      return;
+    }
+
+    await ApplicationWorkflowAPI.bulkApply({
+      job_ids: selectedJobIds,
+      package_id: bulkPackageId
+    });
+
+    updateChecklist(selectedJobIds, {
+      package: true,
+      submitted: true
+    });
+
+    loadAll();
+  }
+
+  /* -------------------------- SCHEDULE ACTIONS --------------------------- */
+  async function createSchedule(e) {
+    e.preventDefault();
+
+    // Validate package quality score before scheduling
+    const pkg = packages.find(p => p._id === schedulePackageId || p.uuid === schedulePackageId);
+
+    if (!pkg) {
+      alert("Selected package not found");
+      return;
+    }
+
+    // Check if package has been analyzed
+    if (!pkg.lastScore && pkg.lastScore !== 0) {
+      const shouldContinue = window.confirm(
+        "⚠️ This package hasn't been analyzed yet.\n\n" +
+        "It's recommended to analyze the package quality before scheduling.\n\n" +
+        "Do you want to schedule it anyway?"
+      );
+
+      if (!shouldContinue) {
+        return;
+      }
+    }
+
+    // Check if score meets minimum threshold (70)
+    const minimumThreshold = 70;
+    if (pkg.lastScore !== undefined && pkg.lastScore !== null && pkg.lastScore < minimumThreshold) {
+      alert(
+        `❌ Quality Score Below Threshold\n\n` +
+        `This package scored ${pkg.lastScore}/100, which is below the minimum required score of ${minimumThreshold}.\n\n` +
+        `Cannot schedule with a low-quality package. Please improve your application materials and re-analyze before scheduling.`
+      );
+      return;
+    }
+
+    const payload = {
+      job_id: scheduleJobId,
+      package_id: schedulePackageId,
+      scheduled_time: new Date(scheduleTime).toISOString(),
+      submission_method: "manual"
+    };
+
+    await ApplicationWorkflowAPI.createSchedule(payload);
+    updateChecklist([scheduleJobId], { scheduled: true });
+
+    setScheduleJobId("");
+    setSchedulePackageId("");
+    setScheduleTime("");
+
+    loadAll();
+  }
+
+  async function cancelSchedule(id, job_id) {
+    await ApplicationWorkflowAPI.cancelSchedule(id);
+    updateChecklist([job_id], { scheduled: false });
+    loadAll();
+  }
+
+  /* -------------------------- TEMPLATE ACTIONS --------------------------- */
+  async function createTemplate(e) {
+    e.preventDefault();
+
+    await ApplicationWorkflowAPI.createTemplate({
+      name: templateTitle,
+      category: templateCategory,
+      content: templateBody
+    });
+
+    setTemplateTitle("");
+    setTemplateBody("");
+    setTemplateCategory("screening_questions");
+
+    loadAll();
+  }
+
+  async function deleteTemplate(id) {
+    await ApplicationWorkflowAPI.deleteTemplate(id);
+    loadAll();
+  }
+
+  /* -------------------------- RENDER --------------------------- */
+
+  if (loading) return <div className="p-5 text-center">Loading...</div>;
+
+  return (
+    <div className="container py-4">
+      {/* Tabs */}
+      <ul className="nav nav-tabs mb-4">
+        {["packages", "schedules", "templates", "rules"].map((tab) => (
+          <li className="nav-item" key={tab}>
+            <button
+              className={`nav-link ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab.toUpperCase()}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {/* Tab Content */}
+      {activeTab === "packages" && (
+  <PackagesTab
+    packages={packages}
+    resumes={resumes}
+    coverLetters={coverLetters}
+    jobs={jobs}
+    checklist={checklist}
+    selectedJobIds={selectedJobIds}
+    pkgName={pkgName}
+    pkgDescription={pkgDescription}
+    pkgResume={pkgResume}
+    pkgCoverLetter={pkgCoverLetter}
+    pkgPortfolioIds={pkgPortfolioIds}
+    bulkPackageId={bulkPackageId}
+    editingPackageId={editingPackageId}
+    setPkgName={setPkgName}
+    setPkgDescription={setPkgDescription}
+    setPkgResume={setPkgResume}
+    setPkgCoverLetter={setPkgCoverLetter}
+    setPkgPortfolioIds={setPkgPortfolioIds}
+    setBulkPackageId={setBulkPackageId}
+    resetPackageForm={resetPackageForm}
+    startEditPackage={startEditPackage}
+    handleSavePackage={handleSavePackage}
+    handleDeletePackage={handleDeletePackage}
+    handleUsePackage={handleUsePackage}
+    bulkApply={bulkApply}
+    toggleJob={toggleJob}
+    applicationWorkflowAPI={ApplicationWorkflowAPI}
+  />
+)}
+
+      {activeTab === "schedules" && (
+        <SchedulesTab
+          {...{
+            schedules,
+            jobs,
+            packages,
+            scheduleJobId,
+            schedulePackageId,
+            scheduleTime,
+            setScheduleJobId,
+            setSchedulePackageId,
+            setScheduleTime,
+            createSchedule,
+            cancelSchedule
+          }}
+        />
+      )}
+
+      {activeTab === "templates" && (
+        <TemplatesTab
+          {...{
+            templates,
+            templateTitle,
+            templateCategory,
+            templateBody,
+            templatePreview,
+            setTemplateTitle,
+            setTemplateCategory,
+            setTemplateBody,
+            setTemplatePreview,
+            createTemplate,
+            deleteTemplate
+          }}
+        />
+      )}
+
+      {/* ================= AUTOMATION RULES ================= */}
+    {activeTab === "rules" && (
+        <AutomationRules />
+    )}
+
+    </div>
+  );
+}

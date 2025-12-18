@@ -1,0 +1,33 @@
+/* RecentChanges.css */
+
+.recent-changes-wrapper {
+  background-color: #E5E9EC;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #D1D5DB;
+  /* Removed height: 100% to allow proper scrolling */
+}
+
+.recent-change-item {
+  padding: 4px 0;
+}
+
+.change-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: #003366;
+  margin-bottom: 4px;
+}
+
+.change-description {
+  font-size: 14px;
+  color: #4B5563;
+  line-height: 1.5;
+}
+
+.change-divider {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid #D1D5DB;
+  opacity: 1;
+}

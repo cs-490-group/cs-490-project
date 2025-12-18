@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Cover Letter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .date {
+            text-align: left;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .body {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .body p {
+            margin-bottom: 15px;
+        }
+
+        .closing {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+
+        .signature {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        /* Modern styling */
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            border-left: 5px solid #3498db;
+        }
+
+        .header p {
+            color: #7f8c8d;
+        }
+
+        .date {
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p>{{name}}</p>
+            <p>{{address}}</p>
+            <p><a href="mailto:{{email}}">{{email}}</a> | <a href="tel:{{phone}}">{{phone}}</a></p>
+        </div>
+
+        <div class="date">
+            {{date}}
+        </div>
+
+        <div class="greeting">
+            Dear Hiring Manager,
+        </div>
+
+        <div class="body">
+            <p>
+                I am excited to apply for the {{title}} role in the {{industry}} sector, bringing my {{experience_level}} experience to contribute to your team’s success. With a strong foundation in {{skills}}, I have consistently delivered high-quality solutions in fast-paced environments.
+            </p>
+            <p>
+                In my most recent position as {{latest_title}} at {{latest_company}} in {{latest_location}}, I spearheaded projects that optimized system performance and enhanced user experience. My educational background, including a {{top_degree}} in {{top_field}} from {{top_institution}}, has equipped me with a deep understanding of software development principles. Additionally, my certifications in {{certifications}} have further honed my expertise in cutting-edge technologies.
+            </p>
+            <p>
+                I am particularly drawn to this opportunity because of its alignment with my passion for innovative problem-solving and my commitment to continuous learning. I am confident that my skills and experience make me a strong candidate for this role, and I look forward to the possibility of contributing to your organization.
+            </p>
+        </div>
+
+        <div class="closing">
+            Sincerely,
+        </div>
+        <div class="signature">
+            {{name}}
+        </div>
+    </div>
+</body>
+</html>

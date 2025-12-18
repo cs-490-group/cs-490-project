@@ -1,0 +1,136 @@
+/* Custom styles for referral request modals */
+
+/* Base modal overrides for larger size */
+.modal-centered-content {
+  max-width: 95vw !important;
+  width: 95vw !important;
+  max-height: 95vh !important;
+  height: 95vh !important;
+}
+
+.modal-content {
+  max-width: 95vw !important;
+  width: 95vw !important;
+  max-height: 95vh !important;
+  height: 95vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.modal-body {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  max-height: calc(95vh - 120px) !important;
+  padding: 1.5rem !important;
+}
+
+.modal-header {
+  flex-shrink: 0 !important;
+  padding: 1rem 1.5rem !important;
+}
+
+.modal-footer {
+  flex-shrink: 0 !important;
+  padding: 1rem 1.5rem !important;
+}
+
+/* Contact selection specific styles */
+.contact-selection-grid .contact-card {
+  min-width: 350px !important;
+  max-width: 400px !important;
+  flex: 0 0 auto !important;
+}
+
+.contact-selection-grid .g-3 {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  gap: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
+/* Job selection specific styles */
+.job-selection-grid .job-card {
+  min-width: 400px !important;
+  max-width: 500px !important;
+}
+
+/* Ensure horizontal scrolling works properly */
+.contact-selection-grid .g-3::-webkit-scrollbar {
+  height: 8px !important;
+}
+
+.contact-selection-grid .g-3::-webkit-scrollbar-track {
+  background: #f1f1f1 !important;
+  border-radius: 4px !important;
+}
+
+.contact-selection-grid .g-3::-webkit-scrollbar-thumb {
+  background: #c1c1c1 !important;
+  border-radius: 4px !important;
+}
+
+.contact-selection-grid .g-3::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .modal-centered-content {
+    max-width: 98vw !important;
+    width: 98vw !important;
+    max-height: 98vh !important;
+    height: 98vh !important;
+  }
+  
+  .modal-content {
+    max-width: 98vw !important;
+    width: 98vw !important;
+    max-height: 98vh !important;
+    height: 98vh !important;
+  }
+  
+  .contact-selection-grid .contact-card {
+    min-width: 300px !important;
+    max-width: 350px !important;
+  }
+  
+  .job-selection-grid .job-card {
+    min-width: 350px !important;
+    max-width: 400px !important;
+  }
+}
+
+/* Ensure the modal backdrop is properly sized */
+.modal-backdrop {
+  min-height: 100vh !important;
+}
+
+/* Fix for Bootstrap modal positioning */
+.modal {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.modal-dialog {
+  margin: 0 !important;
+  max-width: 95vw !important;
+  width: 95vw !important;
+}
+
+.modal-dialog-centered {
+  max-width: 95vw !important;
+  width: 95vw !important;
+}
+
+/* Override Bootstrap's default modal sizing */
+.modal-xl {
+  max-width: 95vw !important;
+  width: 95vw !important;
+}
+
+.modal-lg {
+  max-width: 95vw !important;
+  width: 95vw !important;
+}

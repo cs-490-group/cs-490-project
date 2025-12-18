@@ -1,0 +1,291 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+/* global */
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+}
+/* loading screen*/
+.profile-loading {
+    min-height: calc(100vh - 60px); /* subtract navbar height */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 85vh;
+    color: #ffffff;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.4px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(135deg, #005e9e, #00c28a);
+    animation: fadeIn 0.8s ease-in;
+}
+
+/* Spinner Animation */
+.spinner {
+    width: 55px;
+    height: 55px;
+    border: 4px solid rgba(255, 255, 255, 0.25);
+    border-top: 4px solid #ffffff;
+    border-radius: 50%;
+    animation: spin 1.1s linear infinite;
+    margin-bottom: 1.2rem;
+}
+
+/* Animations */
+@keyframes spin {
+    to {
+    transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+    opacity: 0;
+    }
+    to {
+    opacity: 1;
+    }
+}
+
+
+/* layout */
+.simple-profile {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: calc(100vh - 60px); 
+    background: linear-gradient(135deg, #005e9e, #00c28a);
+    padding-top: 80px; /* creates space below navbar */
+}
+
+/* profile card */
+.profile-card {
+    position: relative;    
+    background: #fff;
+    border-radius: 16px;
+    padding: 3rem 2.5rem;
+    max-width: 850px;
+    width: 100%;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* title */
+.profile-title {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 2.2rem;
+    color: #222;
+    text-align: center;
+    margin-bottom: 1rem;
+    letter-spacing: 0.5px;
+    position: relative;
+}
+
+.profile-title::after {
+    content: "";
+    display: block;
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, #00c28a, #005e9e);
+    margin: 10px auto 0;
+    border-radius: 2px;
+}
+
+/* Profile Photo Section  */
+.profile-photo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid transparent;
+    background: linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, #005e9e, #00c28a) border-box;
+    box-shadow: 0 0 10px rgba(0, 194, 138, 0.25);
+    margin-bottom: 1rem;
+}
+
+/* buttons */
+.upload-btn {
+    background: #00c28a;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.3rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.3s, transform 0.2s;
+    font-family: 'Poppins', sans-serif;
+    letter-spacing: 0.4px;
+}
+.upload-btn:hover {
+    background: #00a77a;
+    transform: translateY(-2px);
+}
+
+.save-btn {
+    grid-column: 1 / -1;
+    justify-self: center;
+    background: #00c28a;
+    color: #fff;
+    border: none;
+    padding: 0.9rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.3s;
+    font-family: 'Poppins', sans-serif;
+    letter-spacing: 0.4px;
+}
+.save-btn:hover {
+    background: #00a77a;
+    transform: translateY(-2px);
+}
+
+/* form */
+.profile-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem 2rem;
+}
+
+/* Label + Icon inline */
+label {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+}
+
+.label-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.4rem;
+    color: #333;
+}
+
+.label-title i {
+    color: #00c28a;
+    font-size: 0.95rem;
+}
+
+input,
+select,
+textarea {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: 0.2s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #00c28a;
+    box-shadow: 0 0 0 3px rgba(0, 194, 138, 0.15);
+    outline: none;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+/*Success & Error Messages*/
+.profile-message {
+    position: absolute;             
+    top: 0.5rem;                     
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    background: #e7f9f1;
+    color: #008b5e;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    animation: fadeInOut 3s ease forwards;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    z-index: 2;
+}
+
+.profile-message.success {
+    background-color: #e7f9f1;
+    color: #008b5e;
+    box-shadow: 0 2px 6px rgba(0, 194, 138, 0.2);
+}
+
+.profile-message.error {
+    background-color: #fdeaea;
+    color: #b30021;
+    box-shadow: 0 2px 6px rgba(179, 0, 33, 0.15);
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translate(-50%, -10px); }
+    10%, 80% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -10px); }
+}
+
+/* === Delete Account === */
+.delete-account {
+    margin-top: 2rem;
+    text-align: center;
+    color: #777;
+}
+
+.delete-account a {
+    color: #e63946;
+    text-decoration: none;
+    font-weight: 600;
+}
+.delete-account a:hover {
+    color: #e63946;
+    transform: translateY(-2px);
+}
+
+
+/* === Responsive === */
+@media (max-width: 700px) {
+    .profile-form {
+    grid-template-columns: 1fr;
+    }
+
+    .profile-card {
+    padding: 2rem 1.5rem;
+    }
+}
+
+
+
+
+

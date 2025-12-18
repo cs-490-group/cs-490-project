@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Healthcare Cover Letter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #d0f0f6, #b2e2e6); /* clean teal gradient */
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffffcc; /* semi-transparent white */
+            padding: 40px 45px;
+            border-radius: 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative shapes */
+        .container::before, .container::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+        }
+        .container::before {
+            width: 150px;
+            height: 150px;
+            background: #4dd0e1;
+            top: -50px;
+            left: -50px;
+        }
+        .container::after {
+            width: 100px;
+            height: 100px;
+            background: #0097a7;
+            bottom: -40px;
+            right: -40px;
+        }
+
+        .header {
+            text-align: right;
+            margin-bottom: 25px;
+        }
+
+        .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .date-recipient {
+            margin-bottom: 25px;
+        }
+
+        .date-recipient p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #00796b;
+        }
+
+        .greeting {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #004d40;
+        }
+
+        .body {
+            font-size: 16px;
+            color: #34495e;
+            margin-bottom: 25px;
+        }
+
+        .body p {
+            margin-bottom: 18px;
+        }
+
+        .accent {
+            color: #00796b;
+            font-weight: 600;
+        }
+
+        .skills {
+            display: inline-block;
+            background: #b2ebf2;
+            color: #00796b;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+
+        .closing {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 25px;
+            color: #004d40;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px 20px;
+            }
+            .greeting, .body, .closing {
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p>{{name}}</p>
+            <p>{{address}}</p>
+            <p>{{email}} | {{phone}}</p>
+        </div>
+
+        <div class="date-recipient">
+            <p>{{date}}</p>
+            <p>Hiring Manager<br>Healthcare Company<br>123 Healthcare Lane<br>City, State, ZIP</p>
+        </div>
+
+        <div class="greeting">
+            <p>Dear Hiring Manager,</p>
+        </div>
+
+        <div class="body">
+            <p>
+                I am excited to apply for the <span class="accent">{{title}}</span> role in the <span class="accent">{{industry}}</span> sector, bringing <span class="accent">{{experience_level}}</span> of experience in healthcare. At <span class="accent">{{latest_company}}</span> in <span class="accent">{{latest_location}}</span>, I served as <span class="accent">{{latest_title}}</span>, where I honed skills in <span class="skills">{{skills}}</span>, among others. This role allowed me to significantly contribute to patient care and operational efficiency.
+            </p>
+            <p>
+                My academic background includes a <span class="accent">{{top_degree}}</span> in <span class="accent">{{top_field}}</span> from <span class="accent">{{top_institution}}</span>, complemented by certifications in <span class="accent">{{certifications}}</span>. These qualifications, combined with my hands-on experience, have equipped me with a robust skill set to excel in fast-paced healthcare environments.
+            </p>
+            <p>
+                I am particularly drawn to this opportunity because of its alignment with my passion for improving healthcare outcomes through innovative solutions. I am confident that my expertise and dedication will make a valuable addition to your team.
+            </p>
+        </div>
+
+        <div class="closing">
+            <p>Sincerely,<br>{{name}}</p>
+        </div>
+    </div>
+</body>
+</html>

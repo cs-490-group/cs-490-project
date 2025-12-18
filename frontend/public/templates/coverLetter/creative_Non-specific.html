@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dark Mode Cover Letter</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        background-color: #000000; /* solid black background */
+        color: #ffffff; /* white text for contrast */
+        margin: 0;
+        padding: 40px 20px;
+        line-height: 1.7;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: #111111; /* slightly lighter than black for container */
+        padding: 40px 50px;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 255, 255, 0.2);
+        position: relative;
+    }
+
+    header {
+        text-align: right;
+        margin-bottom: 25px;
+        font-size: 14px;
+        color: #cccccc;
+    }
+
+    header p {
+        margin: 2px 0;
+    }
+
+    .date {
+        text-align: left;
+        margin-bottom: 25px;
+        font-size: 14px;
+        color: #00eaff; /* bright cyan for emphasis */
+        font-family: 'Roboto Mono', monospace;
+    }
+
+    .greeting {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 20px;
+        font-weight: 500;
+        color: #ff8a65; /* soft orange for a modern touch */
+        margin-bottom: 25px;
+    }
+
+    .body {
+        font-size: 16px;
+        color: #ffffff;
+        margin-bottom: 25px;
+    }
+
+    .body p {
+        margin-bottom: 18px;
+        text-align: justify;
+    }
+
+    .highlight {
+        color: #00eaff;
+        font-family: 'Roboto Mono', monospace;
+        font-weight: 500;
+    }
+
+    .closing {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 20px;
+        color: #ff8a65;
+        margin-top: 40px;
+    }
+
+    .signature {
+        margin-top: 15px;
+        font-weight: 500;
+        color: #00eaff;
+        border-left: 4px solid #00eaff;
+        padding-left: 10px;
+    }
+
+    .container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        border-radius: 12px 12px 0 0;
+        background: linear-gradient(90deg, #00eaff, #ff8a65, #00eaff);
+    }
+
+    @media (max-width: 600px) {
+        .container {
+            padding: 25px 20px;
+        }
+        .body, header, .closing, .signature {
+            font-size: 15px;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <p>{{name}}</p>
+            <p>{{address}}</p>
+            <p>{{email}} | {{phone}}</p>
+        </header>
+
+        <div class="date">
+            <p>{{date}}</p>
+        </div>
+
+        <div class="greeting">
+            Dear Hiring Manager,
+        </div>
+
+        <div class="body">
+            <p>
+                I am excited to apply for the <span class="highlight">{{title}}</span> role within the {{industry}} sector, leveraging my {{experience_level}} experience and passion for driving impactful results. With a strong foundation in <span class="highlight">{{top_field}}</span> from my {{top_degree}} at {{top_institution}}, I have honed skills in <span class="highlight">{{skills}}</span> that have proven invaluable in my professional journey.
+            </p>
+            <p>
+                During my tenure as <span class="highlight">{{latest_title}}</span> at <span class="highlight">{{latest_company}}</span> in {{latest_location}}, I successfully led initiatives that improved operational efficiency by 20% and enhanced team collaboration. My ability to adapt and excel in dynamic environments, combined with my <span class="highlight">{{certifications}}</span>, positions me as a strong candidate for this role.
+            </p>
+            <p>
+                I am particularly drawn to this opportunity because of its alignment with my career aspirations and the innovative culture of your organization. I am confident that my unique blend of technical expertise, creative problem-solving, and dedication to continuous learning will contribute to the success of your team.
+            </p>
+        </div>
+
+        <div class="closing">
+            Sincerely,
+        </div>
+
+        <div class="signature">
+            {{name}}
+        </div>
+    </div>
+</body>
+</html>

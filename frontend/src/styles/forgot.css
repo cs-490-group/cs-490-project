@@ -1,0 +1,79 @@
+/* navbar at the top*/
+.forgot-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #004d7a, #008793, #00bf72);
+}
+
+/* centers the card vertically */
+.forgot-page {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: "Segoe UI", sans-serif;
+}
+
+.forgot-card {
+    background: #ffffff;
+    border-radius: 1rem;
+    padding: 2.5rem 2rem;
+    width: 400px;
+    text-align: center;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* logo */
+.login-logo-img {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+}
+
+.forgot-card h2 {
+    color: #004d7a;
+}
+
+.forgot-card p {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}
+
+
+.Reset input {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #ccc;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.Reset input:focus {
+    border-color: #00bf72;
+    box-shadow: 0 0 5px rgba(0, 191, 114, 0.4);
+    outline: none;
+}
+
+/* submit button */
+.Reset input[type="submit"] {
+    background: #00bf72;
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    margin-top: 0.5rem;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.Reset input[type="submit"]:hover {
+    background: #00a763;
+}
+
+/* able to minimize */
+@media (max-width: 500px) {
+    .forgot-card {
+    width: 90%;
+    padding: 2rem 1.5rem;
+    }
+}

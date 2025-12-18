@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casual Marketing Cover Letter</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Playfair+Display:wght@600&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.7;
+            color: #333;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            padding: 40px 20px;
+        }
+
+        .container {
+            background: #fff;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 50px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            animation: fadeIn 1.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            text-align: right;
+            margin-bottom: 25px;
+            color: #555;
+        }
+
+        .header p {
+            margin: 2px 0;
+            font-size: 14px;
+        }
+
+        .date {
+            text-align: left;
+            margin-bottom: 25px;
+            color: #777;
+            font-size: 14px;
+        }
+
+        .greeting {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            color: #222;
+            margin-bottom: 25px;
+        }
+
+        .body {
+            color: #444;
+            font-size: 16px;
+        }
+
+        .body p {
+            margin-bottom: 18px;
+            text-align: justify;
+        }
+
+        .highlight {
+            color: #e67e22;
+            font-weight: 600;
+        }
+
+        .closing {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            color: #444;
+            margin-top: 40px;
+        }
+
+        .signature {
+            margin-top: 15px;
+            font-weight: 500;
+            color: #333;
+            border-left: 4px solid #e67e22;
+            padding-left: 10px;
+        }
+
+        /* Subtle hover accent for interactive feel */
+        .container:hover {
+            box-shadow: 0 10px 40px rgba(230, 126, 34, 0.2);
+            transition: all 0.4s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p>{{name}}</p>
+            <p>{{address}}</p>
+            <p>{{email}} | {{phone}}</p>
+        </div>
+
+        <div class="date">
+            <p>{{date}}</p>
+        </div>
+
+        <div class="greeting">
+            Dear Hiring Manager,
+        </div>
+
+        <div class="body">
+            <p>
+                I’m excited to apply for the <span class="highlight">{{title}}</span> role in the {{industry}} sector. With {{experience_level}} of experience, I’ve honed skills in {{skills}} that I believe align perfectly with your team’s goals. During my time as <span class="highlight">{{latest_title}}</span> at {{latest_company}} in {{latest_location}}, I successfully [insert achievement], demonstrating my ability to deliver results in dynamic environments.
+            </p>
+            <p>
+                My educational background, including a {{top_degree}} in {{top_field}} from {{top_institution}}, has equipped me with a strong foundation in strategic marketing and creative execution. My certifications in {{certifications}} further strengthen my ability to approach challenges with analytical insight and innovative thinking.
+            </p>
+            <p>
+                What excites me most about this opportunity is the chance to bring my passion for {{industry}} and proven expertise in [insert key skill] to your organization. I’d love the opportunity to discuss how my experience can contribute to your team’s continued success.
+            </p>
+        </div>
+
+        <div class="closing">
+            Sincerely,
+        </div>
+
+        <div class="signature">
+            {{name}}
+        </div>
+    </div>
+</body>
+</html>

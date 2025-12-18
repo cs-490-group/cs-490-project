@@ -1,0 +1,93 @@
+/* background*/
+.register-page {
+  background: linear-gradient(135deg, #004d7a, #008793, #00bf72);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* form */
+.register-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 2.5rem 2rem;
+  width: 420px;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.register-card h2 {
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #004d7a;
+}
+
+.register-card p {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+.Register input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.Register input:focus {
+  border-color: #00bf72;
+  box-shadow: 0 0 5px rgba(0, 191, 114, 0.4);
+  outline: none;
+}
+
+/* submit button*/
+.Register input[type="submit"] {
+  background: #00bf72;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.Register input[type="submit"]:hover {
+  background: #00a763;
+}
+
+/* the authetification section */
+.oauth-buttons {
+  margin-top: 1rem;
+}
+
+.oauth-buttons button {
+  width: 100%;
+  padding: 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.oauth-buttons button:hover {
+  background: #f1f1f1;
+}
+
+/* more styling */
+.google-login {
+  margin-bottom: 0.75rem;
+}
+
+/* able to minimize */
+@media (max-width: 500px) {
+  .register-card {
+    width: 90%;
+    padding: 2rem 1.5rem;
+  }
+}

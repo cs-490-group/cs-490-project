@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formal Cover Letter - Cybersecurity</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      color: #333;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 40px 20px;
+      line-height: 1.7;
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 45px;
+      border-radius: 12px;
+      border: 1px solid #e1e5ec;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .container::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 4px;
+      width: 100%;
+      background: linear-gradient(90deg, #0077ff, #00eaff);
+    }
+
+    .header {
+      text-align: right;
+      margin-bottom: 25px;
+    }
+
+    .header p {
+      margin: 3px 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .date {
+      text-align: left;
+      margin-bottom: 25px;
+      font-size: 14px;
+      color: #0077ff;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .greeting {
+      font-size: 18px;
+      margin-bottom: 25px;
+      color: #111;
+      font-weight: 600;
+    }
+
+    .body {
+      font-size: 16px;
+      margin-bottom: 25px;
+      color: #333;
+      text-align: justify;
+    }
+
+    .body p {
+      margin-bottom: 18px;
+    }
+
+    .closing {
+      font-size: 16px;
+      color: #333;
+      margin-top: 25px;
+    }
+
+    .signature {
+      margin-top: 25px;
+      font-size: 16px;
+      color: #0077ff;
+      font-weight: 600;
+    }
+
+    .signature p {
+      margin: 5px 0;
+    }
+
+    .accent {
+      color: #0077ff;
+      font-family: 'Fira Code', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 25px;
+      }
+      .body, .header, .signature, .closing {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <p>{{name}}</p>
+      <p>{{address}}</p>
+      <p>{{email}} | {{phone}}</p>
+    </div>
+
+    <div class="date">
+      <p>{{date}}</p>
+    </div>
+
+    <div class="greeting">
+      <p>Dear Hiring Manager,</p>
+    </div>
+
+    <div class="body">
+      <p>
+        I am writing to express my interest in the {{title}} position within the {{industry}} sector. With {{experience_level}} of experience in cybersecurity, I have developed a strong foundation in safeguarding digital assets and mitigating risks. My expertise includes {{skills}}, which I have honed through hands-on experience and continuous learning.
+      </p>
+      <p>
+        In my most recent role as {{latest_title}} at {{latest_company}} in {{latest_location}}, I successfully led initiatives to enhance network security and incident response protocols. My academic background, including a {{top_degree}} in {{top_field}} from {{top_institution}}, has provided me with a deep understanding of cybersecurity principles and practices. Additionally, I hold certifications such as {{certifications}}, which further validate my commitment to excellence in this field.
+      </p>
+      <p>
+        I am particularly drawn to this opportunity because of the company’s reputation for innovation and its dedication to protecting critical infrastructure. I am confident that my skills, experience, and passion for cybersecurity align with the goals of your team, and I am eager to contribute to your ongoing success.
+      </p>
+    </div>
+
+    <div class="closing">
+      <p>Thank you for considering my application. I look forward to the opportunity to discuss how my background and skills can contribute to your organization.</p>
+    </div>
+
+    <div class="signature">
+      <p class="accent">Sincerely,</p>
+      <p>{{name}}</p>
+    </div>
+  </div>
+</body>
+</html>

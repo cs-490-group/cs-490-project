@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formal Cover Letter</title>
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            color: #333;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .date {
+            text-align: left;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .body {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .closing {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .signature {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p>{{name}}</p>
+            <p>{{address}}</p>
+            <p>{{email}} | {{phone}}</p>
+        </div>
+        <div class="date">
+            {{date}}
+        </div>
+        <div class="greeting">
+            Dear Hiring Manager,
+        </div>
+        <div class="body">
+            <p>
+                I am writing to express my interest in the {{title}} role within the {{industry}} sector. With {{experience_level}} of experience, I have developed a strong foundation in areas such as {{skills}}. My most recent position as {{latest_title}} at {{latest_company}} in {{latest_location}} allowed me to refine my expertise in [specific area related to the role].
+            </p>
+            <p>
+                During my tenure at {{latest_company}}, I successfully [specific achievement or responsibility], which directly contributed to [quantifiable result or impact]. Additionally, my educational background in {{top_field}} from {{top_institution}}, where I earned my {{top_degree}}, has equipped me with a robust theoretical understanding that complements my practical experience. I have also obtained certifications in {{certifications}}, further enhancing my skill set and industry knowledge.
+            </p>
+            <p>
+                I am particularly drawn to [specific aspect of the company or role] and am confident that my combination of skills, experience, and education makes me a strong candidate for this position. I would welcome the opportunity to discuss how my background aligns with the needs of your team.
+            </p>
+        </div>
+        <div class="closing">
+            Sincerely,
+        </div>
+        <div class="signature">
+            {{name}}
+        </div>
+    </div>
+</body>
+</html>
