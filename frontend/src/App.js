@@ -90,6 +90,9 @@ const LinkedInCallback = lazy(() => import("./pages/callback/linkedin"));
 const LeetCodeDetails = lazy(() => import("./pages/LeetCodeDetails"));
 const HackerRankDetails = lazy(() => import("./pages/HackerRankDetails"));
 const CodecademyDetails = lazy(() => import("./pages/CodecademyDetails"));
+const GitHubIntegration = lazy(() => import('./pages/GitHub/GitHubIntegration'));
+
+
 
 // inside your router
 
@@ -160,7 +163,11 @@ export function App() {
                 <Route path="/education" element={<EducationList />} />
                 <Route path="/certifications" element={<CertificationList />} />
                 <Route path="/projects" element={<ProjectsList />} />
-                <Route path="/jobs" element={<JobsList />} />
+                
+              <Route path="/github" element={<GitHubIntegration />} />
+
+
+              <Route path="/jobs" element={<JobsList />} />
                 <Route path="/offers" element={<OffersPage />} />
                 <Route path="/resumes" element={<ResumeList />} />
                 <Route path="/resumes/templates" element={<TemplateLibraryPage />} />
