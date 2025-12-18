@@ -57,6 +57,7 @@ from routes.time_tracking import time_tracking_router
 from routes.performance_analytics import performance_analytics_router
 from routes.career_simulation import career_simulation_router
 from routes.githubAPI import github_router
+from routes.salaryBLS import salaryBLS_router
 from services.referral_reminder_scheduler import start_referral_reminder_scheduler, stop_referral_reminder_scheduler
 from services.referral_followup_scheduler import start_referral_followup_scheduler, stop_referral_followup_scheduler
 from services.event_reminder_scheduler import start_event_reminder_scheduler, stop_event_reminder_scheduler
@@ -187,6 +188,7 @@ app.include_router(referral_message_router, prefix=api_prefix)
 app.include_router(salary_research_router, prefix=api_prefix)
 app.include_router(analytics_router)
 app.include_router(github_router, prefix=api_prefix)
+app.include_router(salaryBLS_router, prefix=api_prefix)
 
 
 

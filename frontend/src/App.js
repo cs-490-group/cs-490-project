@@ -93,7 +93,6 @@ const CodecademyDetails = lazy(() => import("./pages/CodecademyDetails"));
 const GitHubIntegration = lazy(() => import('./pages/GitHub/GitHubIntegration'));
 
 
-
 // inside your router
 
 
