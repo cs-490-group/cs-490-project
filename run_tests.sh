@@ -71,7 +71,7 @@ if [ "$BACKEND_ONLY" = false ]; then
     
     if [ "$COVERAGE" = true ]; then
         echo -e "${YELLOW}Running with coverage report...${NC}"
-        npm run test:frontend-coverage
+        npm run test:frontend-coverage-gate:sprint4
     else
         if [ "$VERBOSE" = true ]; then
             npm run test:frontend -- --verbose
@@ -103,7 +103,7 @@ if [ "$FRONTEND_ONLY" = false ]; then
     
     if [ "$COVERAGE" = true ]; then
         echo -e "${YELLOW}Running all backend tests with coverage...${NC}"
-        python -m pytest test_backend.py test_backend_comprehensive.py test_backend_extended.py --cov=. --cov-report=term-missing -v
+        python -m pytest test_sprint4_automation_engine.py test_sprint4_ai.py --cov=services.automation_engine --cov=services.application_workflow_scheduler --cov=routes.AI --cov=mongo.AI_dao --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=90 -v
     else
         if [ "$VERBOSE" = true ]; then
             python -m pytest test_backend.py test_backend_comprehensive.py test_backend_extended.py -vv --tb=long

@@ -15,6 +15,8 @@ class MockTestClient:
         return Mock(status_code=200, json=lambda: {})
     
     def post(self, path, **kwargs):
+        if path == "/api/auth/logout":
+            return Mock(status_code=204, json=lambda: {})
         return Mock(status_code=201, json=lambda: {})
     
     def put(self, path, **kwargs):

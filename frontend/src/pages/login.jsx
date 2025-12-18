@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from "react-hook-form";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useFlash } from "../context/flashContext";
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from "jwt-decode";
@@ -19,8 +19,91 @@ function Login() {
   } = useForm();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { flash, showFlash } = useFlash();
   const { instance } = useMsal();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const linkedinState = params.get('linkedin_state');
+    const error = params.get('error');
+
+    if (error) {
+      showFlash(decodeURIComponent(error), 'error');
+    }
+
+    if (!linkedinState) return;
+
+    const storageKey = `linkedin_oauth_result:${linkedinState}`;
+
+    const run = async () => {
+      let payload;
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        if (raw) {
+          payload = JSON.parse(raw);
+        }
+      } catch (e) {
+      }
+
+      if (!payload) {
+        return;
+      }
+
+      if (payload.error) {
+        showFlash('LinkedIn login cancelled or failed', 'error');
+        try {
+          window.localStorage.removeItem(storageKey);
+        } catch (e) {
+        }
+        return;
+      }
+
+      if (!payload.code) {
+        showFlash('LinkedIn login failed', 'error');
+        return;
+      }
+
+      try {
+        const res = await AuthAPI.loginLinkedIn({ code: payload.code });
+
+        if (res.status !== 200) {
+          showFlash(res.data?.detail || 'LinkedIn login failed', 'error');
+          return;
+        }
+
+        localStorage.setItem('session', res.data.session_token);
+        localStorage.setItem('uuid', res.data.uuid);
+        localStorage.setItem('email', res.data.email || '');
+
+        const teamId = await loadUserTeam(res.data.uuid);
+
+        if (teamId && res.data.uuid) {
+          await logUserLogin(teamId, res.data.uuid);
+        }
+
+        if (teamId) {
+          await acceptPendingInvite(teamId, res.data.email, res.data.uuid);
+        }
+
+        if (!res.data.has_password) {
+          navigate('/set-password');
+          return;
+        }
+
+        navigate('/dashboard');
+      } catch (e) {
+        showFlash(e?.response?.data?.detail || 'LinkedIn login failed', 'error');
+      } finally {
+        try {
+          window.localStorage.removeItem(storageKey);
+        } catch (e) {
+        }
+      }
+    };
+
+    run();
+  }, [location.search, navigate, showFlash]);
 
   // Helper function to log user login activity
   const logUserLogin = async (teamId, uuid) => {
@@ -253,79 +336,122 @@ function Login() {
       const LINKEDIN_CLIENT_ID = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "your_linkedin_client_id";
       const REDIRECT_URI = `${window.location.origin}/callback/linkedin`;
       const SCOPE = "openid profile email";
+
+      const oauthState = (window.crypto && window.crypto.randomUUID)
+        ? window.crypto.randomUUID()
+        : String(Date.now()) + String(Math.random()).slice(2);
+
+      const storageKey = `linkedin_oauth_result:${oauthState}`;
       
       // Construct LinkedIn OAuth URL
-      const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPE)}`;
+      const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPE)}&state=${encodeURIComponent(oauthState)}`;
       
       // Open popup for LinkedIn authorization
       const popup = window.open(authUrl, "linkedinOAuth", "width=600,height=600");
+
+      if (!popup) {
+        window.location.assign(authUrl);
+        return;
+      }
       
       // Listen for message from popup
       let checkPopup;
       let timeout;
+
+      const processLinkedInResult = async ({ code, error, state }) => {
+        if (state && state !== oauthState) return;
+        clearInterval(checkPopup);
+        clearTimeout(timeout);
+        window.removeEventListener("message", handleMessage);
+        window.removeEventListener("storage", handleStorage);
+        if (pollLocalStorage) {
+          clearInterval(pollLocalStorage);
+        }
+
+        try {
+          window.localStorage.removeItem(storageKey);
+        } catch (e) {
+        }
+
+        if (error) {
+          showFlash("LinkedIn login cancelled or failed", "error");
+          if (popup && !popup.closed) popup.close();
+          return;
+        }
+
+        if (code) {
+          try {
+            const res = await AuthAPI.loginLinkedIn({ code });
+
+            if (res.status !== 200) {
+              showFlash(res.data?.detail || "LinkedIn login failed", "error");
+              if (popup && !popup.closed) popup.close();
+              return;
+            }
+
+            localStorage.setItem("session", res.data.session_token);
+            localStorage.setItem("uuid", res.data.uuid);
+            localStorage.setItem("email", res.data.email || "");
+
+            const teamId = await loadUserTeam(res.data.uuid);
+
+            if (teamId && res.data.uuid) {
+              await logUserLogin(teamId, res.data.uuid);
+            }
+
+            if (teamId) {
+              await acceptPendingInvite(teamId, res.data.email, res.data.uuid);
+            }
+
+            if (!res.data.has_password) {
+              navigate("/set-password");
+              if (popup && !popup.closed) popup.close();
+              return;
+            }
+
+            navigate("/dashboard");
+            if (popup && !popup.closed) popup.close();
+          } catch (error) {
+            console.error("LinkedIn login error:", error);
+            showFlash(error?.response?.data?.detail || "LinkedIn login failed", "error");
+            if (popup && !popup.closed) popup.close();
+          }
+        }
+      };
       
       const handleMessage = async (event) => {
         if (event.origin !== window.location.origin) return;
         
         if (event.data.type === "LINKEDIN_AUTH_SUCCESS") {
-          const { code, error } = event.data;
-          
-          // Clean up event listeners and timers
-          clearInterval(checkPopup);
-          clearTimeout(timeout);
-          window.removeEventListener("message", handleMessage);
-          
-          if (error) {
-            showFlash("LinkedIn login cancelled or failed", "error");
-            popup.close();
-            return;
+          await processLinkedInResult(event.data || {});
+        }
+      };
+
+      const handleStorage = async (event) => {
+        if (event.key !== storageKey || !event.newValue) return;
+        try {
+          const data = JSON.parse(event.newValue);
+          if (data && data.type === "LINKEDIN_AUTH_SUCCESS") {
+            await processLinkedInResult(data);
           }
-          
-          if (code) {
-            try {
-              const res = await AuthAPI.loginLinkedIn({ code });
-              
-              if (res.status !== 200) {
-                showFlash(res.data?.detail || "LinkedIn login failed", "error");
-                popup.close();
-                return;
-              }
-              
-              localStorage.setItem("session", res.data.session_token);
-              localStorage.setItem("uuid", res.data.uuid);
-              localStorage.setItem("email", res.data.email || "");
-              
-              // Load user's team
-              const teamId = await loadUserTeam(res.data.uuid);
-              
-              // Log login activity for engagement tracking
-              if (teamId && res.data.uuid) {
-                await logUserLogin(teamId, res.data.uuid);
-              }
-              
-              // Accept invite if user has pending invitation
-              if (teamId) {
-                await acceptPendingInvite(teamId, res.data.email, res.data.uuid);
-              }
-              
-              if (!res.data.has_password) {
-                navigate("/set-password");
-                popup.close();
-                return;
-              }
-              
-              navigate("/dashboard");
-              popup.close();
-            } catch (error) {
-              console.error("LinkedIn login error:", error);
-              showFlash(error?.response?.data?.detail || "LinkedIn login failed", "error");
-              popup.close();
-            }
-          }
+        } catch (e) {
         }
       };
       
       window.addEventListener("message", handleMessage);
+      window.addEventListener("storage", handleStorage);
+
+      let pollLocalStorage = setInterval(async () => {
+        try {
+          const raw = window.localStorage.getItem(storageKey);
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          if (data && data.type === "LINKEDIN_AUTH_SUCCESS") {
+            await processLinkedInResult(data);
+          }
+        } catch (e) {
+        }
+      }, 500);
       
       // Check if popup was blocked
       checkPopup = setInterval(() => {
@@ -333,6 +459,10 @@ function Login() {
           clearInterval(checkPopup);
           clearTimeout(timeout);
           window.removeEventListener("message", handleMessage);
+          window.removeEventListener("storage", handleStorage);
+          if (pollLocalStorage) {
+            clearInterval(pollLocalStorage);
+          }
           showFlash("LinkedIn login was cancelled", "error");
         }
       }, 1000);
@@ -341,6 +471,10 @@ function Login() {
       timeout = setTimeout(() => {
         clearInterval(checkPopup);
         window.removeEventListener("message", handleMessage);
+        window.removeEventListener("storage", handleStorage);
+        if (pollLocalStorage) {
+          clearInterval(pollLocalStorage);
+        }
         if (!popup.closed) {
           popup.close();
         }
