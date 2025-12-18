@@ -82,6 +82,8 @@ import DiscoveryPage from "./pages/network/DiscoveryPage";
 import NetworkingAnalytics from "./pages/network/NetworkingAnalytics";
 import APIMetricsPage from "./pages/APIMetrics";
 import LinkedInCallback from "./pages/callback/linkedin";
+import GitHubIntegration from './pages/GitHub/GitHubIntegration';
+
 
 // inside your router
 
@@ -133,6 +135,10 @@ export function App() {
               <Route path="/education" element={<EducationList />} />
               <Route path="/certifications" element={<CertificationList />} />
               <Route path="/projects" element={<ProjectsList />} />
+              
+              <Route path="/github" element={<GitHubIntegration />} />
+
+
               <Route path="/jobs" element={<JobsList />} />
               <Route path="/offers" element={<OffersPage />} />
               <Route path="/resumes" element={<ResumeList />} />
