@@ -54,7 +54,7 @@ export default function AISuggestionPanel({
           <div className="bullets-list">
             {suggestions.generated_bullets?.map((bullet, idx) => (
               <div key={idx} className="bullet-item">
-                <input type="checkbox" id={`bullet-${idx}`} defaultChecked disabled={experienceCount === 0} />
+                <input type="checkbox" id={`bullet-${idx}`} aria-label="Select bullet point" defaultChecked disabled={experienceCount === 0} />
                 <label htmlFor={`bullet-${idx}`} className="bullet-text">
                   {bullet}
                 </label>
@@ -88,7 +88,7 @@ export default function AISuggestionPanel({
             {suggestions.suggested_skills?.map((skill, idx) => (
               <span key={idx} className="skill-badge">
                 {skill}
-                <input type="hidden" defaultValue={skill} />
+                <input type="hidden" aria-label="Skill" defaultValue={skill} />
               </span>
             ))}
           </div>
@@ -253,6 +253,7 @@ export default function AISuggestionPanel({
                             data-exp-idx={expIdx}
                             data-bullet-idx={bulletIdx}
                             data-alt-text={alt}
+                            aria-label="Select bullet point alternative"
                           />
                           <label htmlFor={`bullet-${expIdx}-${bulletIdx}-${altIdx}`} className="alternative-text">
                             {alt}

@@ -777,6 +777,7 @@ const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
             fontSize: '14px',
             boxSizing: 'border-box'
           }}
+          aria-label="Select Interview Date and Time"
         />
       </div>
 
@@ -799,6 +800,7 @@ const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
             fontSize: '14px',
             boxSizing: 'border-box'
           }}
+          aria-label="Set Interview Duration in Minutes"
         />
       </div>
 
@@ -829,6 +831,7 @@ const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
                 checked={formData.type === type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 style={{ display: 'none' }}
+                aria-label="Select Interview Type"
               />
               <div style={{ fontSize: '24px', marginBottom: '4px' }}>
                 {type === 'video' ? '🎥' : type === 'phone' ? '📞' : '🏢'}
@@ -885,6 +888,7 @@ const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
                 fontSize: '14px',
                 boxSizing: 'border-box'
               }}
+              aria-label="Enter Meeting Link"
             />
           </div>
         </>
@@ -908,6 +912,7 @@ const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
               fontSize: '14px',
               boxSizing: 'border-box'
             }}
+            aria-label="Enter Phone Number"
           />
         </div>
       )}
@@ -962,6 +967,7 @@ const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
                 fontSize: '14px',
                 boxSizing: 'border-box'
               }}
+              aria-label="Enter Interviewer Name"
             />
           </div>
           <div>
@@ -981,6 +987,7 @@ const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
                 fontSize: '14px',
                 boxSizing: 'border-box'
               }}
+              aria-label="Enter Interviewer Title"
             />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
@@ -999,6 +1006,7 @@ const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
                 fontSize: '14px',
                 boxSizing: 'border-box'
               }}
+              aria-label="Enter Interviewer Email"
             />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
@@ -1017,6 +1025,7 @@ const ScheduleInterviewModal = ({ application, onClose, onSchedule }) => {
                 fontSize: '14px',
                 boxSizing: 'border-box'
               }}
+              aria-label="Enter Interviewer Phone Number"
             />
           </div>
         </div>
