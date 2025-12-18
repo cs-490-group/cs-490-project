@@ -4,6 +4,9 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+from redis_client import redis
+
+
 # Load environment variables from mongo/.env file
 env_path = Path(__file__).parent / 'mongo' / '.env'
 load_dotenv(dotenv_path=env_path)

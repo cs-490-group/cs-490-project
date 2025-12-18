@@ -11,6 +11,8 @@ from mongo.education_dao import education_dao
 from mongo.employment_dao import employment_dao
 from mongo.profiles_dao import profiles_dao
 from mongo.match_history_dao import match_history_dao
+from redis_client import redis
+
 
 jobs_collection = db_client.get_collection(JOBS)
 
@@ -250,17 +252,63 @@ async def _get_profile(uuid: str) -> Dict[str, Any] | None:
 
 
 
-async def _get_jobs_for_matching(uuid: str, job_ids: List[str] | None = None) -> List[Dict[str, Any]]:
+async def _get_jobs_for_matching(
+    uuid: str,
+    job_ids: List[str] | None = None,
+    page: int = 1,
+    limit: int = 10
+) -> Dict[str, Any]:
     """
-    Load only the logged-in user's jobs.
+    Load paginated jobs for the logged-in user (UC-136),
+    with Redis caching.
     """
+
+    # ---------- REDIS: build cache key ----------
+    job_ids_part = ",".join(sorted(job_ids)) if job_ids else "all"
+    cache_key = f"jobs_for_matching:{uuid}:{job_ids_part}:p{page}:l{limit}"
+
+    # ---------- REDIS: try cache ----------
+    try:
+        cached = redis.get(cache_key)
+        if cached:
+            return json.loads(cached)
+    except Exception:
+        # Redis should never break the endpoint
+        pass
+
+    # ---------- MONGODB QUERY ----------
     query: Dict[str, Any] = {"uuid": uuid}
 
     if job_ids:
         query["_id"] = {"$in": [ObjectId(j) for j in job_ids]}
 
-    cursor = jobs_collection.find(query)
-    return await cursor.to_list(None)
+    skip = (page - 1) * limit
+
+    cursor = (
+        jobs_collection
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+    )
+
+    jobs = await cursor.to_list(length=limit)
+    total = await jobs_collection.count_documents(query)
+
+    result = {
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "results": jobs
+    }
+
+    # ---------- REDIS: store result ----------
+    try:
+        redis.set(cache_key, json.dumps(result, default=str), ex=300)
+    except Exception:
+        pass
+
+    return result
+
 
 
 # ------------------------

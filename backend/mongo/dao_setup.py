@@ -52,5 +52,12 @@ API_CALL_LOGS = "api_call_logs"
 API_USAGE_QUOTAS = "api_usage_quotas"
 API_FALLBACK_EVENTS = "api_fallback_events"
 
-mongo_client = AsyncMongoClient(MONGO_CONNECTION_STRING, tls = True, tlsCAFile=certifi.where())
+mongo_client = AsyncMongoClient(
+    MONGO_CONNECTION_STRING,
+    tls=True,
+    tlsCAFile=certifi.where(),
+    maxPoolSize=10,
+    minPoolSize=2,
+    serverSelectionTimeoutMS=5000
+)
 db_client = mongo_client.get_database(DATABASE_NAME)
