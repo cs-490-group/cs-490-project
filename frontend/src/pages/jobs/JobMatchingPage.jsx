@@ -28,7 +28,7 @@ export default function JobMatchingPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/matching/jobs", {
+      const res = await fetch("https://cs-490-project-production.up.railway.app/", {
         headers: {
           "Content-Type": "application/json",
           uuid,
