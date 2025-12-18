@@ -237,7 +237,11 @@ export default function OffersPage() {
                 </Col>
                 <Col md={4} className="text-end">
                     <Button
-                        variant="outline-primary"
+                        style={{
+                            backgroundColor: offers.length < 2 ? "#6c757d" : "#0066cc",
+                            borderColor: offers.length < 2 ? "#6c757d" : "#0066cc",
+                            color: "white"
+                        }}
                         onClick={() => setShowComparison(true)}
                         disabled={offers.length < 2}
                         className="me-2"

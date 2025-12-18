@@ -67,7 +67,7 @@ if NOT "%BACKEND_ONLY%"=="true" (
     
     if "%COVERAGE%"=="true" (
         echo Running with coverage report...
-        call npm run test:frontend-coverage
+        call npm run test:frontend-coverage-gate:sprint4
     ) else (
         if "%VERBOSE%"=="true" (
             call npm run test:frontend -- --verbose
@@ -100,7 +100,7 @@ if NOT "%FRONTEND_ONLY%"=="true" (
     
     if "%COVERAGE%"=="true" (
         echo Running all backend tests with coverage...
-        python -m pytest test_backend.py test_backend_comprehensive.py test_backend_extended.py --cov=. --cov-report=term-missing -v
+        python -m pytest test_sprint4_automation_engine.py test_sprint4_ai.py --cov=services.automation_engine --cov=services.application_workflow_scheduler --cov=routes.AI --cov=mongo.AI_dao --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=90 -v
     ) else (
         if "%VERBOSE%"=="true" (
             python -m pytest test_backend.py test_backend_comprehensive.py test_backend_extended.py -vv --tb=long

@@ -92,6 +92,7 @@ const LeetCodeDetails = lazy(() => import("./pages/LeetCodeDetails"));
 const HackerRankDetails = lazy(() => import("./pages/HackerRankDetails"));
 const CodecademyDetails = lazy(() => import("./pages/CodecademyDetails"));
 const GitHubIntegration = lazy(() => import('./pages/GitHub/GitHubIntegration'));
+const MaterialComparisonDashboard = lazy(() => import('./pages/materials/MaterialComparisonDashboard'));
 
 
 // inside your router
@@ -178,6 +179,9 @@ export function App() {
                 <Route path="/resumes/public/:token" element={<PublicSharePage />} />
                 <Route path="/resumes/export/:id" element={<ExportResumePage />} />
 
+                {/* Materials Comparison */}
+                <Route path="/materials/comparison" element={<MaterialComparisonDashboard />} />
+
                 {/* Interview Question Bank Routes */}
                 <Route path="/interview/question-library" element={<QuestionLibrary />} />
                 <Route path="/interview/industry/:industryId" element={<IndustryRoles />} />
@@ -223,6 +227,7 @@ export function App() {
                 <Route path="/network/analytics" element={<NetworkingAnalytics />} />
                 <Route path="/api-metrics" element={<APIMetricsPage />} />
                 <Route path="/callback/linkedin" element={<LinkedInCallback />} />
+                <Route path="/linkedin-callback" element={<LinkedInCallback />} />
               <Route path="/leetcode/:username" element={<LeetCodeDetails />} />
               <Route path="/hackerrank/:username" element={<HackerRankDetails />} />
               <Route path="/codecademy/:username" element={<CodecademyDetails />} />

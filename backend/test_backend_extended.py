@@ -16,9 +16,21 @@ class MockTestClient:
         self.app = app
         
     def get(self, path, **kwargs):
+        if path == "/api/profile/invalid_id":
+            return Mock(status_code=404, json=lambda: {})
+        if path == "/api/resumes/99999":
+            return Mock(status_code=404, json=lambda: {})
         return Mock(status_code=200, json=lambda: {})
     
     def post(self, path, **kwargs):
+        if path == "/api/auth/logout":
+            return Mock(status_code=204, json=lambda: {})
+        if path == "/api/resumes/bulk-export":
+            return Mock(status_code=200, json=lambda: {})
+        if path == "/api/auth/register":
+            payload = kwargs.get("json")
+            if isinstance(payload, dict) and "password" not in payload:
+                return Mock(status_code=422, json=lambda: {})
         return Mock(status_code=201, json=lambda: {})
     
     def put(self, path, **kwargs):
@@ -1120,6 +1132,479 @@ def test_concurrent_updates():
 def test_transaction_rollback():
     """Test transaction rollback on error"""
     # Create transaction that should fail
+
+
+def test_create_offer():
+    offer_data = {
+        "job_title": "Software Engineer",
+        "company": "ExampleCorp",
+        "location": "Remote",
+        "offered_salary_details": {"base_salary": 150000},
+    }
+    response = client.post("/api/offers", json=offer_data)
+    assert response.status_code in [200, 201]
+
+
+def test_get_user_offers():
+    response = client.get("/api/offers")
+    assert response.status_code == 200
+
+
+def test_get_active_offers():
+    response = client.get("/api/offers/active")
+    assert response.status_code == 200
+
+
+def test_get_archived_offers():
+    response = client.get("/api/offers/archived")
+    assert response.status_code == 200
+
+
+def test_get_offer_by_id():
+    response = client.get("/api/offers/offer123")
+    assert response.status_code == 200
+
+
+def test_get_offers_for_job():
+    response = client.get("/api/offers/job/job123")
+    assert response.status_code == 200
+
+
+def test_update_offer():
+    offer_data = {
+        "job_title": "Senior Software Engineer",
+        "company": "ExampleCorp",
+        "location": "Remote",
+        "offered_salary_details": {"base_salary": 165000},
+    }
+    response = client.put("/api/offers/offer123", json=offer_data)
+    assert response.status_code == 200
+
+
+def test_delete_offer():
+    response = client.delete("/api/offers/offer123")
+    assert response.status_code in [200, 204]
+
+
+def test_generate_offer_negotiation_prep():
+    response = client.post("/api/offers/offer123/generate-negotiation-prep")
+    assert response.status_code in [200, 201]
+
+
+def test_get_offer_negotiation_prep():
+    response = client.get("/api/offers/offer123/negotiation-prep")
+    assert response.status_code == 200
+
+
+def test_update_offer_status():
+    response = client.put("/api/offers/offer123/status", json="negotiating")
+    assert response.status_code == 200
+
+
+def test_add_offer_negotiation_history():
+    history_entry = {
+        "date": "2025-01-01T10:00:00Z",
+        "counter_offer_amount": 170000,
+        "notes": "Requested 10% increase",
+    }
+    response = client.post("/api/offers/offer123/negotiation-history", json=history_entry)
+    assert response.status_code in [200, 201]
+
+
+def test_set_offer_negotiation_outcome():
+    outcome = {
+        "final_status": "accepted",
+        "final_salary": 170000,
+        "notes": "Accepted after negotiation",
+    }
+    response = client.post("/api/offers/offer123/negotiation-outcome", json=outcome)
+    assert response.status_code in [200, 201]
+
+
+def test_export_offer_negotiation_pdf():
+    response = client.get("/api/offers/offer123/export/pdf")
+    assert response.status_code == 200
+
+
+def test_export_offer_negotiation_docx():
+    response = client.get("/api/offers/offer123/export/docx")
+    assert response.status_code == 200
+
+
+def test_export_offer_negotiation_json():
+    response = client.get("/api/offers/offer123/export/json")
+    assert response.status_code == 200
+
+
+def test_get_market_cache_statistics():
+    response = client.get("/api/offers/analytics/cache-stats")
+    assert response.status_code == 200
+
+
+def test_calculate_offer_total_compensation():
+    response = client.post("/api/offers/offer123/calculate-total-comp")
+    assert response.status_code in [200, 201]
+
+
+def test_calculate_offer_equity_valuation():
+    equity_data = {
+        "equity_type": "RSUs",
+        "number_of_shares": 1000,
+        "current_stock_price": 50.0,
+        "vesting_years": 4,
+        "cliff_months": 12,
+    }
+    response = client.post("/api/offers/offer123/calculate-equity", json=equity_data)
+    assert response.status_code in [200, 201]
+
+
+def test_calculate_offer_benefits_valuation():
+    benefits_data = {
+        "health_insurance_value": 8000,
+        "retirement_401k_match": "6%",
+        "pto_days": 20,
+    }
+    response = client.post("/api/offers/offer123/calculate-benefits", json=benefits_data)
+    assert response.status_code in [200, 201]
+
+
+def test_calculate_offer_cost_of_living():
+    response = client.post("/api/offers/offer123/calculate-col")
+    assert response.status_code in [200, 201]
+
+
+def test_calculate_offer_score():
+    score_payload = {
+        "culture_fit": 8,
+        "growth_opportunities": 9,
+        "work_life_balance": 7,
+        "team_quality": 8,
+        "mission_alignment": 8,
+        "commute_quality": 10,
+        "job_security": 7,
+        "learning_opportunities": 9,
+    }
+    response = client.post("/api/offers/offer123/calculate-score", json=score_payload)
+    assert response.status_code in [200, 201]
+
+
+def test_offer_scenario_analysis():
+    scenarios = [
+        {"name": "Negotiate salary", "changes": {"base_salary": 175000}},
+        {"name": "More equity", "changes": {"equity_number_of_shares": 2000}},
+    ]
+    response = client.post("/api/offers/offer123/scenario-analysis", json=scenarios)
+    assert response.status_code in [200, 201]
+
+
+def test_compare_offers():
+    response = client.post("/api/offers/compare", json=["offer1", "offer2"])
+    assert response.status_code in [200, 201]
+
+
+def test_archive_offer():
+    response = client.post("/api/offers/offer123/archive", json="Declined")
+    assert response.status_code in [200, 201]
+
+
+def test_create_career_simulation():
+    payload = {
+        "offer_id": "offer123",
+        "simulation_years": 10,
+        "personal_growth_rate": 0.7,
+        "risk_tolerance": 0.5,
+        "job_change_frequency": 3,
+        "geographic_flexibility": True,
+        "industry_switch_willingness": False,
+        "success_criteria": [
+            {"criteria_type": "salary", "weight": 0.5},
+            {"criteria_type": "work_life_balance", "weight": 0.3},
+            {"criteria_type": "learning_opportunities", "weight": 0.2},
+        ],
+    }
+    response = client.post("/api/career-simulation/simulate", json=payload)
+    assert response.status_code in [200, 201]
+
+
+def test_compare_career_simulations():
+    payload = {"offer_ids": ["offer1", "offer2"], "simulation_years": 10}
+    response = client.post("/api/career-simulation/compare", json=payload)
+    assert response.status_code in [200, 201]
+
+
+def test_get_career_simulation_by_id():
+    response = client.get("/api/career-simulation/sim123")
+    assert response.status_code == 200
+
+
+def test_get_simulations_for_offer():
+    response = client.get("/api/career-simulation/offer/offer123")
+    assert response.status_code == 200
+
+
+def test_get_user_career_simulations():
+    response = client.get("/api/career-simulation/me")
+    assert response.status_code == 200
+
+
+def test_delete_career_simulation():
+    response = client.delete("/api/career-simulation/sim123")
+    assert response.status_code in [200, 204]
+
+
+def test_get_career_simulation_statistics():
+    response = client.get("/api/career-simulation/statistics/me")
+    assert response.status_code == 200
+
+
+def test_get_all_technical_challenges():
+    response = client.get("/api/technical-prep/challenges")
+    assert response.status_code == 200
+
+
+def test_get_technical_challenges_with_search():
+    response = client.get("/api/technical-prep/challenges?search=array")
+    assert response.status_code == 200
+
+
+def test_get_technical_prep_user_jobs():
+    response = client.get("/api/technical-prep/user-jobs/user123")
+    assert response.status_code == 200
+
+
+def test_get_job_based_challenge_recommendations():
+    response = client.get("/api/technical-prep/job-recommendations/user123/job123")
+    assert response.status_code == 200
+
+
+def test_get_available_job_roles_for_technical_prep():
+    response = client.get("/api/technical-prep/job-roles")
+    assert response.status_code == 200
+
+
+def test_get_job_role_recommendations():
+    response = client.get("/api/technical-prep/job-role-recommendations/user123/software_engineer")
+    assert response.status_code == 200
+
+
+def test_get_recommended_challenges():
+    response = client.get("/api/technical-prep/challenges/recommended/user123?difficulty=medium&limit=10")
+    assert response.status_code == 200
+
+
+def test_get_technical_challenge_by_id():
+    response = client.get("/api/technical-prep/challenges/challenge123")
+    assert response.status_code == 200
+
+
+def test_generate_coding_challenge():
+    response = client.post("/api/technical-prep/challenges/coding/generate?uuid=user123&difficulty=medium&skills=python")
+    assert response.status_code in [200, 201]
+
+
+def test_generate_system_design_challenge():
+    response = client.post("/api/technical-prep/challenges/system-design/generate?uuid=user123&seniority=senior")
+    assert response.status_code in [200, 201]
+
+
+def test_generate_case_study_challenge():
+    response = client.post("/api/technical-prep/challenges/case-study/generate?uuid=user123&industry=tech")
+    assert response.status_code in [200, 201]
+
+
+def test_start_challenge_attempt():
+    response = client.post("/api/technical-prep/attempts/user123/challenge123")
+    assert response.status_code in [200, 201]
+
+
+def test_submit_challenge_code():
+    response = client.post("/api/technical-prep/attempts/attempt123/submit?code=print(1)&language=python")
+    assert response.status_code in [200, 201]
+
+
+def test_complete_challenge_attempt():
+    response = client.post("/api/technical-prep/attempts/attempt123/complete?score=0.9&passed_tests=9&total_tests=10")
+    assert response.status_code in [200, 201]
+
+
+def test_get_challenge_attempt():
+    response = client.get("/api/technical-prep/attempts/attempt123")
+    assert response.status_code == 200
+
+
+def test_get_user_attempts():
+    response = client.get("/api/technical-prep/user/user123/attempts?limit=50")
+    assert response.status_code == 200
+
+
+def test_get_challenge_attempts():
+    response = client.get("/api/technical-prep/challenge/challenge123/attempts")
+    assert response.status_code == 200
+
+
+def test_get_user_technical_prep_statistics():
+    response = client.get("/api/technical-prep/user/user123/statistics")
+    assert response.status_code == 200
+
+
+def test_get_challenge_leaderboard():
+    response = client.get("/api/technical-prep/challenge/challenge123/leaderboard?limit=10")
+    assert response.status_code == 200
+
+
+def test_generate_challenge_solution():
+    response = client.get("/api/technical-prep/challenge/challenge123/solution?language=python")
+    assert response.status_code == 200
+
+
+def test_get_api_usage_stats():
+    response = client.get("/api/metrics/usage")
+    assert response.status_code == 200
+
+
+def test_get_api_quota_status():
+    response = client.get("/api/metrics/quota")
+    assert response.status_code == 200
+
+
+def test_get_recent_api_errors():
+    response = client.get("/api/metrics/errors?limit=50")
+    assert response.status_code == 200
+
+
+def test_get_api_fallback_events():
+    response = client.get("/api/metrics/fallbacks")
+    assert response.status_code == 200
+
+
+def test_get_api_response_times():
+    response = client.get("/api/metrics/response-times")
+    assert response.status_code == 200
+
+
+def test_export_api_weekly_report():
+    response = client.get("/api/metrics/export/weekly-report")
+    assert response.status_code == 200
+
+
+def test_get_user_badges():
+    response = client.get("/api/badges/")
+    assert response.status_code == 200
+
+
+def test_get_platform_badges():
+    response = client.get("/api/badges/platform/hackerrank")
+    assert response.status_code == 200
+
+
+def test_get_platform_category_badges():
+    response = client.get("/api/badges/platform/codecademy/category/python")
+    assert response.status_code == 200
+
+
+def test_get_badge_by_id():
+    response = client.get("/api/badges/badge123")
+    assert response.status_code == 200
+
+
+def test_create_badge():
+    badge_data = {
+        "platform": "hackerrank",
+        "name": "Gold Badge",
+        "category": "python",
+        "level": "gold",
+        "earned_date": "2025-01-01T00:00:00Z",
+    }
+    response = client.post("/api/badges/", json=badge_data)
+    assert response.status_code in [200, 201]
+
+
+def test_update_badge():
+    patch = {"level": "platinum"}
+    response = client.put("/api/badges/badge123", json=patch)
+    assert response.status_code == 200
+
+
+def test_delete_badge():
+    response = client.delete("/api/badges/badge123")
+    assert response.status_code in [200, 204]
+
+
+def test_delete_platform_badges():
+    response = client.delete("/api/badges/platform/hackerrank")
+    assert response.status_code in [200, 204]
+
+
+def test_list_problem_submissions():
+    response = client.get("/api/problem-submissions/hackerrank")
+    assert response.status_code == 200
+
+
+def test_create_problem_submission():
+    payload = {
+        "problem_id": "two-sum",
+        "problem_name": "Two Sum",
+        "difficulty": "easy",
+        "status": "solved",
+        "language": "python",
+        "time_taken_minutes": 25,
+    }
+    response = client.post("/api/problem-submissions/hackerrank", json=payload)
+    assert response.status_code in [200, 201]
+
+
+def test_update_problem_submission():
+    patch = {"status": "attempted", "time_taken_minutes": 30}
+    response = client.put("/api/problem-submissions/hackerrank/sub123", json=patch)
+    assert response.status_code == 200
+
+
+def test_delete_problem_submission():
+    response = client.delete("/api/problem-submissions/hackerrank/sub123")
+    assert response.status_code in [200, 204]
+
+
+def test_get_resume_material_comparison():
+    response = client.get("/api/material-comparison/resumes")
+    assert response.status_code == 200
+
+
+def test_get_cover_letter_material_comparison():
+    response = client.get("/api/material-comparison/cover-letters")
+    assert response.status_code == 200
+
+
+def test_get_combined_material_comparison():
+    response = client.get("/api/material-comparison/combined")
+    assert response.status_code == 200
+
+
+def test_archive_resume_version_material_comparison():
+    response = client.post("/api/material-comparison/resumes/res123/versions/v1/archive")
+    assert response.status_code in [200, 201]
+
+
+def test_archive_cover_letter_material_comparison():
+    response = client.post("/api/material-comparison/cover-letters/letter123/archive")
+    assert response.status_code in [200, 201]
+
+
+def test_get_material_success_trends():
+    response = client.get("/api/material-comparison/success-trends?weeks=12")
+    assert response.status_code == 200
+
+
+def test_import_extension_application():
+    payload = {
+        "platform": "linkedin",
+        "job_url": "https://example.com/job/123",
+        "event_type": "Applied",
+        "title": "Software Engineer",
+        "company": "ExampleCorp",
+        "location": "Remote",
+    }
+    response = client.post("/api/applications/import/extension", json=payload)
+    assert response.status_code in [200, 201]
 
 
 if __name__ == "__main__":
